@@ -2,6 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Panel Torneo</title>
 
     <style>
@@ -936,6 +937,187 @@ td strong,
         padding: 12px;
     }
 
+}
+
+html, body {
+    width: 100%;
+    overflow-x: hidden;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+img {
+    max-width: 100%;
+    height: auto;
+}
+
+/* ========================= */
+/* AJUSTE REAL PARA CELULAR */
+/* ========================= */
+
+@media (max-width: 768px) {
+
+    body {
+        padding: 8px;
+        overflow-x: hidden;
+    }
+
+    .encabezado-panel {
+        flex-direction: column;
+        padding: 15px;
+        gap: 12px;
+    }
+
+    .logo-torneo {
+        width: 90px;
+        height: 90px;
+    }
+
+    .logo-central {
+        width: 220px;
+        height: auto;
+    }
+
+    .titulo-panel h1 {
+        font-size: 26px;
+    }
+
+    .pantalla-categorias {
+        padding: 15px;
+        border-radius: 18px 18px 0 0;
+    }
+
+    .titulo-app {
+        font-size: 26px;
+    }
+
+    .card-categoria {
+        padding: 14px 6px;
+        gap: 10px;
+    }
+
+    .card-logo img {
+        width: 65px;
+        height: 40px;
+    }
+
+    .card-info h2 {
+        font-size: 21px;
+    }
+
+    .categoria {
+        padding: 12px;
+    }
+
+    .bloque,
+    .grupo {
+        padding: 12px;
+        margin-top: 18px;
+    }
+
+    .boton,
+    .fase-btn,
+    .btn-volver {
+        width: 100%;
+        text-align: center;
+        font-size: 14px;
+        padding: 12px;
+        margin: 5px 0;
+    }
+
+    .grupo-botones {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 8px;
+    }
+
+    .fechas-menu {
+        display: flex;
+        overflow-x: auto;
+        gap: 8px;
+    }
+
+    .btn-fecha {
+        min-width: 120px;
+        font-size: 13px;
+        padding: 10px 14px;
+    }
+
+    .card-partido {
+        width: 100%;
+        min-width: 0;
+        max-width: 100%;
+        padding: 10px;
+        margin: 10px 0;
+    }
+
+    .partido-contenido {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+
+    .equipo-card {
+        width: 100%;
+        font-size: 14px;
+    }
+
+    .equipo-card img {
+        width: 55px;
+        height: 55px;
+    }
+
+    .marcador-card {
+        font-size: 36px;
+    }
+
+    .detalle-partido-card {
+        font-size: 13px;
+    }
+
+    .llaves {
+        display: block;
+    }
+
+    .columna-llave {
+        min-width: 0;
+        width: 100%;
+        margin-bottom: 18px;
+    }
+
+    .partido-llave {
+        padding: 10px;
+    }
+
+    table {
+        min-width: 750px;
+    }
+
+    .grupo table,
+    .bloque table {
+        display: block;
+        overflow-x: auto;
+        white-space: nowrap;
+    }
+
+    .col-jugador,
+    .col-equipo {
+        min-width: 180px;
+        font-size: 13px;
+    }
+
+    th,
+    td {
+        font-size: 12px;
+        padding: 7px;
+    }
+
+    .logo-equipo {
+        width: 38px;
+        height: 38px;
+    }
 }
     </style>
 </head>
