@@ -1166,7 +1166,7 @@ td strong,
                 <!-- EQUIPO LOCAL -->
                 <div class="equipo-card">
                     {% if item.partido.equipo_local.escudo %}
-                        <img src="{{ item.partido.equipo_local.escudo.url }}">
+                        <img src="/static/torneos/escudos/{{ item.partido.equipo_local.escudo.name|cut:'escudos/' }}">
                     {% endif %}
                     <span>{{ item.partido.equipo_local.nombre }}</span>
                 </div>
@@ -1199,7 +1199,7 @@ td strong,
                 <!-- EQUIPO VISITANTE -->
                 <div class="equipo-card">
                     {% if item.partido.equipo_visitante.escudo %}
-                        <img src="{{ item.partido.equipo_visitante.escudo.url }}">
+                        <img src="/static/torneos/escudos/{{ item.partido.equipo_visitante.escudo.name|cut:'escudos/' }}">
                     {% endif %}
                     <span>{{ item.partido.equipo_visitante.nombre }}</span>
                 </div>

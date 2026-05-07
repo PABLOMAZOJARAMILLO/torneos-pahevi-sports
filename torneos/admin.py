@@ -62,6 +62,10 @@ class PartidoAdmin(admin.ModelAdmin):
         'ajuste_puntos_local',
         'ajuste_puntos_visitante',
         'observacion_comite',
+        'goles_local_penales',
+        'goles_visitante_penales',
+        'siguiente_partido',
+        'slot_siguiente',
     )
     list_filter = ('categoria', 'grupo', 'numero_fecha', 'fase', 'estado')
     search_fields = ('equipo_local__nombre', 'equipo_visitante__nombre')

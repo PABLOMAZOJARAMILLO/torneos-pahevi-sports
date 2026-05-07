@@ -20,12 +20,12 @@ def limpiar_nombre(nombre):
 
 
 def escudo_url(equipo):
-    try:
-        if equipo and equipo.escudo:
-            return equipo.escudo.url
-    except Exception:
-        pass
-    return ""
+    if not equipo or not equipo.escudo:
+        return ""
+
+    nombre_archivo = equipo.escudo.name.split("/")[-1]
+
+    return f"/static/torneos/escudos/{nombre_archivo}"
 
 
 def url_absoluta(request, url):
