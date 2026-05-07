@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+
+<style>
+body {
+    width: 1080px;
+    margin: 0 auto;
+    padding: 0;
+    font-family: Arial, sans-serif;
+    color: white;
+    background: #020617;
+}
+
+.contenedor {
+    width: 1080px;
+    min-height: 1920px;
+    background: #020617;
+    padding-bottom: 40px;
+    box-sizing: border-box;
+}
+
+/* ENCABEZADO */
+.encabezado {
+    width: 100%;
+    height: 180px;
+    background: linear-gradient(135deg, #07111f, #14243a, #07111f);
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    padding: 18px 45px;
+    box-sizing: border-box;
+}
+
+.logo-lado {
+    width: 230px;
+    height: 125px;
+    object-fit: contain;
+}
+
+.logo-centro {
+    width: 340px;
+    height: 130px;
+    object-fit: contain;
+}
+
+.logo-derecha {
+    width: 280px;
+    height: 125px;
+    object-fit: contain;
+}
+
+/* TITULO */
+.titulo {
+    text-align: center;
+    padding: 28px 10px 22px;
+}
+
+.titulo h1 {
+    margin: 0;
+    font-size: 54px;
+    color: #22c55e;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+.titulo h2 {
+    margin: 8px 0 0;
+    font-size: 34px;
+    color: #e5e7eb;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+/* LISTA */
+.lista-partidos {
+    width: 94%;
+    margin: 0 auto;
+
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+/* TARJETA */
+.partido {
+    width: 100%;
+    margin: 0 auto 18px auto;
+
+    padding: 16px 22px 20px;
+
+    border-radius: 22px;
+
+    background: linear-gradient(145deg, #0f172a, #020617);
+
+    box-shadow:
+        0 8px 18px rgba(0,0,0,0.45),
+        0 0 0 2px rgba(34,197,94,0.20);
+
+    border: 2px solid rgba(34,197,94,0.35);
+
+    box-sizing: border-box;
+
+    position: relative;
+
+    overflow: hidden;
+}
+
+.partido::before {
+    content: "";
+
+    position: absolute;
+
+    top: 0;
+    left: 0;
+
+    width: 100%;
+    height: 5px;
+
+    background: linear-gradient(
+        90deg,
+        #22c55e,
+        #00ffcc,
+        #22c55e
+    );
+}
+
+/* BARRA SUPERIOR */
+.detalle-superior {
+    text-align: center;
+    color: #ffffff;
+    font-size: 23px;
+    font-weight: bold;
+    background: rgba(34,197,94,0.16);
+    border-radius: 14px;
+    padding: 7px 12px;
+    margin-bottom: 10px;
+    text-transform: uppercase;
+}
+
+/* GRUPO */
+.grupo {
+    text-align: center;
+    font-size: 24px;
+    font-weight: bold;
+    color: #22c55e;
+    margin-bottom: 10px;
+    text-transform: uppercase;
+}
+
+/* FILA EQUIPOS */
+.fila-partido {
+    display: grid;
+    grid-template-columns: 1fr 90px 1fr;
+    align-items: center;
+    gap: 12px;
+}
+
+/* EQUIPOS */
+.equipo {
+    text-align: center;
+    font-size: 27px;
+    font-weight: bold;
+    text-transform: uppercase;
+    color: white;
+    line-height: 1.15;
+}
+
+.equipo img {
+    width: 76px;
+    height: 76px;
+    object-fit: contain;
+    display: block;
+    margin: 0 auto 7px;
+}
+
+/* VS */
+.vs {
+    text-align: center;
+    font-size: 38px;
+    font-weight: bold;
+    color: white;
+    line-height: 1;
+}
+
+.sin-partidos {
+    width: 90%;
+    margin: 40px auto;
+    text-align: center;
+    font-size: 34px;
+    color: white;
+    background: #0f172a;
+    padding: 35px;
+    border-radius: 20px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="contenedor">
+
+    <div class="encabezado">
+        {% if logo_alcaldia %}
+            <img src="{{ logo_alcaldia }}" class="logo-lado">
+        {% endif %}
+
+        {% if logo_torneo %}
+            <img src="{{ logo_torneo }}" class="logo-centro">
+        {% endif %}
+
+        {% if logo_imcred %}
+            <img src="{{ logo_imcred }}" class="logo-derecha">
+        {% endif %}
+    </div>
+
+    <div class="titulo">
+        <h1>{{ categoria }}</h1>
+        <h2>PROGRAMACIÓN DE PARTIDOS</h2>
+    </div>
+
+    <div class="lista-partidos">
+
+        {% for p in partidos %}
+        <div class="partido">
+
+            <div class="detalle-superior">
+                {{ p.dia_semana }} {{ p.fecha }} · {{ p.hora }} · CANCHA {{ p.cancha }}
+            </div>
+
+            <div class="grupo">
+                GRUPO {{ p.grupo }}{% if p.fase and p.fase != "GRUPOS" %} - {{ p.fase }}{% endif %}
+            </div>
+
+            <div class="fila-partido">
+
+                <div class="equipo">
+                    {% if p.escudo_local %}
+                        <img src="{{ p.escudo_local }}">
+                    {% endif %}
+                    <div>{{ p.local }}</div>
+                </div>
+
+                <div class="vs">VS</div>
+
+                <div class="equipo">
+                    {% if p.escudo_visitante %}
+                        <img src="{{ p.escudo_visitante }}">
+                    {% endif %}
+                    <div>{{ p.visitante }}</div>
+                </div>
+
+            </div>
+
+        </div>
+        {% empty %}
+        <div class="sin-partidos">
+            No hay partidos programados para esta categoría.
+        </div>
+        {% endfor %}
+
+    </div>
+
+</div>
+
+</body>
+</html>

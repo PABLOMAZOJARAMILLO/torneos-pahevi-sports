@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Tarjetas</title>
+
+    <style>
+        body {
+            font-family: Arial;
+            background: #0f172a;
+            color: white;
+            padding: 20px;
+        }
+
+        h1 {
+            color: #22c55e;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            background: #1e293b;
+        }
+
+        th, td {
+            border: 1px solid #64748b;
+            padding: 8px;
+            text-align: center;
+        }
+
+        th {
+            background: #0f172a;
+            color: #22c55e;
+        }
+
+        .jugador {
+            text-align: left;
+            font-weight: bold;
+        }
+
+        .amarilla {
+            color: #fde047;
+            font-weight: bold;
+        }
+
+        .roja {
+            color: #f87171;
+            font-weight: bold;
+        }
+
+        .total {
+            font-weight: bold;
+            color: #22c55e;
+        }
+    </style>
+</head>
+
+<body>
+
+<h1>TARJETAS GENERAL</h1>
+
+<table>
+    <tr>
+        <th>#</th>
+        <th>Jugador</th>
+        <th>Equipo</th>
+
+        {% for columna in columnas %}
+            <th>{{ columna }}</th>
+        {% endfor %}
+
+        <th>Amarillas</th>
+        <th>Rojas</th>
+        <th>Total</th>
+    </tr>
+
+    {% for jugador in tabla %}
+    <tr>
+        <td>{{ forloop.counter }}</td>
+        <td class="jugador">{{ jugador.nombre }}</td>
+        <td>{{ jugador.equipo }}</td>
+
+        {% for columna in columnas %}
+            <td>
+                {% for c, datos in jugador.columnas.items %}
+                    {% if c == columna %}
+                        {% if datos.amarillas %}
+                            <span class="amarilla">A: {{ datos.amarillas }}</span>
+                        {% endif %}
+
+                        {% if datos.rojas %}
+                            <span class="roja"> R: {{ datos.rojas }}</span>
+                        {% endif %}
+                    {% endif %}
+                {% endfor %}
+            </td>
+        {% endfor %}
+
+        <td class="amarilla">{{ jugador.amarillas }}</td>
+        <td class="roja">{{ jugador.rojas }}</td>
+        <td class="total">{{ jugador.total }}</td>
+    </tr>
+    {% endfor %}
+</table>
+
+</body>
+</html>

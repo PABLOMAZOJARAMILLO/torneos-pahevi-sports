@@ -1,0 +1,1 @@
+web: gunicorn torneos_imcred.wsgi

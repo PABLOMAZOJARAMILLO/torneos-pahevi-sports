@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+
+<style>
+body {
+    margin: 0;
+    padding: 30px;
+    background: radial-gradient(circle at top, #12345a, #07111f);
+    color: white;
+    font-family: Arial;
+}
+
+.contenedor {
+    border: 3px solid #00ff66;
+    border-radius: 20px;
+    padding: 25px;
+    background: #0b1626;
+}
+
+.encabezado {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 35px;
+}
+
+.logo {
+    width: 150px;
+    height: 150px;
+    object-fit: contain;
+    background: white;
+    border-radius: 50%;
+    padding: 5px;
+}
+
+.logo-central {
+    width: 280px;
+    height: 130px;
+    object-fit: contain;
+}
+
+.titulo {
+    text-align: center;
+}
+
+h1 {
+    margin: 10px 0;
+    color: #00ff66;
+}
+
+.sub {
+    font-size: 18px;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+th {
+    background: #00ff66;
+    color: black;
+    padding: 6px;
+}
+
+td {
+    padding: 6px;
+    text-align: center;
+    border-bottom: 1px solid #2c3e50;
+}
+
+.equipo-logo {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 10px;
+    text-align: left;
+}
+
+.logo-equipo {
+    width: 34px;
+    height: 34px;
+    object-fit: contain;
+    background: white;
+    border-radius: 50%;
+    padding: 3px;
+    flex-shrink: 0;
+}
+
+.col-equipo-descarga {
+    min-width: 220px;
+    text-align: left;
+}
+
+.col-jugador {
+    min-width: 260px;
+    text-align: left;      /* 👈 clave */
+    padding-left: 12px;
+    font-weight: bold;
+}
+
+.col-jugador-descarga {
+    min-width: 260px;
+    text-align: left;
+    padding-left: 12px;
+    font-weight: bold;
+
+    font-size: 20px;
+    letter-spacing: 0.5px;
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="contenedor">
+
+<div class="encabezado">
+    <img src="{{ logo_alcaldia }}" class="logo">
+
+    <div class="titulo">
+        <img src="{{ logo_torneo }}" class="logo-central">
+        <h1>TARJETAS</h1>
+        <div class="sub">{{ categoria }}</div>
+    </div>
+
+    <img src="{{ logo_imcred }}" class="logo">
+</div>
+
+<table>
+<tr>
+<th>#</th>
+<th>Jugador</th>
+<th>Equipo</th>
+
+{% for col in datos_categoria.columnas_planilla %}
+<th>{{ col }}</th>
+{% endfor %}
+
+<th>A</th>
+<th>R</th>
+<th>Total</th>
+</tr>
+
+{% for t in datos_categoria.tarjetas_planilla %}
+<tr>
+<td>{{ forloop.counter }}</td>
+<td class="col-jugador-descarga">
+    {{ t.jugador }}
+</td>
+
+<td class="col-equipo-descarga">
+    <div class="equipo-logo">
+        {% if t.escudo %}
+            <img src="{{ t.escudo }}" class="logo-equipo">
+        {% endif %}
+        <span>{{ t.equipo }}</span>
+    </div>
+</td>
+{% for v in t.celdas %}
+<td>{{ v }}</td>
+{% endfor %}
+
+<td>{{ t.total_a }}</td>
+<td>{{ t.total_r }}</td>
+<td><b>{{ t.total }}</b></td>
+</tr>
+{% endfor %}
+
+</table>
+
+</div>
+
+</body>
+</html>

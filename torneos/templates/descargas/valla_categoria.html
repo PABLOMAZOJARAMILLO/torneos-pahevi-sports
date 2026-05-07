@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+
+<style>
+body {
+    margin: 0;
+    padding: 30px;
+    background: radial-gradient(circle at top, #12345a, #07111f);
+    color: white;
+    font-family: Arial;
+}
+
+.contenedor {
+    border: 3px solid #00ff66;
+    border-radius: 20px;
+    padding: 25px;
+    background: #0b1626;
+}
+
+.encabezado {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 35px;
+}
+
+.logo {
+    width: 150px;
+    height: 150px;
+    object-fit: contain;
+    background: white;
+    border-radius: 50%;
+    padding: 5px;
+}
+
+.logo-central {
+    width: 280px;
+    height: 130px;
+    object-fit: contain;
+}
+
+.titulo {
+    text-align: center;
+}
+
+h1 {
+    margin: 10px 0;
+    color: #00ff66;
+}
+
+.sub {
+    font-size: 18px;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+th {
+    background: #00ff66;
+    color: black;
+    padding: 6px;
+}
+
+td {
+    padding: 6px;
+    text-align: center;
+    border-bottom: 1px solid #2c3e50;
+}
+
+.equipo-logo {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 10px;
+    text-align: left;
+}
+
+.logo-equipo {
+    width: 34px;
+    height: 34px;
+    object-fit: contain;
+    background: white;
+    border-radius: 50%;
+    padding: 3px;
+    flex-shrink: 0;
+}
+
+.col-equipo-descarga {
+    min-width: 220px;
+    text-align: left;
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="contenedor">
+
+<div class="encabezado">
+    <img src="{{ logo_alcaldia }}" class="logo">
+
+    <div class="titulo">
+        <img src="{{ logo_torneo }}" class="logo-central">
+        <h1>VALLA MENOS VENCIDA</h1>
+        <div class="sub">{{ categoria }}</div>
+    </div>
+
+    <img src="{{ logo_imcred }}" class="logo">
+</div>
+
+<table>
+<tr>
+<th>#</th>
+<th>Equipo</th>
+
+{% for col in datos_categoria.columnas_planilla %}
+<th>{{ col }}</th>
+{% endfor %}
+
+<th>PJ</th>
+<th>GC</th>
+<th>Promedio</th>
+</tr>
+
+{% for v in datos_categoria.valla_planilla %}
+<tr>
+<td>{{ forloop.counter }}</td>
+
+<td class="col-equipo-descarga">
+    <div class="equipo-logo">
+        {% if v.escudo %}
+            <img src="{{ v.escudo }}" class="logo-equipo">
+        {% endif %}
+        <span>{{ v.equipo }}</span>
+    </div>
+</td>
+{% for val in v.celdas %}
+<td>{{ val }}</td>
+{% endfor %}
+
+<td>{{ v.pj }}</td>
+<td>{{ v.gc }}</td>
+<td><b>{{ v.promedio }}</b></td>
+</tr>
+{% endfor %}
+
+</table>
+
+</div>
+
+</body>
+</html>

@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body {
+            font-family: Arial;
+            background: #0f172a;
+            color: white;
+            padding: 20px;
+            width: 1200px;
+        }
+
+        .encabezado {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: white;
+    color: black;
+    padding: 10px;
+    border-radius: 10px;
+}
+
+.encabezado img {
+    height: 80px;
+    object-fit: contain;
+}
+
+        h1 {
+            text-align: center;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        th, td {
+            border: 1px solid white;
+            padding: 5px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+<div class="encabezado">
+    <img src="file:///C:/TorneosIMCRED/torneos/static/torneos/img/logo_alcaldia.png">
+
+    <div style="text-align:center;">
+        <img src="file:///C:/TorneosIMCRED/torneos/static/torneos/img/logo_torneo.png" style="height:70px;">
+        <h1>TORNEOS IMCRED</h1>
+    </div>
+
+    <img src="file:///C:/TorneosIMCRED/torneos/static/torneos/img/logo_imcred.png">
+</div>
+{% for categoria, grupos in estructura.items %}
+    <h2>{{ categoria }}</h2>
+
+    {% for grupo, datos in grupos.items %}
+        <h3>GRUPO {{ grupo }}</h3>
+
+        <table>
+            <tr>
+                <th>Equipo</th>
+                <th>PJ</th>
+                <th>PG</th>
+                <th>PE</th>
+                <th>PP</th>
+                <th>GF</th>
+                <th>GC</th>
+                <th>DG</th>
+                <th>PTS</th>
+            </tr>
+
+            {% for equipo in datos.tabla %}
+            <tr>
+                <td>{{ equipo.equipo }}</td>
+                <td>{{ equipo.pj }}</td>
+                <td>{{ equipo.pg }}</td>
+                <td>{{ equipo.pe }}</td>
+                <td>{{ equipo.pp }}</td>
+                <td>{{ equipo.gf }}</td>
+                <td>{{ equipo.gc }}</td>
+                <td>{{ equipo.dg }}</td>
+                <td>{{ equipo.pts }}</td>
+            </tr>
+            {% endfor %}
+        </table>
+    {% endfor %}
+{% endfor %}
+
+</body>
+</html>

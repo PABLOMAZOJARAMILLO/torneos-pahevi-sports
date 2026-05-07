@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Goleadores</title>
+
+    <style>
+        body {
+            font-family: Arial;
+            background: #0f172a;
+            color: white;
+            padding: 20px;
+        }
+
+        h1 {
+            color: #22c55e;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            background: #1e293b;
+        }
+
+        th, td {
+            border: 1px solid #64748b;
+            padding: 8px;
+            text-align: center;
+        }
+
+        th {
+            background: #0f172a;
+            color: #22c55e;
+        }
+
+        .jugador {
+            text-align: left;
+            font-weight: bold;
+        }
+
+        .total {
+            font-weight: bold;
+            color: #22c55e;
+        }
+    </style>
+</head>
+
+<body>
+
+<h1>GOLEADORES GENERAL</h1>
+
+<table>
+    <tr>
+        <th>#</th>
+        <th>Jugador</th>
+        <th>Equipo</th>
+
+        {% for columna in columnas %}
+            <th>{{ columna }}</th>
+        {% endfor %}
+
+        <th>Total</th>
+    </tr>
+
+    {% for jugador in tabla %}
+    <tr>
+        <td>{{ forloop.counter }}</td>
+        <td class="jugador">{{ jugador.nombre }}</td>
+        <td>{{ jugador.equipo }}</td>
+
+        {% for columna in columnas %}
+            <td>
+                {% for c, goles in jugador.columnas.items %}
+                    {% if c == columna %}
+                        {{ goles }}
+                    {% endif %}
+                {% endfor %}
+            </td>
+        {% endfor %}
+
+        <td class="total">{{ jugador.total }}</td>
+    </tr>
+    {% endfor %}
+</table>
+
+</body>
+</html>

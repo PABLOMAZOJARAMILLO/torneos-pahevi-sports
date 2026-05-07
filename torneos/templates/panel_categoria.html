@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Panel Categoría</title>
+    <style>
+        body {
+            background: #0b1220;
+            color: white;
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+
+        h1, h2 {
+            color: #00ff66;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 30px;
+            background: #142033;
+        }
+
+        th, td {
+            border: 1px solid #4b5f7a;
+            padding: 8px;
+            text-align: center;
+        }
+
+        th {
+            color: #00ff66;
+            background: #111827;
+        }
+
+        .btn {
+            background: #00c853;
+            color: black;
+            padding: 10px 18px;
+            border-radius: 20px;
+            text-decoration: none;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+<h1>Panel de Categoría</h1>
+
+<a class="btn" href="{% url 'descargar_imagen' 'SENIOR MASTER' %}">
+    Descargar imagen
+</a>
+
+<h2>Tabla de posiciones</h2>
+
+<table>
+    <tr>
+        <th>#</th>
+        <th>Equipo</th>
+        <th>PJ</th>
+        <th>PG</th>
+        <th>PE</th>
+        <th>PP</th>
+        <th>GF</th>
+        <th>GC</th>
+        <th>DG</th>
+        <th>PTS</th>
+    </tr>
+
+    {% for e in tabla %}
+    <tr>
+        <td>{{ forloop.counter }}</td>
+        <td>{{ e.equipo }}</td>
+        <td>{{ e.pj }}</td>
+        <td>{{ e.pg }}</td>
+        <td>{{ e.pe }}</td>
+        <td>{{ e.pp }}</td>
+        <td>{{ e.gf }}</td>
+        <td>{{ e.gc }}</td>
+        <td>{{ e.dg }}</td>
+        <td>{{ e.pts }}</td>
+    </tr>
+    {% empty %}
+    <tr>
+        <td colspan="10">No hay datos registrados</td>
+    </tr>
+    {% endfor %}
+</table>
+
+<h2>Goleadores</h2>
+
+<table>
+    <tr>
+        <th>#</th>
+        <th>Jugador</th>
+        <th>Goles</th>
+    </tr>
+
+    {% for g in goleadores %}
+    <tr>
+        <td>{{ forloop.counter }}</td>
+        <td>{{ g.jugador }}</td>
+        <td>{{ g.goles }}</td>
+    </tr>
+    {% empty %}
+    <tr>
+        <td colspan="3">Sin goles registrados</td>
+    </tr>
+    {% endfor %}
+</table>
+
+<h2>Tarjetas</h2>
+
+<table>
+    <tr>
+        <th>#</th>
+        <th>Jugador</th>
+        <th>Equipo</th>
+        <th>Amarillas</th>
+        <th>Rojas</th>
+    </tr>
+
+    {% for t in tarjetas %}
+    <tr>
+        <td>{{ forloop.counter }}</td>
+        <td>{{ t.jugador }}</td>
+        <td>{{ t.equipo }}</td>
+        <td>{{ t.A }}</td>
+        <td>{{ t.R }}</td>
+    </tr>
+    {% empty %}
+    <tr>
+        <td colspan="5">Sin tarjetas registradas</td>
+    </tr>
+    {% endfor %}
+</table>
+
+<h2>Valla menos vencida</h2>
+
+<table>
+    <tr>
+        <th>#</th>
+        <th>Equipo</th>
+        <th>PJ</th>
+        <th>GC</th>
+        <th>Promedio</th>
+    </tr>
+
+    {% for v in valla %}
+    <tr>
+        <td>{{ forloop.counter }}</td>
+        <td>{{ v.equipo }}</td>
+        <td>{{ v.pj }}</td>
+        <td>{{ v.gc }}</td>
+        <td>{{ v.promedio }}</td>
+    </tr>
+    {% empty %}
+    <tr>
+        <td colspan="5">Sin datos registrados</td>
+    </tr>
+    {% endfor %}
+</table>
+
+</body>
+</html>

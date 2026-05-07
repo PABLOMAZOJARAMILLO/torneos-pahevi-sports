@@ -1,0 +1,170 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Torneos IMCRED</title>
+
+    <style>
+        body {
+            font-family: Arial;
+            background: #0f172a;
+            color: white;
+            padding: 20px;
+        }
+
+        /* 🔥 ENCABEZADO */
+        .encabezado {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: white;
+            color: #0f172a;
+            padding: 15px;
+            border-radius: 15px;
+            margin-bottom: 25px;
+        }
+
+        .encabezado img {
+            height: 120px;
+            width: auto;
+        }
+
+        .titulo-encabezado {
+            text-align: center;
+        }
+
+        .logo-central {
+            height: 110px;
+            margin-bottom: 5px;
+        }
+
+        .titulo-encabezado h1 {
+            margin: 0;
+            font-size: 30px;
+        }
+
+        .titulo-encabezado p {
+            margin: 5px 0 0;
+            font-weight: bold;
+        }
+
+        h2, h3, h4 {
+            color: #22c55e;
+        }
+
+        .grupo {
+            margin-top: 20px;
+            padding: 10px;
+            background: #1e293b;
+            border-radius: 10px;
+        }
+
+        .fecha {
+            margin-top: 15px;
+            font-weight: bold;
+            color: #38bdf8;
+        }
+
+        .partido {
+            padding: 8px;
+            margin: 5px 0;
+            background: #334155;
+            border-radius: 5px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+            background: #334155;
+        }
+
+        th, td {
+            border: 1px solid #64748b;
+            padding: 6px;
+            text-align: center;
+        }
+
+        th {
+            background: #0f172a;
+            color: #22c55e;
+        }
+    </style>
+</head>
+
+<body>
+
+<!-- 🔥 ENCABEZADO CON LOS 3 LOGOS -->
+<div class="encabezado">
+    <img src="{% static 'torneos/img/logo_alcaldia.png' %}" alt="Alcaldía">
+
+    <div class="titulo-encabezado">
+        <img src="{% static 'torneos/img/logo_torneo.png' %}" class="logo-central" alt="Torneo">
+        <h1>TORNEOS IMCRED</h1>
+        <p>Resultados, fixture y tabla de posiciones</p>
+    </div>
+
+    <img src="{% static 'torneos/img/logo_imcred.png' %}" alt="IMCRED">
+</div>
+
+{% for categoria, grupos in estructura.items %}
+    <h2>{{ categoria }}</h2>
+
+    {% for grupo, datos in grupos.items %}
+        <div class="grupo">
+            <h3>GRUPO {{ grupo }}</h3>
+
+            <h4>TABLA DE POSICIONES</h4>
+
+            <table>
+                <tr>
+                    <th>Equipo</th>
+                    <th>PJ</th>
+                    <th>PG</th>
+                    <th>PE</th>
+                    <th>PP</th>
+                    <th>GF</th>
+                    <th>GC</th>
+                    <th>DG</th>
+                    <th>PTS</th>
+                </tr>
+
+                {% for equipo in datos.tabla %}
+                <tr>
+                    <td>{{ equipo.equipo }}</td>
+                    <td>{{ equipo.pj }}</td>
+                    <td>{{ equipo.pg }}</td>
+                    <td>{{ equipo.pe }}</td>
+                    <td>{{ equipo.pp }}</td>
+                    <td>{{ equipo.gf }}</td>
+                    <td>{{ equipo.gc }}</td>
+                    <td>{{ equipo.dg }}</td>
+                    <td><strong>{{ equipo.pts }}</strong></td>
+                </tr>
+                {% endfor %}
+            </table>
+
+            {% for fecha, partidos in datos.fechas.items %}
+                <div class="fecha">{{ fecha }}</div>
+
+                {% for partido in partidos %}
+                    <div class="partido">
+                        {% if partido.estado == "FINALIZADO" %}
+                            <strong>
+                                {{ partido.equipo_local }} {{ partido.goles_local }}
+                                - {{ partido.goles_visitante }} {{ partido.equipo_visitante }}
+                            </strong>
+                        {% else %}
+                            {{ partido.equipo_local }} vs {{ partido.equipo_visitante }}
+                        {% endif %}
+                        <br>
+                        <small>Estado: {{ partido.estado }}</small>
+                    </div>
+                {% endfor %}
+            {% endfor %}
+        </div>
+    {% endfor %}
+{% endfor %}
+
+</body>
+</html>

@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+
+<style>
+body {
+    margin: 0;
+    padding: 30px;
+    background: radial-gradient(circle at top, #12345a, #07111f);
+    font-family: Arial;
+    color: white;
+}
+
+.contenedor {
+    border: 3px solid #00ff66;
+    border-radius: 20px;
+    padding: 25px;
+    background: #0b1626;
+}
+
+.encabezado {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 35px;
+}
+
+.logo {
+    width: 150px;
+    height: 150px;
+    object-fit: contain;
+    background: white;
+    border-radius: 50%;
+    padding: 10px;
+}
+
+.logo-central {
+    width: 280px;
+    height: 130px;
+    object-fit: contain;
+}
+
+.titulo {
+    text-align: center;
+}
+
+h1 {
+    margin: 10px 0;
+    font-size: 36px;
+    letter-spacing: 1px;
+    color: #00ff66;
+}
+
+.sub {
+    font-size: 18px;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+th {
+    background: #00ff66;
+    color: black;
+    padding: 8px;
+}
+
+td {
+    padding: 8px;
+    border-bottom: 1px solid #2c3e50;
+    text-align: center;
+}
+
+.equipo {
+    text-align: left;
+    font-weight: bold;
+    font-size: 18px;
+}
+
+.logo-equipo {
+    width: 50px;
+    height: 50px;
+    background: white;
+    border-radius: 50%;
+    padding: 4px;
+    vertical-align: middle;
+    margin-right: 10px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="contenedor">
+
+<div class="encabezado">
+    <img src="{{ logo_alcaldia }}" class="logo">
+
+    <div class="titulo">
+        <img src="{{ logo_torneo }}" class="logo-central">
+        <h1>{{ categoria }}</h1>
+        <div class="sub">Grupo {{ grupo }}</div>
+    </div>
+
+    <img src="{{ logo_imcred }}" class="logo">
+</div>
+
+<table>
+<tr>
+<th>#</th>
+<th>Equipo</th>
+<th>PJ</th>
+<th>PG</th>
+<th>PE</th>
+<th>PP</th>
+<th>GF</th>
+<th>GC</th>
+<th>DG</th>
+<th>PTS</th>
+</tr>
+
+{% for e in datos_grupo.tabla %}
+<tr>
+<td>{{ forloop.counter }}</td>
+
+<td class="equipo" style="display:flex; align-items:center;">
+    {% if e.escudo %}
+        <img src="{{ e.escudo }}" class="logo-equipo">
+    {% endif %}
+    {{ e.equipo }}
+</td>
+
+<td>{{ e.pj }}</td>
+<td>{{ e.pg }}</td>
+<td>{{ e.pe }}</td>
+<td>{{ e.pp }}</td>
+<td>{{ e.gf }}</td>
+<td>{{ e.gc }}</td>
+<td>{{ e.dg }}</td>
+<td><b>{{ e.pts }}</b></td>
+</tr>
+{% endfor %}
+
+</table>
+
+</div>
+
+</body>
+</html>

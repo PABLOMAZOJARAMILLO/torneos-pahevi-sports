@@ -1,0 +1,1544 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Panel Torneo</title>
+
+    <style>
+    body {
+        margin: 0;
+        padding: 18px;
+        background: radial-gradient(circle at top, #10294a 0%, #07111f 45%, #020712 100%);
+        color: white;
+        font-family: Arial, sans-serif;
+        font-weight: bold;
+    }
+
+    h1, h2, h3 {
+        color: #00ff66;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+
+    .encabezado-panel {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background: linear-gradient(135deg, #06111f, #102a48, #06111f);
+        border: 2px solid #00ff66;
+        border-radius: 20px;
+        padding: 25px 40px;
+        margin-bottom: 22px;
+        box-shadow: 0 0 25px rgba(0, 255, 102, 0.35);
+    }
+
+    .logo-torneo {
+        width: 140px;
+        height: 140px;
+        object-fit: contain;
+        background: white;
+        border-radius: 50%;
+        padding: 8px;
+    }
+
+    .logo-central {
+        width: 260px;
+        height: 120px;
+        object-fit: contain;
+    }
+
+    .titulo-panel {
+        text-align: center;
+    }
+
+    .titulo-panel h1 {
+        margin: 0;
+        font-size: 38px;
+        color: #00ff66;
+        text-shadow: 0 0 10px rgba(0,255,102,0.8);
+    }
+
+    .titulo-panel p {
+        margin: 6px 0 0 0;
+        color: #dbeafe;
+        font-size: 15px;
+    }
+
+    .categoria {
+        margin-bottom: 55px;
+        padding: 22px;
+        background: linear-gradient(180deg, #101d30, #0b1628);
+        border-radius: 18px;
+        border: 1px solid #1f8f54;
+        box-shadow: 0 0 20px rgba(0,0,0,0.45);
+    }
+
+    .grupo,
+    .bloque {
+        margin-top: 28px;
+        padding: 18px;
+        background: linear-gradient(180deg, #17263b, #101b2e);
+        border-radius: 16px;
+        border-left: 5px solid #00ff66;
+        box-shadow: inset 0 0 20px rgba(0,0,0,0.25);
+    }
+
+    .boton {
+        display: inline-block;
+        background: linear-gradient(135deg, #00ff66, #00b94f);
+        color: black;
+        padding: 11px 24px;
+        border-radius: 28px;
+        text-decoration: none;
+        font-weight: bold;
+        margin: 5px 8px 18px 0;
+        box-shadow: 0 0 14px rgba(0,255,102,0.35);
+    }
+
+    table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+        margin-bottom: 26px;
+        background: #102033;
+        border-radius: 14px;
+        overflow: hidden;
+        box-shadow: 0 0 18px rgba(0,0,0,0.35);
+    }
+
+   th {
+    background: #07111f;
+    color: #00ff66;
+    padding: 10px;
+    text-align: center;
+    vertical-align: middle;
+    font-weight: bold;
+    font-size: 15px;
+}
+
+    td {
+    border-bottom: 1px solid #31455f;
+    padding: 10px;
+    text-align: center;
+    font-size: 15px;
+    color: white;
+    background: #132238;
+    vertical-align: middle;
+}
+
+td strong,
+.celda-total {
+    font-size: 17px;
+    font-weight: bold;
+}
+
+    tr:nth-child(even) td {
+        background: #0f1b2e;
+    }
+
+    tr:hover td {
+        background: #1d3554;
+    }
+
+    .col-jugador {
+        min-width: 240px;
+        text-align: left;
+        padding-left: 12px;
+        font-weight: bold;
+        font-size: 15px;
+        letter-spacing: 0.5px;
+    }
+
+    .col-equipo {
+        min-width: 240px;
+        text-align: left;
+    }
+
+    .celda-total {
+        font-weight: bold;
+        color: #00ff66;
+        font-size: 15px;
+        text-shadow: 0 0 6px rgba(0,255,102,0.5);
+    }
+
+    .equipo-logo {
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+        gap: 10px;
+        text-align: left;
+    }
+
+    .logo-equipo {
+        width: 50px;
+        height: 50px;
+        object-fit: contain;
+        border-radius: 50%;
+        background: white;
+        padding: 3px;
+        box-shadow: 0 0 8px rgba(255,255,255,0.45);
+        flex-shrink: 0;
+    }
+
+    .pantalla-categorias {
+        background: #ffffff;
+        color: #10213f;
+        min-height: 80vh;
+        padding: 25px;
+        border-radius: 28px 28px 0 0;
+    }
+
+    .titulo-app {
+        color: #10213f;
+        font-size: 34px;
+        margin-bottom: 5px;
+    }
+
+    .subtitulo-app {
+        color: #4b5563;
+        font-size: 18px;
+        margin-bottom: 25px;
+    }
+
+    .card-categoria {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        background: white;
+        border-bottom: 1px solid #ddd;
+        padding: 18px 8px;
+        cursor: pointer;
+    }
+
+    .card-categoria:hover {
+        background: #f1f5f9;
+    }
+
+    .card-logo img {
+        width: 90px;
+        height: 45px;
+        object-fit: contain;
+    }
+
+    .card-info {
+        flex: 1;
+    }
+
+    .card-info h2 {
+        margin: 0;
+        color: #10213f;
+        font-size: 28px;
+        text-transform: uppercase;
+    }
+
+    .card-info p {
+        margin: 6px 0 0;
+        color: #374151;
+        font-size: 16px;
+    }
+
+    .card-icono {
+        font-size: 38px;
+        color: #4caf50;
+        font-weight: bold;
+    }
+
+    .categoria-oculta {
+        display: none;
+    }
+
+    .btn-volver {
+        background: #00d65f;
+        color: black;
+        border: none;
+        padding: 12px 22px;
+        border-radius: 25px;
+        font-weight: bold;
+        margin-bottom: 18px;
+        cursor: pointer;
+    }
+
+    .llaves-container {
+        margin-top: 28px;
+        padding: 22px;
+        background: linear-gradient(180deg, #17263b, #101b2e);
+        border-radius: 18px;
+        border: 2px solid #00ff66;
+        box-shadow: 0 0 25px rgba(0,255,102,0.25);
+    }
+
+    .llaves {
+        display: flex;
+        justify-content: space-between;
+        gap: 22px;
+        align-items: flex-start;
+        overflow-x: auto;
+        padding-bottom: 10px;
+    }
+
+    .columna-llave {
+        min-width: 310px;
+        flex: 1;
+    }
+
+    .columna-llave h3 {
+        text-align: center;
+        background: linear-gradient(135deg, #00ff66, #00b94f);
+        color: black;
+        padding: 10px;
+        border-radius: 14px;
+        margin-bottom: 18px;
+    }
+
+    .partido-llave {
+        background: #0f1b2e;
+        border: 1px solid #2f4d6f;
+        border-radius: 18px;
+        padding: 14px;
+        margin-bottom: 24px;
+        box-shadow: 0 0 14px rgba(0,255,102,0.18);
+    }
+
+    .partido-llave.final {
+        border: 2px solid gold;
+        box-shadow: 0 0 20px rgba(255,215,0,0.35);
+    }
+
+    .partido-llave.tercer-puesto {
+        border: 2px solid #c0c0c0;
+        box-shadow: 0 0 18px rgba(192,192,192,0.35);
+    }
+
+    .equipo-llave {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 8px;
+        border-radius: 12px;
+    }
+
+    .equipo-llave-info {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        text-align: left;
+        flex: 1;
+    }
+
+    .equipo-llave-info span {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .estrella-ganador {
+        color: #ffd700;
+        font-size: 18px;
+        text-shadow: 0 0 8px rgba(255,215,0,0.8);
+    }
+
+    .equipo-llave img {
+        width: 46px;
+        height: 46px;
+        object-fit: contain;
+        background: white;
+        border-radius: 50%;
+        padding: 3px;
+        box-shadow: 0 0 8px rgba(255,255,255,0.45);
+    }
+
+    .gol-llave {
+        font-size: 28px;
+        color: #00ff66;
+        min-width: 35px;
+        text-align: center;
+    }
+
+    .estado-llave {
+        text-align: center;
+        color: #ffcc00;
+        font-size: 12px;
+        margin: 6px 0;
+        text-transform: uppercase;
+    }
+
+    .vs-llave {
+        text-align: center;
+        color: #dbeafe;
+        font-size: 18px;
+        margin: 3px 0;
+    }
+
+    .penales-llave {
+        text-align: center;
+        color: #ffffff;
+        font-size: 12px;
+        margin: 4px 0 8px 0;
+        opacity: 0.9;
+    }
+
+    .titulo-tercer-puesto {
+        background: linear-gradient(135deg, #d1d5db, #9ca3af) !important;
+        color: #07111f !important;
+    }
+
+    .fechas-menu {
+        display: flex;
+        gap: 10px;
+        overflow-x: auto;
+        padding: 10px 0 18px 0;
+    }
+
+    .btn-fecha {
+        background: white;
+        color: #0f5132;
+        border: 2px solid #00d65f;
+        padding: 11px 24px;
+        border-radius: 28px;
+        font-weight: bold;
+        cursor: pointer;
+        white-space: nowrap;
+        font-size: 15px;
+    }
+
+    .btn-fecha.activa {
+        background: #00d65f;
+        color: black;
+    }
+
+    .fecha-bloque {
+        display: none;
+    }
+
+    .card-partido {
+    background: white;
+    color: #0b1b35;
+    border-radius: 18px;
+    margin: 12px 0;
+    padding: 10px 16px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.18);
+   }
+
+    .grupo-card {
+        text-align: center;
+        font-weight: bold;
+        color: #111827;
+        margin-bottom: 5px;
+        text-transform: uppercase;
+    }
+
+    .estado-card {
+        background: #ff0077;
+        color: white;
+        width: fit-content;
+        margin: 0 auto 8px auto;
+        padding: 7px 25px;
+        border-radius: 0 0 12px 12px;
+        font-weight: bold;
+    }
+
+    .partido-contenido {
+    display: grid;
+    grid-template-columns: 1fr 120px 1fr;
+    align-items: center;
+    gap: 5px;
+   }
+
+    .equipo-card img {
+    width: 55px;
+    height: 55px;
+    object-fit: contain;
+  }
+
+    .equipo-card img {
+        width: 75px;
+        height: 75px;
+        object-fit: contain;
+    }
+
+    .marcador-card {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    color: #003b7a;
+    font-size: 38px;
+    font-weight: bold;
+}
+
+    .marcador-card b {
+        color: #cfcfcf;
+    }
+
+    .grupo-botones {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.fase-btn {
+    background: linear-gradient(135deg, #00ff66, #00b94f);
+    color: black;
+    font-weight: bold;
+    border-radius: 25px;
+    padding: 10px 20px;
+    box-shadow: 0 0 10px rgba(0,255,102,0.4);
+    transition: 0.3s;
+}
+
+.fase-btn:hover {
+    transform: scale(1.05);
+}
+
+.tercero {
+    background: linear-gradient(135deg, #d1d5db, #9ca3af);
+    color: black;
+    box-shadow: 0 0 10px rgba(200,200,200,0.5);
+}
+
+.detalle-partido-card {
+    text-align: center;
+    font-size: 10px;
+    color: #374151;
+    margin-top: 4px;
+    line-height: 1.5;
+    font-weight: bold;
+}
+
+.partido-centro{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:6px;
+}
+
+.detalle-partido-card{
+    margin-top:8px;
+    text-align:center;
+    font-size:13px;
+    color:#4b5563;
+    font-weight:bold;
+    line-height:1.4;
+}
+
+.detalle-partido-card div{
+    margin-top:2px;
+}
+    
+
+/* ===============================
+   AJUSTE FASE FINAL - LLAVES
+   Escudos lineales, nombres debajo,
+   marcador/VS/fecha/hora/cancha al centro
+   =============================== */
+.llaves {
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(300px, 1fr));
+    gap: 16px;
+    align-items: flex-start;
+    overflow-x: auto;
+    padding-bottom: 10px;
+}
+
+.columna-llave {
+    min-width: 300px;
+    width: 100%;
+}
+
+.partido-llave {
+    min-height: 135px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.partido-llave-contenido {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr 115px 1fr;
+    align-items: center;
+    gap: 8px;
+}
+
+.equipo-llave {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    text-align: center !important;
+    gap: 7px !important;
+    padding: 0 !important;
+}
+
+.equipo-llave img {
+    width: 50px !important;
+    height: 50px !important;
+    object-fit: contain;
+    background: white;
+    border-radius: 50%;
+    padding: 3px;
+    box-shadow: 0 0 8px rgba(255,255,255,0.45);
+}
+
+.nombre-equipo-llave {
+    color: white;
+    font-size: 12px;
+    line-height: 1.15;
+    text-transform: uppercase;
+    text-align: center;
+    max-width: 110px;
+    min-height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    flex-wrap: wrap;
+}
+
+.centro-llave {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    min-width: 105px;
+}
+
+.marcador-llave {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    color: #00ff66;
+    font-size: 26px;
+    line-height: 1;
+    font-weight: bold;
+}
+
+.marcador-llave b {
+    color: #ffffff;
+    font-size: 14px;
+}
+
+.estado-llave {
+    text-align: center;
+    color: #ffcc00;
+    font-size: 10px;
+    margin-top: 6px;
+    text-transform: uppercase;
+}
+
+.penales-llave {
+    text-align: center;
+    color: #ffffff;
+    font-size: 10px;
+    margin-top: 3px;
+    opacity: 0.95;
+}
+
+.detalle-llave {
+    text-align: center;
+    color: #dbeafe;
+    font-size: 10px;
+    line-height: 1.35;
+    margin-top: 4px;
+    font-weight: bold;
+}
+
+/* ===== PARTIDOS POR FECHA COMPACTOS ===== */
+
+.card-partido {
+    background: #ffffff;
+    color: #0b1b35;
+    border-radius: 14px;
+    margin: 8px 0;
+    padding: 8px 12px;
+    box-shadow: 0 0 8px rgba(0,0,0,0.18);
+    width: fit-content;
+    min-width: 720px;
+    max-width: 900px;
+}
+
+.fecha-bloque {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+}
+
+.partido-contenido {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 40px;
+    padding: 5px 10px;
+}
+.equipo-card {
+    width: 140px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    text-align: center;
+    font-weight: bold;
+    font-size: 12px;
+    color: #001b38;
+    text-transform: uppercase;
+}
+
+.equipo-card img {
+    width: 52px;
+    height: 52px;
+    object-fit: contain;
+}
+
+.partido-centro {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.grupo-card {
+    text-align: center;
+    font-weight: bold;
+    color: #111827;
+    font-size: 12px;
+    margin-bottom: 3px;
+    text-transform: uppercase;
+}
+
+.estado-card {
+    background: #ff0077;
+    color: white;
+    width: fit-content;
+    margin: 0 auto 5px auto;
+    padding: 5px 18px;
+    border-radius: 0 0 10px 10px;
+    font-weight: bold;
+    font-size: 12px;
+}
+
+.marcador-card {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    color: #003b7a;
+    font-size: 34px;
+    font-weight: bold;
+    line-height: 1;
+}
+
+.marcador-card b {
+    color: #cfcfcf;
+}
+
+.detalle-partido-card {
+    margin-top: 8px;
+    text-align: center;
+    font-size: 15px;
+    color: #1f2937;
+    font-weight: bold;
+    line-height: 1.7;
+}
+
+.detalle-partido-card div {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+
+.detalle-llave {
+    color: #e5e7eb;
+    font-size: 14px;
+    margin-top: 10px;
+    line-height: 1.8;
+    font-weight: bold;
+    text-align: center;
+    width: 100%;
+}
+
+.detalle-llave div {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    width: 100%;
+    white-space: nowrap;
+}
+
+.detalle-llave span {
+    display: inline-block;
+}
+
+.estado-llave {
+    text-align: center;
+    color: #ffcc00;
+    font-size: 13px;
+    margin: 8px 0;
+    text-transform: uppercase;
+    font-weight: bold;
+}
+
+.penales-llave {
+    text-align: center;
+    color: #ffffff;
+    font-size: 13px;
+    margin: 6px 0 10px 0;
+    font-weight: bold;
+}
+
+@media (max-width: 980px) {
+    .llaves {
+        grid-template-columns: 1fr !important;
+    }
+}
+
+    </style>
+</head>
+
+<body>
+
+<div class="encabezado-panel">
+    {% if logo_alcaldia %}
+        <img src="{{ logo_alcaldia }}" class="logo-torneo">
+    {% else %}
+        <div class="logo-torneo"></div>
+    {% endif %}
+
+    <div class="titulo-panel">
+        {% if logo_torneo %}
+            <img src="{{ logo_torneo }}" class="logo-central">
+        {% endif %}
+        <h1>TORNEO IMCRED</h1>
+        <p>Panel oficial de resultados, posiciones y estadísticas</p>
+    </div>
+
+    {% if logo_imcred %}
+        <img src="{{ logo_imcred }}" class="logo-torneo">
+    {% else %}
+        <div class="logo-torneo"></div>
+    {% endif %}
+</div>
+
+<div class="pantalla-categorias" id="pantalla-categorias">
+    <h1 class="titulo-app">TORNEO IMCRED</h1>
+    <p class="subtitulo-app">Selecciona una categoría</p>
+
+    {% for categoria, datos_categoria in estructura.items %}
+    <div class="card-categoria" onclick="mostrarCategoria('categoria-{{ forloop.counter }}')">
+        <div class="card-logo">
+            <img src="{{ logo_imcred }}">
+        </div>
+
+        <div class="card-info">
+            <h2>{{ categoria }}</h2>
+            <p>Ver resultados, posiciones y estadísticas</p>
+        </div>
+
+        <div class="card-icono">›</div>
+    </div>
+    {% endfor %}
+</div>
+
+{% for categoria, datos_categoria in estructura.items %}
+
+<div class="categoria categoria-oculta" id="categoria-{{ forloop.counter }}">
+
+    <button class="btn-volver" onclick="volverCategorias()">← Volver a categorías</button>
+
+    <h1>{{ categoria }}</h1>
+
+    <div class="bloque">
+    <h2>Panel de control del torneo</h2>
+
+    <!-- DESCARGAS -->
+    <h3>📊 Estadísticas</h3>
+
+    <a class="boton" href="{% url 'descargar_goleadores_categoria' categoria %}">
+        Goleadores
+    </a>
+
+    <a class="boton" href="{% url 'descargar_tarjetas_categoria' categoria %}">
+        Tarjetas
+    </a>
+
+    <a class="boton" href="{% url 'descargar_valla_categoria' categoria %}">
+        Valla menos vencida
+    </a>
+
+    <a class="boton" href="{% url 'descargar_programacion_categoria' categoria %}">
+    Programación
+    </a>
+
+    <a class="boton"
+   href="{% url 'descargar_programacion_categoria' categoria %}">
+    Descargar programación
+   </a>
+
+    <!-- FASE FINAL -->
+    <h3 style="margin-top:20px;">🏆 Fase final</h3>
+
+    <div class="grupo-botones">
+
+        <a class="boton fase-btn"
+           href="{% url 'generar_llaves_cuartos' categoria %}"
+           onclick="guardarCategoriaActual('categoria-{{ forloop.counter }}')">
+            Cuartos
+        </a>
+
+        <a class="boton fase-btn"
+           href="{% url 'generar_semifinales' categoria %}"
+           onclick="guardarCategoriaActual('categoria-{{ forloop.counter }}')">
+            Semifinal
+        </a>
+
+        <a class="boton fase-btn"
+           href="{% url 'generar_final' categoria %}"
+           onclick="guardarCategoriaActual('categoria-{{ forloop.counter }}')">
+            Final
+        </a>
+
+        <a class="boton fase-btn tercero"
+           href="{% url 'generar_tercer_puesto' categoria %}"
+           onclick="guardarCategoriaActual('categoria-{{ forloop.counter }}')">
+            Tercer puesto
+        </a>
+
+    </div>
+</div>
+
+    {% if datos_categoria.llaves.cuartos or datos_categoria.llaves.semifinal or datos_categoria.llaves.final or datos_categoria.llaves.tercer_puesto %}
+    <div class="llaves-container">
+        <h2>Fase final - llaves</h2>
+
+        <div class="llaves">
+
+            <!-- CUARTOS DE FINAL -->
+            <div class="columna-llave">
+                <h3>Cuartos de final</h3>
+
+                {% for p in datos_categoria.llaves.cuartos %}
+                <div class="partido-llave">
+                    <div class="partido-llave-contenido">
+
+                        <div class="equipo-llave">
+                            {% if p.escudo_local %}
+                                <img src="{{ p.escudo_local }}">
+                            {% endif %}
+                            <div class="nombre-equipo-llave">
+                                {% if p.ganador_local %}<span class="estrella-ganador">⭐</span>{% endif %}
+                                {{ p.local }}
+                            </div>
+                        </div>
+
+                        <div class="centro-llave">
+                            <div class="marcador-llave">
+                                <span>{{ p.gl }}</span>
+                                <b>VS</b>
+                                <span>{{ p.gv }}</span>
+                            </div>
+
+                            <div class="estado-llave">{{ p.estado }}</div>
+
+                            {% if p.tiene_penales %}
+                            <div class="penales-llave">Penales: {{ p.pl }} - {{ p.pv }}</div>
+                            {% endif %}
+
+                            <div class="detalle-llave">
+                                {% if p.fecha %}<div>📅 {{ p.fecha }}</div>{% endif %}
+                                {% if p.hora %}<div>🕒 {{ p.hora }}</div>{% endif %}
+                                {% if p.cancha %}<div>
+    🏟️ <span>{{ p.cancha }}</span>
+</div>{% endif %}
+                            </div>
+                        </div>
+
+                        <div class="equipo-llave">
+                            {% if p.escudo_visitante %}
+                                <img src="{{ p.escudo_visitante }}">
+                            {% endif %}
+                            <div class="nombre-equipo-llave">
+                                {% if p.ganador_visitante %}<span class="estrella-ganador">⭐</span>{% endif %}
+                                {{ p.visitante }}
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+                {% empty %}
+                    <p>Sin cuartos registrados.</p>
+                {% endfor %}
+            </div>
+
+            <!-- SEMIFINAL -->
+            <div class="columna-llave">
+                <h3>Semifinal</h3>
+
+                {% for p in datos_categoria.llaves.semifinal %}
+                <div class="partido-llave">
+                    <div class="partido-llave-contenido">
+
+                        <div class="equipo-llave">
+                            {% if p.escudo_local %}
+                                <img src="{{ p.escudo_local }}">
+                            {% endif %}
+                            <div class="nombre-equipo-llave">
+                                {% if p.ganador_local %}<span class="estrella-ganador">⭐</span>{% endif %}
+                                {{ p.local }}
+                            </div>
+                        </div>
+
+                        <div class="centro-llave">
+                            <div class="marcador-llave">
+                                <span>{{ p.gl }}</span>
+                                <b>VS</b>
+                                <span>{{ p.gv }}</span>
+                            </div>
+
+                            <div class="estado-llave">{{ p.estado }}</div>
+
+                            {% if p.tiene_penales %}
+                            <div class="penales-llave">Penales: {{ p.pl }} - {{ p.pv }}</div>
+                            {% endif %}
+
+                            <div class="detalle-llave">
+                                {% if p.fecha %}<div>📅 {{ p.fecha }}</div>{% endif %}
+                                {% if p.hora %}<div>🕒 {{ p.hora }}</div>{% endif %}
+                                {% if p.cancha %}<div>🏟️ {{ p.cancha }}</div>{% endif %}
+                            </div>
+                        </div>
+
+                        <div class="equipo-llave">
+                            {% if p.escudo_visitante %}
+                                <img src="{{ p.escudo_visitante }}">
+                            {% endif %}
+                            <div class="nombre-equipo-llave">
+                                {% if p.ganador_visitante %}<span class="estrella-ganador">⭐</span>{% endif %}
+                                {{ p.visitante }}
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+                {% empty %}
+                    <p>Sin semifinal registrada.</p>
+                {% endfor %}
+            </div>
+
+            <!-- FINAL Y TERCER PUESTO -->
+            <div class="columna-llave">
+                <h3>Final</h3>
+
+                {% for p in datos_categoria.llaves.final %}
+                <div class="partido-llave final">
+                    <div class="partido-llave-contenido">
+
+                        <div class="equipo-llave">
+                            {% if p.escudo_local %}
+                                <img src="{{ p.escudo_local }}">
+                            {% endif %}
+                            <div class="nombre-equipo-llave">
+                                {% if p.ganador_local %}<span class="estrella-ganador">⭐</span>{% endif %}
+                                {{ p.local }}
+                            </div>
+                        </div>
+
+                        <div class="centro-llave">
+                            <div class="marcador-llave">
+                                <span>{{ p.gl }}</span>
+                                <b>VS</b>
+                                <span>{{ p.gv }}</span>
+                            </div>
+
+                            <div class="estado-llave">{{ p.estado }}</div>
+
+                            {% if p.tiene_penales %}
+                            <div class="penales-llave">Penales: {{ p.pl }} - {{ p.pv }}</div>
+                            {% endif %}
+
+                            <div class="detalle-llave">
+                                {% if p.fecha %}<div>📅 {{ p.fecha }}</div>{% endif %}
+                                {% if p.hora %}<div>🕒 {{ p.hora }}</div>{% endif %}
+                                {% if p.cancha %}<div>🏟️ {{ p.cancha }}</div>{% endif %}
+                            </div>
+                        </div>
+
+                        <div class="equipo-llave">
+                            {% if p.escudo_visitante %}
+                                <img src="{{ p.escudo_visitante }}">
+                            {% endif %}
+                            <div class="nombre-equipo-llave">
+                                {% if p.ganador_visitante %}<span class="estrella-ganador">⭐</span>{% endif %}
+                                {{ p.visitante }}
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+                {% empty %}
+                    <p>Sin final registrada.</p>
+                {% endfor %}
+
+                <h3 class="titulo-tercer-puesto">Tercer puesto</h3>
+
+                {% for p in datos_categoria.llaves.tercer_puesto %}
+                <div class="partido-llave tercer-puesto">
+                    <div class="partido-llave-contenido">
+
+                        <div class="equipo-llave">
+                            {% if p.escudo_local %}
+                                <img src="{{ p.escudo_local }}">
+                            {% endif %}
+                            <div class="nombre-equipo-llave">
+                                {% if p.ganador_local %}<span class="estrella-ganador">⭐</span>{% endif %}
+                                {{ p.local }}
+                            </div>
+                        </div>
+
+                        <div class="centro-llave">
+                            <div class="marcador-llave">
+                                <span>{{ p.gl }}</span>
+                                <b>VS</b>
+                                <span>{{ p.gv }}</span>
+                            </div>
+
+                            <div class="estado-llave">{{ p.estado }}</div>
+
+                            {% if p.tiene_penales %}
+                            <div class="penales-llave">Penales: {{ p.pl }} - {{ p.pv }}</div>
+                            {% endif %}
+
+                            <div class="detalle-llave">
+                                {% if p.fecha %}<div>📅 {{ p.fecha }}</div>{% endif %}
+                                {% if p.hora %}<div>🕒 {{ p.hora }}</div>{% endif %}
+                                {% if p.cancha %}<div>🏟️ {{ p.cancha }}</div>{% endif %}
+                            </div>
+                        </div>
+
+                        <div class="equipo-llave">
+                            {% if p.escudo_visitante %}
+                                <img src="{{ p.escudo_visitante }}">
+                            {% endif %}
+                            <div class="nombre-equipo-llave">
+                                {% if p.ganador_visitante %}<span class="estrella-ganador">⭐</span>{% endif %}
+                                {{ p.visitante }}
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+                {% empty %}
+                    <p>Sin partido de tercer puesto registrado.</p>
+                {% endfor %}
+            </div>
+
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="bloque">
+    <h2>Partidos por fecha</h2>
+
+    <div class="fechas-menu">
+        {% for fecha, partidos_fecha in datos_categoria.partidos_por_fecha.items %}
+            <button class="btn-fecha"
+                    onclick="mostrarFechaCategoria('categoria-{{ forloop.parentloop.counter }}', 'fecha-{{ forloop.parentloop.counter }}-{{ forloop.counter }}', this)">
+                {{ fecha }}
+            </button>
+        {% endfor %}
+    </div>
+
+    {% for fecha, partidos_fecha in datos_categoria.partidos_por_fecha.items %}
+    <div class="fecha-bloque" id="fecha-{{ forloop.parentloop.counter }}-{{ forloop.counter }}">
+
+        <h3>{{ fecha }}</h3>
+
+        {% for item in partidos_fecha %}
+        <div class="card-partido">
+            <div class="partido-contenido">
+
+                <!-- EQUIPO LOCAL -->
+                <div class="equipo-card">
+                    {% if item.partido.equipo_local.escudo %}
+                        <img src="{{ item.partido.equipo_local.escudo.url }}">
+                    {% endif %}
+                    <span>{{ item.partido.equipo_local.nombre }}</span>
+                </div>
+
+                <!-- CENTRO -->
+                <div class="partido-centro">
+
+                    <div class="grupo-card">
+                        Grupo {{ item.grupo }}
+                    </div>
+
+                    <div class="estado-card">
+                        {{ item.partido.estado }}
+                    </div>
+
+                    <div class="marcador-card">
+                        <span>{{ item.partido.goles_local }}</span>
+                        <b>:</b>
+                        <span>{{ item.partido.goles_visitante }}</span>
+                    </div>
+
+                    <div class="detalle-partido-card">
+                        <div>📅 {{ item.partido.fecha }}</div>
+                        <div>🕒 {{ item.partido.hora }}</div>
+                        <div>🏟️ {{ item.partido.cancha|default:"Por definir" }}</div>
+                    </div>
+
+                </div>
+
+                <!-- EQUIPO VISITANTE -->
+                <div class="equipo-card">
+                    {% if item.partido.equipo_visitante.escudo %}
+                        <img src="{{ item.partido.equipo_visitante.escudo.url }}">
+                    {% endif %}
+                    <span>{{ item.partido.equipo_visitante.nombre }}</span>
+                </div>
+
+            </div>
+        </div>
+        {% endfor %}
+
+    </div>
+    {% endfor %}
+</div>
+
+    {% for grupo, datos_grupo in datos_categoria.grupos.items %}
+
+    {% if grupo != "FINAL" %}
+    <div class="grupo">
+
+        <h2>Grupo {{ grupo }}</h2>
+
+        <a class="boton" href="{% url 'descargar_tabla_grupo' categoria grupo %}">
+            Descargar tabla Grupo {{ grupo }}
+        </a>
+
+        <h3>Tabla de posiciones</h3>
+
+        <table>
+            <tr>
+                <th>#</th>
+                <th>Equipo</th>
+                <th>PJ</th>
+                <th>PG</th>
+                <th>PE</th>
+                <th>PP</th>
+                <th>GF</th>
+                <th>GC</th>
+                <th>DG</th>
+                <th>PTS</th>
+            </tr>
+
+            {% for equipo in datos_grupo.tabla %}
+            <tr>
+                <td>{{ forloop.counter }}</td>
+                <td>
+                    <div class="equipo-logo">
+                        {% if equipo.escudo %}
+                            <img src="{{ equipo.escudo }}" class="logo-equipo">
+                        {% endif %}
+                        <span>{{ equipo.equipo }}</span>
+                    </div>
+                </td>
+                <td>{{ equipo.pj }}</td>
+                <td>{{ equipo.pg }}</td>
+                <td>{{ equipo.pe }}</td>
+                <td>{{ equipo.pp }}</td>
+                <td>{{ equipo.gf }}</td>
+                <td>{{ equipo.gc }}</td>
+                <td>{{ equipo.dg }}</td>
+                <td>{{ equipo.pts }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="10">Sin datos registrados</td>
+            </tr>
+            {% endfor %}
+        </table>
+
+    </div>
+    {% endif %}
+
+    {% empty %}
+        <p>Esta categoría todavía no tiene grupos o partidos registrados.</p>
+    {% endfor %}
+
+    <div class="bloque">
+
+        <h2>Goleadores por fechas y fases</h2>
+
+        <table>
+            <tr>
+                <th>#</th>
+                <th class="col-jugador">Jugador</th>
+                <th class="col-equipo">Equipo</th>
+
+                {% for col in datos_categoria.columnas_planilla %}
+                    <th>{{ col }}</th>
+                {% endfor %}
+
+                <th>Total</th>
+            </tr>
+
+            {% for g in datos_categoria.goleadores_planilla %}
+            <tr>
+                <td>{{ forloop.counter }}</td>
+
+                <td class="col-jugador">
+                    {{ g.jugador }}
+                </td>
+
+                <td class="col-equipo">
+                    <div class="equipo-logo">
+                        {% if g.escudo %}
+                            <img src="{{ g.escudo }}" class="logo-equipo">
+                        {% endif %}
+                        <span>{{ g.equipo }}</span>
+                    </div>
+                </td>
+
+                {% for valor in g.celdas %}
+                    <td>{{ valor }}</td>
+                {% endfor %}
+
+                <td class="celda-total">{{ g.total }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="50">Sin goles registrados</td>
+            </tr>
+            {% endfor %}
+        </table>
+
+        <h2>Tarjetas por fechas y fases</h2>
+
+        <table>
+            <tr>
+                <th>#</th>
+                <th class="col-jugador">Jugador</th>
+                <th class="col-equipo">Equipo</th>
+
+                {% for col in datos_categoria.columnas_planilla %}
+                    <th>{{ col }}</th>
+                {% endfor %}
+
+                <th>A</th>
+                <th>R</th>
+                <th>Total</th>
+            </tr>
+
+            {% for t in datos_categoria.tarjetas_planilla %}
+            <tr>
+                <td>{{ forloop.counter }}</td>
+
+                <td class="col-jugador">
+                    {{ t.jugador }}
+                </td>
+
+                <td class="col-equipo">
+                    <div class="equipo-logo">
+                        {% if t.escudo %}
+                            <img src="{{ t.escudo }}" class="logo-equipo">
+                        {% endif %}
+                        <span>{{ t.equipo }}</span>
+                    </div>
+                </td>
+
+                {% for valor in t.celdas %}
+                    <td>{{ valor }}</td>
+                {% endfor %}
+
+                <td>{{ t.total_a }}</td>
+                <td>{{ t.total_r }}</td>
+                <td class="celda-total">{{ t.total }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="50">Sin tarjetas registradas</td>
+            </tr>
+            {% endfor %}
+        </table>
+
+        <h2>Alertas de sanciones por tarjetas</h2>
+
+        <table>
+            <tr>
+                <th>#</th>
+                <th class="col-jugador">Jugador</th>
+                <th class="col-equipo">Equipo</th>
+                <th>Amarillas grupos</th>
+                <th>Amarillas finales</th>
+                <th>Rojas</th>
+                <th>Estado / Observación</th>
+            </tr>
+
+            {% for a in datos_categoria.alertas_tarjetas %}
+            <tr>
+                <td>{{ forloop.counter }}</td>
+
+                <td class="col-jugador">
+                    {{ a.jugador }}
+                </td>
+
+                <td class="col-equipo">
+                    <div class="equipo-logo">
+                        {% if a.escudo %}
+                            <img src="{{ a.escudo }}" class="logo-equipo">
+                        {% endif %}
+                        <span>{{ a.equipo }}</span>
+                    </div>
+                </td>
+
+                <td>{{ a.amarillas_grupos }}</td>
+                <td>{{ a.amarillas_finales }}</td>
+                <td>{{ a.rojas_total }}</td>
+
+                <td class="celda-total">
+                    {{ a.observacion }}
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="7">No hay jugadores en alerta o sanción.</td>
+            </tr>
+            {% endfor %}
+        </table>
+
+        <h2>Valla menos vencida por fechas y fases</h2>
+
+        <table>
+            <tr>
+                <th>#</th>
+                <th class="col-equipo">Equipo</th>
+
+                {% for col in datos_categoria.columnas_planilla %}
+                    <th>{{ col }}</th>
+                {% endfor %}
+
+                <th>PJ</th>
+                <th>GC</th>
+                <th>Promedio</th>
+            </tr>
+
+            {% for v in datos_categoria.valla_planilla %}
+            <tr>
+                <td>{{ forloop.counter }}</td>
+
+                <td class="col-equipo">
+                    <div class="equipo-logo">
+                        {% if v.escudo %}
+                            <img src="{{ v.escudo }}" class="logo-equipo">
+                        {% endif %}
+                        <span>{{ v.equipo }}</span>
+                    </div>
+                </td>
+
+                {% for valor in v.celdas %}
+                    <td>{{ valor }}</td>
+                {% endfor %}
+
+                <td>{{ v.pj }}</td>
+                <td>{{ v.gc }}</td>
+                <td class="celda-total">{{ v.promedio }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="50">Sin datos registrados</td>
+            </tr>
+            {% endfor %}
+        </table>
+
+    </div>
+
+</div>
+
+{% empty %}
+    <h2>No hay categorías registradas</h2>
+{% endfor %}
+
+<script>
+function mostrarCategoria(idCategoria) {
+    document.getElementById('pantalla-categorias').style.display = 'none';
+
+    document.querySelectorAll('.categoria').forEach(function(cat) {
+        cat.style.display = 'none';
+    });
+
+    const seleccionada = document.getElementById(idCategoria);
+
+    if (seleccionada) {
+        seleccionada.style.display = 'block';
+        localStorage.setItem('categoria_abierta', idCategoria);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+}
+
+function volverCategorias() {
+    document.querySelectorAll('.categoria').forEach(function(cat) {
+        cat.style.display = 'none';
+    });
+
+    localStorage.removeItem('categoria_abierta');
+    document.getElementById('pantalla-categorias').style.display = 'block';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function guardarCategoriaActual(idCategoria) {
+    localStorage.setItem('categoria_abierta', idCategoria);
+}
+
+function mostrarFechaCategoria(idCategoria, idFecha, boton) {
+
+    const categoria = document.getElementById(idCategoria);
+
+    if (!categoria) return;
+
+    const bloqueSeleccionado = document.getElementById(idFecha);
+
+    const yaActivo = boton.classList.contains('activa');
+
+    categoria.querySelectorAll('.fecha-bloque').forEach(function(bloque) {
+        bloque.style.display = 'none';
+    });
+
+    categoria.querySelectorAll('.btn-fecha').forEach(function(btn) {
+        btn.classList.remove('activa');
+    });
+
+    if (!yaActivo) {
+        bloqueSeleccionado.style.display = 'flex';
+        boton.classList.add('activa');
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const categoriaGuardada = localStorage.getItem('categoria_abierta');
+
+    if (categoriaGuardada) {
+        const categoria = document.getElementById(categoriaGuardada);
+
+        if (categoria) {
+            document.getElementById('pantalla-categorias').style.display = 'none';
+
+            document.querySelectorAll('.categoria').forEach(function(cat) {
+                cat.style.display = 'none';
+            });
+
+            categoria.style.display = 'block';
+        }
+    }
+});
+</script>
+
+</body>
+</html>
