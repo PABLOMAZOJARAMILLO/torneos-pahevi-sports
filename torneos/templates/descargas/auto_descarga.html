@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Descargando imagen...</title>
+
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+
+<style>
+body {
+    margin: 0;
+    padding: 0;
+    background: #020617;
+}
+
+#zona-descarga {
+    width: fit-content;
+    margin: 0 auto;
+}
+
+.mensaje {
+    position: fixed;
+    top: 15px;
+    left: 15px;
+    background: #00ff66;
+    color: black;
+    padding: 12px 20px;
+    border-radius: 12px;
+    font-family: Arial, sans-serif;
+    font-weight: bold;
+    z-index: 9999;
+}
+</style>
+</head>
+
+<body>
+
+<div class="mensaje">
+    Generando imagen, espera unos segundos...
+</div>
+
+<div id="zona-descarga">
+    {{ contenido_html|safe }}
+</div>
+
+<script>
+window.onload = function() {
+    const elemento = document.getElementById("zona-descarga");
+
+    setTimeout(function() {
+        html2canvas(elemento, {
+            scale: 2,
+            useCORS: true,
+            backgroundColor: "#020617",
+            width: elemento.scrollWidth,
+            height: elemento.scrollHeight,
+            windowWidth: elemento.scrollWidth,
+            windowHeight: elemento.scrollHeight
+        }).then(function(canvas) {
+            const enlace = document.createElement("a");
+            enlace.download = "{{ nombre_archivo }}";
+            enlace.href = canvas.toDataURL("image/png");
+            enlace.click();
+
+            document.querySelector(".mensaje").innerText = "Imagen descargada correctamente";
+        });
+    }, 1000);
+}
+</script>
+
+</body>
+</html>

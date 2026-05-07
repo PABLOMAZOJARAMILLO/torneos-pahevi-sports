@@ -584,6 +584,12 @@ def panel_principal(request):
 
 
 def crear_imagen_desde_html(html, nombre_archivo, ancho=1600, alto=1800):
+    return render(None, "descargas/auto_descarga.html", {
+        "contenido_html": html,
+        "nombre_archivo": nombre_archivo,
+        "ancho": ancho,
+        "alto": alto,
+    })
     carpeta_media = os.path.join(os.getcwd(), "media", "descargas")
     os.makedirs(carpeta_media, exist_ok=True)
 
