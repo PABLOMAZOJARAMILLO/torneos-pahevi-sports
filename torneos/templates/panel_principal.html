@@ -799,6 +799,144 @@ td strong,
     }
 }
 
+/* ========================= */
+/* RESPONSIVE CELULAR */
+/* ========================= */
+
+@media (max-width: 768px) {
+
+    body {
+        overflow-x: hidden;
+    }
+
+    .contenedor-principal {
+        padding: 8px;
+    }
+
+    /* BOTONES CATEGORIAS */
+
+    .botones-categorias {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+
+    .btn-categoria {
+        width: 100%;
+        font-size: 18px;
+        padding: 14px;
+        border-radius: 14px;
+    }
+
+    /* BOTONES FECHAS */
+
+    .fechas-botones {
+        display: flex;
+        overflow-x: auto;
+        gap: 8px;
+        padding-bottom: 8px;
+    }
+
+    .btn-fecha {
+        min-width: 120px;
+        font-size: 15px;
+        padding: 10px 14px;
+        border-radius: 12px;
+        white-space: nowrap;
+    }
+
+    /* TARJETAS PARTIDOS */
+
+    .card-partido {
+        width: 100%;
+        min-width: auto;
+        max-width: 100%;
+        padding: 10px;
+        border-radius: 16px;
+    }
+
+    .partido-contenido {
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .equipo-card {
+        width: 100%;
+    }
+
+    .escudo-equipo {
+        width: 58px;
+        height: 58px;
+    }
+
+    .nombre-equipo {
+        font-size: 15px;
+    }
+
+    .vs-central {
+        font-size: 28px;
+    }
+
+    .detalle-partido-card {
+        font-size: 14px;
+        line-height: 1.5;
+    }
+
+    /* TABLAS */
+
+    .tabla-responsive {
+        overflow-x: auto;
+        width: 100%;
+    }
+
+    table {
+        min-width: 700px;
+    }
+
+    th {
+        font-size: 13px;
+        padding: 8px;
+    }
+
+    td {
+        font-size: 13px;
+        padding: 8px;
+    }
+
+    /* GOLEADORES / TARJETAS */
+
+    .tabla-goleadores,
+    .tabla-tarjetas,
+    .tabla-valla {
+        overflow-x: auto;
+    }
+
+    /* LLAVES */
+
+    .llave-partido {
+        padding: 10px;
+        border-radius: 14px;
+    }
+
+    .detalle-llave {
+        font-size: 13px;
+    }
+
+    /* DESCARGAS */
+
+    .botones-descarga {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 8px;
+    }
+
+    .btn-descarga {
+        width: 100%;
+        font-size: 15px;
+        padding: 12px;
+    }
+
+}
     </style>
 </head>
 
