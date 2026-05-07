@@ -1119,6 +1119,90 @@ img {
         height: 38px;
     }
 }
+    
+
+/* =====================================================
+   SECCIONES DE ESTADISTICAS EN PESTAÑAS + TABLAS COMPLETAS
+   ===================================================== */
+.menu-estadisticas {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(150px, 1fr));
+    gap: 10px;
+    margin: 14px 0 20px 0;
+}
+
+.btn-estadistica {
+    border: none;
+    cursor: pointer;
+    background: linear-gradient(135deg, #00ff66, #00b94f);
+    color: #03110a;
+    padding: 12px 16px;
+    border-radius: 24px;
+    font-weight: bold;
+    box-shadow: 0 0 14px rgba(0,255,102,0.30);
+    text-transform: uppercase;
+}
+
+.btn-estadistica.activa {
+    background: linear-gradient(135deg, #ffffff, #cfd6df);
+    color: #06111f;
+    box-shadow: 0 0 14px rgba(255,255,255,0.45);
+}
+
+.seccion-estadistica {
+    display: none;
+}
+
+.seccion-estadistica.activa {
+    display: block;
+}
+
+.tabla-responsive {
+    width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    border-radius: 14px;
+    margin-bottom: 24px;
+}
+
+.tabla-responsive table {
+    margin-bottom: 0;
+}
+
+.aviso-deslizar {
+    display: none;
+    color: #dbeafe;
+    font-size: 12px;
+    margin: 4px 0 10px 0;
+    opacity: 0.9;
+}
+
+@media (max-width: 768px) {
+    .menu-estadisticas {
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+    }
+
+    .btn-estadistica {
+        width: 100%;
+        font-size: 12px;
+        padding: 11px 8px;
+        border-radius: 16px;
+    }
+
+    .aviso-deslizar {
+        display: block;
+    }
+
+    .tabla-responsive table {
+        min-width: 950px;
+        width: max-content;
+        display: table !important;
+        white-space: nowrap;
+    }
+}
+
     </style>
 </head>
 
@@ -1593,190 +1677,223 @@ img {
         <p>Esta categoría todavía no tiene grupos o partidos registrados.</p>
     {% endfor %}
 
-    <div class="bloque">
+    <div class="bloque bloque-estadisticas">
 
-        <h2>Goleadores por fechas y fases</h2>
+        <h2>Estadísticas completas</h2>
 
-        <table>
-            <tr>
-                <th>#</th>
-                <th class="col-jugador">Jugador</th>
-                <th class="col-equipo">Equipo</th>
+        <div class="menu-estadisticas">
+            <button type="button" class="btn-estadistica activa"
+                    onclick="mostrarEstadisticaCategoria('categoria-{{ forloop.counter }}', 'goleadores', this)">
+                Goleadores
+            </button>
 
-                {% for col in datos_categoria.columnas_planilla %}
-                    <th>{{ col }}</th>
-                {% endfor %}
+            <button type="button" class="btn-estadistica"
+                    onclick="mostrarEstadisticaCategoria('categoria-{{ forloop.counter }}', 'tarjetas', this)">
+                Tarjetas
+            </button>
 
-                <th>Total</th>
-            </tr>
+            <button type="button" class="btn-estadistica"
+                    onclick="mostrarEstadisticaCategoria('categoria-{{ forloop.counter }}', 'alertas', this)">
+                Alertas
+            </button>
 
-            {% for g in datos_categoria.goleadores_planilla %}
-            <tr>
-                <td>{{ forloop.counter }}</td>
+            <button type="button" class="btn-estadistica"
+                    onclick="mostrarEstadisticaCategoria('categoria-{{ forloop.counter }}', 'valla', this)">
+                Valla menos vencida
+            </button>
+        </div>
 
-                <td class="col-jugador">
-                    {{ g.jugador }}
-                </td>
+        <p class="aviso-deslizar">← Desliza la tabla hacia los lados para verla completa →</p>
 
-                <td class="col-equipo">
-                    <div class="equipo-logo">
-                        {% if g.escudo %}
-                            <img src="{{ g.escudo }}" class="logo-equipo">
-                        {% endif %}
-                        <span>{{ g.equipo }}</span>
-                    </div>
-                </td>
+        <div class="seccion-estadistica activa" data-estadistica="goleadores">
+            <h2>Goleadores por fechas y fases</h2>
 
-                {% for valor in g.celdas %}
-                    <td>{{ valor }}</td>
-                {% endfor %}
+            <div class="tabla-responsive">
+                <table>
+                    <tr>
+                        <th>#</th>
+                        <th class="col-jugador">Jugador</th>
+                        <th class="col-equipo">Equipo</th>
 
-                <td class="celda-total">{{ g.total }}</td>
-            </tr>
-            {% empty %}
-            <tr>
-                <td colspan="50">Sin goles registrados</td>
-            </tr>
-            {% endfor %}
-        </table>
+                        {% for col in datos_categoria.columnas_planilla %}
+                            <th>{{ col }}</th>
+                        {% endfor %}
 
-        <h2>Tarjetas por fechas y fases</h2>
+                        <th>Total</th>
+                    </tr>
 
-        <table>
-            <tr>
-                <th>#</th>
-                <th class="col-jugador">Jugador</th>
-                <th class="col-equipo">Equipo</th>
+                    {% for g in datos_categoria.goleadores_planilla %}
+                    <tr>
+                        <td>{{ forloop.counter }}</td>
 
-                {% for col in datos_categoria.columnas_planilla %}
-                    <th>{{ col }}</th>
-                {% endfor %}
+                        <td class="col-jugador">{{ g.jugador }}</td>
 
-                <th>A</th>
-                <th>R</th>
-                <th>Total</th>
-            </tr>
+                        <td class="col-equipo">
+                            <div class="equipo-logo">
+                                {% if g.escudo %}
+                                    <img src="{{ g.escudo }}" class="logo-equipo">
+                                {% endif %}
+                                <span>{{ g.equipo }}</span>
+                            </div>
+                        </td>
 
-            {% for t in datos_categoria.tarjetas_planilla %}
-            <tr>
-                <td>{{ forloop.counter }}</td>
+                        {% for valor in g.celdas %}
+                            <td>{{ valor }}</td>
+                        {% endfor %}
 
-                <td class="col-jugador">
-                    {{ t.jugador }}
-                </td>
+                        <td class="celda-total">{{ g.total }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="50">Sin goles registrados</td>
+                    </tr>
+                    {% endfor %}
+                </table>
+            </div>
+        </div>
 
-                <td class="col-equipo">
-                    <div class="equipo-logo">
-                        {% if t.escudo %}
-                            <img src="{{ t.escudo }}" class="logo-equipo">
-                        {% endif %}
-                        <span>{{ t.equipo }}</span>
-                    </div>
-                </td>
+        <div class="seccion-estadistica" data-estadistica="tarjetas">
+            <h2>Tarjetas por fechas y fases</h2>
 
-                {% for valor in t.celdas %}
-                    <td>{{ valor }}</td>
-                {% endfor %}
+            <div class="tabla-responsive">
+                <table>
+                    <tr>
+                        <th>#</th>
+                        <th class="col-jugador">Jugador</th>
+                        <th class="col-equipo">Equipo</th>
 
-                <td>{{ t.total_a }}</td>
-                <td>{{ t.total_r }}</td>
-                <td class="celda-total">{{ t.total }}</td>
-            </tr>
-            {% empty %}
-            <tr>
-                <td colspan="50">Sin tarjetas registradas</td>
-            </tr>
-            {% endfor %}
-        </table>
+                        {% for col in datos_categoria.columnas_planilla %}
+                            <th>{{ col }}</th>
+                        {% endfor %}
 
-        <h2>Alertas de sanciones por tarjetas</h2>
+                        <th>A</th>
+                        <th>R</th>
+                        <th>Total</th>
+                    </tr>
 
-        <table>
-            <tr>
-                <th>#</th>
-                <th class="col-jugador">Jugador</th>
-                <th class="col-equipo">Equipo</th>
-                <th>Amarillas grupos</th>
-                <th>Amarillas finales</th>
-                <th>Rojas</th>
-                <th>Estado / Observación</th>
-            </tr>
+                    {% for t in datos_categoria.tarjetas_planilla %}
+                    <tr>
+                        <td>{{ forloop.counter }}</td>
 
-            {% for a in datos_categoria.alertas_tarjetas %}
-            <tr>
-                <td>{{ forloop.counter }}</td>
+                        <td class="col-jugador">{{ t.jugador }}</td>
 
-                <td class="col-jugador">
-                    {{ a.jugador }}
-                </td>
+                        <td class="col-equipo">
+                            <div class="equipo-logo">
+                                {% if t.escudo %}
+                                    <img src="{{ t.escudo }}" class="logo-equipo">
+                                {% endif %}
+                                <span>{{ t.equipo }}</span>
+                            </div>
+                        </td>
 
-                <td class="col-equipo">
-                    <div class="equipo-logo">
-                        {% if a.escudo %}
-                            <img src="{{ a.escudo }}" class="logo-equipo">
-                        {% endif %}
-                        <span>{{ a.equipo }}</span>
-                    </div>
-                </td>
+                        {% for valor in t.celdas %}
+                            <td>{{ valor }}</td>
+                        {% endfor %}
 
-                <td>{{ a.amarillas_grupos }}</td>
-                <td>{{ a.amarillas_finales }}</td>
-                <td>{{ a.rojas_total }}</td>
+                        <td>{{ t.total_a }}</td>
+                        <td>{{ t.total_r }}</td>
+                        <td class="celda-total">{{ t.total }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="50">Sin tarjetas registradas</td>
+                    </tr>
+                    {% endfor %}
+                </table>
+            </div>
+        </div>
 
-                <td class="celda-total">
-                    {{ a.observacion }}
-                </td>
-            </tr>
-            {% empty %}
-            <tr>
-                <td colspan="7">No hay jugadores en alerta o sanción.</td>
-            </tr>
-            {% endfor %}
-        </table>
+        <div class="seccion-estadistica" data-estadistica="alertas">
+            <h2>Alertas de sanciones por tarjetas</h2>
 
-        <h2>Valla menos vencida por fechas y fases</h2>
+            <div class="tabla-responsive">
+                <table>
+                    <tr>
+                        <th>#</th>
+                        <th class="col-jugador">Jugador</th>
+                        <th class="col-equipo">Equipo</th>
+                        <th>Amarillas grupos</th>
+                        <th>Amarillas finales</th>
+                        <th>Rojas</th>
+                        <th>Estado / Observación</th>
+                    </tr>
 
-        <table>
-            <tr>
-                <th>#</th>
-                <th class="col-equipo">Equipo</th>
+                    {% for a in datos_categoria.alertas_tarjetas %}
+                    <tr>
+                        <td>{{ forloop.counter }}</td>
 
-                {% for col in datos_categoria.columnas_planilla %}
-                    <th>{{ col }}</th>
-                {% endfor %}
+                        <td class="col-jugador">{{ a.jugador }}</td>
 
-                <th>PJ</th>
-                <th>GC</th>
-                <th>Promedio</th>
-            </tr>
+                        <td class="col-equipo">
+                            <div class="equipo-logo">
+                                {% if a.escudo %}
+                                    <img src="{{ a.escudo }}" class="logo-equipo">
+                                {% endif %}
+                                <span>{{ a.equipo }}</span>
+                            </div>
+                        </td>
 
-            {% for v in datos_categoria.valla_planilla %}
-            <tr>
-                <td>{{ forloop.counter }}</td>
+                        <td>{{ a.amarillas_grupos }}</td>
+                        <td>{{ a.amarillas_finales }}</td>
+                        <td>{{ a.rojas_total }}</td>
+                        <td class="celda-total">{{ a.observacion }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7">No hay jugadores en alerta o sanción.</td>
+                    </tr>
+                    {% endfor %}
+                </table>
+            </div>
+        </div>
 
-                <td class="col-equipo">
-                    <div class="equipo-logo">
-                        {% if v.escudo %}
-                            <img src="{{ v.escudo }}" class="logo-equipo">
-                        {% endif %}
-                        <span>{{ v.equipo }}</span>
-                    </div>
-                </td>
+        <div class="seccion-estadistica" data-estadistica="valla">
+            <h2>Valla menos vencida por fechas y fases</h2>
 
-                {% for valor in v.celdas %}
-                    <td>{{ valor }}</td>
-                {% endfor %}
+            <div class="tabla-responsive">
+                <table>
+                    <tr>
+                        <th>#</th>
+                        <th class="col-equipo">Equipo</th>
 
-                <td>{{ v.pj }}</td>
-                <td>{{ v.gc }}</td>
-                <td class="celda-total">{{ v.promedio }}</td>
-            </tr>
-            {% empty %}
-            <tr>
-                <td colspan="50">Sin datos registrados</td>
-            </tr>
-            {% endfor %}
-        </table>
+                        {% for col in datos_categoria.columnas_planilla %}
+                            <th>{{ col }}</th>
+                        {% endfor %}
+
+                        <th>PJ</th>
+                        <th>GC</th>
+                        <th>Promedio</th>
+                    </tr>
+
+                    {% for v in datos_categoria.valla_planilla %}
+                    <tr>
+                        <td>{{ forloop.counter }}</td>
+
+                        <td class="col-equipo">
+                            <div class="equipo-logo">
+                                {% if v.escudo %}
+                                    <img src="{{ v.escudo }}" class="logo-equipo">
+                                {% endif %}
+                                <span>{{ v.equipo }}</span>
+                            </div>
+                        </td>
+
+                        {% for valor in v.celdas %}
+                            <td>{{ valor }}</td>
+                        {% endfor %}
+
+                        <td>{{ v.pj }}</td>
+                        <td>{{ v.gc }}</td>
+                        <td class="celda-total">{{ v.promedio }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="50">Sin datos registrados</td>
+                    </tr>
+                    {% endfor %}
+                </table>
+            </div>
+        </div>
 
     </div>
 
@@ -1837,6 +1954,32 @@ function mostrarFechaCategoria(idCategoria, idFecha, boton) {
 
     if (!yaActivo) {
         bloqueSeleccionado.style.display = 'flex';
+        boton.classList.add('activa');
+    }
+}
+
+
+function mostrarEstadisticaCategoria(idCategoria, tipo, boton) {
+    const categoria = document.getElementById(idCategoria);
+    if (!categoria) return;
+
+    const bloque = categoria.querySelector('.bloque-estadisticas');
+    if (!bloque) return;
+
+    bloque.querySelectorAll('.seccion-estadistica').forEach(function(seccion) {
+        seccion.classList.remove('activa');
+    });
+
+    bloque.querySelectorAll('.btn-estadistica').forEach(function(btn) {
+        btn.classList.remove('activa');
+    });
+
+    const seleccionada = bloque.querySelector('[data-estadistica="' + tipo + '"]');
+    if (seleccionada) {
+        seleccionada.classList.add('activa');
+    }
+
+    if (boton) {
         boton.classList.add('activa');
     }
 }
