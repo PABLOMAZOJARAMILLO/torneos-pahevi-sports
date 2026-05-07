@@ -844,6 +844,103 @@
     }
 
 }
+
+/* =========================================
+   CORRECCIÓN DEFINITIVA ENCABEZADO Y PARTIDOS
+   PEGAR AL FINAL DEL STYLE
+========================================= */
+
+@media (max-width: 768px) {
+
+    .encabezado-panel {
+        display: grid !important;
+        grid-template-columns: 70px 1fr 70px !important;
+        align-items: center !important;
+        justify-content: center !important;
+        gap: 8px !important;
+        padding: 12px !important;
+    }
+
+    .encabezado-panel .logo-torneo {
+        width: 65px !important;
+        height: 65px !important;
+        padding: 4px !important;
+        border-radius: 50% !important;
+        object-fit: contain !important;
+    }
+
+    .encabezado-panel .logo-central {
+        width: 145px !important;
+        height: auto !important;
+        object-fit: contain !important;
+    }
+
+    .titulo-panel {
+        text-align: center !important;
+    }
+
+    .titulo-panel h1 {
+        font-size: 20px !important;
+        margin: 4px 0 !important;
+        line-height: 1.1 !important;
+    }
+
+    .titulo-panel p {
+        font-size: 10px !important;
+        line-height: 1.2 !important;
+        margin: 0 !important;
+    }
+
+    .card-partido {
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: 100% !important;
+        padding: 12px 8px !important;
+    }
+
+    .partido-contenido {
+        display: grid !important;
+        grid-template-columns: 1fr 105px 1fr !important;
+        align-items: center !important;
+        justify-content: center !important;
+        gap: 6px !important;
+    }
+
+    .equipo-card {
+        width: 100% !important;
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        justify-content: center !important;
+        text-align: center !important;
+        font-size: 11px !important;
+        line-height: 1.2 !important;
+    }
+
+    .equipo-card img {
+        width: 48px !important;
+        height: 48px !important;
+        object-fit: contain !important;
+    }
+
+    .partido-centro {
+        width: 105px !important;
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        justify-content: center !important;
+    }
+
+    .marcador-card {
+        font-size: 30px !important;
+        line-height: 1 !important;
+    }
+
+    .detalle-partido-card {
+        font-size: 10px !important;
+        line-height: 1.3 !important;
+    }
+}
     </style>
 </head>
 
