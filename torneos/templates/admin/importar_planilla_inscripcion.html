@@ -1,16 +1,7 @@
-{% extends "admin/base_site.html" %}
-
-{% block content %}
-
-<h1>Importar planilla de inscripción</h1>
-
 <form method="post" enctype="multipart/form-data" action="">
     {% csrf_token %}
 
-    <input type="file"
-           name="archivo_excel"
-           accept=".xlsx"
-           required>
+    <input type="file" name="archivo_excel" accept=".xlsx" required>
 
     <br><br>
 
@@ -18,5 +9,3 @@
         Importar jugadores
     </button>
 </form>
-
-{% endblock %}
