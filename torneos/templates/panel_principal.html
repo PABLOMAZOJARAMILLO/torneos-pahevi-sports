@@ -1399,11 +1399,18 @@
                             <div class="partido-centro">
                                 <div class="grupo-card">Grupo {{ item.grupo }}</div>
                                 <div class="estado-card">{{ item.partido.estado }}</div>
-                                <div class="marcador-card">
-                                    <span>{{ item.partido.goles_local }}</span>
-                                    <b>:</b>
-                                    <span>{{ item.partido.goles_visitante }}</span>
-                                </div>
+                               
+			        <div class="marcador-card">
+
+    				    {% if item.partido.estado == "PROGRAMADO" %}
+                                        - : -
+
+                                    {% else %}
+                                       {{ item.partido.goles_local }} : {{ item.partido.goles_visitante }}
+
+                                    {% endif %}
+
+                              </div>
                                 <div class="detalle-partido-card">
                                     <div>📅 {{ item.partido.fecha }}</div>
                                     <div>🕒 {{ item.partido.hora }}</div>
@@ -1490,10 +1497,19 @@
 
                             <div class="centro-llave">
                                 <div class="marcador-llave">
-                                    <span>{{ p.gl }}</span>
-                                    <b>VS</b>
-                                    <span>{{ p.gv }}</span>
-                                </div>
+
+                                    {% if p.estado == "PROGRAMADO" %}
+                                        <span>-</span>
+                                        <b>VS</b>
+                                        <span>-</span>
+
+                                    {% else %}
+                                        <span>{{ p.gl }}</span>
+                                        <b>VS</b>
+                                        <span>{{ p.gv }}</span>
+                                        {% endif %}
+
+                                 </div>
 
                                 <div class="estado-llave">{{ p.estado }}</div>
 
