@@ -1472,7 +1472,7 @@
 				<a class="btn-editor-movil btn-editor-final"
                                    href="{% url 'editor_partido_movil' 
                                    ✏️ Editar partido
-                                </a>
+                                   </a>
                             </div>
 
                             <div class="equipo-llave">
@@ -1532,11 +1532,16 @@
                                 <div class="marcador-llave"><span>{{ p.gl }}</span><b>VS</b><span>{{ p.gv }}</span></div>
                                 <div class="estado-llave">{{ p.estado }}</div>
                                 {% if p.tiene_penales %}<div class="penales-llave">Penales: {{ p.pl }} - {{ p.pv }}</div>{% endif %}
-                                <div class="detalle-llave">
+                                
+				<div class="detalle-llave">
                                     {% if p.fecha %}<div>📅 {{ p.fecha }}</div>{% endif %}
                                     {% if p.hora %}<div>🕒 {{ p.hora }}</div>{% endif %}
                                     {% if p.cancha %}<div>🏟️ {{ p.cancha }}</div>{% endif %}
                                 </div>
+				<a class="btn-editor-movil btn-editor-final"
+                                   href="{% url 'editor_partido_movil' p.id %}">
+                                  ✏️ Editar partido
+                               </a>
                             </div>
 
                             <div class="equipo-llave">
