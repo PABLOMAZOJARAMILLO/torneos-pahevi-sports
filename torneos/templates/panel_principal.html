@@ -1477,13 +1477,11 @@
                                     {% if p.hora %}<div>🕒 {{ p.hora }}</div>{% endif %}
                                     {% if p.cancha %}<div>🏟️ <span>{{ p.cancha }}</span></div>{% endif %}
                                 </div>
-				
-                            </div>
-
-                             <a class="btn-editor-movil btn-editor-final"
+				<a class="btn-editor-movil btn-editor-final"
                                    href="{% url 'editor_partido_movil' 
                                    ✏️ Editar partido
                                 </a>
+                            </div>
 
                             <div class="equipo-llave">
                                 {% if p.escudo_visitante %}<img src="{{ p.escudo_visitante }}">{% endif %}
