@@ -2,22 +2,21 @@
 
 {% block content %}
 
-<h1>Importar planilla</h1>
+<h1>Importar planilla de inscripción</h1>
 
-<form method="post" enctype="multipart/form-data">
-
+<form method="post" enctype="multipart/form-data" action="">
     {% csrf_token %}
 
     <input type="file"
            name="archivo_excel"
-           accept=".xlsx">
+           accept=".xlsx"
+           required>
 
     <br><br>
 
-    <button type="submit">
-        Importar
+    <button type="submit" class="default">
+        Importar jugadores
     </button>
-
 </form>
 
 {% endblock %}
