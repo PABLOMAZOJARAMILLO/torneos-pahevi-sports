@@ -1015,25 +1015,6 @@
     font-size:14px;
     box-shadow:0 0 10px rgba(0,255,102,.35);
 }
-    
-
-/* ===========================
-   BOTÓN EDITAR EN LLAVES FINALES
-   =========================== */
-.btn-editor-llave{
-    display:inline-block;
-    margin-top:10px;
-    padding:6px 12px;
-    border-radius:14px;
-    background:linear-gradient(135deg,#00ff66,#00b94f);
-    color:#07111f;
-    text-decoration:none;
-    font-size:10px;
-    font-weight:bold;
-    box-shadow:0 0 8px rgba(0,255,102,.35);
-    white-space:nowrap;
-}
-
     </style>
 </head>
 
@@ -1399,12 +1380,13 @@
                             <div class="partido-centro">
                                 <div class="grupo-card">Grupo {{ item.grupo }}</div>
                                 <div class="estado-card">{{ item.partido.estado }}</div>
-                               
-			       {% if item.partido.estado != "PROGRAMADO" %}
-                               <div class="marcador-card">
-                                   {{ item.partido.goles_local }} : {{ item.partido.goles_visitante }}
-                               </div>
-                               {% endif %}
+                                {% if item.partido.estado != "PROGRAMADO" %}
+                                <div class="marcador-card">
+                                    <span>{{ item.partido.goles_local }}</span>
+                                    <b>:</b>
+                                    <span>{{ item.partido.goles_visitante }}</span>
+                                </div>
+                                {% endif %}
                                 <div class="detalle-partido-card">
                                     <div>📅 {{ item.partido.fecha }}</div>
                                     <div>🕒 {{ item.partido.hora }}</div>
@@ -1470,61 +1452,41 @@
             <h2>Fase final - llaves</h2>
 
             <div class="llaves">
-
-                <!-- CUARTOS DE FINAL -->
                 <div class="columna-llave">
                     <h3>Cuartos de final</h3>
-
                     {% for p in datos_categoria.llaves.cuartos %}
                     <div class="partido-llave">
                         <div class="partido-llave-contenido">
-
                             <div class="equipo-llave">
-                                {% if p.escudo_local %}
-                                    <img src="{{ p.escudo_local }}">
-                                {% endif %}
-                                <div class="nombre-equipo-llave">
-                                    {% if p.ganador_local %}<span class="estrella-ganador">⭐</span>{% endif %}
-                                    {{ p.local }}
-                                </div>
+                                {% if p.escudo_local %}<img src="{{ p.escudo_local }}">{% endif %}
+                                <div class="nombre-equipo-llave">{% if p.ganador_local %}<span class="estrella-ganador">⭐</span>{% endif %}{{ p.local }}</div>
                             </div>
 
                             <div class="centro-llave">
                                 {% if p.estado != "PROGRAMADO" %}
                                 <div class="marcador-llave">
-                                     <span>{{ p.gl }}</span>
-                                     <b>VS</b>
-                                     <span>{{ p.gv }}</span>
+                                    <span>{{ p.gl }}</span>
+                                    <b>VS</b>
+                                    <span>{{ p.gv }}</span>
                                 </div>
                                 {% endif %}
-
                                 <div class="estado-llave">{{ p.estado }}</div>
-
-                                {% if p.tiene_penales %}
-                                <div class="penales-llave">Penales: {{ p.pl }} - {{ p.pv }}</div>
-                                {% endif %}
-
+                                {% if p.tiene_penales %}<div class="penales-llave">Penales: {{ p.pl }} - {{ p.pv }}</div>{% endif %}
                                 <div class="detalle-llave">
                                     {% if p.fecha %}<div>📅 {{ p.fecha }}</div>{% endif %}
                                     {% if p.hora %}<div>🕒 {{ p.hora }}</div>{% endif %}
                                     {% if p.cancha %}<div>🏟️ <span>{{ p.cancha }}</span></div>{% endif %}
                                 </div>
-
-                                {% if p.id %}
-                                <a class="btn-editor-llave" href="{% url 'editor_partido_movil' p.id %}">✏️ Editar</a>
-                                {% endif %}
+				<a class="btn-editor-movil btn-editor-final"
+                                   href="{% url 'editor_partido_movil' 
+                                   ✏️ Editar partido
+                                   </a>
                             </div>
 
                             <div class="equipo-llave">
-                                {% if p.escudo_visitante %}
-                                    <img src="{{ p.escudo_visitante }}">
-                                {% endif %}
-                                <div class="nombre-equipo-llave">
-                                    {% if p.ganador_visitante %}<span class="estrella-ganador">⭐</span>{% endif %}
-                                    {{ p.visitante }}
-                                </div>
+                                {% if p.escudo_visitante %}<img src="{{ p.escudo_visitante }}">{% endif %}
+                                <div class="nombre-equipo-llave">{% if p.ganador_visitante %}<span class="estrella-ganador">⭐</span>{% endif %}{{ p.visitante }}</div>
                             </div>
-
                         </div>
                     </div>
                     {% empty %}
@@ -1532,58 +1494,37 @@
                     {% endfor %}
                 </div>
 
-                <!-- SEMIFINAL -->
                 <div class="columna-llave">
                     <h3>Semifinal</h3>
-
                     {% for p in datos_categoria.llaves.semifinal %}
                     <div class="partido-llave">
                         <div class="partido-llave-contenido">
-
                             <div class="equipo-llave">
-                                {% if p.escudo_local %}
-                                    <img src="{{ p.escudo_local }}">
-                                {% endif %}
-                                <div class="nombre-equipo-llave">
-                                    {% if p.ganador_local %}<span class="estrella-ganador">⭐</span>{% endif %}
-                                    {{ p.local }}
-                                </div>
+                                {% if p.escudo_local %}<img src="{{ p.escudo_local }}">{% endif %}
+                                <div class="nombre-equipo-llave">{% if p.ganador_local %}<span class="estrella-ganador">⭐</span>{% endif %}{{ p.local }}</div>
                             </div>
 
                             <div class="centro-llave">
+                                {% if p.estado != "PROGRAMADO" %}
                                 <div class="marcador-llave">
                                     <span>{{ p.gl }}</span>
                                     <b>VS</b>
                                     <span>{{ p.gv }}</span>
                                 </div>
-
-                                <div class="estado-llave">{{ p.estado }}</div>
-
-                                {% if p.tiene_penales %}
-                                <div class="penales-llave">Penales: {{ p.pl }} - {{ p.pv }}</div>
                                 {% endif %}
-
+                                <div class="estado-llave">{{ p.estado }}</div>
+                                {% if p.tiene_penales %}<div class="penales-llave">Penales: {{ p.pl }} - {{ p.pv }}</div>{% endif %}
                                 <div class="detalle-llave">
                                     {% if p.fecha %}<div>📅 {{ p.fecha }}</div>{% endif %}
                                     {% if p.hora %}<div>🕒 {{ p.hora }}</div>{% endif %}
                                     {% if p.cancha %}<div>🏟️ {{ p.cancha }}</div>{% endif %}
                                 </div>
-
-                                {% if p.id %}
-                                <a class="btn-editor-llave" href="{% url 'editor_partido_movil' p.id %}">✏️ Editar</a>
-                                {% endif %}
                             </div>
 
                             <div class="equipo-llave">
-                                {% if p.escudo_visitante %}
-                                    <img src="{{ p.escudo_visitante }}">
-                                {% endif %}
-                                <div class="nombre-equipo-llave">
-                                    {% if p.ganador_visitante %}<span class="estrella-ganador">⭐</span>{% endif %}
-                                    {{ p.visitante }}
-                                </div>
+                                {% if p.escudo_visitante %}<img src="{{ p.escudo_visitante }}">{% endif %}
+                                <div class="nombre-equipo-llave">{% if p.ganador_visitante %}<span class="estrella-ganador">⭐</span>{% endif %}{{ p.visitante }}</div>
                             </div>
-
                         </div>
                     </div>
                     {% empty %}
@@ -1591,58 +1532,42 @@
                     {% endfor %}
                 </div>
 
-                <!-- FINAL Y TERCER PUESTO -->
                 <div class="columna-llave">
                     <h3>Final</h3>
-
                     {% for p in datos_categoria.llaves.final %}
                     <div class="partido-llave final">
                         <div class="partido-llave-contenido">
-
                             <div class="equipo-llave">
-                                {% if p.escudo_local %}
-                                    <img src="{{ p.escudo_local }}">
-                                {% endif %}
-                                <div class="nombre-equipo-llave">
-                                    {% if p.ganador_local %}<span class="estrella-ganador">⭐</span>{% endif %}
-                                    {{ p.local }}
-                                </div>
+                                {% if p.escudo_local %}<img src="{{ p.escudo_local }}">{% endif %}
+                                <div class="nombre-equipo-llave">{% if p.ganador_local %}<span class="estrella-ganador">⭐</span>{% endif %}{{ p.local }}</div>
                             </div>
 
                             <div class="centro-llave">
+                                {% if p.estado != "PROGRAMADO" %}
                                 <div class="marcador-llave">
                                     <span>{{ p.gl }}</span>
                                     <b>VS</b>
                                     <span>{{ p.gv }}</span>
                                 </div>
-
-                                <div class="estado-llave">{{ p.estado }}</div>
-
-                                {% if p.tiene_penales %}
-                                <div class="penales-llave">Penales: {{ p.pl }} - {{ p.pv }}</div>
                                 {% endif %}
-
-                                <div class="detalle-llave">
+                                <div class="estado-llave">{{ p.estado }}</div>
+                                {% if p.tiene_penales %}<div class="penales-llave">Penales: {{ p.pl }} - {{ p.pv }}</div>{% endif %}
+                                
+				<div class="detalle-llave">
                                     {% if p.fecha %}<div>📅 {{ p.fecha }}</div>{% endif %}
                                     {% if p.hora %}<div>🕒 {{ p.hora }}</div>{% endif %}
                                     {% if p.cancha %}<div>🏟️ {{ p.cancha }}</div>{% endif %}
                                 </div>
-
-                                {% if p.id %}
-                                <a class="btn-editor-llave" href="{% url 'editor_partido_movil' p.id %}">✏️ Editar</a>
-                                {% endif %}
+				<a class="btn-editor-movil btn-editor-final"
+                                   href="{% url 'editor_partido_movil' p.id %}">
+                                  ✏️ Editar partido
+                               </a>
                             </div>
 
                             <div class="equipo-llave">
-                                {% if p.escudo_visitante %}
-                                    <img src="{{ p.escudo_visitante }}">
-                                {% endif %}
-                                <div class="nombre-equipo-llave">
-                                    {% if p.ganador_visitante %}<span class="estrella-ganador">⭐</span>{% endif %}
-                                    {{ p.visitante }}
-                                </div>
+                                {% if p.escudo_visitante %}<img src="{{ p.escudo_visitante }}">{% endif %}
+                                <div class="nombre-equipo-llave">{% if p.ganador_visitante %}<span class="estrella-ganador">⭐</span>{% endif %}{{ p.visitante }}</div>
                             </div>
-
                         </div>
                     </div>
                     {% empty %}
@@ -1650,55 +1575,35 @@
                     {% endfor %}
 
                     <h3 class="titulo-tercer-puesto">Tercer puesto</h3>
-
                     {% for p in datos_categoria.llaves.tercer_puesto %}
                     <div class="partido-llave tercer-puesto">
                         <div class="partido-llave-contenido">
-
                             <div class="equipo-llave">
-                                {% if p.escudo_local %}
-                                    <img src="{{ p.escudo_local }}">
-                                {% endif %}
-                                <div class="nombre-equipo-llave">
-                                    {% if p.ganador_local %}<span class="estrella-ganador">⭐</span>{% endif %}
-                                    {{ p.local }}
-                                </div>
+                                {% if p.escudo_local %}<img src="{{ p.escudo_local }}">{% endif %}
+                                <div class="nombre-equipo-llave">{% if p.ganador_local %}<span class="estrella-ganador">⭐</span>{% endif %}{{ p.local }}</div>
                             </div>
 
                             <div class="centro-llave">
+                                {% if p.estado != "PROGRAMADO" %}
                                 <div class="marcador-llave">
                                     <span>{{ p.gl }}</span>
                                     <b>VS</b>
                                     <span>{{ p.gv }}</span>
                                 </div>
-
-                                <div class="estado-llave">{{ p.estado }}</div>
-
-                                {% if p.tiene_penales %}
-                                <div class="penales-llave">Penales: {{ p.pl }} - {{ p.pv }}</div>
                                 {% endif %}
-
+                                <div class="estado-llave">{{ p.estado }}</div>
+                                {% if p.tiene_penales %}<div class="penales-llave">Penales: {{ p.pl }} - {{ p.pv }}</div>{% endif %}
                                 <div class="detalle-llave">
                                     {% if p.fecha %}<div>📅 {{ p.fecha }}</div>{% endif %}
                                     {% if p.hora %}<div>🕒 {{ p.hora }}</div>{% endif %}
                                     {% if p.cancha %}<div>🏟️ {{ p.cancha }}</div>{% endif %}
                                 </div>
-
-                                {% if p.id %}
-                                <a class="btn-editor-llave" href="{% url 'editor_partido_movil' p.id %}">✏️ Editar</a>
-                                {% endif %}
                             </div>
 
                             <div class="equipo-llave">
-                                {% if p.escudo_visitante %}
-                                    <img src="{{ p.escudo_visitante }}">
-                                {% endif %}
-                                <div class="nombre-equipo-llave">
-                                    {% if p.ganador_visitante %}<span class="estrella-ganador">⭐</span>{% endif %}
-                                    {{ p.visitante }}
-                                </div>
+                                {% if p.escudo_visitante %}<img src="{{ p.escudo_visitante }}">{% endif %}
+                                <div class="nombre-equipo-llave">{% if p.ganador_visitante %}<span class="estrella-ganador">⭐</span>{% endif %}{{ p.visitante }}</div>
                             </div>
-
                         </div>
                     </div>
                     {% empty %}
