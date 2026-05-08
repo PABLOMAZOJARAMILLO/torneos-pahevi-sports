@@ -1,11 +1,31 @@
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+<h1>Importar planilla oficial de inscripción</h1>
+<p>Sube la plantilla oficial usada por los equipos.</p>
+<ul>
+    <li>D3: Categoría</li>
+    <li>I3: Equipo</li>
+    <li>D4: Delegado</li>
+    <li>I4: Celular delegado</li>
+    <li>C8:C37: Nombres de jugadores</li>
+    <li>D8:D37: Dorsal</li>
+    <li>E8:G37: Fecha de nacimiento DD/MM/AA</li>
+    <li>H8:H37: Cédula</li>
+    <li>C39: Director técnico</li>
+    <li>G39: Celular DT</li>
+    <li>C40: Asistente técnico</li>
+    <li>G40: Celular AT</li>
+</ul>
 <form method="post" enctype="multipart/form-data" action="">
     {% csrf_token %}
-
-    <input type="file" name="archivo_excel" accept=".xlsx" required>
-
-    <br><br>
-
-    <button type="submit" class="default">
-        Importar jugadores
-    </button>
+    <div class="form-row">
+        <label for="archivo_excel"><strong>Archivo Excel:</strong></label><br>
+        <input id="archivo_excel" type="file" name="archivo_excel" accept=".xlsx" required>
+    </div>
+    <br>
+    <button type="submit" class="default">Importar jugadores</button>
 </form>
+<br>
+<p><a href="{% url 'admin:torneos_jugador_changelist' %}">Volver a jugadores</a></p>
+{% endblock %}
