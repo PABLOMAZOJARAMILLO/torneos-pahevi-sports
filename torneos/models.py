@@ -44,6 +44,10 @@ class Equipo(models.Model):
     categoria = models.ForeignKey(Categoria, on_delete=models.CASCADE, related_name='equipos')
     delegado = models.CharField(max_length=120, blank=True, null=True, verbose_name='Delegado')
     telefono = models.CharField(max_length=30, blank=True, null=True, verbose_name='Teléfono')
+    director_tecnico = models.CharField(max_length=150, blank=True, null=True, verbose_name="Director técnico")
+    telefono_dt = models.CharField(max_length=30, blank=True, null=True, verbose_name="Celular DT")
+    asistente_tecnico = models.CharField(max_length=150, blank=True, null=True, verbose_name="Asistente técnico")
+    telefono_at = models.CharField(max_length=30, blank=True, null=True, verbose_name="Celular AT")
     escudo = models.ImageField(upload_to='escudos/', blank=True, null=True, verbose_name='Escudo')
     activo = models.BooleanField(default=True, verbose_name='Activo')
 
