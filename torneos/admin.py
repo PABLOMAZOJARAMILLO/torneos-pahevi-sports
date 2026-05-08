@@ -4,7 +4,7 @@ from django.shortcuts import render, redirect
 from django.contrib import messages
 from openpyxl import load_workbook
 from datetime import date
-
+from import_export.admin import ImportExportModelAdmin
 from .models import Categoria, Equipo, Jugador
 from .models import (
     Categoria, Equipo, Jugador, Partido, Gol, Tarjeta,
@@ -34,7 +34,7 @@ class EquipoAdmin(admin.ModelAdmin):
 
 
 @admin.register(Jugador)
-class JugadorAdmin(admin.ModelAdmin):
+class JugadorAdmin(ImportExportModelAdmin):
     list_display = ('dorsal', 'nombres', 'equipo', 'cedula')
     list_filter = ('equipo',)
     search_fields = ('nombres', 'cedula')
@@ -61,7 +61,7 @@ class SustitucionInline(admin.TabularInline):
 
 
 @admin.register(Partido)
-class PartidoAdmin(admin.ModelAdmin):
+class PartidoAdmin(ImportExportModelAdmin):
     list_display = (
         'categoria', 'grupo', 'numero_fecha', 'fase',
         'equipo_local', 'equipo_visitante',
@@ -208,3 +208,49 @@ def get_urls():
     return custom_urls + urls
 
 admin.site.get_urls = get_urls
+
+from django.urls import path
+from django.shortcuts import render, redirect
+from django.contrib import messages
+from openpyxl import load_workbook
+from datetime import date
+
+
+def importar_planilla_inscripcion(request):
+
+    if request.method == "POST":
+
+        archivo = request.FILES.get("archivo_excel")
+
+        if not archivo:
+            messages.error(request, "Seleccione un archivo.")
+            return redirect("/admin/importar-planilla-inscripcion/")
+
+        wb = load_workbook(archivo)
+        ws = wb.active
+
+        messages.success(request, "Archivo cargado correctamente.")
+
+        return redirect("/admin/")
+
+    return render(
+        request,
+        "admin/importar_planilla_inscripcion.html"
+    )
+
+
+def custom_admin_urls():
+
+    urls = admin.site.get_urls()
+
+    custom_urls = [
+        path(
+            "importar-planilla-inscripcion/",
+            admin.site.admin_view(importar_planilla_inscripcion),
+        ),
+    ]
+
+    return custom_urls + urls
+
+
+admin.site.get_urls = custom_admin_urls
