@@ -768,6 +768,16 @@ def obtener_tabla_categoria_grupo(categoria_nombre, grupo):
 
 
 def crear_o_actualizar_cuarto(categoria, numero, local, visitante):
+    """
+    Crea el partido de cuartos si no existe.
+
+    IMPORTANTE:
+    - Si el partido ya existe, NO se modifica nada.
+    - No reinicia goles.
+    - No cambia estado.
+    - No cambia equipos.
+    - Esto protege los resultados ya editados desde el panel.
+    """
     partido, creado = Partido.objects.get_or_create(
         categoria=categoria,
         fase="CUARTOS",
@@ -785,80 +795,7 @@ def crear_o_actualizar_cuarto(categoria, numero, local, visitante):
         }
     )
 
-    if partido.estado in ["FINALIZADO", "DECIDIDO_COMITE"]:
-        return partido
-
-    partido.grupo = "FINAL"
-    partido.equipo_local = local
-    partido.equipo_visitante = visitante
-    partido.estado = "PROGRAMADO"
-
-    if not partido.fecha:
-        partido.fecha = date.today()
-
-    if not partido.hora:
-        partido.hora = time(0, 0)
-
-    if not partido.cancha:
-        partido.cancha = "Por definir"
-
-    partido.save()
-
     return partido
-
-
-def categoria_es_grupo_unico(categoria_obj):
-    nombre = (categoria_obj.nombre or "").upper().replace("+", " PLUS ")
-    return (
-        "PLUS 50" in nombre
-        or "50 PLUS" in nombre
-        or "50PLUS" in nombre.replace(" ", "")
-        or "50" in nombre and "PLUS" in nombre
-    )
-
-
-def obtener_grupo_unico_clasificacion(categoria_nombre):
-    estructura = construir_estructura()
-    datos_categoria = estructura.get(categoria_nombre)
-
-    if not datos_categoria:
-        return None, []
-
-    grupos_validos = []
-
-    for grupo, datos_grupo in datos_categoria["grupos"].items():
-        if grupo == "FINAL":
-            continue
-
-        tabla = datos_grupo.get("tabla", [])
-
-        if tabla:
-            grupos_validos.append((grupo, tabla))
-
-    if not grupos_validos:
-        return None, []
-
-    # En categorías de grupo único solo tomamos la tabla con más equipos.
-    grupos_validos.sort(key=lambda item: len(item[1]), reverse=True)
-    return grupos_validos[0]
-
-
-def grupo_completo_unico(categoria_obj, grupo):
-    partidos = Partido.objects.filter(
-        categoria=categoria_obj,
-        grupo=grupo,
-        fase="GRUPOS"
-    )
-
-    if not partidos.exists():
-        return False
-
-    for partido in partidos:
-        if partido.estado not in ["FINALIZADO", "DECIDIDO_COMITE"]:
-            return False
-
-    return True
-
 
 def generar_llaves_cuartos(request, categoria):
     categoria_obj = Categoria.objects.filter(nombre=categoria).first()
@@ -867,57 +804,6 @@ def generar_llaves_cuartos(request, categoria):
         messages.error(request, "Categoría no encontrada.")
         return redirect("panel")
 
-    # ==================================================
-    # CASO ESPECIAL: PLUS 50 / GRUPO ÚNICO
-    # Clasifican 4 equipos y se crean SEMIFINALES:
-    # 1° vs 4° y 2° vs 3°
-    # ==================================================
-    if categoria_es_grupo_unico(categoria_obj):
-        grupo_unico, tabla_unica = obtener_grupo_unico_clasificacion(categoria)
-
-        if not grupo_unico:
-            messages.error(request, f"No se encontró tabla de grupo para {categoria}.")
-            return redirect("panel")
-
-        if not grupo_completo_unico(categoria_obj, grupo_unico):
-            messages.error(request, f"El grupo {grupo_unico} de {categoria} todavía tiene partidos pendientes.")
-            return redirect("panel")
-
-        if len(tabla_unica) < 4:
-            messages.error(request, "No hay suficientes equipos para generar semifinales. Se necesitan 4 clasificados.")
-            return redirect("panel")
-
-        primero = Equipo.objects.get(nombre=tabla_unica[0]["equipo"], categoria=categoria_obj)
-        segundo = Equipo.objects.get(nombre=tabla_unica[1]["equipo"], categoria=categoria_obj)
-        tercero = Equipo.objects.get(nombre=tabla_unica[2]["equipo"], categoria=categoria_obj)
-        cuarto = Equipo.objects.get(nombre=tabla_unica[3]["equipo"], categoria=categoria_obj)
-
-        crear_o_actualizar_partido_final(
-            categoria_obj,
-            "SEMIFINAL",
-            "SEMIFINAL #1",
-            primero,
-            cuarto
-        )
-
-        crear_o_actualizar_partido_final(
-            categoria_obj,
-            "SEMIFINAL",
-            "SEMIFINAL #2",
-            segundo,
-            tercero
-        )
-
-        messages.success(
-            request,
-            f"Semifinales generadas correctamente para {categoria}: 1° vs 4° y 2° vs 3°."
-        )
-        return redirect("panel")
-
-    # ==================================================
-    # CASO NORMAL: DOS GRUPOS A Y B
-    # Cuartos: 1A vs 4B, 2A vs 3B, 1B vs 4A, 2B vs 3A
-    # ==================================================
     if not grupo_completo(categoria_obj, "A"):
         messages.error(request, f"El Grupo A de {categoria} todavía tiene partidos pendientes.")
         return redirect("panel")
@@ -926,8 +812,30 @@ def generar_llaves_cuartos(request, categoria):
         messages.error(request, f"El Grupo B de {categoria} todavía tiene partidos pendientes.")
         return redirect("panel")
 
-    tabla_a = obtener_tabla_categoria_grupo(categoria, "A")
-    tabla_b = obtener_tabla_categoria_grupo(categoria, "B")
+    # ===============================
+    # PLUS 50 → UN SOLO GRUPO
+    # ===============================
+
+    if categoria.nombre.upper() == "PLUS 50":
+
+        clasificados = tabla_general[:4]
+ 
+        cruces = [
+           (clasificados[0], clasificados[3]),  # 1 vs 4
+           (clasificados[1], clasificados[2]),  # 2 vs 3
+        ]
+
+    else:
+
+        grupo_a = [x for x in tabla_general if x["grupo"] == "A"]
+        grupo_b = [x for x in tabla_general if x["grupo"] == "B"]
+
+        cruces = [
+            (grupo_a[0], grupo_b[3]),
+            (grupo_a[1], grupo_b[2]),
+            (grupo_b[0], grupo_a[3]),
+            (grupo_b[1], grupo_a[2]),
+        ]
 
     if len(tabla_a) < 4 or len(tabla_b) < 4:
         messages.error(request, "No hay suficientes equipos para generar los cuartos.")
@@ -949,6 +857,7 @@ def generar_llaves_cuartos(request, categoria):
     crear_o_actualizar_cuarto(categoria_obj, 4, segundo_b, tercero_a)
 
     messages.success(request, f"Llaves de cuartos generadas correctamente para {categoria}.")
+
     return redirect("panel")
 
 def ganador_partido(partido):
@@ -978,6 +887,17 @@ def ganador_partido(partido):
 
 
 def crear_o_actualizar_partido_final(categoria, fase, numero_fecha, local, visitante):
+    """
+    Crea un partido de fase final si no existe.
+
+    IMPORTANTE:
+    - Si el partido ya existe, NO se vuelve a editar.
+    - No reinicia goles a 0.
+    - No vuelve el estado a PROGRAMADO.
+    - No cambia equipos.
+    - Esto evita que se borren los resultados ya cargados en PLUS 50,
+      semifinales, final o tercer puesto.
+    """
     partido, creado = Partido.objects.get_or_create(
         categoria=categoria,
         fase=fase,
@@ -995,26 +915,7 @@ def crear_o_actualizar_partido_final(categoria, fase, numero_fecha, local, visit
         }
     )
 
-    if partido.estado in ["FINALIZADO", "DECIDIDO_COMITE"]:
-        return partido
-
-    partido.grupo = "FINAL"
-    partido.equipo_local = local
-    partido.equipo_visitante = visitante
-    partido.estado = "PROGRAMADO"
-
-    if not partido.fecha:
-        partido.fecha = date.today()
-
-    if not partido.hora:
-        partido.hora = time(0, 0)
-
-    if not partido.cancha:
-        partido.cancha = "Por definir"
-
-    partido.save()
     return partido
-
 
 def generar_semifinales(request, categoria):
     categoria_obj = Categoria.objects.filter(nombre=categoria).first()
@@ -1022,11 +923,6 @@ def generar_semifinales(request, categoria):
     if not categoria_obj:
         messages.error(request, "Categoría no encontrada.")
         return redirect("panel")
-
-    # En PLUS 50 / grupo único no hay cuartos.
-    # La semifinal se genera directo desde la tabla: 1° vs 4° y 2° vs 3°.
-    if categoria_es_grupo_unico(categoria_obj):
-        return generar_llaves_cuartos(request, categoria)
 
     q1 = Partido.objects.filter(categoria=categoria_obj, fase="CUARTOS", numero_fecha="CUARTOS #1").first()
     q2 = Partido.objects.filter(categoria=categoria_obj, fase="CUARTOS", numero_fecha="CUARTOS #2").first()
