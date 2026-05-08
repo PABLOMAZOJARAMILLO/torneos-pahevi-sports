@@ -1400,17 +1400,11 @@
                                 <div class="grupo-card">Grupo {{ item.grupo }}</div>
                                 <div class="estado-card">{{ item.partido.estado }}</div>
                                
-			        <div class="marcador-card">
-
-    				    {% if item.partido.estado == "PROGRAMADO" %}
-                                        - : -
-
-                                    {% else %}
-                                       {{ item.partido.goles_local }} : {{ item.partido.goles_visitante }}
-
-                                    {% endif %}
-
-                              </div>
+			       {% if item.partido.estado != "PROGRAMADO" %}
+                               <div class="marcador-card">
+                                   {{ item.partido.goles_local }} : {{ item.partido.goles_visitante }}
+                               </div>
+                               {% endif %}
                                 <div class="detalle-partido-card">
                                     <div>📅 {{ item.partido.fecha }}</div>
                                     <div>🕒 {{ item.partido.hora }}</div>
@@ -1496,20 +1490,13 @@
                             </div>
 
                             <div class="centro-llave">
+                                {% if p.estado != "PROGRAMADO" %}
                                 <div class="marcador-llave">
-
-                                    {% if p.estado == "PROGRAMADO" %}
-                                        <span>-</span>
-                                        <b>VS</b>
-                                        <span>-</span>
-
-                                    {% else %}
-                                        <span>{{ p.gl }}</span>
-                                        <b>VS</b>
-                                        <span>{{ p.gv }}</span>
-                                        {% endif %}
-
-                                 </div>
+                                     <span>{{ p.gl }}</span>
+                                     <b>VS</b>
+                                     <span>{{ p.gv }}</span>
+                                </div>
+                                {% endif %}
 
                                 <div class="estado-llave">{{ p.estado }}</div>
 
