@@ -1000,6 +1000,21 @@
     .menu-partido a:hover {
         background: rgba(0,255,102,0.12);
     }
+
+.btn-editor-movil{
+    display:block;
+    width:100%;
+    margin-top:10px;
+    padding:10px;
+    border-radius:20px;
+    background:linear-gradient(135deg,#00ff66,#00b94f);
+    color:#07111f;
+    text-align:center;
+    text-decoration:none;
+    font-weight:bold;
+    font-size:14px;
+    box-shadow:0 0 10px rgba(0,255,102,.35);
+}
     </style>
 </head>
 
@@ -1375,8 +1390,13 @@
                                     <div>🕒 {{ item.partido.hora }}</div>
                                     <div>🏟️ {{ item.partido.cancha|default:"Por definir" }}</div>
                                 </div>
+                                
+                                    <a class="btn-editor-movil"
+                                       href="{% url 'editor_partido_movil' item.partido.id %}">
+                                      ✏️ Editar partido
+                                    </a>
                             </div>
-
+			    
                             <div class="equipo-card">
                                 {% if item.partido.equipo_visitante.escudo %}
                                     <img src="/static/torneos/escudos/{{ item.partido.equipo_visitante.escudo.name|cut:'escudos/' }}">
