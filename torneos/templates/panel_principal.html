@@ -1015,6 +1015,14 @@
     font-size:14px;
     box-shadow:0 0 10px rgba(0,255,102,.35);
 }
+
+.btn-editor-final {
+    margin-top: 12px;
+    width: 100%;
+    font-size: 13px;
+}
+
+
     </style>
 </head>
 
@@ -1469,6 +1477,10 @@
                                     {% if p.hora %}<div>🕒 {{ p.hora }}</div>{% endif %}
                                     {% if p.cancha %}<div>🏟️ <span>{{ p.cancha }}</span></div>{% endif %}
                                 </div>
+				<a class="btn-editor-movil btn-editor-final"
+                                   href="{% url 'editor_partido_movil' 
+                                   ✏️ Editar partido
+                                </a>
                             </div>
 
                             <div class="equipo-llave">
