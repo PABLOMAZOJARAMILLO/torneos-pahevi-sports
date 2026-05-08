@@ -219,3 +219,41 @@ class EventoPartido(models.Model):
     def __str__(self):
         return f"{self.jugador} - {self.tipo}"
     
+
+
+class AlineacionPartido(models.Model):
+    ROLES = [
+        ('TITULAR', 'Titular'),
+        ('SUPLENTE', 'Suplente'),
+    ]
+
+    partido = models.ForeignKey(Partido, on_delete=models.CASCADE, related_name='alineaciones')
+    equipo = models.ForeignKey(Equipo, on_delete=models.CASCADE, related_name='alineaciones_partido')
+    jugador = models.ForeignKey(Jugador, on_delete=models.CASCADE, related_name='alineaciones_partido')
+    rol = models.CharField(max_length=20, choices=ROLES, default='TITULAR')
+
+    class Meta:
+        verbose_name = 'Alineación del partido'
+        verbose_name_plural = 'Alineaciones del partido'
+        unique_together = ('partido', 'jugador')
+        ordering = ['equipo__nombre', 'rol', 'jugador__nombres']
+
+    def __str__(self):
+        return f"{self.partido} - {self.jugador} ({self.rol})"
+
+
+class SustitucionPartido(models.Model):
+    partido = models.ForeignKey(Partido, on_delete=models.CASCADE, related_name='sustituciones')
+    equipo = models.ForeignKey(Equipo, on_delete=models.CASCADE, related_name='sustituciones_partido')
+    jugador_sale = models.ForeignKey(Jugador, on_delete=models.CASCADE, related_name='sustituciones_sale')
+    jugador_entra = models.ForeignKey(Jugador, on_delete=models.CASCADE, related_name='sustituciones_entra')
+    minuto = models.PositiveIntegerField(blank=True, null=True)
+    observacion = models.CharField(max_length=150, blank=True, null=True)
+
+    class Meta:
+        verbose_name = 'Sustitución del partido'
+        verbose_name_plural = 'Sustituciones del partido'
+        ordering = ['equipo__nombre', 'minuto', 'id']
+
+    def __str__(self):
+        return f"{self.partido} - Sale {self.jugador_sale} / Entra {self.jugador_entra}"

@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Editor móvil del partido</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            padding: 10px;
+            background: radial-gradient(circle at top, #10294a 0%, #07111f 45%, #020712 100%);
+            color: white;
+            font-family: Arial, sans-serif;
+            font-weight: bold;
+        }
+        .app { max-width: 520px; margin: 0 auto; }
+        .topbar {
+            position: sticky; top: 0; z-index: 50;
+            background: #07111f;
+            padding: 10px 0 8px 0;
+            border-bottom: 1px solid rgba(0,255,102,0.25);
+        }
+        .volver {
+            display: inline-block;
+            color: #07111f;
+            background: linear-gradient(135deg, #00ff66, #00b94f);
+            text-decoration: none;
+            padding: 9px 14px;
+            border-radius: 20px;
+            font-size: 13px;
+            margin-bottom: 10px;
+        }
+        .titulo {
+            text-align: center;
+            color: #00ff66;
+            font-size: 18px;
+            margin: 4px 0 10px 0;
+            text-transform: uppercase;
+        }
+        .marcador-card-editor {
+            background: white;
+            color: #0b1b35;
+            border-radius: 18px;
+            padding: 12px;
+            box-shadow: 0 0 14px rgba(0,0,0,0.3);
+            margin-bottom: 10px;
+        }
+        .equipos-editor {
+            display: grid;
+            grid-template-columns: 1fr 80px 1fr;
+            align-items: center;
+            gap: 8px;
+            text-align: center;
+        }
+        .equipo-editor {
+            font-size: 12px;
+            line-height: 1.2;
+            text-transform: uppercase;
+        }
+        .marcador-editor {
+            font-size: 30px;
+            color: #003b7a;
+        }
+        .estado-chip {
+            width: fit-content;
+            margin: 8px auto 0 auto;
+            background: #ff0077;
+            color: white;
+            padding: 5px 16px;
+            border-radius: 20px;
+            font-size: 11px;
+        }
+        .tabs {
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            padding: 8px 0;
+        }
+        .tab-btn {
+            border: 1px solid #1f8f54;
+            background: #132238;
+            color: white;
+            padding: 10px 14px;
+            border-radius: 15px;
+            white-space: nowrap;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .tab-btn.active {
+            background: linear-gradient(135deg, #00ff66, #00b94f);
+            color: #07111f;
+        }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .card {
+            background: linear-gradient(180deg, #17263b, #101b2e);
+            border-left: 5px solid #00ff66;
+            border-radius: 18px;
+            padding: 14px;
+            margin: 12px 0;
+            box-shadow: 0 0 18px rgba(0,0,0,0.35);
+        }
+        h2 {
+            margin: 0 0 12px 0;
+            color: #00ff66;
+            font-size: 17px;
+            text-transform: uppercase;
+        }
+        label {
+            display: block;
+            margin: 10px 0 5px 0;
+            color: #dbeafe;
+            font-size: 12px;
+        }
+        input, select, textarea {
+            width: 100%;
+            border: 1px solid #00ff66;
+            border-radius: 13px;
+            background: #07111f;
+            color: white;
+            padding: 11px;
+            font-size: 15px;
+            font-weight: bold;
+        }
+        textarea { min-height: 80px; resize: vertical; }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+        .btn {
+            width: 100%;
+            border: none;
+            border-radius: 22px;
+            padding: 13px;
+            margin-top: 14px;
+            background: linear-gradient(135deg, #00ff66, #00b94f);
+            color: #07111f;
+            font-size: 15px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .btn-danger {
+            background: linear-gradient(135deg, #ff4d4d, #c1121f);
+            color: white;
+            padding: 7px 10px;
+            border-radius: 12px;
+            border: none;
+            font-size: 11px;
+            margin: 0;
+        }
+        .lista-item {
+            background: #0f1b2e;
+            border: 1px solid #2f4d6f;
+            border-radius: 14px;
+            padding: 10px;
+            margin: 8px 0;
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 8px;
+            align-items: center;
+        }
+        .item-title { color: white; font-size: 13px; line-height: 1.3; }
+        .item-sub { color: #dbeafe; font-size: 11px; margin-top: 3px; }
+        .messages { margin: 10px 0; }
+        .message {
+            background: rgba(0,255,102,0.13);
+            border: 1px solid rgba(0,255,102,0.45);
+            border-radius: 14px;
+            padding: 10px;
+            margin-bottom: 8px;
+            color: #dbeafe;
+            font-size: 12px;
+        }
+        .nota {
+            font-size: 11px;
+            color: #dbeafe;
+            opacity: .9;
+            line-height: 1.4;
+        }
+    </style>
+</head>
+<body>
+<div class="app">
+    <div class="topbar">
+        <a class="volver" href="{% url 'panel' %}">← Volver al panel</a>
+        <div class="titulo">Editor móvil del partido</div>
+
+        <div class="marcador-card-editor">
+            <div class="equipos-editor">
+                <div class="equipo-editor">{{ partido.equipo_local.nombre }}</div>
+                <div class="marcador-editor">{{ partido.goles_local }} : {{ partido.goles_visitante }}</div>
+                <div class="equipo-editor">{{ partido.equipo_visitante.nombre }}</div>
+            </div>
+            <div class="estado-chip">{{ partido.estado }}</div>
+        </div>
+
+        <div class="tabs">
+            <button type="button" class="tab-btn active" onclick="mostrarEditorTab('resultado', this)">Resultado</button>
+            <button type="button" class="tab-btn" onclick="mostrarEditorTab('goles', this)">Goles</button>
+            <button type="button" class="tab-btn" onclick="mostrarEditorTab('tarjetas', this)">Tarjetas</button>
+            <button type="button" class="tab-btn" onclick="mostrarEditorTab('alineacion', this)">Alineación</button>
+            <button type="button" class="tab-btn" onclick="mostrarEditorTab('sustituciones', this)">Cambios</button>
+            <button type="button" class="tab-btn" onclick="mostrarEditorTab('penales-comite', this)">Penales/Comité</button>
+        </div>
+    </div>
+
+    {% if messages %}
+    <div class="messages">
+        {% for message in messages %}
+            <div class="message">{{ message }}</div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <form method="POST" action="{% url 'guardar_info_partido_movil' partido.id %}">
+        {% csrf_token %}
+
+        <div id="resultado" class="tab-content active">
+            <div class="card">
+                <h2>Resultado y programación</h2>
+
+                <label>Marcador</label>
+                <div class="grid-3">
+                    <input type="number" name="goles_local" min="0" value="{{ partido.goles_local|default:0 }}">
+                    <input type="text" value=":" disabled>
+                    <input type="number" name="goles_visitante" min="0" value="{{ partido.goles_visitante|default:0 }}">
+                </div>
+
+                <label>Estado</label>
+                <select name="estado">
+                    {% for value, label in estados_partido %}
+                        <option value="{{ value }}" {% if partido.estado == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+
+                <div class="grid-2">
+                    <div>
+                        <label>Fecha</label>
+                        <input type="date" name="fecha" value="{{ partido.fecha|date:'Y-m-d' }}">
+                    </div>
+                    <div>
+                        <label>Hora</label>
+                        <input type="time" name="hora" value="{{ partido.hora|time:'H:i' }}">
+                    </div>
+                </div>
+
+                <label>Cancha</label>
+                <input type="text" name="cancha" value="{{ partido.cancha|default:'' }}">
+
+                <div class="grid-2">
+                    <div>
+                        <label>Fecha fixture</label>
+                        <input type="text" name="numero_fecha" value="{{ partido.numero_fecha|default:'' }}">
+                    </div>
+                    <div>
+                        <label>Grupo</label>
+                        <input type="text" name="grupo" value="{{ partido.grupo|default:'' }}">
+                    </div>
+                </div>
+
+                <label>Fase</label>
+                <select name="fase">
+                    {% for value, label in fases_partido %}
+                        <option value="{{ value }}" {% if partido.fase == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+
+                <button class="btn" type="submit">💾 Guardar resultado</button>
+            </div>
+        </div>
+
+        <div id="penales-comite" class="tab-content">
+            <div class="card">
+                <h2>Penales y comité</h2>
+
+                <label>Tanda de penales</label>
+                <div class="grid-2">
+                    <input type="number" name="goles_local_penales" min="0" value="{{ partido.goles_local_penales|default:0 }}" placeholder="Penales local">
+                    <input type="number" name="goles_visitante_penales" min="0" value="{{ partido.goles_visitante_penales|default:0 }}" placeholder="Penales visitante">
+                </div>
+
+                <label>Ajuste de puntos</label>
+                <div class="grid-2">
+                    <input type="number" name="ajuste_puntos_local" value="{{ partido.ajuste_puntos_local|default:0 }}" placeholder="Ajuste local">
+                    <input type="number" name="ajuste_puntos_visitante" value="{{ partido.ajuste_puntos_visitante|default:0 }}" placeholder="Ajuste visitante">
+                </div>
+
+                <label>Observación del comité</label>
+                <textarea name="observacion_comite">{{ partido.observacion_comite|default:'' }}</textarea>
+
+                <label>Observaciones generales</label>
+                <textarea name="observaciones">{{ partido.observaciones|default:'' }}</textarea>
+
+                <button class="btn" type="submit">💾 Guardar penales/comité</button>
+            </div>
+        </div>
+    </form>
+
+    <div id="goles" class="tab-content">
+        <div class="card">
+            <h2>Agregar goles</h2>
+            <form method="POST" action="{% url 'agregar_gol_movil' partido.id %}">
+                {% csrf_token %}
+                <label>Equipo</label>
+                <select name="equipo" required>
+                    <option value="{{ partido.equipo_local.id }}">{{ partido.equipo_local.nombre }}</option>
+                    <option value="{{ partido.equipo_visitante.id }}">{{ partido.equipo_visitante.nombre }}</option>
+                </select>
+
+                <label>Jugador</label>
+                <select name="jugador" required>
+                    <optgroup label="{{ partido.equipo_local.nombre }}">
+                        {% for j in jugadores_local %}<option value="{{ j.id }}">{% if j.dorsal %}#{{ j.dorsal }} - {% endif %}{{ j.nombres }}</option>{% endfor %}
+                    </optgroup>
+                    <optgroup label="{{ partido.equipo_visitante.nombre }}">
+                        {% for j in jugadores_visitante %}<option value="{{ j.id }}">{% if j.dorsal %}#{{ j.dorsal }} - {% endif %}{{ j.nombres }}</option>{% endfor %}
+                    </optgroup>
+                </select>
+
+                <label>Cantidad</label>
+                <input type="number" name="cantidad" min="1" value="1">
+                <button class="btn" type="submit">⚽ Agregar gol</button>
+            </form>
+        </div>
+
+        <div class="card">
+            <h2>Goles registrados</h2>
+            {% for gol in goles %}
+                <div class="lista-item">
+                    <div>
+                        <div class="item-title">{{ gol.jugador.nombres }}</div>
+                        <div class="item-sub">{{ gol.equipo.nombre }} · {{ gol.cantidad }} gol(es)</div>
+                    </div>
+                    <form method="POST" action="{% url 'eliminar_gol_movil' gol.id %}">{% csrf_token %}<button class="btn-danger" type="submit">Eliminar</button></form>
+                </div>
+            {% empty %}
+                <p class="nota">No hay goles registrados.</p>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div id="tarjetas" class="tab-content">
+        <div class="card">
+            <h2>Agregar tarjeta</h2>
+            <form method="POST" action="{% url 'agregar_tarjeta_movil' partido.id %}">
+                {% csrf_token %}
+                <label>Equipo</label>
+                <select name="equipo" required>
+                    <option value="{{ partido.equipo_local.id }}">{{ partido.equipo_local.nombre }}</option>
+                    <option value="{{ partido.equipo_visitante.id }}">{{ partido.equipo_visitante.nombre }}</option>
+                </select>
+
+                <label>Jugador</label>
+                <select name="jugador" required>
+                    <optgroup label="{{ partido.equipo_local.nombre }}">
+                        {% for j in jugadores_local %}<option value="{{ j.id }}">{% if j.dorsal %}#{{ j.dorsal }} - {% endif %}{{ j.nombres }}</option>{% endfor %}
+                    </optgroup>
+                    <optgroup label="{{ partido.equipo_visitante.nombre }}">
+                        {% for j in jugadores_visitante %}<option value="{{ j.id }}">{% if j.dorsal %}#{{ j.dorsal }} - {% endif %}{{ j.nombres }}</option>{% endfor %}
+                    </optgroup>
+                </select>
+
+                <label>Tipo</label>
+                <select name="tipo" required>
+                    <option value="AMARILLA">Amarilla</option>
+                    <option value="ROJA">Roja</option>
+                </select>
+                <button class="btn" type="submit">🟨🟥 Agregar tarjeta</button>
+            </form>
+        </div>
+
+        <div class="card">
+            <h2>Tarjetas registradas</h2>
+            {% for tarjeta in tarjetas %}
+                <div class="lista-item">
+                    <div>
+                        <div class="item-title">{{ tarjeta.jugador.nombres }}</div>
+                        <div class="item-sub">{{ tarjeta.equipo.nombre }} · {{ tarjeta.tipo }}</div>
+                    </div>
+                    <form method="POST" action="{% url 'eliminar_tarjeta_movil' tarjeta.id %}">{% csrf_token %}<button class="btn-danger" type="submit">Eliminar</button></form>
+                </div>
+            {% empty %}
+                <p class="nota">No hay tarjetas registradas.</p>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div id="alineacion" class="tab-content">
+        <div class="card">
+            <h2>Alineación</h2>
+            <form method="POST" action="{% url 'agregar_alineacion_movil' partido.id %}">
+                {% csrf_token %}
+                <label>Equipo</label>
+                <select name="equipo" required>
+                    <option value="{{ partido.equipo_local.id }}">{{ partido.equipo_local.nombre }}</option>
+                    <option value="{{ partido.equipo_visitante.id }}">{{ partido.equipo_visitante.nombre }}</option>
+                </select>
+
+                <label>Jugador</label>
+                <select name="jugador" required>
+                    <optgroup label="{{ partido.equipo_local.nombre }}">
+                        {% for j in jugadores_local %}<option value="{{ j.id }}">{% if j.dorsal %}#{{ j.dorsal }} - {% endif %}{{ j.nombres }}</option>{% endfor %}
+                    </optgroup>
+                    <optgroup label="{{ partido.equipo_visitante.nombre }}">
+                        {% for j in jugadores_visitante %}<option value="{{ j.id }}">{% if j.dorsal %}#{{ j.dorsal }} - {% endif %}{{ j.nombres }}</option>{% endfor %}
+                    </optgroup>
+                </select>
+
+                <label>Rol</label>
+                <select name="rol">
+                    <option value="TITULAR">Titular</option>
+                    <option value="SUPLENTE">Suplente</option>
+                </select>
+                <button class="btn" type="submit">📋 Agregar a alineación</button>
+            </form>
+        </div>
+
+        <div class="card">
+            <h2>Alineación registrada</h2>
+            {% for a in alineaciones %}
+                <div class="lista-item">
+                    <div>
+                        <div class="item-title">{{ a.jugador.nombres }}</div>
+                        <div class="item-sub">{{ a.equipo.nombre }} · {{ a.rol }}</div>
+                    </div>
+                    <form method="POST" action="{% url 'eliminar_alineacion_movil' a.id %}">{% csrf_token %}<button class="btn-danger" type="submit">Eliminar</button></form>
+                </div>
+            {% empty %}
+                <p class="nota">No hay alineación registrada.</p>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div id="sustituciones" class="tab-content">
+        <div class="card">
+            <h2>Sustituciones</h2>
+            <form method="POST" action="{% url 'agregar_sustitucion_movil' partido.id %}">
+                {% csrf_token %}
+                <label>Equipo</label>
+                <select name="equipo" required>
+                    <option value="{{ partido.equipo_local.id }}">{{ partido.equipo_local.nombre }}</option>
+                    <option value="{{ partido.equipo_visitante.id }}">{{ partido.equipo_visitante.nombre }}</option>
+                </select>
+
+                <label>Jugador que sale</label>
+                <select name="jugador_sale" required>
+                    <optgroup label="{{ partido.equipo_local.nombre }}">
+                        {% for j in jugadores_local %}<option value="{{ j.id }}">{% if j.dorsal %}#{{ j.dorsal }} - {% endif %}{{ j.nombres }}</option>{% endfor %}
+                    </optgroup>
+                    <optgroup label="{{ partido.equipo_visitante.nombre }}">
+                        {% for j in jugadores_visitante %}<option value="{{ j.id }}">{% if j.dorsal %}#{{ j.dorsal }} - {% endif %}{{ j.nombres }}</option>{% endfor %}
+                    </optgroup>
+                </select>
+
+                <label>Jugador que entra</label>
+                <select name="jugador_entra" required>
+                    <optgroup label="{{ partido.equipo_local.nombre }}">
+                        {% for j in jugadores_local %}<option value="{{ j.id }}">{% if j.dorsal %}#{{ j.dorsal }} - {% endif %}{{ j.nombres }}</option>{% endfor %}
+                    </optgroup>
+                    <optgroup label="{{ partido.equipo_visitante.nombre }}">
+                        {% for j in jugadores_visitante %}<option value="{{ j.id }}">{% if j.dorsal %}#{{ j.dorsal }} - {% endif %}{{ j.nombres }}</option>{% endfor %}
+                    </optgroup>
+                </select>
+
+                <div class="grid-2">
+                    <div>
+                        <label>Minuto</label>
+                        <input type="number" name="minuto" min="0" placeholder="Ej: 45">
+                    </div>
+                    <div>
+                        <label>Observación</label>
+                        <input type="text" name="observacion" placeholder="Opcional">
+                    </div>
+                </div>
+                <button class="btn" type="submit">🔁 Agregar sustitución</button>
+            </form>
+        </div>
+
+        <div class="card">
+            <h2>Sustituciones registradas</h2>
+            {% for s in sustituciones %}
+                <div class="lista-item">
+                    <div>
+                        <div class="item-title">Sale: {{ s.jugador_sale.nombres }} / Entra: {{ s.jugador_entra.nombres }}</div>
+                        <div class="item-sub">{{ s.equipo.nombre }} · Min {{ s.minuto|default:'-' }} · {{ s.observacion|default:'' }}</div>
+                    </div>
+                    <form method="POST" action="{% url 'eliminar_sustitucion_movil' s.id %}">{% csrf_token %}<button class="btn-danger" type="submit">Eliminar</button></form>
+                </div>
+            {% empty %}
+                <p class="nota">No hay sustituciones registradas.</p>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<script>
+function mostrarEditorTab(tabId, boton) {
+    document.querySelectorAll('.tab-content').forEach(function(tab) {
+        tab.classList.remove('active');
+    });
+    document.querySelectorAll('.tab-btn').forEach(function(btn) {
+        btn.classList.remove('active');
+    });
+    const tab = document.getElementById(tabId);
+    if (tab) tab.classList.add('active');
+    if (boton) boton.classList.add('active');
+}
+
+function activarHashInicial() {
+    const hash = window.location.hash.replace('#', '');
+    if (!hash) return;
+    const tab = document.getElementById(hash);
+    if (!tab) return;
+    const botones = document.querySelectorAll('.tab-btn');
+    const mapa = {
+        'resultado': 0,
+        'goles': 1,
+        'tarjetas': 2,
+        'alineacion': 3,
+        'sustituciones': 4,
+        'penales-comite': 5
+    };
+    mostrarEditorTab(hash, botones[mapa[hash]]);
+}
+
+document.addEventListener('DOMContentLoaded', activarHashInicial);
+</script>
+</body>
+</html>

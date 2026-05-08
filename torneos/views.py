@@ -5,12 +5,13 @@ import re
 
 from django.contrib import messages
 from django.http import FileResponse, HttpResponse
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.template.loader import render_to_string
 from django.templatetags.static import static
 from html2image import Html2Image
+from django.views.decorators.http import require_POST
 
-from .models import Categoria, Equipo, Partido, Gol, Tarjeta
+from .models import Categoria, Equipo, Partido, Gol, Tarjeta, Jugador, AlineacionPartido, SustitucionPartido
 
 
 def limpiar_nombre(nombre):
@@ -516,6 +517,7 @@ def construir_estructura():
                         ganador_visitante = True
 
             item = {
+                "id": p.id,
                 "local": p.equipo_local.nombre if p.equipo_local else "Por definir",
                 "visitante": p.equipo_visitante.nombre if p.equipo_visitante else "Por definir",
                 "escudo_local": escudo_url(p.equipo_local),
@@ -1123,3 +1125,207 @@ def descargar_programacion_categoria(request, categoria):
         alto = 650 + (cantidad * 270)
 
     return crear_imagen_desde_html(html, nombre, 1080, alto)
+
+
+# ======================================================
+# EDITOR MÓVIL PROFESIONAL DE PARTIDOS
+# ======================================================
+
+def _jugadores_del_partido(partido):
+    jugadores_local = Jugador.objects.filter(
+        equipo=partido.equipo_local,
+        estado='ACTIVO'
+    ).order_by('dorsal', 'nombres')
+
+    jugadores_visitante = Jugador.objects.filter(
+        equipo=partido.equipo_visitante,
+        estado='ACTIVO'
+    ).order_by('dorsal', 'nombres')
+
+    return jugadores_local, jugadores_visitante
+
+
+def _validar_jugador_equipo(jugador, equipo, partido):
+    equipos_validos = [partido.equipo_local_id, partido.equipo_visitante_id]
+    return jugador.equipo_id == equipo.id and equipo.id in equipos_validos
+
+
+def editor_partido_movil(request, partido_id):
+    partido = get_object_or_404(
+        Partido.objects.select_related('categoria', 'equipo_local', 'equipo_visitante'),
+        id=partido_id
+    )
+
+    jugadores_local, jugadores_visitante = _jugadores_del_partido(partido)
+
+    goles = Gol.objects.filter(partido=partido).select_related('jugador', 'equipo').order_by('equipo__nombre', 'jugador__nombres')
+    tarjetas = Tarjeta.objects.filter(partido=partido).select_related('jugador', 'equipo').order_by('equipo__nombre', 'tipo', 'jugador__nombres')
+    alineaciones = AlineacionPartido.objects.filter(partido=partido).select_related('jugador', 'equipo').order_by('equipo__nombre', 'rol', 'jugador__nombres')
+    sustituciones = SustitucionPartido.objects.filter(partido=partido).select_related('equipo', 'jugador_sale', 'jugador_entra').order_by('equipo__nombre', 'minuto', 'id')
+
+    return render(request, 'editor_partido_movil.html', {
+        'partido': partido,
+        'jugadores_local': jugadores_local,
+        'jugadores_visitante': jugadores_visitante,
+        'goles': goles,
+        'tarjetas': tarjetas,
+        'alineaciones': alineaciones,
+        'sustituciones': sustituciones,
+        'estados_partido': Partido.ESTADOS,
+        'fases_partido': Partido.FASES,
+    })
+
+
+@require_POST
+def guardar_info_partido_movil(request, partido_id):
+    partido = get_object_or_404(Partido, id=partido_id)
+
+    partido.goles_local = request.POST.get('goles_local') or 0
+    partido.goles_visitante = request.POST.get('goles_visitante') or 0
+    partido.estado = request.POST.get('estado') or partido.estado
+    partido.fecha = request.POST.get('fecha') or partido.fecha
+    partido.hora = request.POST.get('hora') or partido.hora
+    partido.cancha = request.POST.get('cancha') or ''
+    partido.numero_fecha = request.POST.get('numero_fecha') or ''
+    partido.grupo = request.POST.get('grupo') or ''
+    partido.fase = request.POST.get('fase') or partido.fase
+    partido.goles_local_penales = request.POST.get('goles_local_penales') or 0
+    partido.goles_visitante_penales = request.POST.get('goles_visitante_penales') or 0
+    partido.ajuste_puntos_local = request.POST.get('ajuste_puntos_local') or 0
+    partido.ajuste_puntos_visitante = request.POST.get('ajuste_puntos_visitante') or 0
+    partido.observaciones = request.POST.get('observaciones') or ''
+    partido.observacion_comite = request.POST.get('observacion_comite') or ''
+    partido.save()
+
+    messages.success(request, 'Partido actualizado correctamente.')
+    return redirect('editor_partido_movil', partido_id=partido.id)
+
+
+@require_POST
+def agregar_gol_movil(request, partido_id):
+    partido = get_object_or_404(Partido, id=partido_id)
+    jugador_id = request.POST.get('jugador')
+    equipo_id = request.POST.get('equipo')
+    cantidad = request.POST.get('cantidad') or 1
+
+    if jugador_id and equipo_id:
+        jugador = get_object_or_404(Jugador, id=jugador_id)
+        equipo = get_object_or_404(Equipo, id=equipo_id)
+
+        if _validar_jugador_equipo(jugador, equipo, partido):
+            Gol.objects.create(partido=partido, jugador=jugador, equipo=equipo, cantidad=cantidad)
+            messages.success(request, 'Gol agregado correctamente.')
+        else:
+            messages.error(request, 'El jugador no pertenece al equipo seleccionado.')
+
+    return redirect('editor_partido_movil', partido_id=partido.id)
+
+
+@require_POST
+def agregar_tarjeta_movil(request, partido_id):
+    partido = get_object_or_404(Partido, id=partido_id)
+    jugador_id = request.POST.get('jugador')
+    equipo_id = request.POST.get('equipo')
+    tipo = request.POST.get('tipo')
+
+    if jugador_id and equipo_id and tipo:
+        jugador = get_object_or_404(Jugador, id=jugador_id)
+        equipo = get_object_or_404(Equipo, id=equipo_id)
+
+        if _validar_jugador_equipo(jugador, equipo, partido):
+            Tarjeta.objects.create(partido=partido, jugador=jugador, equipo=equipo, tipo=tipo)
+            messages.success(request, 'Tarjeta agregada correctamente.')
+        else:
+            messages.error(request, 'El jugador no pertenece al equipo seleccionado.')
+
+    return redirect('editor_partido_movil', partido_id=partido.id)
+
+
+@require_POST
+def agregar_alineacion_movil(request, partido_id):
+    partido = get_object_or_404(Partido, id=partido_id)
+    jugador_id = request.POST.get('jugador')
+    equipo_id = request.POST.get('equipo')
+    rol = request.POST.get('rol') or 'TITULAR'
+
+    if jugador_id and equipo_id:
+        jugador = get_object_or_404(Jugador, id=jugador_id)
+        equipo = get_object_or_404(Equipo, id=equipo_id)
+
+        if _validar_jugador_equipo(jugador, equipo, partido):
+            AlineacionPartido.objects.update_or_create(
+                partido=partido,
+                jugador=jugador,
+                defaults={'equipo': equipo, 'rol': rol}
+            )
+            messages.success(request, 'Jugador agregado a la alineación.')
+        else:
+            messages.error(request, 'El jugador no pertenece al equipo seleccionado.')
+
+    return redirect('editor_partido_movil', partido_id=partido.id)
+
+
+@require_POST
+def agregar_sustitucion_movil(request, partido_id):
+    partido = get_object_or_404(Partido, id=partido_id)
+    equipo_id = request.POST.get('equipo')
+    jugador_sale_id = request.POST.get('jugador_sale')
+    jugador_entra_id = request.POST.get('jugador_entra')
+    minuto = request.POST.get('minuto') or None
+    observacion = request.POST.get('observacion') or ''
+
+    if equipo_id and jugador_sale_id and jugador_entra_id:
+        equipo = get_object_or_404(Equipo, id=equipo_id)
+        jugador_sale = get_object_or_404(Jugador, id=jugador_sale_id)
+        jugador_entra = get_object_or_404(Jugador, id=jugador_entra_id)
+
+        if _validar_jugador_equipo(jugador_sale, equipo, partido) and _validar_jugador_equipo(jugador_entra, equipo, partido):
+            SustitucionPartido.objects.create(
+                partido=partido,
+                equipo=equipo,
+                jugador_sale=jugador_sale,
+                jugador_entra=jugador_entra,
+                minuto=minuto,
+                observacion=observacion
+            )
+            messages.success(request, 'Sustitución agregada correctamente.')
+        else:
+            messages.error(request, 'Los jugadores deben pertenecer al equipo seleccionado.')
+
+    return redirect('editor_partido_movil', partido_id=partido.id)
+
+
+@require_POST
+def eliminar_gol_movil(request, gol_id):
+    gol = get_object_or_404(Gol, id=gol_id)
+    partido_id = gol.partido_id
+    gol.delete()
+    messages.success(request, 'Gol eliminado.')
+    return redirect('editor_partido_movil', partido_id=partido_id)
+
+
+@require_POST
+def eliminar_tarjeta_movil(request, tarjeta_id):
+    tarjeta = get_object_or_404(Tarjeta, id=tarjeta_id)
+    partido_id = tarjeta.partido_id
+    tarjeta.delete()
+    messages.success(request, 'Tarjeta eliminada.')
+    return redirect('editor_partido_movil', partido_id=partido_id)
+
+
+@require_POST
+def eliminar_alineacion_movil(request, alineacion_id):
+    alineacion = get_object_or_404(AlineacionPartido, id=alineacion_id)
+    partido_id = alineacion.partido_id
+    alineacion.delete()
+    messages.success(request, 'Jugador eliminado de la alineación.')
+    return redirect('editor_partido_movil', partido_id=partido_id)
+
+
+@require_POST
+def eliminar_sustitucion_movil(request, sustitucion_id):
+    sustitucion = get_object_or_404(SustitucionPartido, id=sustitucion_id)
+    partido_id = sustitucion.partido_id
+    sustitucion.delete()
+    messages.success(request, 'Sustitución eliminada.')
+    return redirect('editor_partido_movil', partido_id=partido_id)

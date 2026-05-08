@@ -1,15 +1,16 @@
 from django.contrib import admin
-from .models import Categoria, Equipo, Jugador, Partido, Gol, Tarjeta
+from .models import (
+    Categoria, Equipo, Jugador, Partido, Gol, Tarjeta,
+    AlineacionPartido, SustitucionPartido
+)
 
 
-# 🔹 CATEGORIA
 @admin.register(Categoria)
 class CategoriaAdmin(admin.ModelAdmin):
     list_display = ('nombre',)
     search_fields = ('nombre',)
 
 
-# 🔹 JUGADORES dentro del equipo
 class JugadorInline(admin.TabularInline):
     model = Jugador
     extra = 0
@@ -17,7 +18,6 @@ class JugadorInline(admin.TabularInline):
     ordering = ('dorsal',)
 
 
-# 🔹 EQUIPO
 @admin.register(Equipo)
 class EquipoAdmin(admin.ModelAdmin):
     list_display = ('nombre', 'categoria')
@@ -26,7 +26,6 @@ class EquipoAdmin(admin.ModelAdmin):
     inlines = [JugadorInline]
 
 
-# 🔹 JUGADOR (vista general)
 @admin.register(Jugador)
 class JugadorAdmin(admin.ModelAdmin):
     list_display = ('dorsal', 'nombres', 'equipo', 'cedula')
@@ -34,45 +33,41 @@ class JugadorAdmin(admin.ModelAdmin):
     search_fields = ('nombres', 'cedula')
 
 
-# 🔹 GOLES dentro del partido
 class GolInline(admin.TabularInline):
     model = Gol
     extra = 0
 
 
-# 🔹 TARJETAS dentro del partido
 class TarjetaInline(admin.TabularInline):
     model = Tarjeta
     extra = 0
 
 
-# 🔹 PARTIDOS
+class AlineacionInline(admin.TabularInline):
+    model = AlineacionPartido
+    extra = 0
+
+
+class SustitucionInline(admin.TabularInline):
+    model = SustitucionPartido
+    extra = 0
+
+
 @admin.register(Partido)
 class PartidoAdmin(admin.ModelAdmin):
     list_display = (
-        'categoria',
-        'grupo',
-        'numero_fecha',
-        'fase',
-        'equipo_local',
-        'equipo_visitante',
-        'goles_local',
-        'goles_visitante',
-        'estado',
-        'ajuste_puntos_local',
-        'ajuste_puntos_visitante',
-        'observacion_comite',
-        'goles_local_penales',
-        'goles_visitante_penales',
-        'siguiente_partido',
-        'slot_siguiente',
+        'categoria', 'grupo', 'numero_fecha', 'fase',
+        'equipo_local', 'equipo_visitante',
+        'goles_local', 'goles_visitante', 'estado',
+        'ajuste_puntos_local', 'ajuste_puntos_visitante',
+        'observacion_comite', 'goles_local_penales', 'goles_visitante_penales',
+        'siguiente_partido', 'slot_siguiente',
     )
     list_filter = ('categoria', 'grupo', 'numero_fecha', 'fase', 'estado')
     search_fields = ('equipo_local__nombre', 'equipo_visitante__nombre')
-    inlines = [GolInline, TarjetaInline]
+    inlines = [GolInline, TarjetaInline, AlineacionInline, SustitucionInline]
 
 
-# 🔹 GOLES (vista general)
 @admin.register(Gol)
 class GolAdmin(admin.ModelAdmin):
     list_display = ('jugador', 'equipo', 'cantidad', 'partido')
@@ -80,9 +75,22 @@ class GolAdmin(admin.ModelAdmin):
     search_fields = ('jugador__nombres',)
 
 
-# 🔹 TARJETAS (vista general)
 @admin.register(Tarjeta)
 class TarjetaAdmin(admin.ModelAdmin):
     list_display = ('jugador', 'equipo', 'tipo', 'partido')
     list_filter = ('tipo', 'equipo', 'partido__categoria', 'partido__grupo', 'partido__fase')
     search_fields = ('jugador__nombres',)
+
+
+@admin.register(AlineacionPartido)
+class AlineacionPartidoAdmin(admin.ModelAdmin):
+    list_display = ('partido', 'equipo', 'jugador', 'rol')
+    list_filter = ('equipo', 'rol', 'partido__categoria', 'partido__fase')
+    search_fields = ('jugador__nombres', 'equipo__nombre')
+
+
+@admin.register(SustitucionPartido)
+class SustitucionPartidoAdmin(admin.ModelAdmin):
+    list_display = ('partido', 'equipo', 'jugador_sale', 'jugador_entra', 'minuto')
+    list_filter = ('equipo', 'partido__categoria', 'partido__fase')
+    search_fields = ('jugador_sale__nombres', 'jugador_entra__nombres', 'equipo__nombre')
