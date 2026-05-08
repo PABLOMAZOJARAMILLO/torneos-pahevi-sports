@@ -2,37 +2,22 @@
 
 {% block content %}
 
-<h1>Importar planilla de inscripción</h1>
-
-<p>
-    Sube la plantilla oficial del torneo. El sistema leerá:
-</p>
-
-<ul>
-    <li>Categoría: celda D3</li>
-    <li>Equipo: celda I3</li>
-    <li>Delegado: celda D4</li>
-    <li>Teléfono: celda I4</li>
-    <li>Jugadores: filas 8 a 37</li>
-    <li>Fecha de nacimiento: columnas DD / MM / AA</li>
-</ul>
+<h1>Importar planilla</h1>
 
 <form method="post" enctype="multipart/form-data">
+
     {% csrf_token %}
 
-    <input type="file" name="archivo_excel" accept=".xlsx" required>
+    <input type="file"
+           name="archivo_excel"
+           accept=".xlsx">
 
     <br><br>
 
-    <button type="submit" class="default">
-        Importar jugadores
+    <button type="submit">
+        Importar
     </button>
+
 </form>
-
-<br>
-
-<a href="{% url 'admin:torneos_jugador_changelist' %}">
-    Volver a jugadores
-</a>
 
 {% endblock %}
