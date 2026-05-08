@@ -289,6 +289,7 @@ class EquipoAdmin(ImportExportModelAdmin):
 @admin.register(Jugador)
 class JugadorAdmin(ImportExportModelAdmin):
     resource_class = JugadorResource
+    change_list_template = "admin/jugador_changelist.html"
     list_display = ('dorsal', 'nombres', 'equipo', 'cedula', 'fecha_nacimiento', 'edad_actual', 'rango', 'estado')
     list_filter = ('equipo', 'equipo__categoria', 'estado')
     search_fields = ('nombres', 'cedula', 'equipo__nombre')

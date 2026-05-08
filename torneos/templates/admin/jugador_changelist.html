@@ -1,0 +1,10 @@
+{% extends "admin/change_list.html" %}
+
+{% block object-tools-items %}
+    <li>
+        <a href="/admin/importar-planilla-inscripcion/" class="addlink">
+            Importar planilla oficial
+        </a>
+    </li>
+    {{ block.super }}
+{% endblock %}
