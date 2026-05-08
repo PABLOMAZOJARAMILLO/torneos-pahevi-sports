@@ -887,17 +887,6 @@ def ganador_partido(partido):
 
 
 def crear_o_actualizar_partido_final(categoria, fase, numero_fecha, local, visitante):
-    """
-    Crea un partido de fase final si no existe.
-
-    IMPORTANTE:
-    - Si el partido ya existe, NO se vuelve a editar.
-    - No reinicia goles a 0.
-    - No vuelve el estado a PROGRAMADO.
-    - No cambia equipos.
-    - Esto evita que se borren los resultados ya cargados en PLUS 50,
-      semifinales, final o tercer puesto.
-    """
     partido, creado = Partido.objects.get_or_create(
         categoria=categoria,
         fase=fase,
@@ -915,6 +904,34 @@ def crear_o_actualizar_partido_final(categoria, fase, numero_fecha, local, visit
         }
     )
 
+    # Si ya se jugó, NO tocar
+    if partido.estado in ["FINALIZADO", "DECIDIDO_COMITE"]:
+        return partido
+
+    # Si está programado, sí debe actualizar clasificados reales
+    partido.grupo = "FINAL"
+    partido.equipo_local = local
+    partido.equipo_visitante = visitante
+
+    if partido.estado != "PROGRAMADO":
+        partido.estado = "PROGRAMADO"
+
+    if partido.goles_local is None:
+        partido.goles_local = 0
+
+    if partido.goles_visitante is None:
+        partido.goles_visitante = 0
+
+    if not partido.fecha:
+        partido.fecha = date.today()
+
+    if not partido.hora:
+        partido.hora = time(0, 0)
+
+    if not partido.cancha:
+        partido.cancha = "Por definir"
+
+    partido.save()
     return partido
 
 def generar_semifinales(request, categoria):
