@@ -869,9 +869,9 @@ def generar_llaves_cuartos(request, categoria):
     cuarto_b = Equipo.objects.get(nombre=tabla_b[3]["equipo"], categoria=categoria_obj)
 
     crear_o_actualizar_cuarto(categoria_obj, 1, primero_a, cuarto_b)
-    crear_o_actualizar_cuarto(categoria_obj, 2, segundo_a, tercero_b)
+    crear_o_actualizar_cuarto(categoria_obj, 2, segundo_b, tercero_a)
     crear_o_actualizar_cuarto(categoria_obj, 3, primero_b, cuarto_a)
-    crear_o_actualizar_cuarto(categoria_obj, 4, segundo_b, tercero_a)
+    crear_o_actualizar_cuarto(categoria_obj, 4, segundo_a, tercero_b)
 
     messages.success(request, f"Llaves de cuartos generadas correctamente para {categoria}.")
 
@@ -969,8 +969,8 @@ def generar_semifinales(request, categoria):
         messages.error(request, "Todos los cuartos deben estar finalizados para generar semifinales.")
         return redirect("panel")
 
-    crear_o_actualizar_partido_final(categoria_obj, "SEMIFINAL", "SEMIFINAL #1", g1, g3)
-    crear_o_actualizar_partido_final(categoria_obj, "SEMIFINAL", "SEMIFINAL #2", g2, g4)
+    crear_o_actualizar_partido_final(categoria_obj, "SEMIFINAL", "SEMIFINAL #1", g1, g2)
+    crear_o_actualizar_partido_final(categoria_obj, "SEMIFINAL", "SEMIFINAL #2", g3, g4)
 
     messages.success(request, f"Semifinales generadas correctamente para {categoria}.")
     return redirect("panel")
