@@ -1380,21 +1380,25 @@
                             <div class="partido-centro">
                                 <div class="grupo-card">Grupo {{ item.grupo }}</div>
                                 <div class="estado-card">{{ item.partido.estado }}</div>
+                                {% if item.partido.estado != "PROGRAMADO" %}
                                 <div class="marcador-card">
                                     <span>{{ item.partido.goles_local }}</span>
                                     <b>:</b>
                                     <span>{{ item.partido.goles_visitante }}</span>
                                 </div>
+                                {% endif %}
                                 <div class="detalle-partido-card">
                                     <div>📅 {{ item.partido.fecha }}</div>
                                     <div>🕒 {{ item.partido.hora }}</div>
                                     <div>🏟️ {{ item.partido.cancha|default:"Por definir" }}</div>
                                 </div>
                                 
+                                    {% if request.user.is_staff %}
                                     <a class="btn-editor-movil"
                                        href="{% url 'editor_partido_movil' item.partido.id %}">
                                       ✏️ Editar partido
                                     </a>
+                                    {% endif %}
                             </div>
 			    
                             <div class="equipo-card">
@@ -1405,6 +1409,7 @@
                             </div>
                         </div>
 
+                        {% if request.user.is_staff %}
                         <div class="acciones-partido">
                             <button type="button" class="btn-menu-partido" onclick="abrirMenuPartido('menu-partido-{{ item.partido.id }}')">+</button>
                             <div class="menu-partido" id="menu-partido-{{ item.partido.id }}">
@@ -1417,6 +1422,7 @@
                                 <a href="{% url 'editor_partido_movil' item.partido.id %}#penales-comite">🥅 Penales y comité</a>
                             </div>
                         </div>
+                        {% endif %}
                     </div>
                 </div>
                 {% endfor %}
@@ -1436,6 +1442,7 @@
                 <a class="boton" href="{% url 'descargar_programacion_categoria' categoria %}">Descargar programación</a>
             </div>
 
+            {% if request.user.is_staff %}
             <h3>🏆 Generar fase final</h3>
             <div class="grupo-botones">
                 <a class="boton fase-btn" href="{% url 'generar_llaves_cuartos' categoria %}" onclick="guardarCategoriaActual('categoria-{{ forloop.counter }}')">Cuartos</a>
@@ -1443,6 +1450,7 @@
                 <a class="boton fase-btn" href="{% url 'generar_final' categoria %}" onclick="guardarCategoriaActual('categoria-{{ forloop.counter }}')">Final</a>
                 <a class="boton fase-btn tercero" href="{% url 'generar_tercer_puesto' categoria %}" onclick="guardarCategoriaActual('categoria-{{ forloop.counter }}')">Tercer puesto</a>
             </div>
+            {% endif %}
         </div>
 
         {% if datos_categoria.llaves.cuartos or datos_categoria.llaves.semifinal or datos_categoria.llaves.final or datos_categoria.llaves.tercer_puesto %}
@@ -1490,7 +1498,7 @@
                                     {% if p.cancha %}<div>🏟️ {{ p.cancha }}</div>{% endif %}
                                 </div>
 
-                                {% if p.id %}
+                                {% if request.user.is_staff and p.id %}
                                 <a class="btn-editor-llave" href="{% url 'editor_partido_movil' p.id %}">✏️ Editar</a>
                                 {% endif %}
                             </div>
@@ -1551,7 +1559,7 @@
                                     {% if p.cancha %}<div>🏟️ {{ p.cancha }}</div>{% endif %}
                                 </div>
 
-                                {% if p.id %}
+                                {% if request.user.is_staff and p.id %}
                                 <a class="btn-editor-llave" href="{% url 'editor_partido_movil' p.id %}">✏️ Editar</a>
                                 {% endif %}
                             </div>
@@ -1612,7 +1620,7 @@
                                     {% if p.cancha %}<div>🏟️ {{ p.cancha }}</div>{% endif %}
                                 </div>
 
-                                {% if p.id %}
+                                {% if request.user.is_staff and p.id %}
                                 <a class="btn-editor-llave" href="{% url 'editor_partido_movil' p.id %}">✏️ Editar</a>
                                 {% endif %}
                             </div>
@@ -1670,7 +1678,7 @@
                                     {% if p.cancha %}<div>🏟️ {{ p.cancha }}</div>{% endif %}
                                 </div>
 
-                                {% if p.id %}
+                                {% if request.user.is_staff and p.id %}
                                 <a class="btn-editor-llave" href="{% url 'editor_partido_movil' p.id %}">✏️ Editar</a>
                                 {% endif %}
                             </div>

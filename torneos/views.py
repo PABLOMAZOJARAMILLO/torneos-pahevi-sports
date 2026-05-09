@@ -4,6 +4,7 @@ import os
 import re
 
 from django.contrib import messages
+from django.contrib.auth.decorators import login_required, user_passes_test
 from django.http import FileResponse, HttpResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.template.loader import render_to_string
@@ -12,6 +13,10 @@ from html2image import Html2Image
 from django.views.decorators.http import require_POST
 
 from .models import Categoria, Equipo, Partido, Gol, Tarjeta, Jugador, AlineacionPartido, SustitucionPartido
+
+
+def es_editor_torneo(user):
+    return user.is_authenticated and (user.is_staff or user.is_superuser)
 
 
 def limpiar_nombre(nombre):
@@ -768,16 +773,6 @@ def obtener_tabla_categoria_grupo(categoria_nombre, grupo):
 
 
 def crear_o_actualizar_cuarto(categoria, numero, local, visitante):
-    """
-    Crea el partido de cuartos si no existe.
-
-    IMPORTANTE:
-    - Si el partido ya existe, NO se modifica nada.
-    - No reinicia goles.
-    - No cambia estado.
-    - No cambia equipos.
-    - Esto protege los resultados ya editados desde el panel.
-    """
     partido, creado = Partido.objects.get_or_create(
         categoria=categoria,
         fase="CUARTOS",
@@ -795,8 +790,30 @@ def crear_o_actualizar_cuarto(categoria, numero, local, visitante):
         }
     )
 
+    if partido.estado in ["FINALIZADO", "DECIDIDO_COMITE"]:
+        return partido
+
+    partido.grupo = "FINAL"
+    partido.equipo_local = local
+    partido.equipo_visitante = visitante
+    partido.estado = "PROGRAMADO"
+
+    if not partido.fecha:
+        partido.fecha = date.today()
+
+    if not partido.hora:
+        partido.hora = time(0, 0)
+
+    if not partido.cancha:
+        partido.cancha = "Por definir"
+
+    partido.save()
+
     return partido
 
+
+@login_required
+@user_passes_test(es_editor_torneo)
 def generar_llaves_cuartos(request, categoria):
     categoria_obj = Categoria.objects.filter(nombre=categoria).first()
 
@@ -904,23 +921,13 @@ def crear_o_actualizar_partido_final(categoria, fase, numero_fecha, local, visit
         }
     )
 
-    # Si ya se jugó, NO tocar
     if partido.estado in ["FINALIZADO", "DECIDIDO_COMITE"]:
         return partido
 
-    # Si está programado, sí debe actualizar clasificados reales
     partido.grupo = "FINAL"
     partido.equipo_local = local
     partido.equipo_visitante = visitante
-
-    if partido.estado != "PROGRAMADO":
-        partido.estado = "PROGRAMADO"
-
-    if partido.goles_local is None:
-        partido.goles_local = 0
-
-    if partido.goles_visitante is None:
-        partido.goles_visitante = 0
+    partido.estado = "PROGRAMADO"
 
     if not partido.fecha:
         partido.fecha = date.today()
@@ -934,6 +941,9 @@ def crear_o_actualizar_partido_final(categoria, fase, numero_fecha, local, visit
     partido.save()
     return partido
 
+
+@login_required
+@user_passes_test(es_editor_torneo)
 def generar_semifinales(request, categoria):
     categoria_obj = Categoria.objects.filter(nombre=categoria).first()
 
@@ -966,6 +976,8 @@ def generar_semifinales(request, categoria):
     return redirect("panel")
 
 
+@login_required
+@user_passes_test(es_editor_torneo)
 def generar_final(request, categoria):
     categoria_obj = Categoria.objects.filter(nombre=categoria).first()
 
@@ -1017,6 +1029,8 @@ def perdedor_partido(partido):
     return None
 
 
+@login_required
+@user_passes_test(es_editor_torneo)
 def generar_tercer_puesto(request, categoria):
     categoria_obj = Categoria.objects.filter(nombre=categoria).first()
 
@@ -1171,6 +1185,8 @@ def _validar_jugador_equipo(jugador, equipo, partido):
     return jugador.equipo_id == equipo.id and equipo.id in equipos_validos
 
 
+@login_required
+@user_passes_test(es_editor_torneo)
 def editor_partido_movil(request, partido_id):
     partido = get_object_or_404(
         Partido.objects.select_related('categoria', 'equipo_local', 'equipo_visitante'),
@@ -1197,6 +1213,8 @@ def editor_partido_movil(request, partido_id):
     })
 
 
+@login_required
+@user_passes_test(es_editor_torneo)
 @require_POST
 def guardar_info_partido_movil(request, partido_id):
     partido = get_object_or_404(Partido, id=partido_id)
@@ -1222,6 +1240,8 @@ def guardar_info_partido_movil(request, partido_id):
     return redirect('editor_partido_movil', partido_id=partido.id)
 
 
+@login_required
+@user_passes_test(es_editor_torneo)
 @require_POST
 def agregar_gol_movil(request, partido_id):
     partido = get_object_or_404(Partido, id=partido_id)
@@ -1242,6 +1262,8 @@ def agregar_gol_movil(request, partido_id):
     return redirect('editor_partido_movil', partido_id=partido.id)
 
 
+@login_required
+@user_passes_test(es_editor_torneo)
 @require_POST
 def agregar_tarjeta_movil(request, partido_id):
     partido = get_object_or_404(Partido, id=partido_id)
@@ -1262,6 +1284,8 @@ def agregar_tarjeta_movil(request, partido_id):
     return redirect('editor_partido_movil', partido_id=partido.id)
 
 
+@login_required
+@user_passes_test(es_editor_torneo)
 @require_POST
 def agregar_alineacion_movil(request, partido_id):
     partido = get_object_or_404(Partido, id=partido_id)
@@ -1286,6 +1310,8 @@ def agregar_alineacion_movil(request, partido_id):
     return redirect('editor_partido_movil', partido_id=partido.id)
 
 
+@login_required
+@user_passes_test(es_editor_torneo)
 @require_POST
 def agregar_sustitucion_movil(request, partido_id):
     partido = get_object_or_404(Partido, id=partido_id)
@@ -1316,6 +1342,8 @@ def agregar_sustitucion_movil(request, partido_id):
     return redirect('editor_partido_movil', partido_id=partido.id)
 
 
+@login_required
+@user_passes_test(es_editor_torneo)
 @require_POST
 def eliminar_gol_movil(request, gol_id):
     gol = get_object_or_404(Gol, id=gol_id)
@@ -1325,6 +1353,8 @@ def eliminar_gol_movil(request, gol_id):
     return redirect('editor_partido_movil', partido_id=partido_id)
 
 
+@login_required
+@user_passes_test(es_editor_torneo)
 @require_POST
 def eliminar_tarjeta_movil(request, tarjeta_id):
     tarjeta = get_object_or_404(Tarjeta, id=tarjeta_id)
@@ -1334,6 +1364,8 @@ def eliminar_tarjeta_movil(request, tarjeta_id):
     return redirect('editor_partido_movil', partido_id=partido_id)
 
 
+@login_required
+@user_passes_test(es_editor_torneo)
 @require_POST
 def eliminar_alineacion_movil(request, alineacion_id):
     alineacion = get_object_or_404(AlineacionPartido, id=alineacion_id)
@@ -1343,6 +1375,8 @@ def eliminar_alineacion_movil(request, alineacion_id):
     return redirect('editor_partido_movil', partido_id=partido_id)
 
 
+@login_required
+@user_passes_test(es_editor_torneo)
 @require_POST
 def eliminar_sustitucion_movil(request, sustitucion_id):
     sustitucion = get_object_or_404(SustitucionPartido, id=sustitucion_id)
@@ -1350,3 +1384,4 @@ def eliminar_sustitucion_movil(request, sustitucion_id):
     sustitucion.delete()
     messages.success(request, 'Sustitución eliminada.')
     return redirect('editor_partido_movil', partido_id=partido_id)
+
