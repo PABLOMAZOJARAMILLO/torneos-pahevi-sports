@@ -833,7 +833,7 @@ def generar_llaves_cuartos(request, categoria):
     # PLUS 50 → UN SOLO GRUPO
     # ===============================
 
-    if categoria.nombre.upper() == "PLUS 50":
+    if categoria.upper() == "PLUS 50":
 
         clasificados = tabla_general[:4]
  
