@@ -821,6 +821,26 @@ def generar_llaves_cuartos(request, categoria):
         messages.error(request, "Categoría no encontrada.")
         return redirect("panel")
 
+    # PLUS 50: un solo grupo
+    if categoria.upper() == "PLUS 50":
+        tabla_general = obtener_tabla_categoria_grupo(categoria, "A")
+
+        if len(tabla_general) < 4:
+            messages.error(request, "No hay suficientes equipos para generar las semifinales de PLUS 50.")
+            return redirect("panel")
+
+        primero = Equipo.objects.get(nombre=tabla_general[0]["equipo"], categoria=categoria_obj)
+        segundo = Equipo.objects.get(nombre=tabla_general[1]["equipo"], categoria=categoria_obj)
+        tercero = Equipo.objects.get(nombre=tabla_general[2]["equipo"], categoria=categoria_obj)
+        cuarto = Equipo.objects.get(nombre=tabla_general[3]["equipo"], categoria=categoria_obj)
+
+        crear_o_actualizar_cuarto(categoria_obj, 1, primero, cuarto)
+        crear_o_actualizar_cuarto(categoria_obj, 2, segundo, tercero)
+
+        messages.success(request, f"Llaves generadas correctamente para {categoria}.")
+        return redirect("panel")
+
+    # SENIOR MASTER u otras categorías con grupos A y B
     if not grupo_completo(categoria_obj, "A"):
         messages.error(request, f"El Grupo A de {categoria} todavía tiene partidos pendientes.")
         return redirect("panel")
@@ -829,30 +849,8 @@ def generar_llaves_cuartos(request, categoria):
         messages.error(request, f"El Grupo B de {categoria} todavía tiene partidos pendientes.")
         return redirect("panel")
 
-    # ===============================
-    # PLUS 50 → UN SOLO GRUPO
-    # ===============================
-
-    if categoria.upper() == "PLUS 50":
-
-        clasificados = tabla_general[:4]
- 
-        cruces = [
-           (clasificados[0], clasificados[3]),  # 1 vs 4
-           (clasificados[1], clasificados[2]),  # 2 vs 3
-        ]
-
-    else:
-
-        grupo_a = [x for x in tabla_general if x["grupo"] == "A"]
-        grupo_b = [x for x in tabla_general if x["grupo"] == "B"]
-
-        cruces = [
-            (grupo_a[0], grupo_b[3]),
-            (grupo_a[1], grupo_b[2]),
-            (grupo_b[0], grupo_a[3]),
-            (grupo_b[1], grupo_a[2]),
-        ]
+    tabla_a = obtener_tabla_categoria_grupo(categoria, "A")
+    tabla_b = obtener_tabla_categoria_grupo(categoria, "B")
 
     if len(tabla_a) < 4 or len(tabla_b) < 4:
         messages.error(request, "No hay suficientes equipos para generar los cuartos.")
@@ -869,12 +867,11 @@ def generar_llaves_cuartos(request, categoria):
     cuarto_b = Equipo.objects.get(nombre=tabla_b[3]["equipo"], categoria=categoria_obj)
 
     crear_o_actualizar_cuarto(categoria_obj, 1, primero_a, cuarto_b)
-    crear_o_actualizar_cuarto(categoria_obj, 2, segundo_b, tercero_a)
+    crear_o_actualizar_cuarto(categoria_obj, 2, segundo_a, tercero_b)
     crear_o_actualizar_cuarto(categoria_obj, 3, primero_b, cuarto_a)
-    crear_o_actualizar_cuarto(categoria_obj, 4, segundo_a, tercero_b)
+    crear_o_actualizar_cuarto(categoria_obj, 4, segundo_b, tercero_a)
 
     messages.success(request, f"Llaves de cuartos generadas correctamente para {categoria}.")
-
     return redirect("panel")
 
 def ganador_partido(partido):
