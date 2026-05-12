@@ -1467,33 +1467,36 @@
                 <div class="tabla-responsive">
                     <table>
                         <tr>
-                            <th>#</th>
-                            <th>Foto</th>
-                            <th>Dorsal</th>
-                            <th>Jugador</th>
-                            <th>Cédula</th>
-                            <th>Estado</th>
-                        </tr>
+    <th>#</th>
+    <th>Foto</th>
+    <th>Dorsal</th>
+    <th>Jugador</th>
+    <th>Cédula</th>
+    <th>Edad</th>
+    <th>Estado</th>
+</tr>
 
-                        {% for jugador in equipo.jugadores %}
-                        <tr>
-                            <td>{{ forloop.counter }}</td>
-                            <td>
-                                {% if jugador.foto %}
-                                    <img src="{{ jugador.foto.url }}" class="logo-equipo">
-                                {% endif %}
-                            </td>
-                            <td>{{ jugador.dorsal }}</td>
-                            <td>{{ jugador.nombres }}</td>
-                            <td>{{ jugador.cedula }}</td>
-                            <td>{{ jugador.estado }}</td>
-                        </tr>
-                        {% empty %}
-                        <tr>
-                            <td colspan="6">Este equipo aún no tiene jugadores registrados.</td>
-                        </tr>
-                        {% endfor %}
-                    </table>
+{% for jugador in equipo.jugadores %}
+<tr>
+    <td>{{ forloop.counter }}</td>
+    <td>
+        {% if jugador.foto %}
+            <img src="{{ jugador.foto }}" class="logo-equipo">
+        {% endif %}
+    </td>
+    <td>{{ jugador.dorsal }}</td>
+    <td>{{ jugador.nombres }}</td>
+    <td>{{ jugador.cedula }}</td>
+    <td>{{ jugador.edad }}</td>
+    <td>{{ jugador.estado }}</td>
+</tr>
+{% empty %}
+<tr>
+    <td colspan="7">Este equipo aún no tiene jugadores registrados.</td>
+</tr>
+{% endfor %}
+
+              </table>
                 </div>
             </div>
         {% empty %}
