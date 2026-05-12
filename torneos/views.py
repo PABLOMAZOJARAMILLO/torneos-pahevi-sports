@@ -1433,6 +1433,7 @@ def crear_jugador_equipo(request, equipo_id):
         nombres = request.POST.get('nombres')
         dorsal = request.POST.get('dorsal')
         cedula = request.POST.get('cedula')
+        fecha_nacimiento = request.POST.get('fecha_nacimiento')
         foto = request.FILES.get('foto')
 
         Jugador.objects.create(
@@ -1441,6 +1442,7 @@ def crear_jugador_equipo(request, equipo_id):
             nombres=nombres,
             dorsal=dorsal,
             cedula=cedula,
+            fecha_nacimiento=fecha_nacimiento,
             foto=foto
         )
 
