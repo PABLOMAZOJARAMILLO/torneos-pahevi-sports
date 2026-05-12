@@ -29,10 +29,10 @@ def escudo_url(equipo):
     if not equipo or not equipo.escudo:
         return ""
 
-    nombre_archivo = equipo.escudo.name.split("/")[-1]
-
-    return f"/static/torneos/escudos/{nombre_archivo}"
-
+    try:
+        return equipo.escudo.url
+    except:
+        return ""
 
 def url_absoluta(request, url):
     if not url:
