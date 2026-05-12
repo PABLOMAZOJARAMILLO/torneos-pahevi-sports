@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Mis equipos</title>
+</head>
+<body>
+
+<h1>Mis equipos</h1>
+
+{% for equipo in equipos %}
+    <div style="border:1px solid #ccc; padding:15px; margin:10px;">
+        <h2>{{ equipo.nombre }}</h2>
+        <p>{{ equipo.categoria.nombre }}</p>
+
+        <a href="{% url 'detalle_equipo' equipo.id %}">
+            Ver plantilla
+        </a>
+    </div>
+{% empty %}
+    <p>No tienes equipos asignados.</p>
+{% endfor %}
+
+</body>
+</html>

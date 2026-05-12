@@ -135,5 +135,6 @@ urlpatterns = [
 
     path('equipos/', views.lista_equipos, name='lista_equipos'),
     path('equipos/<int:equipo_id>/', views.detalle_equipo, name='detalle_equipo'),
+    path('mis-equipos/', views.mis_equipos, name='mis_equipos'),
 
 ]

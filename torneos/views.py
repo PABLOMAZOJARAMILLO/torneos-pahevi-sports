@@ -1413,3 +1413,11 @@ def detalle_equipo(request, equipo_id):
         'jugadores': jugadores
     })
 
+@login_required
+def mis_equipos(request):
+    equipos = Equipo.objects.filter(responsable=request.user).order_by('nombre')
+
+    return render(request, 'equipos/mis_equipos.html', {
+        'equipos': equipos
+    })
+
