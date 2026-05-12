@@ -1382,3 +1382,34 @@ def eliminar_sustitucion_movil(request, sustitucion_id):
     messages.success(request, 'Sustitución eliminada.')
     return redirect('editor_partido_movil', partido_id=partido_id)
 
+def lista_equipos(request):
+    equipos = Equipo.objects.select_related(
+        'categoria'
+    ).order_by(
+        'categoria__nombre',
+        'nombre'
+    )
+
+    return render(request, 'equipos/lista_equipos.html', {
+        'equipos': equipos
+    })
+
+
+def detalle_equipo(request, equipo_id):
+    equipo = get_object_or_404(
+        Equipo.objects.select_related('categoria'),
+        id=equipo_id
+    )
+
+    jugadores = Jugador.objects.filter(
+        equipo=equipo
+    ).order_by(
+        'dorsal',
+        'nombres'
+    )
+
+    return render(request, 'equipos/detalle_equipo.html', {
+        'equipo': equipo,
+        'jugadores': jugadores
+    })
+

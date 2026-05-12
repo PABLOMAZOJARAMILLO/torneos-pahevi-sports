@@ -1,4 +1,5 @@
 from django.urls import path
+from . import views
 from .views import (
     panel_principal,
     descargar_tabla_grupo,
@@ -20,6 +21,7 @@ from .views import (
     eliminar_tarjeta_movil,
     eliminar_alineacion_movil,
     eliminar_sustitucion_movil,
+    
 )
 
 urlpatterns = [
@@ -130,5 +132,8 @@ urlpatterns = [
         eliminar_sustitucion_movil,
         name='eliminar_sustitucion_movil'
     ),
+
+    path('equipos/', views.lista_equipos, name='lista_equipos'),
+    path('equipos/<int:equipo_id>/', views.detalle_equipo, name='detalle_equipo'),
 
 ]

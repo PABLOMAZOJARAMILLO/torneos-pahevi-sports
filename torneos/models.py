@@ -1,4 +1,5 @@
 from django.db import models
+from django.contrib.auth.models import User
 
 
 class Torneo(models.Model):
@@ -42,6 +43,7 @@ class Categoria(models.Model):
 class Equipo(models.Model):
     nombre = models.CharField(max_length=120, verbose_name='Nombre del equipo')
     categoria = models.ForeignKey(Categoria, on_delete=models.CASCADE, related_name='equipos')
+    responsable = models.ForeignKey(User, on_delete=models.SET_NULL, blank=True, null=True, related_name='equipos_asignados', verbose_name='Usuario responsable')
     delegado = models.CharField(max_length=120, blank=True, null=True, verbose_name='Delegado')
     telefono = models.CharField(max_length=30, blank=True, null=True, verbose_name='Celular delegado')
     director_tecnico = models.CharField(max_length=150, blank=True, null=True, verbose_name='Director técnico')
