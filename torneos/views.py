@@ -1421,3 +1421,33 @@ def mis_equipos(request):
         'equipos': equipos
     })
 
+@login_required
+def crear_jugador_equipo(request, equipo_id):
+    equipo = get_object_or_404(
+        Equipo,
+        id=equipo_id,
+        responsable=request.user
+    )
+
+    if request.method == 'POST':
+        nombres = request.POST.get('nombres')
+        dorsal = request.POST.get('dorsal')
+        cedula = request.POST.get('cedula')
+        foto = request.FILES.get('foto')
+
+        Jugador.objects.create(
+            equipo=equipo,
+            categoria=equipo.categoria,
+            nombres=nombres,
+            dorsal=dorsal,
+            cedula=cedula,
+            foto=foto
+        )
+
+        return redirect('detalle_equipo', equipo_id=equipo.id)
+
+    return render(request, 'equipos/crear_jugador.html', {
+        'equipo': equipo
+    })
+
+

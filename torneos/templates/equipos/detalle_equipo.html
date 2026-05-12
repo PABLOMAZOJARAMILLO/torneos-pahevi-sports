@@ -8,6 +8,12 @@
 
 <h1>{{ equipo.nombre }}</h1>
 
+{% if request.user == equipo.responsable or request.user.is_superuser %}
+    <a href="{% url 'crear_jugador_equipo' equipo.id %}">
+        ➕ Agregar jugador
+    </a>
+{% endif %}
+
 {% if equipo.escudo %}
     <img src="{{ equipo.escudo.url }}" width="150">
 {% endif %}

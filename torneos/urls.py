@@ -133,6 +133,12 @@ urlpatterns = [
         name='eliminar_sustitucion_movil'
     ),
 
+    path(
+    'equipos/<int:equipo_id>/crear-jugador/',
+    views.crear_jugador_equipo,
+    name='crear_jugador_equipo'
+   ),
+
     path('equipos/', views.lista_equipos, name='lista_equipos'),
     path('equipos/<int:equipo_id>/', views.detalle_equipo, name='detalle_equipo'),
     path('mis-equipos/', views.mis_equipos, name='mis_equipos'),
