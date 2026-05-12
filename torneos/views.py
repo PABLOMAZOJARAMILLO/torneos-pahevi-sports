@@ -544,39 +544,41 @@ def construir_estructura():
 
             if p.fase == "CUARTOS":
                 llaves["cuartos"].append(item)
-
             elif p.fase == "SEMIFINAL":
                 llaves["semifinal"].append(item)
-
             elif p.fase == "FINAL":
                 llaves["final"].append(item)
-
             elif p.fase == "TERCER_PUESTO":
                 llaves["tercer_puesto"].append(item)
 
         datos_categoria["llaves"] = llaves
 
-        for categoria_nombre, datos_categoria in estructura.items():
-            equipos_categoria = Equipo.objects.filter(
-                categoria__nombre=categoria_nombre,
-                activo=True
-            ).prefetch_related("jugadores").order_by("nombre")
+    # ==================================================
+    # EQUIPOS Y JUGADORES POR CATEGORÍA
+    # ==================================================
 
-            lista_equipos = []
+    for categoria_nombre, datos_categoria in estructura.items():
+        equipos_categoria = Equipo.objects.filter(
+            categoria__nombre=categoria_nombre,
+            activo=True
+        ).prefetch_related("jugadores").order_by("nombre")
 
-            for equipo_obj in equipos_categoria:
-                jugadores = []
+        lista_equipos = []
 
-                for jugador in equipo_obj.jugadores.all().order_by("dorsal", "nombres"):
-                   edad = ""
-                   if jugador.fecha_nacimiento:
-                        hoy = date.today()
-                        edad = hoy.year - jugador.fecha_nacimiento.year - (
-                            (hoy.month, hoy.day) < (
-                                jugador.fecha_nacimiento.month,
-                                jugador.fecha_nacimiento.day
-                            )
+        for equipo_obj in equipos_categoria:
+            jugadores = []
+
+            for jugador in equipo_obj.jugadores.all().order_by("dorsal", "nombres"):
+                edad = ""
+
+                if jugador.fecha_nacimiento:
+                    hoy = date.today()
+                    edad = hoy.year - jugador.fecha_nacimiento.year - (
+                        (hoy.month, hoy.day) < (
+                            jugador.fecha_nacimiento.month,
+                            jugador.fecha_nacimiento.day
                         )
+                    )
 
                 jugadores.append({
                     "dorsal": jugador.dorsal,
@@ -595,7 +597,6 @@ def construir_estructura():
             })
 
         datos_categoria["equipos"] = lista_equipos
-
     return estructura
 
 
