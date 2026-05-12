@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Equipos</title>
+</head>
+<body>
+
+<h1>Equipos del torneo</h1>
+
+{% for equipo in equipos %}
+    <div style="border:1px solid #ccc;padding:15px;margin:10px;">
+        
+        {% if equipo.escudo %}
+            <img src="{{ equipo.escudo.url }}" width="80">
+        {% endif %}
+
+        <h2>{{ equipo.nombre }}</h2>
+
+        <p>{{ equipo.categoria.nombre }}</p>
+
+        <a href="{% url 'detalle_equipo' equipo.id %}">
+            Ver plantilla
+        </a>
+
+    </div>
+{% endfor %}
+
+</body>
+</html>

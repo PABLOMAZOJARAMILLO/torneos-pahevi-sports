@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ equipo.nombre }}</title>
+</head>
+<body>
+
+<h1>{{ equipo.nombre }}</h1>
+
+{% if equipo.escudo %}
+    <img src="{{ equipo.escudo.url }}" width="150">
+{% endif %}
+
+<h2>Jugadores</h2>
+
+{% for jugador in jugadores %}
+    <div style="border:1px solid #ccc;padding:10px;margin:10px;">
+
+        {% if jugador.foto %}
+            <img src="{{ jugador.foto.url }}" width="80">
+        {% endif %}
+
+        <h3>#{{ jugador.dorsal }} - {{ jugador.nombres }}</h3>
+
+        <p>Cédula: {{ jugador.cedula }}</p>
+
+    </div>
+{% endfor %}
+
+</body>
+</html>
