@@ -63,6 +63,7 @@ def estructura_base_categoria():
         "tarjetas_planilla": [],
         "valla_planilla": [],
         "alertas_tarjetas": [],
+        "equipos": [],
         "llaves": {
             "cuartos": [],
             "semifinal": [],
@@ -554,6 +555,26 @@ def construir_estructura():
                 llaves["tercer_puesto"].append(item)
 
         datos_categoria["llaves"] = llaves
+
+    for categoria_nombre, datos_categoria in estructura.items():
+        equipos = Equipo.objects.filter(
+            categoria__nombre=categoria_nombre,
+            activo=True
+        ).prefetch_related(
+            "jugadores"
+        ).order_by("nombre")
+
+        lista_equipos = []
+
+        for equipo in equipos:
+            lista_equipos.append({
+               "id": equipo.id,
+                "nombre": equipo.nombre,
+                "escudo": escudo_url(equipo),
+                "jugadores": equipo.jugadores.all().order_by("dorsal", "nombres"),
+            })
+
+        datos_categoria["equipos"] = lista_equipos
 
     return estructura
 

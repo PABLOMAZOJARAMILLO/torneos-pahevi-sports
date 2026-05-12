@@ -1045,23 +1045,6 @@
 <div class="pantalla-categorias" id="pantalla-categorias">
     <h1 class="titulo-app">TORNEO IMCRED</h1>
     <p class="subtitulo-app">Selecciona una categoría</p>
-    
-    <div style="margin-bottom:25px;">
-    <a href="{% url 'lista_equipos' %}"
-       style="
-            display:inline-block;
-            background:linear-gradient(135deg,#00ff66,#00b94f);
-            color:#07111f;
-            padding:14px 26px;
-            border-radius:30px;
-            text-decoration:none;
-            font-weight:bold;
-            font-size:16px;
-            box-shadow:0 0 15px rgba(0,255,102,.35);
-       ">
-        ⚽ EQUIPOS Y JUGADORES
-    </a>
-</div>
 
     {% for categoria, datos_categoria in estructura.items %}
     <div class="card-categoria" onclick="mostrarCategoria('categoria-{{ forloop.counter }}')">
@@ -1093,6 +1076,7 @@
         <button type="button" class="tab-btn" onclick="mostrarTabCategoria('categoria-{{ forloop.counter }}', 'tarjetas', this)">Tarjetas</button>
         <button type="button" class="tab-btn" onclick="mostrarTabCategoria('categoria-{{ forloop.counter }}', 'fase1', this)">Fechas fase 1</button>
         <button type="button" class="tab-btn" onclick="mostrarTabCategoria('categoria-{{ forloop.counter }}', 'finales', this)">Fechas fase finales</button>
+        <button type="button" class="tab-btn" onclick="mostrarTabCategoria('categoria-{{ forloop.counter }}', 'equipos', this)">Equipos</button>
     </div>
 
     <!-- ===================== TABLA DE POSICIONES ===================== -->
@@ -1465,8 +1449,59 @@
                 <a class="boton fase-btn" href="{% url 'generar_llaves_cuartos' categoria %}" onclick="guardarCategoriaActual('categoria-{{ forloop.counter }}')">Cuartos</a>
                 <a class="boton fase-btn" href="{% url 'generar_semifinales' categoria %}" onclick="guardarCategoriaActual('categoria-{{ forloop.counter }}')">Semifinal</a>
                 <a class="boton fase-btn" href="{% url 'generar_final' categoria %}" onclick="guardarCategoriaActual('categoria-{{ forloop.counter }}')">Final</a>
-                <a class="boton fase-btn tercero" href="{% url 'generar_tercer_puesto' categoria %}" onclick="guardarCategoriaActual('categoria-{{ forloop.counter }}')">Tercer puesto</a>
+                <a class="boton fase-btn tercero" href="{% url 'generar_tercer_puesto' categoria %}" onclick="guardarCategoriaActual('categoria-                        {{ forloop.counter }}')">Tercer puesto</a>
+
+                <div class="tab-content" data-tab="equipos">
+    <div class="bloque">
+        <h2>Equipos y jugadores</h2>
+
+        {% for equipo in datos_categoria.equipos %}
+            <div class="grupo">
+                <div class="equipo-logo">
+                    {% if equipo.escudo %}
+                        <img src="{{ equipo.escudo }}" class="logo-equipo">
+                    {% endif %}
+                    <h2>{{ equipo.nombre }}</h2>
+                </div>
+
+                <div class="tabla-responsive">
+                    <table>
+                        <tr>
+                            <th>#</th>
+                            <th>Foto</th>
+                            <th>Dorsal</th>
+                            <th>Jugador</th>
+                            <th>Cédula</th>
+                            <th>Estado</th>
+                        </tr>
+
+                        {% for jugador in equipo.jugadores %}
+                        <tr>
+                            <td>{{ forloop.counter }}</td>
+                            <td>
+                                {% if jugador.foto %}
+                                    <img src="{{ jugador.foto.url }}" class="logo-equipo">
+                                {% endif %}
+                            </td>
+                            <td>{{ jugador.dorsal }}</td>
+                            <td>{{ jugador.nombres }}</td>
+                            <td>{{ jugador.cedula }}</td>
+                            <td>{{ jugador.estado }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6">Este equipo aún no tiene jugadores registrados.</td>
+                        </tr>
+                        {% endfor %}
+                    </table>
+                </div>
             </div>
+        {% empty %}
+            <p>No hay equipos registrados en esta categoría.</p>
+        {% endfor %}
+    </div>
+</div>
+            </div>	
             {% endif %}
         </div>
 
