@@ -966,8 +966,8 @@ def generar_semifinales(request, categoria):
         messages.error(request, "Todos los cuartos deben estar finalizados para generar semifinales.")
         return redirect("panel")
 
-    crear_o_actualizar_partido_final(categoria_obj, "SEMIFINAL", "SEMIFINAL #1", g1, g3)
-    crear_o_actualizar_partido_final(categoria_obj, "SEMIFINAL", "SEMIFINAL #2", g2, g4)
+    crear_o_actualizar_partido_final(categoria_obj, "SEMIFINAL", "SEMIFINAL #1", g1, g4)
+    crear_o_actualizar_partido_final(categoria_obj, "SEMIFINAL", "SEMIFINAL #2", g2, g3)
 
     messages.success(request, f"Semifinales generadas correctamente para {categoria}.")
     return redirect("panel")
