@@ -556,58 +556,41 @@ def construir_estructura():
 
         datos_categoria["llaves"] = llaves
 
-    for categoria_nombre, datos_categoria in estructura.items():
-        equipos = Equipo.objects.filter(
-            categoria__nombre=categoria_nombre,
-            activo=True
-        ).prefetch_related(
-            "jugadores"
-        ).order_by("nombre")
-
-        lista_equipos = []
-
-        for equipo in equipos:
-            lista_equipos.append({
-               "id": equipo.id,
-                "nombre": equipo.nombre,
-                "escudo": escudo_url(equipo),
-                "jugadores": equipo.jugadores.all().order_by("dorsal", "nombres"),
-            })
-
-        datos_categoria["equipos"] = lista_equipos
-
         for categoria_nombre, datos_categoria in estructura.items():
-            equipos = Equipo.objects.filter(
-               categoria__nombre=categoria_nombre,
-               activo=True
+            equipos_categoria = Equipo.objects.filter(
+                categoria__nombre=categoria_nombre,
+                activo=True
             ).prefetch_related("jugadores").order_by("nombre")
 
             lista_equipos = []
 
-            for equipo in equipos:
+            for equipo_obj in equipos_categoria:
                 jugadores = []
 
-                for jugador in equipo.jugadores.all().order_by("dorsal", "nombres"):
-                    edad = ""
-                    if jugador.fecha_nacimiento:
+                for jugador in equipo_obj.jugadores.all().order_by("dorsal", "nombres"):
+                   edad = ""
+                   if jugador.fecha_nacimiento:
                         hoy = date.today()
                         edad = hoy.year - jugador.fecha_nacimiento.year - (
-                           (hoy.month, hoy.day) < (jugador.fecha_nacimiento.month, jugador.fecha_nacimiento.day)
+                            (hoy.month, hoy.day) < (
+                                jugador.fecha_nacimiento.month,
+                                jugador.fecha_nacimiento.day
+                            )
                         )
 
-                    jugadores.append({
-                       "dorsal": jugador.dorsal,
-                       "nombres": jugador.nombres,
-                       "cedula": jugador.cedula,
-                       "estado": jugador.estado,
-                       "foto": jugador.foto.url if jugador.foto else "",
-                       "edad": edad,
-                    })
+                jugadores.append({
+                    "dorsal": jugador.dorsal,
+                    "nombres": jugador.nombres,
+                    "cedula": jugador.cedula,
+                    "estado": jugador.estado,
+                    "foto": jugador.foto.url if jugador.foto else "",
+                    "edad": edad,
+                })
 
             lista_equipos.append({
-                "id": equipo.id,
-                "nombre": equipo.nombre,
-                "escudo": escudo_url(equipo),
+                "id": equipo_obj.id,
+                "nombre": equipo_obj.nombre,
+                "escudo": escudo_url(equipo_obj),
                 "jugadores": jugadores,
             })
 
