@@ -1,5 +1,6 @@
 from django.urls import path
-from . import views
+from django.urls import path
+from .import views
 from .views import (
     panel_principal,
     descargar_tabla_grupo,
