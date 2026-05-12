@@ -1438,7 +1438,6 @@ def crear_jugador_equipo(request, equipo_id):
 
         Jugador.objects.create(
             equipo=equipo,
-            categoria=equipo.categoria,
             nombres=nombres,
             dorsal=dorsal,
             cedula=cedula,
