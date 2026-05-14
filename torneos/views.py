@@ -594,9 +594,9 @@ def construir_estructura():
                 "nombre": equipo_obj.nombre,
                 "escudo": escudo_url(equipo_obj),
                 "jugadores": jugadores,
-                "director_tecnico": equipo.get("director_tecnico", ""),
-                "asistente_tecnico": equipo.get("asistente_tecnico", ""),
-                "delegado": equipo.get("delegado", ""),
+                "director_tecnico": equipo_obj.director_tecnico,
+                "asistente_tecnico": equipo_obj.asistente_tecnico,
+                "delegado": equipo_obj.delegado,
             })
 
         datos_categoria["equipos"] = lista_equipos
