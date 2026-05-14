@@ -2007,10 +2007,7 @@
 
 <script>
 function mostrarCategoria(idCategoria) {
-    const pantalla = document.getElementById('pantalla-categorias');
-    if (pantalla) {
-        pantalla.style.display = 'none';
-    }
+    document.getElementById('pantalla-categorias').style.display = 'none';
 
     document.querySelectorAll('.categoria').forEach(function(cat) {
         cat.style.display = 'none';
@@ -2031,15 +2028,12 @@ function volverCategorias() {
     });
 
     localStorage.removeItem('categoria_abierta');
-    sessionStorage.removeItem('panel_categoria_abierta');
-    sessionStorage.removeItem('panel_tab_abierta');
-
-    const pantalla = document.getElementById('pantalla-categorias');
-    if (pantalla) {
-        pantalla.style.display = 'block';
-    }
-
+    document.getElementById('pantalla-categorias').style.display = 'block';
     window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function guardarCategoriaActual(idCategoria) {
+    sessionStorage.setItem('volver_categoria', idCategoria);
 }
 
 function activarPrimeraPestana(categoria) {
@@ -2084,37 +2078,6 @@ function mostrarTabCategoria(idCategoria, tab, boton) {
     window.scrollTo({ top: categoria.offsetTop, behavior: 'smooth' });
 }
 
-function activarTabPorNombre(categoria, tab) {
-    if (!categoria) return;
-
-    const tabObjetivo = tab || 'posiciones';
-
-    categoria.querySelectorAll('.tab-content').forEach(function(seccion) {
-        seccion.classList.remove('active');
-    });
-
-    categoria.querySelectorAll('.tab-btn').forEach(function(btn) {
-        btn.classList.remove('active');
-    });
-
-    const seccion = categoria.querySelector('.tab-content[data-tab="' + tabObjetivo + '"]');
-    const boton = categoria.querySelector('.tab-btn[onclick*="' + tabObjetivo + '"]');
-
-    if (seccion) {
-        seccion.classList.add('active');
-    } else {
-        const primeraTab = categoria.querySelector('.tab-content[data-tab="posiciones"]');
-        if (primeraTab) primeraTab.classList.add('active');
-    }
-
-    if (boton) {
-        boton.classList.add('active');
-    } else {
-        const primerBoton = categoria.querySelector('.tab-btn');
-        if (primerBoton) primerBoton.classList.add('active');
-    }
-}
-
 function mostrarFechaCategoria(idCategoria, idFecha, boton) {
     const categoria = document.getElementById(idCategoria);
     if (!categoria) return;
@@ -2136,6 +2099,7 @@ function mostrarFechaCategoria(idCategoria, idFecha, boton) {
     }
 }
 
+
 function abrirMenuPartido(idMenu) {
     document.querySelectorAll('.menu-partido').forEach(function(menu) {
         if (menu.id !== idMenu) {
@@ -2149,56 +2113,62 @@ function abrirMenuPartido(idMenu) {
     }
 }
 
-document.addEventListener('click', function(event) {
-    const enlaceEditor = event.target.closest('a[href*="editor_partido_movil"]');
-
-    if (enlaceEditor) {
-        const categoria = enlaceEditor.closest('.categoria');
-
-        if (categoria) {
-            const tabActiva = categoria.querySelector('.tab-content.active');
-
-            sessionStorage.setItem('panel_categoria_abierta', categoria.id);
-            sessionStorage.setItem(
-                'panel_tab_abierta',
-                tabActiva && tabActiva.dataset.tab ? tabActiva.dataset.tab : 'posiciones'
-            );
-        }
-    }
-});
-
 document.addEventListener('DOMContentLoaded', function() {
+    // Limpia el guardado viejo que hacía desaparecer categorías al actualizar
     localStorage.removeItem('categoria_abierta');
-
-    const params = new URLSearchParams(window.location.search);
-    const categoriaDesdeUrl = params.get('categoria');
-    const tabDesdeUrl = params.get('tab');
-
-    const categoriaGuardada = categoriaDesdeUrl || sessionStorage.getItem('panel_categoria_abierta');
-    const tabGuardada = tabDesdeUrl || sessionStorage.getItem('panel_tab_abierta') || 'posiciones';
 
     document.querySelectorAll('.categoria').forEach(function(cat) {
         cat.style.display = 'none';
     });
 
     const pantalla = document.getElementById('pantalla-categorias');
-
-    if (categoriaGuardada) {
-        const categoria = document.getElementById(categoriaGuardada);
-
-        if (categoria) {
-            if (pantalla) pantalla.style.display = 'none';
-            categoria.style.display = 'block';
-            activarTabPorNombre(categoria, tabGuardada);
-            return;
-        }
-    }
-
-    sessionStorage.removeItem('panel_categoria_abierta');
-    sessionStorage.removeItem('panel_tab_abierta');
-
     if (pantalla) {
         pantalla.style.display = 'block';
+    }
+
+    // Guarda la categoría y pestaña actual cuando se entra a editar un partido
+    document.querySelectorAll('a[href*="editor_partido_movil"]').forEach(function(link) {
+        link.addEventListener('click', function() {
+            const categoria = link.closest('.categoria');
+            if (categoria) {
+                sessionStorage.setItem('volver_categoria', categoria.id);
+                const tabActiva = categoria.querySelector('.tab-content.active');
+                if (tabActiva) {
+                    sessionStorage.setItem('volver_tab', tabActiva.getAttribute('data-tab') || 'posiciones');
+                }
+            }
+        });
+    });
+
+    // Si volvemos desde el editor, abre automáticamente la misma categoría y pestaña
+    const volverCategoria = sessionStorage.getItem('volver_categoria');
+    const volverTab = sessionStorage.getItem('volver_tab');
+
+    if (volverCategoria) {
+        const categoria = document.getElementById(volverCategoria);
+
+        if (categoria) {
+            sessionStorage.removeItem('volver_categoria');
+            sessionStorage.removeItem('volver_tab');
+
+            if (pantalla) {
+                pantalla.style.display = 'none';
+            }
+
+            document.querySelectorAll('.categoria').forEach(function(cat) {
+                cat.style.display = 'none';
+            });
+
+            categoria.style.display = 'block';
+
+            const tabObjetivo = volverTab || 'posiciones';
+            const boton = categoria.querySelector('.tab-btn[onclick*="' + tabObjetivo + '"]');
+            if (boton) {
+                mostrarTabCategoria(categoria.id, tabObjetivo, boton);
+            } else {
+                activarPrimeraPestana(categoria);
+            }
+        }
     }
 });
 </script>
