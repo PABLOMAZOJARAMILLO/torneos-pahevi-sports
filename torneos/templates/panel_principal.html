@@ -1741,12 +1741,14 @@
         {% empty %}
     <p>No hay equipos registrados en esta categoría.</p>
 {% endfor %}
+    </div>
 </div>
-</div>
+
+</div>  <!-- CIERRE DE LA CATEGORÍA -->
+
 {% empty %}
     <h2>No hay categorías registradas</h2>
 {% endfor %}
-
 <script>
 function mostrarCategoria(idCategoria) {
     document.getElementById('pantalla-categorias').style.display = 'none';
