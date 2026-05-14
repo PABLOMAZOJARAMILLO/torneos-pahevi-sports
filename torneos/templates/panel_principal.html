@@ -1759,7 +1759,6 @@ function mostrarCategoria(idCategoria) {
 
     if (seleccionada) {
         seleccionada.style.display = 'block';
-        localStorage.setItem('categoria_abierta', idCategoria);
         activarPrimeraPestana(seleccionada);
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
@@ -1857,21 +1856,15 @@ function abrirMenuPartido(idMenu) {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-    const categoriaGuardada = localStorage.getItem('categoria_abierta');
+    localStorage.removeItem('categoria_abierta');
 
-    if (categoriaGuardada) {
-        const categoria = document.getElementById(categoriaGuardada);
+    document.querySelectorAll('.categoria').forEach(function(cat) {
+        cat.style.display = 'none';
+    });
 
-        if (categoria) {
-            document.getElementById('pantalla-categorias').style.display = 'none';
-
-            document.querySelectorAll('.categoria').forEach(function(cat) {
-                cat.style.display = 'none';
-            });
-
-            categoria.style.display = 'block';
-            activarPrimeraPestana(categoria);
-        }
+    const pantalla = document.getElementById('pantalla-categorias');
+    if (pantalla) {
+        pantalla.style.display = 'block';
     }
 });
 </script>
