@@ -1015,6 +1015,30 @@
     font-size:14px;
     box-shadow:0 0 10px rgba(0,255,102,.35);
 }
+
+.equipo-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+}
+
+.equipo-detalle {
+    display: none;
+    margin-top: 18px;
+}
+
+.equipo-detalle.activo {
+    display: block;
+}
+
+.equipo-header .card-icono {
+    transition: 0.25s;
+}
+
+.equipo-header.activo .card-icono {
+    transform: rotate(90deg);
+}
     </style>
 </head>
 
@@ -1727,51 +1751,79 @@
 <!-- ===================== EQUIPOS Y JUGADORES ===================== -->
 <div class="tab-content" data-tab="equipos">
     <div class="bloque">
-        <h2>Equipos y jugadores</h2>
+        <h2>Equipos</h2>
 
         {% for equipo in datos_categoria.equipos %}
-        <div class="grupo">
-            <div class="equipo-logo">
-                {% if equipo.escudo %}
-                    <img src="{{ equipo.escudo }}" class="logo-equipo">
-                {% endif %}
-                <h2>{{ equipo.nombre }}</h2>
+        <div class="grupo equipo-acordeon">
+
+            <div class="equipo-header" onclick="toggleEquipo('equipo-{{ forloop.parentloop.counter }}-{{ forloop.counter }}')">
+                <div class="equipo-logo">
+                    {% if equipo.escudo %}
+                        <img src="{{ equipo.escudo }}" class="logo-equipo">
+                    {% endif %}
+                    <h2>{{ equipo.nombre }}</h2>
+                </div>
+                <span class="card-icono">›</span>
             </div>
 
-            <div class="tabla-responsive">
+            <div class="equipo-detalle" id="equipo-{{ forloop.parentloop.counter }}-{{ forloop.counter }}">
+
+                <h3>Cuerpo técnico</h3>
                 <table>
                     <tr>
-                        <th>#</th>
-                        <th>Foto</th>
-                        <th>Dorsal</th>
-                        <th>Jugador</th>
-                        <th>Cédula</th>
-                        <th>Edad</th>
-                        <th>Estado</th>
+                        <th>Cargo</th>
+                        <th>Nombre</th>
                     </tr>
-
-                    {% for jugador in equipo.jugadores %}
                     <tr>
-                        <td>{{ forloop.counter }}</td>
-
-                        <td>
-                            {% if jugador.foto %}
-                                <img src="{{ jugador.foto }}" class="logo-equipo">
-                            {% endif %}
-                        </td>
-
-                        <td>{{ jugador.dorsal }}</td>
-                        <td>{{ jugador.nombres }}</td>
-                        <td>{{ jugador.cedula }}</td>
-                        <td>{{ jugador.edad }}</td>
-                        <td>{{ jugador.estado }}</td>
+                        <td>Técnico</td>
+                        <td>{{ equipo.tecnico|default:"No registrado" }}</td>
                     </tr>
-                    {% empty %}
                     <tr>
-                        <td colspan="7">Este equipo aún no tiene jugadores registrados.</td>
+                        <td>Asistente</td>
+                        <td>{{ equipo.asistente|default:"No registrado" }}</td>
                     </tr>
-                    {% endfor %}
+                    <tr>
+                        <td>Delegado</td>
+                        <td>{{ equipo.delegado|default:"No registrado" }}</td>
+                    </tr>
                 </table>
+
+                <h3>Jugadores</h3>
+
+                <div class="tabla-responsive">
+                    <table>
+                        <tr>
+                            <th>#</th>
+                            <th>Foto</th>
+                            <th>Dorsal</th>
+                            <th>Jugador</th>
+                            <th>Cédula</th>
+                            <th>Edad</th>
+                            <th>Estado</th>
+                        </tr>
+
+                        {% for jugador in equipo.jugadores %}
+                        <tr>
+                            <td>{{ forloop.counter }}</td>
+                            <td>
+                                {% if jugador.foto %}
+                                    <img src="{{ jugador.foto }}" class="logo-equipo">
+                                {% endif %}
+                            </td>
+                            <td>{{ jugador.dorsal }}</td>
+                            <td>{{ jugador.nombres }}</td>
+                            <td>{{ jugador.cedula }}</td>
+                            <td>{{ jugador.edad }}</td>
+                            <td>{{ jugador.estado }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="7">Este equipo aún no tiene jugadores registrados.</td>
+                        </tr>
+                        {% endfor %}
+                    </table>
+                </div>
+
             </div>
         </div>
         {% empty %}
@@ -1779,7 +1831,6 @@
         {% endfor %}
     </div>
 </div>
-
 </div>  <!-- CIERRE DE LA CATEGORÍA -->
 
 {% empty %}
@@ -1787,6 +1838,18 @@
 {% endfor %}
 
 <script>
+
+function toggleEquipo(idEquipo) {
+    const detalle = document.getElementById(idEquipo);
+    if (!detalle) return;
+
+    detalle.classList.toggle('activo');
+
+    const header = detalle.previousElementSibling;
+    if (header) {
+        header.classList.toggle('activo');
+    }
+}
 function mostrarCategoria(idCategoria) {
     const pantalla = document.getElementById('pantalla-categorias');
     if (pantalla) {
