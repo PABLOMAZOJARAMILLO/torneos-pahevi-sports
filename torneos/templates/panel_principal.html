@@ -387,6 +387,34 @@
         box-shadow: 0 0 20px rgba(0,0,0,0.45);
     }
 
+    .categoria.vista-tablas {
+        padding-top: 10px;
+    }
+
+    .categoria.vista-tablas > h1 {
+        transform: translateY(-18px);
+        opacity: 0;
+        height: 0;
+        margin: 0;
+        overflow: hidden;
+        pointer-events: none;
+    }
+
+    .categoria.vista-tablas .btn-volver {
+        margin-bottom: 6px;
+        padding: 9px 18px;
+    }
+
+    .categoria.vista-tablas .tabs-mobile {
+        margin-top: 0;
+        margin-bottom: 8px;
+        padding: 6px 0 8px;
+    }
+
+    .categoria.vista-tablas .bloque {
+        margin-top: 10px;
+    }
+
     .categoria-oculta {
         display: none;
     }
@@ -542,6 +570,7 @@
 
     .tabla-responsive table {
         margin-bottom: 0;
+        overflow: visible;
     }
 
     th {
@@ -587,24 +616,44 @@
     }
 
     .tabla-responsive .col-equipo {
-        position: sticky;
-        left: 0;
-        z-index: 3;
-        background: #132238;
-        box-shadow: 10px 0 16px rgba(2, 7, 18, 0.35);
+        position: sticky !important;
+        left: 0 !important;
+        z-index: 8 !important;
+        background: #132238 !important;
+        box-shadow: 12px 0 18px rgba(2, 7, 18, 0.5);
+        min-width: 240px;
     }
 
     .tabla-responsive th.col-equipo {
-        z-index: 5;
-        background: #07111f;
+        z-index: 12 !important;
+        background: #07111f !important;
     }
 
     .tabla-responsive tr:nth-child(even) td.col-equipo {
-        background: #0f1b2e;
+        background: #0f1b2e !important;
     }
 
     .tabla-responsive tr:hover td.col-equipo {
-        background: #1d3554;
+        background: #1d3554 !important;
+    }
+
+    .tabla-posiciones th:nth-child(1),
+    .tabla-posiciones td:nth-child(1) {
+        position: sticky !important;
+        left: 0 !important;
+        z-index: 9 !important;
+        width: 48px;
+        min-width: 48px;
+        background: #132238 !important;
+    }
+
+    .tabla-posiciones th:nth-child(1) {
+        z-index: 13 !important;
+        background: #07111f !important;
+    }
+
+    .tabla-posiciones .col-equipo {
+        left: 48px !important;
     }
 
     .celda-total {
@@ -2355,6 +2404,7 @@ function mostrarCategoria(idCategoria) {
 
     if (seleccionada) {
         seleccionada.style.display = 'block';
+        seleccionada.classList.add('vista-tablas');
         activarPrimeraPestana(seleccionada);
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
@@ -2363,6 +2413,7 @@ function mostrarCategoria(idCategoria) {
 function volverCategorias() {
     document.querySelectorAll('.categoria').forEach(function(cat) {
         cat.style.display = 'none';
+        cat.classList.remove('vista-tablas');
     });
 
     localStorage.removeItem('categoria_abierta');
@@ -2412,6 +2463,12 @@ function mostrarTabCategoria(idCategoria, tab, boton) {
         seleccionada.classList.add('active');
     }
 
+    if (['posiciones', 'goleadores', 'valla', 'tarjetas', 'equipos'].includes(tab)) {
+        categoria.classList.add('vista-tablas');
+    } else {
+        categoria.classList.remove('vista-tablas');
+    }
+
     if (boton) {
         boton.classList.add('active');
     }
@@ -2423,6 +2480,11 @@ function activarTabPorNombre(categoria, tab) {
     if (!categoria) return;
 
     const tabObjetivo = tab || 'posiciones';
+    if (['posiciones', 'goleadores', 'valla', 'tarjetas', 'equipos'].includes(tabObjetivo)) {
+        categoria.classList.add('vista-tablas');
+    } else {
+        categoria.classList.remove('vista-tablas');
+    }
 
     categoria.querySelectorAll('.tab-content').forEach(function(seccion) {
         seccion.classList.remove('active');
