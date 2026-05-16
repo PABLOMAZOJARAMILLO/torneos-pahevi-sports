@@ -10,6 +10,32 @@
     <a class="btn secondary" href="{% url 'gestion_panel' %}">Gestión</a>
 </p>
 
+<form method="get">
+    <label for="q">Buscar partido</label>
+    <input id="q" type="search" name="q" value="{{ q }}" placeholder="Equipo o cancha">
+
+    <label for="categoria">Categoría</label>
+    <select id="categoria" name="categoria">
+        <option value="">Todas</option>
+        {% for categoria in categorias %}
+            <option value="{{ categoria.id }}" {% if categoria_id == categoria.id|stringformat:"s" %}selected{% endif %}>{{ categoria.nombre }}</option>
+        {% endfor %}
+    </select>
+
+    <label for="estado">Estado</label>
+    <select id="estado" name="estado">
+        <option value="">Todos</option>
+        {% for valor, etiqueta in estados %}
+            <option value="{{ valor }}" {% if estado == valor %}selected{% endif %}>{{ etiqueta }}</option>
+        {% endfor %}
+    </select>
+
+    <p>
+        <button class="btn" type="submit">Filtrar</button>
+        <a class="btn secondary" href="{% url 'gestion_partidos' %}">Limpiar</a>
+    </p>
+</form>
+
 {% for partido in partidos %}
 <div class="row">
     <div>

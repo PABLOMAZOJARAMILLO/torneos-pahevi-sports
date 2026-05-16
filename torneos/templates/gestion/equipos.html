@@ -9,6 +9,24 @@
     <a class="btn secondary" href="{% url 'gestion_panel' %}">Gestión</a>
 </p>
 
+<form method="get">
+    <label for="q">Buscar equipo</label>
+    <input id="q" type="search" name="q" value="{{ q }}" placeholder="Nombre del equipo">
+
+    <label for="categoria">Categoría</label>
+    <select id="categoria" name="categoria">
+        <option value="">Todas</option>
+        {% for categoria in categorias %}
+            <option value="{{ categoria.id }}" {% if categoria_id == categoria.id|stringformat:"s" %}selected{% endif %}>{{ categoria.nombre }}</option>
+        {% endfor %}
+    </select>
+
+    <p>
+        <button class="btn" type="submit">Filtrar</button>
+        <a class="btn secondary" href="{% url 'gestion_equipos' %}">Limpiar</a>
+    </p>
+</form>
+
 {% for equipo in equipos %}
 <div class="row">
     <div style="display:flex;align-items:center;gap:12px;">

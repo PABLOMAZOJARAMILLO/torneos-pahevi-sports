@@ -6,6 +6,7 @@ import re
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.http import FileResponse, HttpResponse
+from django.db.models import Q
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.staticfiles import finders
 from django.template.loader import render_to_string
@@ -1975,7 +1976,21 @@ def gestion_generar_fixture(request):
 @user_passes_test(es_editor_torneo)
 def gestion_equipos(request):
     equipos = Equipo.objects.select_related("categoria").order_by("categoria__nombre", "nombre")
-    return render(request, "gestion/equipos.html", {"equipos": equipos})
+    q = request.GET.get("q", "").strip()
+    categoria_id = request.GET.get("categoria", "").strip()
+
+    if q:
+        equipos = equipos.filter(nombre__icontains=q)
+
+    if categoria_id:
+        equipos = equipos.filter(categoria_id=categoria_id)
+
+    return render(request, "gestion/equipos.html", {
+        "equipos": equipos,
+        "categorias": Categoria.objects.order_by("nombre"),
+        "q": q,
+        "categoria_id": categoria_id,
+    })
 
 
 @login_required
@@ -2022,7 +2037,27 @@ def gestion_jugadores(request):
         "dorsal",
         "nombres",
     )
-    return render(request, "gestion/jugadores.html", {"jugadores": jugadores})
+    q = request.GET.get("q", "").strip()
+    categoria_id = request.GET.get("categoria", "").strip()
+    equipo_id = request.GET.get("equipo", "").strip()
+
+    if q:
+        jugadores = jugadores.filter(Q(nombres__icontains=q) | Q(cedula__icontains=q))
+
+    if categoria_id:
+        jugadores = jugadores.filter(equipo__categoria_id=categoria_id)
+
+    if equipo_id:
+        jugadores = jugadores.filter(equipo_id=equipo_id)
+
+    return render(request, "gestion/jugadores.html", {
+        "jugadores": jugadores,
+        "categorias": Categoria.objects.order_by("nombre"),
+        "equipos": Equipo.objects.select_related("categoria").order_by("categoria__nombre", "nombre"),
+        "q": q,
+        "categoria_id": categoria_id,
+        "equipo_id": equipo_id,
+    })
 
 
 @login_required
@@ -2191,7 +2226,31 @@ def gestion_partidos(request):
         "grupo",
         "fase",
     )
-    return render(request, "gestion/partidos.html", {"partidos": partidos})
+    q = request.GET.get("q", "").strip()
+    categoria_id = request.GET.get("categoria", "").strip()
+    estado = request.GET.get("estado", "").strip()
+
+    if q:
+        partidos = partidos.filter(
+            Q(equipo_local__nombre__icontains=q) |
+            Q(equipo_visitante__nombre__icontains=q) |
+            Q(cancha__icontains=q)
+        )
+
+    if categoria_id:
+        partidos = partidos.filter(categoria_id=categoria_id)
+
+    if estado:
+        partidos = partidos.filter(estado=estado)
+
+    return render(request, "gestion/partidos.html", {
+        "partidos": partidos,
+        "categorias": Categoria.objects.order_by("nombre"),
+        "estados": Partido.ESTADOS,
+        "q": q,
+        "categoria_id": categoria_id,
+        "estado": estado,
+    })
 
 
 @login_required
