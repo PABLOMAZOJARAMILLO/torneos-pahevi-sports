@@ -1,5 +1,5 @@
 from collections import defaultdict
-from datetime import date, time
+from datetime import date, datetime, time
 import os
 import re
 
@@ -95,6 +95,63 @@ def obtener_hoja_planilla_excel(workbook):
             return workbook[nombre]
 
     return workbook.active
+
+
+def normalizar_encabezado_excel(valor):
+    valor = limpiar_nombre(limpiar_texto_excel(valor)).lower()
+    return valor.replace("_", "")
+
+
+def valor_por_encabezado(row, indices, *nombres):
+    for nombre in nombres:
+        indice = indices.get(normalizar_encabezado_excel(nombre))
+
+        if indice is not None:
+            return row[indice].value
+
+    return None
+
+
+def construir_fecha_partido_excel(valor):
+    if not valor:
+        return None
+
+    if isinstance(valor, datetime):
+        return valor.date()
+
+    if isinstance(valor, date):
+        return valor
+
+    texto = limpiar_texto_excel(valor)
+
+    for formato in ("%Y-%m-%d", "%d/%m/%Y", "%d-%m-%Y", "%d/%m/%y", "%d-%m-%y"):
+        try:
+            return datetime.strptime(texto, formato).date()
+        except ValueError:
+            pass
+
+    return None
+
+
+def construir_hora_partido_excel(valor):
+    if not valor:
+        return None
+
+    if isinstance(valor, datetime):
+        return valor.time().replace(second=0, microsecond=0)
+
+    if isinstance(valor, time):
+        return valor.replace(second=0, microsecond=0)
+
+    texto = limpiar_texto_excel(valor).upper().replace(".", "")
+
+    for formato in ("%H:%M", "%I:%M %p", "%I %p"):
+        try:
+            return datetime.strptime(texto, formato).time().replace(second=0, microsecond=0)
+        except ValueError:
+            pass
+
+    return None
 
 
 def escudo_estatico_url(nombre_archivo):
@@ -2134,5 +2191,126 @@ def gestion_partido_editar(request, partido_id):
         "form": form,
         "volver_url": "gestion_partidos",
     })
+
+
+@login_required
+@user_passes_test(es_editor_torneo)
+def gestion_importar_partidos(request):
+    if request.method == "POST":
+        archivo = request.FILES.get("archivo_excel")
+
+        if not archivo:
+            messages.error(request, "Selecciona un archivo Excel.")
+            return redirect("gestion_importar_partidos")
+
+        try:
+            workbook = load_workbook(archivo, data_only=True)
+            hoja = workbook.active
+            encabezados = {}
+
+            for indice, celda in enumerate(hoja[1]):
+                if celda.value:
+                    encabezados[normalizar_encabezado_excel(celda.value)] = indice
+
+            creados = 0
+            actualizados = 0
+            omitidos = 0
+            errores = []
+
+            for numero_fila, row in enumerate(hoja.iter_rows(min_row=2), start=2):
+                categoria_nombre = limpiar_texto_excel(valor_por_encabezado(row, encabezados, "categoria", "categoría"))
+                local_nombre = limpiar_texto_excel(valor_por_encabezado(row, encabezados, "equipo_local", "local", "equipo local"))
+                visitante_nombre = limpiar_texto_excel(valor_por_encabezado(row, encabezados, "equipo_visitante", "visitante", "equipo visitante"))
+
+                if not categoria_nombre and not local_nombre and not visitante_nombre:
+                    continue
+
+                if not categoria_nombre or not local_nombre or not visitante_nombre:
+                    omitidos += 1
+                    errores.append(f"Fila {numero_fila}: falta categoría, local o visitante.")
+                    continue
+
+                categoria = Categoria.objects.filter(nombre__iexact=categoria_nombre).first()
+
+                if not categoria:
+                    omitidos += 1
+                    errores.append(f"Fila {numero_fila}: no existe la categoría {categoria_nombre}.")
+                    continue
+
+                local = Equipo.objects.filter(nombre__iexact=local_nombre, categoria=categoria).first()
+                visitante = Equipo.objects.filter(nombre__iexact=visitante_nombre, categoria=categoria).first()
+
+                if not local:
+                    omitidos += 1
+                    errores.append(f"Fila {numero_fila}: no existe el equipo local {local_nombre} en {categoria.nombre}.")
+                    continue
+
+                if not visitante:
+                    omitidos += 1
+                    errores.append(f"Fila {numero_fila}: no existe el equipo visitante {visitante_nombre} en {categoria.nombre}.")
+                    continue
+
+                numero_fecha = limpiar_texto_excel(valor_por_encabezado(row, encabezados, "numero_fecha", "fecha fixture", "jornada")) or "1"
+                grupo = limpiar_texto_excel(valor_por_encabezado(row, encabezados, "grupo")) or "SIN GRUPO"
+                fase = limpiar_texto_excel(valor_por_encabezado(row, encabezados, "fase")) or "GRUPOS"
+                cancha = limpiar_texto_excel(valor_por_encabezado(row, encabezados, "cancha"))
+                estado = limpiar_texto_excel(valor_por_encabezado(row, encabezados, "estado")) or "PROGRAMADO"
+                fecha_partido = construir_fecha_partido_excel(valor_por_encabezado(row, encabezados, "fecha", "fecha_partido", "dia", "día", "fecha calendario"))
+                hora_partido = construir_hora_partido_excel(valor_por_encabezado(row, encabezados, "hora"))
+                goles_local = limpiar_entero_excel(valor_por_encabezado(row, encabezados, "goles_local", "gl")) or 0
+                goles_visitante = limpiar_entero_excel(valor_por_encabezado(row, encabezados, "goles_visitante", "gv")) or 0
+
+                if fase not in dict(Partido.FASES):
+                    fase = fase.upper().replace(" ", "_")
+
+                if fase not in dict(Partido.FASES):
+                    fase = "GRUPOS"
+
+                if estado not in dict(Partido.ESTADOS):
+                    estado = estado.upper().replace(" ", "_")
+
+                if estado not in dict(Partido.ESTADOS):
+                    estado = "PROGRAMADO"
+
+                partido, creado = Partido.objects.update_or_create(
+                    categoria=categoria,
+                    fase=fase,
+                    numero_fecha=numero_fecha,
+                    equipo_local=local,
+                    equipo_visitante=visitante,
+                    defaults={
+                        "fecha": fecha_partido or date.today(),
+                        "hora": hora_partido or time(0, 0),
+                        "estado": estado,
+                        "grupo": grupo,
+                        "cancha": cancha,
+                        "goles_local": goles_local,
+                        "goles_visitante": goles_visitante,
+                    },
+                )
+
+                if creado:
+                    creados += 1
+                else:
+                    actualizados += 1
+
+            messages.success(
+                request,
+                f"Partidos importados. Nuevos: {creados}. Actualizados: {actualizados}. Omitidos: {omitidos}.",
+            )
+
+            for error in errores[:12]:
+                messages.warning(request, error)
+
+            if len(errores) > 12:
+                messages.warning(request, f"Hay {len(errores) - 12} advertencias adicionales.")
+
+            return redirect("gestion_partidos")
+
+        except Exception as exc:
+            messages.error(request, f"No se pudo importar el archivo: {exc}")
+            return redirect("gestion_importar_partidos")
+
+    return render(request, "gestion/importar_partidos.html")
 
 
