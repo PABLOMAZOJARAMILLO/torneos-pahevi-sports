@@ -47,9 +47,11 @@
 
 <h1>Panel de Categoría</h1>
 
-<a class="btn" href="{% url 'descargar_imagen' 'SENIOR MASTER' %}">
-    Descargar imagen
-</a>
+{% if request.user.is_staff %}
+    <a class="btn" href="{% url 'descargar_imagen' 'SENIOR MASTER' %}">
+        Descargar imagen
+    </a>
+{% endif %}
 
 <h2>Tabla de posiciones</h2>
 

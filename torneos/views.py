@@ -928,6 +928,8 @@ def crear_imagen_desde_html(html, nombre_archivo, ancho=1600, alto=1800):
     )
 
 
+@login_required
+@user_passes_test(es_editor_torneo)
 def descargar_tabla_grupo(request, categoria, grupo):
     estructura = construir_estructura()
     datos_categoria = estructura.get(categoria)
@@ -956,6 +958,8 @@ def descargar_tabla_grupo(request, categoria, grupo):
     return crear_imagen_desde_html(html, nombre, 1600, 1200)
 
 
+@login_required
+@user_passes_test(es_editor_torneo)
 def descargar_goleadores_categoria(request, categoria):
     estructura = construir_estructura()
     datos_categoria = estructura.get(categoria)
@@ -978,6 +982,8 @@ def descargar_goleadores_categoria(request, categoria):
     return crear_imagen_desde_html(html, nombre, 1800, 2000)
 
 
+@login_required
+@user_passes_test(es_editor_torneo)
 def descargar_tarjetas_categoria(request, categoria):
     estructura = construir_estructura()
     datos_categoria = estructura.get(categoria)
@@ -1000,6 +1006,8 @@ def descargar_tarjetas_categoria(request, categoria):
     return crear_imagen_desde_html(html, nombre, 1800, 2000)
 
 
+@login_required
+@user_passes_test(es_editor_torneo)
 def descargar_valla_categoria(request, categoria):
     estructura = construir_estructura()
     datos_categoria = estructura.get(categoria)
@@ -1022,6 +1030,8 @@ def descargar_valla_categoria(request, categoria):
     return crear_imagen_desde_html(html, nombre, 1800, 1800)
 
 
+@login_required
+@user_passes_test(es_editor_torneo)
 def descargar_imagen(request, categoria):
     estructura_total = construir_estructura()
 
@@ -1539,6 +1549,8 @@ def medidas_programacion(cantidad):
     }
 
 
+@login_required
+@user_passes_test(es_editor_torneo)
 def descargar_programacion_categoria(request, categoria):
     categoria_obj = Categoria.objects.filter(nombre=categoria).first()
 
@@ -1573,6 +1585,8 @@ def descargar_programacion_categoria(request, categoria):
     return crear_imagen_desde_html(html, nombre, medidas["ancho"], medidas["alto"])
 
 
+@login_required
+@user_passes_test(es_editor_torneo)
 def descargar_programacion_general(request):
     partidos_programacion = construir_partidos_programacion(request)
 
@@ -1866,6 +1880,7 @@ def mis_equipos(request):
     })
 
 @login_required
+@user_passes_test(es_editor_torneo)
 def crear_jugador_equipo(request, equipo_id):
     equipo = get_object_or_404(
         Equipo,

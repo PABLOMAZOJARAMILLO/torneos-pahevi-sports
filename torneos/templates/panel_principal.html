@@ -1281,6 +1281,10 @@ body {
     padding-top: 260px !important;
 }
 
+body.solo-lectura {
+    padding-top: 204px !important;
+}
+
 .pantalla-categorias > .titulo-app,
 .pantalla-categorias > .subtitulo-app {
     display: none !important;
@@ -1314,6 +1318,17 @@ body {
     align-items: center !important;
 }
 
+body.solo-lectura .categorias-grid {
+    top: 126px !important;
+}
+
+body.solo-lectura .descargas-tab,
+body.solo-lectura .acciones-partido,
+body.solo-lectura .btn-editor-movil,
+body.solo-lectura .fase-btn {
+    display: none !important;
+}
+
 .categorias-grid .card-categoria {
     min-height: 52px !important;
     padding: 8px 12px !important;
@@ -1331,6 +1346,10 @@ body {
 @media (max-width: 768px) {
     body {
         padding: 218px 10px 10px !important;
+    }
+
+    body.solo-lectura {
+        padding-top: 166px !important;
     }
 
     .encabezado-panel {
@@ -1377,6 +1396,10 @@ body {
         padding: 8px 10px !important;
     }
 
+    body.solo-lectura .categorias-grid {
+        top: 92px !important;
+    }
+
     .categorias-grid .card-categoria {
         min-width: 240px !important;
         min-height: 52px !important;
@@ -1385,7 +1408,7 @@ body {
     </style>
 </head>
 
-<body>
+<body class="{% if not request.user.is_staff %}solo-lectura{% endif %}">
 
 <div class="encabezado-panel">
     {% if logo_alcaldia %}
@@ -1413,6 +1436,7 @@ body {
     <h1 class="titulo-app">TORNEO IMCRED</h1>
     <p class="subtitulo-app">Selecciona una categoría</p>
 
+    {% if request.user.is_staff %}
     <div class="acciones-portada">
     <a class="boton" href="{% url 'descargar_programacion_general' %}">
         Descargar programación completa
@@ -1424,6 +1448,7 @@ body {
     </a>
     {% endif %}
     </div>
+    {% endif %}
 
     {% if partidos_resultados %}
     <section class="portada-seccion portada-resultados">
