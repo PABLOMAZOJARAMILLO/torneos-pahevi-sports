@@ -2012,84 +2012,46 @@ document.addEventListener('click', function(event) {
 });
 
 document.addEventListener('DOMContentLoaded', function() {
-    localStorage.removeItem('categoria_abierta');
-
     const params = new URLSearchParams(window.location.search);
-    const categoriaDesdeUrl = params.get('categoria');
-    const tabDesdeUrl = params.get('tab');
+    const volverEditor = params.get('volver_editor');
 
-    const categoriaGuardada = categoriaDesdeUrl || sessionStorage.getItem('panel_categoria_abierta');
-    const tabGuardada = tabDesdeUrl || sessionStorage.getItem('panel_tab_abierta') || 'posiciones';
+    const categoriaNombre = localStorage.getItem('panel_volver_categoria_nombre');
+    const tabVolver = localStorage.getItem('panel_volver_tab');
 
     document.querySelectorAll('.categoria').forEach(function(cat) {
         cat.style.display = 'none';
     });
 
-    const pantalla = document.getElementById('pantalla-categorias');
+    if (volverEditor === '1' && categoriaNombre) {
+        let categoriaEncontrada = null;
 
-    if (categoriaGuardada) {
-        const categoria = document.getElementById(categoriaGuardada);
+        document.querySelectorAll('.categoria').forEach(function(cat) {
+            const titulo = cat.querySelector('h1');
+            if (titulo && titulo.textContent.trim().toUpperCase() === categoriaNombre.trim().toUpperCase()) {
+                categoriaEncontrada = cat;
+            }
+        });
 
-        if (categoria) {
-            if (pantalla) pantalla.style.display = 'none';
-            categoria.style.display = 'block';
-            activarTabPorNombre(categoria, tabGuardada);
+        if (categoriaEncontrada) {
+            document.getElementById('pantalla-categorias').style.display = 'none';
+            categoriaEncontrada.style.display = 'block';
+
+            const tab = tabVolver || 'finales';
+            const boton = categoriaEncontrada.querySelector('.tab-btn[onclick*="' + tab + '"]');
+
+            if (boton) {
+                mostrarTabCategoria(categoriaEncontrada.id, tab, boton);
+            }
+
             return;
         }
     }
 
-    sessionStorage.removeItem('panel_categoria_abierta');
-    sessionStorage.removeItem('panel_tab_abierta');
-
+    const pantalla = document.getElementById('pantalla-categorias');
     if (pantalla) {
         pantalla.style.display = 'block';
     }
-});
-
-document.addEventListener("DOMContentLoaded", function () {
-
-    const volver = new URLSearchParams(window.location.search).get("volver");
-
-    if (volver === "1") {
-
-        const categoriaId = localStorage.getItem("categoria_activa");
-        const tabActiva = localStorage.getItem("tab_activa");
-
-        if (categoriaId) {
-
-            const categoria = document.getElementById(
-                "categoria-" + categoriaId
-            );
-
-            if (categoria) {
-
-                document.getElementById("pantalla-categorias").style.display = "none";
-
-                document.querySelectorAll(".categoria").forEach(cat => {
-                    cat.style.display = "none";
-                });
-
-                categoria.style.display = "block";
-
-                if (tabActiva) {
-
-                    const boton = categoria.querySelector(
-                        `.tab-btn[data-tab="${tabActiva}"]`
-                    );
-
-                    if (boton) {
-                        mostrarTabCategoria(
-                            categoria.id,
-                            tabActiva,
-                            boton
-                        );
-                    }
-                }
-            }
-        }
-    }
-});
-</script>
+});</script>
 
 </body>
 </html>
