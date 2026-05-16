@@ -7,6 +7,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.http import FileResponse, HttpResponse
 from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.staticfiles import finders
 from django.template.loader import render_to_string
 from django.templatetags.static import static
 from html2image import Html2Image
@@ -25,14 +26,41 @@ def limpiar_nombre(nombre):
     return nombre.replace(' ', '_').upper()
 
 
-def escudo_url(equipo):
-    if not equipo or not equipo.escudo:
+def escudo_estatico_url(nombre_archivo):
+    if not nombre_archivo:
         return ""
 
-    nombre_archivo = os.path.basename(equipo.escudo.name)
-    nombre_archivo = nombre_archivo.replace(" ", "_")
+    ruta = f"torneos/escudos/{nombre_archivo}"
 
-    return static(f"torneos/escudos/{nombre_archivo}")
+    if finders.find(ruta):
+        return static(ruta)
+
+    return ""
+
+
+def escudo_url(equipo):
+    if not equipo:
+        return ""
+
+    if equipo.escudo and equipo.escudo.storage.exists(equipo.escudo.name):
+        return equipo.escudo.url
+
+    if equipo.escudo:
+        nombre_archivo = os.path.basename(equipo.escudo.name).replace(" ", "_")
+        escudo = escudo_estatico_url(nombre_archivo)
+
+        if escudo:
+            return escudo
+
+    nombre_equipo = limpiar_nombre(equipo.nombre)
+
+    for extension in ("png", "jpg", "jpeg", "webp"):
+        escudo = escudo_estatico_url(f"{nombre_equipo}.{extension}")
+
+        if escudo:
+            return escudo
+
+    return ""
 
 def url_absoluta(request, url):
     if not url:
