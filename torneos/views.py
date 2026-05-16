@@ -782,6 +782,7 @@ def preparar_categoria_para_descarga(request, datos_categoria):
 
 
 def construir_partidos_portada():
+    hoy = date.today()
     partidos = Partido.objects.filter(
         fecha__isnull=False,
         hora__isnull=False,
@@ -789,10 +790,6 @@ def construir_partidos_portada():
         "categoria",
         "equipo_local",
         "equipo_visitante",
-    ).order_by(
-        "fecha",
-        "hora",
-        "categoria__nombre",
     )
 
     estados_visibles = ["PROGRAMADO", "EN_JUEGO", "FINALIZADO", "DECIDIDO_COMITE", "WO"]
@@ -833,7 +830,20 @@ def construir_partidos_portada():
             "eventos": goles_por_partido[partido.id] + tarjetas_por_partido[partido.id],
         })
 
-    return partidos_portada[:24]
+    def prioridad(partido):
+        es_programado = partido["estado"] in ["PROGRAMADO", "EN_JUEGO"]
+        fecha = partido["fecha"]
+        hora = partido["hora"] or time(0, 0)
+
+        if es_programado and fecha >= hoy:
+            return (0, fecha, hora)
+
+        if not es_programado:
+            return (1, -fecha.toordinal(), hora)
+
+        return (2, -fecha.toordinal(), hora)
+
+    return sorted(partidos_portada, key=prioridad)[:24]
 
 
 def panel_principal(request):

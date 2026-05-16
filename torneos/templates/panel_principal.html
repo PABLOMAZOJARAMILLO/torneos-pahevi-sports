@@ -40,25 +40,25 @@
         align-items: center;
         justify-content: space-between;
         background: linear-gradient(135deg, #06111f, #102a48, #06111f);
-        border: 2px solid #00ff66;
-        border-radius: 20px;
-        padding: 25px 40px;
-        margin-bottom: 22px;
-        box-shadow: 0 0 25px rgba(0, 255, 102, 0.35);
+        border: 1px solid rgba(0, 255, 102, 0.75);
+        border-radius: 16px;
+        padding: 12px 28px;
+        margin-bottom: 16px;
+        box-shadow: 0 8px 22px rgba(0, 0, 0, 0.28);
     }
 
     .logo-torneo {
-        width: 140px;
-        height: 140px;
+        width: 82px;
+        height: 82px;
         object-fit: contain;
         background: white;
         border-radius: 50%;
-        padding: 8px;
+        padding: 6px;
     }
 
     .logo-central {
-        width: 260px;
-        height: 120px;
+        width: 190px;
+        height: 74px;
         object-fit: contain;
     }
 
@@ -68,7 +68,7 @@
 
     .titulo-panel h1 {
         margin: 0;
-        font-size: 38px;
+        font-size: 30px;
         color: #00ff66;
         text-shadow: 0 0 10px rgba(0,255,102,0.8);
     }
@@ -76,15 +76,15 @@
     .titulo-panel p {
         margin: 6px 0 0 0;
         color: #dbeafe;
-        font-size: 15px;
+        font-size: 12px;
     }
 
     .pantalla-categorias {
         background: #f4f7fb;
         color: #10213f;
         min-height: 80vh;
-        padding: 25px;
-        border-radius: 28px 28px 0 0;
+        padding: 20px;
+        border-radius: 20px 20px 0 0;
     }
 
     .titulo-app {
@@ -107,10 +107,17 @@
     }
 
     .categorias-grid {
+        position: sticky;
+        top: 0;
+        z-index: 20;
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
         gap: 12px;
-        margin-bottom: 24px;
+        margin: 0 -20px 24px;
+        padding: 12px 20px;
+        background: rgba(244, 247, 251, 0.96);
+        backdrop-filter: blur(8px);
+        border-bottom: 1px solid #dbe4ef;
     }
 
     .card-categoria {
@@ -120,7 +127,7 @@
         background: white;
         border: 1px solid #dbe4ef;
         border-radius: 12px;
-        padding: 16px;
+        padding: 12px 14px;
         cursor: pointer;
         box-shadow: 0 6px 18px rgba(15, 23, 42, 0.08);
     }
@@ -130,8 +137,8 @@
     }
 
     .card-logo img {
-        width: 90px;
-        height: 45px;
+        width: 70px;
+        height: 36px;
         object-fit: contain;
     }
 
@@ -142,18 +149,18 @@
     .card-info h2 {
         margin: 0;
         color: #10213f;
-        font-size: 22px;
+        font-size: 20px;
         text-transform: uppercase;
     }
 
     .card-info p {
         margin: 6px 0 0;
         color: #374151;
-        font-size: 16px;
+        font-size: 13px;
     }
 
     .card-icono {
-        font-size: 38px;
+        font-size: 30px;
         color: #4caf50;
         font-weight: bold;
     }
@@ -269,6 +276,55 @@
         margin-top: 10px;
         color: #64748b;
         font-size: 13px;
+    }
+
+    @media (max-width: 760px) {
+        body {
+            padding: 10px;
+        }
+
+        .encabezado-panel {
+            padding: 10px 12px;
+            border-radius: 14px;
+        }
+
+        .logo-torneo {
+            width: 58px;
+            height: 58px;
+        }
+
+        .logo-central {
+            width: 130px;
+            height: 52px;
+        }
+
+        .titulo-panel h1 {
+            font-size: 22px;
+        }
+
+        .titulo-panel p {
+            display: none;
+        }
+
+        .pantalla-categorias {
+            padding: 14px;
+        }
+
+        .categorias-grid {
+            display: flex;
+            overflow-x: auto;
+            grid-template-columns: none;
+            margin: 0 -14px 18px;
+            padding: 10px 14px;
+        }
+
+        .card-categoria {
+            min-width: 245px;
+        }
+
+        .partidos-portada {
+            grid-template-columns: 1fr;
+        }
     }
 
     .categoria {
