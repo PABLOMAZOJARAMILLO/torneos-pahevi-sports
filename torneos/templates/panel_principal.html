@@ -17,7 +17,7 @@
 
     body {
         margin: 0;
-        padding: 230px 18px 18px;
+        padding: 286px 18px 18px;
         background: radial-gradient(circle at top, #10294a 0%, #07111f 45%, #020712 100%);
         color: white;
         font-family: Arial, sans-serif;
@@ -37,16 +37,17 @@
 
     .encabezado-panel {
         position: fixed;
-        top: 8px;
-        left: 8px;
-        right: 8px;
+        top: 0;
+        left: 0;
+        right: 0;
         z-index: 40;
         display: flex;
         align-items: center;
         justify-content: space-between;
         background: linear-gradient(135deg, #06111f, #102a48, #06111f);
-        border: 1px solid rgba(0, 255, 102, 0.75);
-        border-radius: 16px 16px 0 0;
+        border: 0;
+        border-bottom: 1px solid rgba(0, 255, 102, 0.75);
+        border-radius: 0;
         padding: 10px 28px;
         margin-bottom: 0;
         box-shadow: 0 8px 22px rgba(0, 0, 0, 0.28);
@@ -105,29 +106,37 @@
     }
 
     .acciones-portada {
+        position: fixed;
+        top: 128px;
+        left: 0;
+        right: 0;
+        z-index: 39;
         display: flex;
         gap: 10px;
         flex-wrap: wrap;
-        margin-bottom: 18px;
+        margin-bottom: 0;
+        padding: 10px 22px;
+        background: #f4f7fb;
+        border-bottom: 1px solid #dbe4ef;
     }
 
     .categorias-grid {
         position: fixed;
-        top: 128px;
-        left: 8px;
-        right: 8px;
-        z-index: 39;
+        top: 188px;
+        left: 0;
+        right: 0;
+        z-index: 38;
         display: flex;
         overflow-x: auto;
         gap: 12px;
         margin: 0;
         padding: 10px 16px;
-        background: rgba(244, 247, 251, 0.96);
+        background: #f4f7fb;
         backdrop-filter: blur(8px);
         border-bottom: 1px solid #dbe4ef;
-        border-left: 1px solid #dbe4ef;
-        border-right: 1px solid #dbe4ef;
-        border-radius: 0 0 16px 16px;
+        border-left: 0;
+        border-right: 0;
+        border-radius: 0;
         box-shadow: 0 6px 18px rgba(15, 23, 42, 0.12);
         transform: translateY(0);
     }
@@ -318,15 +327,15 @@
 
     @media (max-width: 760px) {
         body {
-            padding: 165px 10px 10px;
+            padding: 222px 10px 10px;
         }
 
         .encabezado-panel {
-            top: 6px;
-            left: 8px;
-            right: 8px;
+            top: 0;
+            left: 0;
+            right: 0;
             padding: 10px 12px;
-            border-radius: 14px;
+            border-radius: 0;
         }
 
         .logo-torneo {
@@ -352,10 +361,15 @@
             padding: 14px;
         }
 
+        .acciones-portada {
+            top: 78px;
+            padding: 8px 12px;
+        }
+
         .categorias-grid {
-            top: 82px;
-            left: 8px;
-            right: 8px;
+            top: 136px;
+            left: 0;
+            right: 0;
             padding: 9px 12px;
         }
 
@@ -2373,7 +2387,13 @@ document.addEventListener('DOMContentLoaded', function() {
     if (puntoInicial && volverEditor !== '1' && !window.location.hash) {
         window.setTimeout(function() {
             const encabezado = document.querySelector('.encabezado-panel');
-            const altoFijo = (encabezado ? encabezado.offsetHeight : 0) + (categoriasFijas ? categoriasFijas.offsetHeight : 0) + 34;
+            const acciones = document.querySelector('.acciones-portada');
+            const altoFijo = (
+                (encabezado ? encabezado.offsetHeight : 0) +
+                (acciones ? acciones.offsetHeight : 0) +
+                (categoriasFijas ? categoriasFijas.offsetHeight : 0) +
+                26
+            );
             const destino = puntoInicial.getBoundingClientRect().top + window.pageYOffset - altoFijo;
 
             window.scrollTo({
