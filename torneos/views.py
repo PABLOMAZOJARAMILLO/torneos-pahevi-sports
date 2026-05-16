@@ -1209,10 +1209,9 @@ def construir_partidos_programacion(request, categoria_obj=None):
 
 def medidas_programacion(cantidad):
     if cantidad > 8:
-        filas = (cantidad + 1) // 2
         return {
-            "ancho": 1600,
-            "alto": 360 + (filas * 260),
+            "ancho": 1080,
+            "alto": 360 + (cantidad * 250),
             "compacta": True,
         }
 
