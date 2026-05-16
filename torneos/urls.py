@@ -11,6 +11,7 @@ from .views import (
     generar_final,
     generar_tercer_puesto,
     descargar_programacion_categoria,
+    descargar_programacion_general,
     editor_partido_movil,
     guardar_info_partido_movil,
     agregar_gol_movil,
@@ -79,6 +80,12 @@ urlpatterns = [
         'descargar/programacion/<str:categoria>/',
         descargar_programacion_categoria,
         name='descargar_programacion_categoria'
+    ),
+
+    path(
+        'descargar/programacion-general/',
+        descargar_programacion_general,
+        name='descargar_programacion_general'
     ),
 
     # Editor móvil profesional de partidos

@@ -1070,6 +1070,10 @@
     <h1 class="titulo-app">TORNEO IMCRED</h1>
     <p class="subtitulo-app">Selecciona una categoría</p>
 
+    <a class="boton" href="{% url 'descargar_programacion_general' %}">
+        Descargar programación completa
+    </a>
+
     {% for categoria, datos_categoria in estructura.items %}
     <div class="card-categoria" onclick="mostrarCategoria('categoria-{{ forloop.counter }}')">
         <div class="card-logo">

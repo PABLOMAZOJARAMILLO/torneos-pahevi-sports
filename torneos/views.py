@@ -1142,12 +1142,7 @@ def generar_tercer_puesto(request, categoria):
 
     messages.success(request, f"Partido por tercer puesto generado correctamente para {categoria}.")
     return redirect("panel")
-def descargar_programacion_categoria(request, categoria):
-    categoria_obj = Categoria.objects.filter(nombre=categoria).first()
-
-    if not categoria_obj:
-        return HttpResponse("Categoría no encontrada")
-
+def construir_partidos_programacion(request, categoria_obj=None):
     dias_semana = {
         0: "LUNES",
         1: "MARTES",
@@ -1159,7 +1154,6 @@ def descargar_programacion_categoria(request, categoria):
     }
 
     partidos = Partido.objects.filter(
-        categoria=categoria_obj,
         estado="PROGRAMADO",
         fecha__isnull=False,
         hora__isnull=False,
@@ -1171,14 +1165,19 @@ def descargar_programacion_categoria(request, categoria):
     ).exclude(
         hora=time(0, 0)
     ).select_related(
+        "categoria",
         "equipo_local",
         "equipo_visitante"
     ).order_by(
         "fecha",
         "hora",
+        "categoria__nombre",
         "grupo",
         "fase"
     )
+
+    if categoria_obj:
+        partidos = partidos.filter(categoria=categoria_obj)
 
     partidos_programacion = []
 
@@ -1191,6 +1190,7 @@ def descargar_programacion_categoria(request, categoria):
         fase = p.fase or "GRUPOS"
 
         partidos_programacion.append({
+            "categoria": p.categoria.nombre if p.categoria else "",
             "grupo": p.grupo,
             "fase": fase,
             "estado": p.estado,
@@ -1203,6 +1203,17 @@ def descargar_programacion_categoria(request, categoria):
             "escudo_local": url_absoluta(request, escudo_url(p.equipo_local)),
             "escudo_visitante": url_absoluta(request, escudo_url(p.equipo_visitante)),
         })
+
+    return partidos_programacion
+
+
+def descargar_programacion_categoria(request, categoria):
+    categoria_obj = Categoria.objects.filter(nombre=categoria).first()
+
+    if not categoria_obj:
+        return HttpResponse("Categoría no encontrada")
+
+    partidos_programacion = construir_partidos_programacion(request, categoria_obj)
 
     if not partidos_programacion:
         return HttpResponse("No hay partidos programados con fecha, hora y cancha para esta categoría.")
@@ -1219,6 +1230,38 @@ def descargar_programacion_categoria(request, categoria):
 
     nombre = limpiar_nombre(f"PROGRAMACION_PARTIDOS_PROGRAMADOS_{categoria}.png")
 
+    cantidad = len(partidos_programacion)
+
+    if cantidad <= 4:
+        alto = 1920
+    elif cantidad <= 8:
+        alto = 2850
+    elif cantidad <= 12:
+        alto = 3800
+    else:
+        alto = 650 + (cantidad * 270)
+
+    return crear_imagen_desde_html(html, nombre, 1080, alto)
+
+
+def descargar_programacion_general(request):
+    partidos_programacion = construir_partidos_programacion(request)
+
+    if not partidos_programacion:
+        return HttpResponse("No hay partidos programados con fecha, hora y cancha asignada.")
+
+    logos = rutas_logos(request)
+
+    html = render_to_string("descargas/programacion_categoria.html", {
+        "categoria": "TODAS LAS CATEGORIAS",
+        "mostrar_categoria": True,
+        "partidos": partidos_programacion,
+        "logo_alcaldia": logos["logo_alcaldia"],
+        "logo_torneo": logos["logo_torneo"],
+        "logo_imcred": logos["logo_imcred"],
+    })
+
+    nombre = "PROGRAMACION_TODAS_LAS_CATEGORIAS.png"
     cantidad = len(partidos_programacion)
 
     if cantidad <= 4:

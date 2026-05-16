@@ -229,6 +229,7 @@ body {
             </div>
 
             <div class="grupo">
+                {% if mostrar_categoria %}{{ p.categoria }} - {% endif %}
                 GRUPO {{ p.grupo }}{% if p.fase and p.fase != "GRUPOS" %} - {{ p.fase }}{% endif %}
             </div>
 
