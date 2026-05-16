@@ -17,7 +17,7 @@
 
     body {
         margin: 0;
-        padding: 18px;
+        padding: 200px 18px 18px;
         background: radial-gradient(circle at top, #10294a 0%, #07111f 45%, #020712 100%);
         color: white;
         font-family: Arial, sans-serif;
@@ -36,6 +36,11 @@
     }
 
     .encabezado-panel {
+        position: fixed;
+        top: 8px;
+        left: 14px;
+        right: 14px;
+        z-index: 40;
         display: flex;
         align-items: center;
         justify-content: space-between;
@@ -108,10 +113,10 @@
 
     .categorias-grid {
         position: fixed;
-        top: 0;
+        top: 112px;
         left: 0;
         right: 0;
-        z-index: 20;
+        z-index: 35;
         display: flex;
         overflow-x: auto;
         gap: 12px;
@@ -121,11 +126,6 @@
         backdrop-filter: blur(8px);
         border-bottom: 1px solid #dbe4ef;
         box-shadow: 0 6px 18px rgba(15, 23, 42, 0.12);
-        transform: translateY(-120%);
-        transition: transform 0.2s ease;
-    }
-
-    .categorias-grid.fija-visible {
         transform: translateY(0);
     }
 
@@ -315,10 +315,13 @@
 
     @media (max-width: 760px) {
         body {
-            padding: 10px;
+            padding: 150px 10px 10px;
         }
 
         .encabezado-panel {
+            top: 6px;
+            left: 8px;
+            right: 8px;
             padding: 10px 12px;
             border-radius: 14px;
         }
@@ -347,6 +350,7 @@
         }
 
         .categorias-grid {
+            top: 78px;
             padding: 9px 12px;
         }
 
@@ -1326,7 +1330,7 @@
     {% endfor %}
     </div>
 
-    <section class="portada-seccion">
+    <section class="portada-seccion" id="partidos-programados">
         <h2>Partidos</h2>
 
         <div class="partidos-portada">
@@ -2359,20 +2363,18 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     const categoriasFijas = document.getElementById('categorias-fijas');
-    const yaPosicionado = sessionStorage.getItem('portada_categorias_posicionada');
+    const partidosProgramados = document.getElementById('partidos-programados');
 
-    if (categoriasFijas) {
-        categoriasFijas.classList.add('fija-visible');
-    }
-
-    if (categoriasFijas && !yaPosicionado && volverEditor !== '1') {
+    if (partidosProgramados && volverEditor !== '1' && !window.location.hash) {
         window.setTimeout(function() {
-            const posicionCategorias = categoriasFijas.offsetTop || 0;
+            const encabezado = document.querySelector('.encabezado-panel');
+            const altoFijo = (encabezado ? encabezado.offsetHeight : 0) + (categoriasFijas ? categoriasFijas.offsetHeight : 0) + 22;
+            const destino = partidosProgramados.getBoundingClientRect().top + window.pageYOffset - altoFijo;
+
             window.scrollTo({
-                top: Math.max(0, posicionCategorias - 8),
+                top: Math.max(0, destino),
                 behavior: 'auto'
             });
-            sessionStorage.setItem('portada_categorias_posicionada', '1');
         }, 120);
     }
 });
