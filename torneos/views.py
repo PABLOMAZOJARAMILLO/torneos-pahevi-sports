@@ -1207,6 +1207,29 @@ def construir_partidos_programacion(request, categoria_obj=None):
     return partidos_programacion
 
 
+def medidas_programacion(cantidad):
+    if cantidad > 8:
+        filas = (cantidad + 1) // 2
+        return {
+            "ancho": 1600,
+            "alto": 360 + (filas * 260),
+            "compacta": True,
+        }
+
+    if cantidad <= 4:
+        alto = 1920
+    elif cantidad <= 8:
+        alto = 2850
+    else:
+        alto = 650 + (cantidad * 270)
+
+    return {
+        "ancho": 1080,
+        "alto": alto,
+        "compacta": False,
+    }
+
+
 def descargar_programacion_categoria(request, categoria):
     categoria_obj = Categoria.objects.filter(nombre=categoria).first()
 
@@ -1219,29 +1242,21 @@ def descargar_programacion_categoria(request, categoria):
         return HttpResponse("No hay partidos programados con fecha, hora y cancha para esta categoría.")
 
     logos = rutas_logos(request)
+    cantidad = len(partidos_programacion)
+    medidas = medidas_programacion(cantidad)
 
     html = render_to_string("descargas/programacion_categoria.html", {
         "categoria": categoria,
         "partidos": partidos_programacion,
+        "ancho": medidas["ancho"],
+        "compacta": medidas["compacta"],
         "logo_alcaldia": logos["logo_alcaldia"],
         "logo_torneo": logos["logo_torneo"],
         "logo_imcred": logos["logo_imcred"],
     })
 
     nombre = limpiar_nombre(f"PROGRAMACION_PARTIDOS_PROGRAMADOS_{categoria}.png")
-
-    cantidad = len(partidos_programacion)
-
-    if cantidad <= 4:
-        alto = 1920
-    elif cantidad <= 8:
-        alto = 2850
-    elif cantidad <= 12:
-        alto = 3800
-    else:
-        alto = 650 + (cantidad * 270)
-
-    return crear_imagen_desde_html(html, nombre, 1080, alto)
+    return crear_imagen_desde_html(html, nombre, medidas["ancho"], medidas["alto"])
 
 
 def descargar_programacion_general(request):
@@ -1251,29 +1266,22 @@ def descargar_programacion_general(request):
         return HttpResponse("No hay partidos programados con fecha, hora y cancha asignada.")
 
     logos = rutas_logos(request)
+    cantidad = len(partidos_programacion)
+    medidas = medidas_programacion(cantidad)
 
     html = render_to_string("descargas/programacion_categoria.html", {
         "categoria": "TODAS LAS CATEGORIAS",
         "mostrar_categoria": True,
         "partidos": partidos_programacion,
+        "ancho": medidas["ancho"],
+        "compacta": medidas["compacta"],
         "logo_alcaldia": logos["logo_alcaldia"],
         "logo_torneo": logos["logo_torneo"],
         "logo_imcred": logos["logo_imcred"],
     })
 
     nombre = "PROGRAMACION_TODAS_LAS_CATEGORIAS.png"
-    cantidad = len(partidos_programacion)
-
-    if cantidad <= 4:
-        alto = 1920
-    elif cantidad <= 8:
-        alto = 2850
-    elif cantidad <= 12:
-        alto = 3800
-    else:
-        alto = 650 + (cantidad * 270)
-
-    return crear_imagen_desde_html(html, nombre, 1080, alto)
+    return crear_imagen_desde_html(html, nombre, medidas["ancho"], medidas["alto"])
 
 
 # ======================================================
