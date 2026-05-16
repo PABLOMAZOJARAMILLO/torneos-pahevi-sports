@@ -1478,10 +1478,35 @@ body.solo-lectura .fase-btn {
     .tabla-responsive .col-equipo {
         min-width: 190px !important;
         max-width: 220px;
+        position: static !important;
+        left: auto !important;
+        z-index: auto !important;
+        box-shadow: none !important;
     }
 
     .tabla-responsive .equipo-logo {
         gap: 7px;
+    }
+
+    .tabla-posiciones th:nth-child(1),
+    .tabla-posiciones td:nth-child(1) {
+        position: static !important;
+        left: auto !important;
+        z-index: auto !important;
+    }
+
+    .tabla-posiciones .col-equipo {
+        left: auto !important;
+    }
+
+    .tabla-responsive table {
+        min-width: 760px !important;
+    }
+
+    .tabla-responsive .logo-equipo {
+        width: 34px !important;
+        height: 34px !important;
+        padding: 2px;
     }
 }
     </style>
