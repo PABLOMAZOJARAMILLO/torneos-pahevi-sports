@@ -1184,6 +1184,7 @@ def construir_partidos_programacion(request, categoria_obj=None):
         "equipo_visitante"
     ).order_by(
         "fecha",
+        "cancha",
         "hora",
         "categoria__nombre",
         "grupo",
@@ -1235,7 +1236,7 @@ def construir_partidos_programacion(request, categoria_obj=None):
             "categoria": categoria_nombre,
             "color_categoria": color_categoria,
             "color_texto_categoria": color_texto_categoria,
-            "bloque": f"{fecha_corta} / CANCHA {p.cancha}",
+            "bloque": f"FECHA {fecha_corta} / CANCHA {p.cancha}",
             "hora_texto": hora_12,
             "numero_fecha": p.numero_fecha or "",
             "grupo": p.grupo,
