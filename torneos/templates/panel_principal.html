@@ -17,7 +17,7 @@
 
     body {
         margin: 0;
-        padding: 286px 18px 18px;
+        padding: 300px 18px 18px;
         background: radial-gradient(circle at top, #10294a 0%, #07111f 45%, #020712 100%);
         color: white;
         font-family: Arial, sans-serif;
@@ -107,7 +107,7 @@
 
     .acciones-portada {
         position: fixed;
-        top: 128px;
+        top: 132px;
         left: 0;
         right: 0;
         z-index: 39;
@@ -115,14 +115,14 @@
         gap: 10px;
         flex-wrap: wrap;
         margin-bottom: 0;
-        padding: 10px 22px;
+        padding: 14px 22px 12px;
         background: #f4f7fb;
         border-bottom: 1px solid #dbe4ef;
     }
 
     .categorias-grid {
         position: fixed;
-        top: 188px;
+        top: 204px;
         left: 0;
         right: 0;
         z-index: 38;
@@ -130,7 +130,7 @@
         overflow-x: auto;
         gap: 12px;
         margin: 0;
-        padding: 10px 16px;
+        padding: 14px 16px;
         background: #f4f7fb;
         backdrop-filter: blur(8px);
         border-bottom: 1px solid #dbe4ef;
@@ -327,7 +327,7 @@
 
     @media (max-width: 760px) {
         body {
-            padding: 222px 10px 10px;
+            padding: 238px 10px 10px;
         }
 
         .encabezado-panel {
@@ -363,11 +363,11 @@
 
         .acciones-portada {
             top: 78px;
-            padding: 8px 12px;
+            padding: 10px 12px 9px;
         }
 
         .categorias-grid {
-            top: 136px;
+            top: 150px;
             left: 0;
             right: 0;
             padding: 9px 12px;
@@ -1274,6 +1274,113 @@
 
 .equipo-header.activo .card-icono {
     transform: rotate(90deg);
+}
+
+/* Ajuste final portada: evita encabezados duplicados y capas montadas */
+body {
+    padding-top: 260px !important;
+}
+
+.pantalla-categorias > .titulo-app,
+.pantalla-categorias > .subtitulo-app {
+    display: none !important;
+}
+
+.pantalla-categorias {
+    padding-top: 16px !important;
+}
+
+.encabezado-panel {
+    height: 126px !important;
+}
+
+.acciones-portada {
+    top: 126px !important;
+    min-height: 52px !important;
+    align-items: center !important;
+    padding: 9px 22px !important;
+}
+
+.acciones-portada .boton {
+    margin: 0 !important;
+    padding: 9px 18px !important;
+    line-height: 1 !important;
+}
+
+.categorias-grid {
+    top: 178px !important;
+    min-height: 70px !important;
+    padding: 8px 16px !important;
+    align-items: center !important;
+}
+
+.categorias-grid .card-categoria {
+    min-height: 52px !important;
+    padding: 8px 12px !important;
+}
+
+.categorias-grid .card-info h2 {
+    font-size: 18px !important;
+}
+
+.categorias-grid .card-info p {
+    margin-top: 3px !important;
+    font-size: 11px !important;
+}
+
+@media (max-width: 768px) {
+    body {
+        padding: 218px 10px 10px !important;
+    }
+
+    .encabezado-panel {
+        height: 92px !important;
+        border-radius: 0 !important;
+        padding: 8px 10px !important;
+    }
+
+    .encabezado-panel .logo-torneo {
+        width: 62px !important;
+        height: 54px !important;
+        border-radius: 10px !important;
+    }
+
+    .encabezado-panel .logo-central {
+        width: 145px !important;
+        max-height: 42px !important;
+    }
+
+    .titulo-panel h1 {
+        font-size: 20px !important;
+        margin: 2px 0 !important;
+    }
+
+    .titulo-panel p {
+        font-size: 9px !important;
+    }
+
+    .acciones-portada {
+        top: 92px !important;
+        min-height: 48px !important;
+        padding: 8px 10px !important;
+        gap: 8px !important;
+    }
+
+    .acciones-portada .boton {
+        padding: 9px 12px !important;
+        font-size: 12px !important;
+    }
+
+    .categorias-grid {
+        top: 140px !important;
+        min-height: 70px !important;
+        padding: 8px 10px !important;
+    }
+
+    .categorias-grid .card-categoria {
+        min-width: 240px !important;
+        min-height: 52px !important;
+    }
 }
     </style>
 </head>
