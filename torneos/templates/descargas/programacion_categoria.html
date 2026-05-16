@@ -314,46 +314,48 @@ body {
     display: grid;
     grid-template-columns: 118px 1fr 118px 1fr;
     align-items: center;
-    min-height: 93px;
-    margin-bottom: 8px;
+    min-height: 78px;
     gap: 0;
 }
 
+.partido-estado {
+    margin-bottom: 8px;
+}
+
+.meta-partido {
+    width: 78%;
+    margin: 0 auto 4px;
+    padding: 4px 14px;
+    background: rgba(3, 7, 18, 0.86);
+    color: #22c55e;
+    text-align: center;
+    text-transform: uppercase;
+    font-size: 17px;
+    line-height: 1;
+    letter-spacing: 1px;
+    box-sizing: border-box;
+}
+
 .hora-partido {
-    height: 84px;
+    height: 72px;
     display: flex;
-    flex-direction: column;
     align-items: center;
     justify-content: center;
-    background: #f1db19;
     color: white;
     border-radius: 7px;
-    font-size: 32px;
+    font-size: 30px;
     line-height: 1;
     text-transform: uppercase;
 }
 
-.hora-partido .categoria-fila {
-    margin-top: 4px;
-    font-size: 12px;
-    line-height: 1;
-    color: rgba(255,255,255,0.95);
-    letter-spacing: 0;
-}
-
-.fila-programacion:nth-child(odd) .hora-partido,
-.fila-programacion:nth-child(odd) .vs-estado {
-    background: #178f25;
-}
-
 .equipo-estado {
-    height: 84px;
+    height: 72px;
     display: grid;
     grid-template-columns: 66px 1fr;
     align-items: center;
     background: rgba(255, 250, 241, 0.95);
     color: #12070a;
-    font-size: 31px;
+    font-size: 29px;
     line-height: 1.02;
     letter-spacing: 5px;
     text-transform: uppercase;
@@ -366,8 +368,8 @@ body {
 }
 
 .equipo-estado img {
-    width: 56px;
-    height: 56px;
+    width: 50px;
+    height: 50px;
     object-fit: contain;
 }
 
@@ -376,13 +378,12 @@ body {
 }
 
 .vs-estado {
-    height: 84px;
+    height: 72px;
     display: flex;
     align-items: center;
     justify-content: center;
-    background: #f1db19;
     color: white;
-    font-size: 30px;
+    font-size: 29px;
     letter-spacing: 1px;
 }
 
@@ -429,12 +430,15 @@ body {
             <div class="bloque-titulo">{{ bloque.grouper }}</div>
 
             {% for p in bloque.list %}
+            <div class="partido-estado">
+            <div class="meta-partido">
+                {% if mostrar_categoria %}{{ p.categoria }} - {% endif %}
+                {% if p.numero_fecha %}{{ p.numero_fecha }} - {% endif %}
+                GRUPO {{ p.grupo }}{% if p.fase and p.fase != "GRUPOS" %} - {{ p.fase }}{% endif %}
+            </div>
             <div class="fila-programacion">
-                <div class="hora-partido">
-                    <span>{{ p.hora_texto }}</span>
-                    {% if mostrar_categoria %}
-                        <span class="categoria-fila">{{ p.categoria }}</span>
-                    {% endif %}
+                <div class="hora-partido" style="background: {{ p.color_categoria }}; color: {{ p.color_texto_categoria }};">
+                    {{ p.hora_texto }}
                 </div>
 
                 <div class="equipo-estado">
@@ -444,7 +448,7 @@ body {
                     <div class="nombre-equipo">{{ p.local }}</div>
                 </div>
 
-                <div class="vs-estado">VS</div>
+                <div class="vs-estado" style="background: {{ p.color_categoria }}; color: {{ p.color_texto_categoria }};">VS</div>
 
                 <div class="equipo-estado visitante">
                     <div class="nombre-equipo">{{ p.visitante }}</div>
@@ -452,6 +456,7 @@ body {
                         <img src="{{ p.escudo_visitante }}">
                     {% endif %}
                 </div>
+            </div>
             </div>
             {% endfor %}
         </div>

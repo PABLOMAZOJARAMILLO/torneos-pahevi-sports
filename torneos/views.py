@@ -1216,10 +1216,28 @@ def construir_partidos_programacion(request, categoria_obj=None):
             minuto = f":{p.hora.minute:02d}" if p.hora.minute else ""
             hora_12 = f"{hora_12}{minuto} {periodo}"
 
+        categoria_nombre = p.categoria.nombre if p.categoria else ""
+        categoria_normalizada = limpiar_nombre(categoria_nombre)
+        color_categoria = "#f1db19"
+        color_texto_categoria = "#111827"
+
+        if "PLUS_50" in categoria_normalizada:
+            color_categoria = "#075985"
+            color_texto_categoria = "#ffffff"
+        elif "INTERBARRIOS" in categoria_normalizada:
+            color_categoria = "#166534"
+            color_texto_categoria = "#ffffff"
+        elif "SENIOR" in categoria_normalizada:
+            color_categoria = "#f1db19"
+            color_texto_categoria = "#111827"
+
         partidos_programacion.append({
-            "categoria": p.categoria.nombre if p.categoria else "",
+            "categoria": categoria_nombre,
+            "color_categoria": color_categoria,
+            "color_texto_categoria": color_texto_categoria,
             "bloque": f"{fecha_corta} / CANCHA {p.cancha}",
             "hora_texto": hora_12,
+            "numero_fecha": p.numero_fecha or "",
             "grupo": p.grupo,
             "fase": fase,
             "estado": p.estado,
