@@ -1,0 +1,75 @@
+{% extends "gestion/base.html" %}
+
+{% block title %}Generar fixture{% endblock %}
+{% block heading %}Generar fixture{% endblock %}
+
+{% block content %}
+<p><a class="btn secondary" href="{% url 'gestion_panel' %}">Volver a gestión</a></p>
+
+<form method="get">
+    <label for="categoria">Categoría</label>
+    <select id="categoria" name="categoria" required>
+        <option value="">Selecciona una categoría</option>
+        {% for item in categorias %}
+            <option value="{{ item.id }}" {% if categoria and item.id == categoria.id %}selected{% endif %}>{{ item.nombre }}</option>
+        {% endfor %}
+    </select>
+
+    <label for="grupos">Cantidad de grupos</label>
+    <select id="grupos" name="grupos">
+        {% for numero in "12345678" %}
+            <option value="{{ numero }}" {% if cantidad_grupos|stringformat:"s" == numero %}selected{% endif %}>{{ numero }}</option>
+        {% endfor %}
+    </select>
+
+    <p><button class="btn" type="submit">Preparar fixture</button></p>
+</form>
+
+{% if categoria %}
+<form method="post">
+    {% csrf_token %}
+    <input type="hidden" name="categoria" value="{{ categoria.id }}">
+    <input type="hidden" name="grupos" value="{{ cantidad_grupos }}">
+
+    <div class="card">
+        <h2>{{ categoria.nombre }}</h2>
+        <p class="muted">{{ equipos|length }} equipos activos disponibles.</p>
+    </div>
+
+    <div class="grid">
+        {% for grupo in letras_grupos %}
+        <div class="card">
+            <h2>Grupo {{ grupo }}</h2>
+            <label for="cabeza_{{ forloop.counter0 }}">Cabeza de serie</label>
+            <select id="cabeza_{{ forloop.counter0 }}" name="cabeza_{{ forloop.counter0 }}">
+                <option value="">Sin cabeza de serie</option>
+                {% for equipo in equipos %}
+                    <option value="{{ equipo.id }}">{{ equipo.nombre }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        {% endfor %}
+    </div>
+
+    <label>
+        <input type="checkbox" name="reemplazar">
+        Reemplazar fixture de grupos existente para esta categoría
+    </label>
+
+    <p><button class="btn" type="submit">Generar partidos</button></p>
+</form>
+{% endif %}
+
+{% if grupos_generados %}
+<div class="grid">
+    {% for nombre_grupo, equipos_grupo in grupos_generados.items %}
+    <div class="card">
+        <h2>Grupo {{ nombre_grupo }}</h2>
+        {% for equipo in equipos_grupo %}
+            <p>{{ equipo.nombre }}</p>
+        {% endfor %}
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+{% endblock %}

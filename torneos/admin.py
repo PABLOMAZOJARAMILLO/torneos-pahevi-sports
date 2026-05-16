@@ -164,8 +164,15 @@ def importar_planilla_inscripcion(request):
 
 _original_get_urls = admin.site.get_urls
 
+def ir_a_generar_fixture(request):
+    return redirect('gestion_generar_fixture')
+
+
 def get_admin_urls():
-    return [path('importar-planilla-inscripcion/', admin.site.admin_view(importar_planilla_inscripcion), name='importar_planilla_inscripcion')] + _original_get_urls()
+    return [
+        path('importar-planilla-inscripcion/', admin.site.admin_view(importar_planilla_inscripcion), name='importar_planilla_inscripcion'),
+        path('generar-fixture/', admin.site.admin_view(ir_a_generar_fixture), name='generar_fixture'),
+    ] + _original_get_urls()
 
 admin.site.get_urls = get_admin_urls
 

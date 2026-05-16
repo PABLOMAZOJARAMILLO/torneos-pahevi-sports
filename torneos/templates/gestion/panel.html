@@ -19,5 +19,10 @@
         <h2>Partidos</h2>
         <p class="muted">{{ total_partidos }} registrados</p>
     </a>
+
+    <a class="card" href="{% url 'gestion_generar_fixture' %}">
+        <h2>Generar fixture</h2>
+        <p class="muted">Armar grupos con cabezas de serie</p>
+    </a>
 </div>
 {% endblock %}

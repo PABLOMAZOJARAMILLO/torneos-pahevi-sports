@@ -1746,6 +1746,138 @@ def gestion_panel(request):
     })
 
 
+def generar_fixture_grupo(equipos):
+    equipos = list(equipos)
+
+    if len(equipos) % 2:
+        equipos.append(None)
+
+    total = len(equipos)
+    rondas = total - 1
+    mitad = total // 2
+    calendario = []
+
+    for numero_fecha in range(1, rondas + 1):
+        partidos_fecha = []
+
+        for i in range(mitad):
+            local = equipos[i]
+            visitante = equipos[total - 1 - i]
+
+            if local and visitante:
+                if numero_fecha % 2 == 0:
+                    local, visitante = visitante, local
+
+                partidos_fecha.append((local, visitante))
+
+        calendario.append(partidos_fecha)
+        equipos = [equipos[0]] + [equipos[-1]] + equipos[1:-1]
+
+    return calendario
+
+
+def distribuir_equipos_en_grupos(equipos, cabezas, cantidad_grupos):
+    grupos = {chr(65 + i): [] for i in range(cantidad_grupos)}
+    usados = set()
+
+    for indice, cabeza in enumerate(cabezas):
+        if cabeza and cabeza.id not in usados:
+            grupos[chr(65 + indice)].append(cabeza)
+            usados.add(cabeza.id)
+
+    restantes = [equipo for equipo in equipos if equipo.id not in usados]
+
+    for equipo in restantes:
+        grupo_destino = min(grupos, key=lambda nombre: len(grupos[nombre]))
+        grupos[grupo_destino].append(equipo)
+
+    return grupos
+
+
+@login_required
+@user_passes_test(es_editor_torneo)
+def gestion_generar_fixture(request):
+    categorias = Categoria.objects.order_by("nombre")
+    categoria = None
+    equipos = Equipo.objects.none()
+    cantidad_grupos = 2
+    grupos_generados = None
+
+    categoria_id = request.GET.get("categoria") or request.POST.get("categoria")
+
+    if categoria_id:
+        categoria = Categoria.objects.filter(id=categoria_id).first()
+
+    if categoria:
+        equipos = Equipo.objects.filter(categoria=categoria, activo=True).order_by("nombre")
+
+    cantidad_grupos_valor = request.GET.get("grupos") or request.POST.get("grupos")
+
+    if cantidad_grupos_valor:
+        try:
+            cantidad_grupos = max(1, min(8, int(cantidad_grupos_valor)))
+        except ValueError:
+            cantidad_grupos = 2
+
+    letras_grupos = [chr(65 + i) for i in range(cantidad_grupos)]
+
+    if request.method == "POST" and categoria:
+        reemplazar = request.POST.get("reemplazar") == "on"
+        existentes = Partido.objects.filter(categoria=categoria, fase="GRUPOS").exists()
+
+        if existentes and not reemplazar:
+            messages.error(request, "Esta categoría ya tiene partidos de grupos. Marca reemplazar fixture para generarlo de nuevo.")
+            return redirect(f"{request.path}?categoria={categoria.id}&grupos={cantidad_grupos}")
+
+        cabezas = []
+
+        for indice in range(cantidad_grupos):
+            cabeza_id = request.POST.get(f"cabeza_{indice}")
+            cabeza = equipos.filter(id=cabeza_id).first() if cabeza_id else None
+            cabezas.append(cabeza)
+
+        grupos_generados = distribuir_equipos_en_grupos(equipos, cabezas, cantidad_grupos)
+
+        if reemplazar:
+            Partido.objects.filter(categoria=categoria, fase="GRUPOS").delete()
+
+        creados = 0
+
+        for grupo_nombre, equipos_grupo in grupos_generados.items():
+            calendario = generar_fixture_grupo(equipos_grupo)
+
+            for indice_fecha, partidos_fecha in enumerate(calendario, start=1):
+                for local, visitante in partidos_fecha:
+                    _, creado = Partido.objects.get_or_create(
+                        categoria=categoria,
+                        fase="GRUPOS",
+                        grupo=grupo_nombre,
+                        numero_fecha=str(indice_fecha),
+                        equipo_local=local,
+                        equipo_visitante=visitante,
+                        defaults={
+                            "fecha": date.today(),
+                            "hora": time(0, 0),
+                            "estado": "PROGRAMADO",
+                            "cancha": "",
+                        },
+                    )
+
+                    if creado:
+                        creados += 1
+
+        messages.success(request, f"Fixture generado para {categoria.nombre}. Partidos creados: {creados}.")
+
+    return render(request, "gestion/generar_fixture.html", {
+        "categorias": categorias,
+        "categoria": categoria,
+        "equipos": equipos,
+        "cantidad_grupos": cantidad_grupos,
+        "letras_grupos": letras_grupos,
+        "grupos_generados": grupos_generados,
+    })
+
+
 @login_required
 @user_passes_test(es_editor_torneo)
 def gestion_equipos(request):
