@@ -17,7 +17,7 @@
 
     body {
         margin: 0;
-        padding: 200px 18px 18px;
+        padding: 230px 18px 18px;
         background: radial-gradient(circle at top, #10294a 0%, #07111f 45%, #020712 100%);
         color: white;
         font-family: Arial, sans-serif;
@@ -38,17 +38,17 @@
     .encabezado-panel {
         position: fixed;
         top: 8px;
-        left: 14px;
-        right: 14px;
+        left: 8px;
+        right: 8px;
         z-index: 40;
         display: flex;
         align-items: center;
         justify-content: space-between;
         background: linear-gradient(135deg, #06111f, #102a48, #06111f);
         border: 1px solid rgba(0, 255, 102, 0.75);
-        border-radius: 16px;
+        border-radius: 16px 16px 0 0;
         padding: 10px 28px;
-        margin-bottom: 16px;
+        margin-bottom: 0;
         box-shadow: 0 8px 22px rgba(0, 0, 0, 0.28);
     }
 
@@ -113,18 +113,21 @@
 
     .categorias-grid {
         position: fixed;
-        top: 112px;
-        left: 0;
-        right: 0;
-        z-index: 35;
+        top: 128px;
+        left: 8px;
+        right: 8px;
+        z-index: 39;
         display: flex;
         overflow-x: auto;
         gap: 12px;
         margin: 0;
-        padding: 10px 22px;
+        padding: 10px 16px;
         background: rgba(244, 247, 251, 0.96);
         backdrop-filter: blur(8px);
         border-bottom: 1px solid #dbe4ef;
+        border-left: 1px solid #dbe4ef;
+        border-right: 1px solid #dbe4ef;
+        border-radius: 0 0 16px 16px;
         box-shadow: 0 6px 18px rgba(15, 23, 42, 0.12);
         transform: translateY(0);
     }
@@ -315,7 +318,7 @@
 
     @media (max-width: 760px) {
         body {
-            padding: 150px 10px 10px;
+            padding: 165px 10px 10px;
         }
 
         .encabezado-panel {
@@ -350,7 +353,9 @@
         }
 
         .categorias-grid {
-            top: 78px;
+            top: 82px;
+            left: 8px;
+            right: 8px;
             padding: 9px 12px;
         }
 
@@ -2368,7 +2373,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (puntoInicial && volverEditor !== '1' && !window.location.hash) {
         window.setTimeout(function() {
             const encabezado = document.querySelector('.encabezado-panel');
-            const altoFijo = (encabezado ? encabezado.offsetHeight : 0) + (categoriasFijas ? categoriasFijas.offsetHeight : 0) + 22;
+            const altoFijo = (encabezado ? encabezado.offsetHeight : 0) + (categoriasFijas ? categoriasFijas.offsetHeight : 0) + 34;
             const destino = puntoInicial.getBoundingClientRect().top + window.pageYOffset - altoFijo;
 
             window.scrollTo({
