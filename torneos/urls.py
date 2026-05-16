@@ -27,6 +27,7 @@ from .views import (
 
 urlpatterns = [
     path('', panel_principal, name='panel'),
+    path('partido/<int:partido_id>/', views.detalle_partido_publico, name='partido_detalle_publico'),
 
     path(
         'descargar/tabla/<str:categoria>/<str:grupo>/',

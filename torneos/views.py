@@ -781,15 +781,92 @@ def preparar_categoria_para_descarga(request, datos_categoria):
     return datos_categoria
 
 
+def construir_partidos_portada():
+    partidos = Partido.objects.filter(
+        fecha__isnull=False,
+        hora__isnull=False,
+    ).select_related(
+        "categoria",
+        "equipo_local",
+        "equipo_visitante",
+    ).order_by(
+        "fecha",
+        "hora",
+        "categoria__nombre",
+    )
+
+    estados_visibles = ["PROGRAMADO", "EN_JUEGO", "FINALIZADO", "DECIDIDO_COMITE", "WO"]
+    tarjetas_por_partido = defaultdict(int)
+    goles_por_partido = defaultdict(int)
+
+    for item in Tarjeta.objects.values("partido_id"):
+        tarjetas_por_partido[item["partido_id"]] += 1
+
+    for item in Gol.objects.values("partido_id"):
+        goles_por_partido[item["partido_id"]] += 1
+
+    partidos_portada = []
+
+    for partido in partidos:
+        if partido.estado not in estados_visibles:
+            continue
+
+        partidos_portada.append({
+            "id": partido.id,
+            "categoria": partido.categoria.nombre,
+            "grupo": partido.grupo or "",
+            "fase": partido.fase or "GRUPOS",
+            "numero_fecha": partido.numero_fecha or "",
+            "estado": partido.estado,
+            "fecha": partido.fecha,
+            "hora": partido.hora,
+            "cancha": partido.cancha or "Por definir",
+            "local": partido.equipo_local.nombre,
+            "visitante": partido.equipo_visitante.nombre,
+            "escudo_local": escudo_url(partido.equipo_local),
+            "escudo_visitante": escudo_url(partido.equipo_visitante),
+            "goles_local": partido.goles_local or 0,
+            "goles_visitante": partido.goles_visitante or 0,
+            "goles_local_penales": partido.goles_local_penales or 0,
+            "goles_visitante_penales": partido.goles_visitante_penales or 0,
+            "tiene_penales": (partido.goles_local_penales or 0) > 0 or (partido.goles_visitante_penales or 0) > 0,
+            "eventos": goles_por_partido[partido.id] + tarjetas_por_partido[partido.id],
+        })
+
+    return partidos_portada[:24]
+
+
 def panel_principal(request):
     estructura = construir_estructura()
     logos = rutas_logos(request)
 
     return render(request, "panel_principal.html", {
         "estructura": estructura,
+        "partidos_portada": construir_partidos_portada(),
         "logo_alcaldia": logos["logo_alcaldia"],
         "logo_torneo": logos["logo_torneo"],
         "logo_imcred": logos["logo_imcred"],
+    })
+
+
+def detalle_partido_publico(request, partido_id):
+    partido = get_object_or_404(
+        Partido.objects.select_related("categoria", "equipo_local", "equipo_visitante"),
+        id=partido_id
+    )
+    goles = Gol.objects.filter(partido=partido).select_related("jugador", "equipo").order_by("equipo__nombre", "jugador__nombres")
+    tarjetas = Tarjeta.objects.filter(partido=partido).select_related("jugador", "equipo").order_by("equipo__nombre", "jugador__nombres")
+    alineaciones = AlineacionPartido.objects.filter(partido=partido).select_related("jugador", "equipo").order_by("equipo__nombre", "rol", "jugador__nombres")
+    sustituciones = SustitucionPartido.objects.filter(partido=partido).select_related("equipo", "jugador_sale", "jugador_entra").order_by("equipo__nombre", "minuto", "id")
+
+    return render(request, "partido_detalle_publico.html", {
+        "partido": partido,
+        "goles": goles,
+        "tarjetas": tarjetas,
+        "alineaciones": alineaciones,
+        "sustituciones": sustituciones,
+        "escudo_local": escudo_url(partido.equipo_local),
+        "escudo_visitante": escudo_url(partido.equipo_visitante),
     })
 
 

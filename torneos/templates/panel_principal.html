@@ -80,7 +80,7 @@
     }
 
     .pantalla-categorias {
-        background: #ffffff;
+        background: #f4f7fb;
         color: #10213f;
         min-height: 80vh;
         padding: 25px;
@@ -96,7 +96,21 @@
     .subtitulo-app {
         color: #4b5563;
         font-size: 18px;
-        margin-bottom: 25px;
+        margin-bottom: 18px;
+    }
+
+    .acciones-portada {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-bottom: 18px;
+    }
+
+    .categorias-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 12px;
+        margin-bottom: 24px;
     }
 
     .card-categoria {
@@ -104,9 +118,11 @@
         align-items: center;
         gap: 16px;
         background: white;
-        border-bottom: 1px solid #ddd;
-        padding: 18px 8px;
+        border: 1px solid #dbe4ef;
+        border-radius: 12px;
+        padding: 16px;
         cursor: pointer;
+        box-shadow: 0 6px 18px rgba(15, 23, 42, 0.08);
     }
 
     .card-categoria:hover {
@@ -126,7 +142,7 @@
     .card-info h2 {
         margin: 0;
         color: #10213f;
-        font-size: 28px;
+        font-size: 22px;
         text-transform: uppercase;
     }
 
@@ -140,6 +156,119 @@
         font-size: 38px;
         color: #4caf50;
         font-weight: bold;
+    }
+
+    .portada-seccion {
+        margin-top: 18px;
+    }
+
+    .portada-seccion h2 {
+        color: #10213f;
+        margin: 0 0 12px;
+        font-size: 26px;
+    }
+
+    .partidos-portada {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+        gap: 12px;
+    }
+
+    .partido-portada {
+        display: block;
+        background: white;
+        color: #0f172a;
+        border: 1px solid #dbe4ef;
+        border-radius: 12px;
+        padding: 12px;
+        text-decoration: none;
+        box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
+    }
+
+    .partido-portada:hover {
+        border-color: #00b94f;
+    }
+
+    .partido-meta {
+        display: flex;
+        justify-content: space-between;
+        gap: 8px;
+        color: #64748b;
+        font-size: 13px;
+        text-transform: uppercase;
+        margin-bottom: 10px;
+    }
+
+    .estado-chip {
+        display: inline-flex;
+        align-items: center;
+        padding: 4px 8px;
+        border-radius: 999px;
+        background: #e2e8f0;
+        color: #0f172a;
+        font-size: 12px;
+    }
+
+    .estado-chip.programado {
+        background: #dbeafe;
+        color: #075985;
+    }
+
+    .estado-chip.finalizado,
+    .estado-chip.decidido_comite,
+    .estado-chip.wo {
+        background: #dcfce7;
+        color: #166534;
+    }
+
+    .versus-portada {
+        display: grid;
+        grid-template-columns: 1fr 86px 1fr;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .equipo-portada {
+        min-width: 0;
+        text-align: center;
+        font-size: 15px;
+        color: #0f172a;
+        text-transform: uppercase;
+    }
+
+    .equipo-portada img {
+        width: 46px;
+        height: 46px;
+        object-fit: contain;
+        display: block;
+        margin: 0 auto 5px;
+    }
+
+    .marcador-portada {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 54px;
+        border-radius: 10px;
+        background: #0f172a;
+        color: white;
+        font-size: 24px;
+        gap: 8px;
+    }
+
+    .marcador-portada.programado {
+        background: #eef2f7;
+        color: #0f172a;
+        font-size: 16px;
+    }
+
+    .partido-extra {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        margin-top: 10px;
+        color: #64748b;
+        font-size: 13px;
     }
 
     .categoria {
@@ -1070,6 +1199,7 @@
     <h1 class="titulo-app">TORNEO IMCRED</h1>
     <p class="subtitulo-app">Selecciona una categoría</p>
 
+    <div class="acciones-portada">
     <a class="boton" href="{% url 'descargar_programacion_general' %}">
         Descargar programación completa
     </a>
@@ -1079,7 +1209,9 @@
         Gestión del torneo
     </a>
     {% endif %}
+    </div>
 
+    <div class="categorias-grid">
     {% for categoria, datos_categoria in estructura.items %}
     <div class="card-categoria" onclick="mostrarCategoria('categoria-{{ forloop.counter }}')">
         <div class="card-logo">
@@ -1094,6 +1226,55 @@
         <div class="card-icono">›</div>
     </div>
     {% endfor %}
+    </div>
+
+    <section class="portada-seccion">
+        <h2>Partidos</h2>
+
+        <div class="partidos-portada">
+            {% for partido in partidos_portada %}
+            <a class="partido-portada" href="{% url 'partido_detalle_publico' partido.id %}">
+                <div class="partido-meta">
+                    <span>{{ partido.categoria }}{% if partido.numero_fecha %} · Fecha {{ partido.numero_fecha }}{% endif %}</span>
+                    <span class="estado-chip {{ partido.estado|lower }}">{{ partido.estado }}</span>
+                </div>
+
+                <div class="versus-portada">
+                    <div class="equipo-portada">
+                        {% if partido.escudo_local %}
+                            <img src="{{ partido.escudo_local }}">
+                        {% endif %}
+                        <span>{{ partido.local }}</span>
+                    </div>
+
+                    {% if partido.estado == "PROGRAMADO" %}
+                    <div class="marcador-portada programado">{{ partido.hora }}</div>
+                    {% else %}
+                    <div class="marcador-portada">
+                        <span>{{ partido.goles_local }}</span>
+                        <span>-</span>
+                        <span>{{ partido.goles_visitante }}</span>
+                    </div>
+                    {% endif %}
+
+                    <div class="equipo-portada">
+                        {% if partido.escudo_visitante %}
+                            <img src="{{ partido.escudo_visitante }}">
+                        {% endif %}
+                        <span>{{ partido.visitante }}</span>
+                    </div>
+                </div>
+
+                <div class="partido-extra">
+                    <span>{{ partido.fecha }} · {{ partido.cancha }}</span>
+                    <span>{% if partido.eventos %}{{ partido.eventos }} eventos{% else %}Ver detalle{% endif %}</span>
+                </div>
+            </a>
+            {% empty %}
+            <div class="partido-portada">No hay partidos programados o finalizados.</div>
+            {% endfor %}
+        </div>
+    </section>
 </div>
 
 {% for categoria, datos_categoria in estructura.items %}
