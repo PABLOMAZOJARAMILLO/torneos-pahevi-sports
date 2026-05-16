@@ -1,0 +1,21 @@
+{% extends "gestion/base.html" %}
+
+{% block title %}Importar planilla{% endblock %}
+{% block heading %}Importar planilla{% endblock %}
+
+{% block content %}
+<p><a class="btn secondary" href="{% url 'gestion_jugadores' %}">Volver a jugadores</a></p>
+
+<div class="card">
+    <p>Sube la planilla de inscripción en Excel. La app leerá la categoría, el equipo y hasta 30 jugadores.</p>
+    <p class="muted">Usa el mismo formato actual: categoría en D3, equipo en I3 y jugadores de la fila 8 a la 37.</p>
+</div>
+
+<form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    <label for="archivo_excel">Archivo Excel</label>
+    <input id="archivo_excel" type="file" name="archivo_excel" accept=".xlsx,.xlsm" required>
+
+    <p><button class="btn" type="submit">Importar jugadores</button></p>
+</form>
+{% endblock %}

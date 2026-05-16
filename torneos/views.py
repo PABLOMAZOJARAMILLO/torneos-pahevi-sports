@@ -12,6 +12,7 @@ from django.template.loader import render_to_string
 from django.templatetags.static import static
 from html2image import Html2Image
 from django.views.decorators.http import require_POST
+from openpyxl import load_workbook
 
 from .forms import EquipoForm, JugadorForm, PartidoForm
 from .models import Categoria, Equipo, Partido, Gol, Tarjeta, Jugador, AlineacionPartido, SustitucionPartido
@@ -25,6 +26,75 @@ def limpiar_nombre(nombre):
     nombre = str(nombre).strip()
     nombre = re.sub(r'[\\/*?:"<>|]', '', nombre)
     return nombre.replace(' ', '_').upper()
+
+
+def limpiar_texto_excel(valor):
+    return "" if valor is None else str(valor).strip()
+
+
+def limpiar_cedula_excel(valor):
+    if valor is None:
+        return ""
+
+    valor = str(valor).strip()
+
+    if valor.endswith(".0"):
+        valor = valor[:-2]
+
+    return valor.replace(".", "").replace(",", "").replace(" ", "")
+
+
+def limpiar_entero_excel(valor):
+    if valor in [None, ""]:
+        return None
+
+    try:
+        return int(float(valor))
+    except Exception:
+        return None
+
+
+def normalizar_anio_excel(anio):
+    anio = limpiar_entero_excel(anio)
+
+    if anio is None:
+        return None
+
+    if anio < 100:
+        return 2000 + anio if anio <= 30 else 1900 + anio
+
+    return anio
+
+
+def construir_fecha_excel(dia, mes, anio):
+    dia = limpiar_entero_excel(dia)
+    mes = limpiar_entero_excel(mes)
+    anio = normalizar_anio_excel(anio)
+
+    if not dia or not mes or not anio:
+        return None
+
+    try:
+        return date(anio, mes, dia)
+    except Exception:
+        return None
+
+
+def obtener_hoja_planilla_excel(workbook):
+    nombres = [
+        "Planilla inscripcion",
+        "Planilla inscripción",
+        "PLANILLA INSCRIPCION",
+        "PLANILLA INSCRIPCIÓN",
+        "Inscripcion",
+        "Inscripción",
+    ]
+
+    for nombre in nombres:
+        if nombre in workbook.sheetnames:
+            return workbook[nombre]
+
+    return workbook.active
 
 
 def escudo_estatico_url(nombre_archivo):
@@ -1763,6 +1833,127 @@ def gestion_jugador_editar(request, jugador_id):
         "form": form,
         "volver_url": "gestion_jugadores",
     })
+
+
+@login_required
+@user_passes_test(es_editor_torneo)
+def gestion_importar_planilla(request):
+    if request.method == "POST":
+        archivo = request.FILES.get("archivo_excel")
+
+        if not archivo:
+            messages.error(request, "Selecciona un archivo Excel.")
+            return redirect("gestion_importar_planilla")
+
+        try:
+            workbook = load_workbook(archivo, data_only=True)
+            hoja = obtener_hoja_planilla_excel(workbook)
+
+            categoria_nombre = limpiar_texto_excel(hoja["D3"].value)
+            equipo_nombre = limpiar_texto_excel(hoja["I3"].value)
+            delegado = limpiar_texto_excel(hoja["D4"].value)
+            telefono_delegado = limpiar_cedula_excel(hoja["I4"].value)
+            director_tecnico = limpiar_texto_excel(hoja["C39"].value)
+            telefono_dt = limpiar_cedula_excel(hoja["G39"].value)
+            asistente_tecnico = limpiar_texto_excel(hoja["C40"].value)
+            telefono_at = limpiar_cedula_excel(hoja["G40"].value)
+
+            if not categoria_nombre:
+                messages.error(request, "No se encontró la categoría en la celda D3.")
+                return redirect("gestion_importar_planilla")
+
+            if not equipo_nombre:
+                messages.error(request, "No se encontró el equipo en la celda I3.")
+                return redirect("gestion_importar_planilla")
+
+            categoria = Categoria.objects.filter(nombre__iexact=categoria_nombre).first()
+
+            if not categoria:
+                messages.error(request, f"No existe la categoría: {categoria_nombre}. Créala primero.")
+                return redirect("gestion_importar_planilla")
+
+            equipo, _ = Equipo.objects.get_or_create(
+                nombre=equipo_nombre.upper(),
+                categoria=categoria,
+                defaults={"activo": True},
+            )
+
+            equipo.delegado = delegado.upper() if delegado else equipo.delegado
+            equipo.telefono = telefono_delegado or equipo.telefono
+            equipo.director_tecnico = director_tecnico.upper() if director_tecnico else equipo.director_tecnico
+            equipo.telefono_dt = telefono_dt or equipo.telefono_dt
+            equipo.asistente_tecnico = asistente_tecnico.upper() if asistente_tecnico else equipo.asistente_tecnico
+            equipo.telefono_at = telefono_at or equipo.telefono_at
+            equipo.activo = True
+            equipo.save()
+
+            creados = 0
+            actualizados = 0
+            omitidos = 0
+            errores = []
+
+            for fila in range(8, 38):
+                nombre = limpiar_texto_excel(hoja[f"C{fila}"].value)
+                dorsal = limpiar_entero_excel(hoja[f"D{fila}"].value)
+                dia = hoja[f"E{fila}"].value
+                mes = hoja[f"F{fila}"].value
+                anio = hoja[f"G{fila}"].value
+                cedula = limpiar_cedula_excel(hoja[f"H{fila}"].value)
+
+                if not nombre and not cedula:
+                    continue
+
+                if not nombre:
+                    omitidos += 1
+                    errores.append(f"Fila {fila}: falta el nombre del jugador.")
+                    continue
+
+                if not cedula:
+                    omitidos += 1
+                    errores.append(f"Fila {fila}: falta la cédula de {nombre}.")
+                    continue
+
+                fecha_nacimiento = construir_fecha_excel(dia, mes, anio)
+
+                if not fecha_nacimiento:
+                    omitidos += 1
+                    errores.append(f"Fila {fila}: fecha de nacimiento inválida para {nombre}.")
+                    continue
+
+                _, creado = Jugador.objects.update_or_create(
+                    cedula=cedula,
+                    defaults={
+                        "equipo": equipo,
+                        "dorsal": dorsal,
+                        "nombres": nombre.upper(),
+                        "fecha_nacimiento": fecha_nacimiento,
+                        "estado": "ACTIVO",
+                    },
+                )
+
+                if creado:
+                    creados += 1
+                else:
+                    actualizados += 1
+
+            messages.success(
+                request,
+                f"Planilla importada: {equipo.nombre} / {categoria.nombre}. Nuevos: {creados}. Actualizados: {actualizados}. Omitidos: {omitidos}.",
+            )
+
+            for error in errores[:12]:
+                messages.warning(request, error)
+
+            if len(errores) > 12:
+                messages.warning(request, f"Hay {len(errores) - 12} advertencias adicionales.")
+
+            return redirect("gestion_jugadores")
+
+        except Exception as exc:
+            messages.error(request, f"No se pudo importar la planilla: {exc}")
+            return redirect("gestion_importar_planilla")
+
+    return render(request, "gestion/importar_planilla.html")
 
 
 @login_required

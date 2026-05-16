@@ -155,6 +155,7 @@ urlpatterns = [
     path('gestion/equipos/nuevo/', views.gestion_equipo_nuevo, name='gestion_equipo_nuevo'),
     path('gestion/equipos/<int:equipo_id>/editar/', views.gestion_equipo_editar, name='gestion_equipo_editar'),
     path('gestion/jugadores/', views.gestion_jugadores, name='gestion_jugadores'),
+    path('gestion/jugadores/importar-planilla/', views.gestion_importar_planilla, name='gestion_importar_planilla'),
     path('gestion/jugadores/nuevo/', views.gestion_jugador_nuevo, name='gestion_jugador_nuevo'),
     path('gestion/jugadores/<int:jugador_id>/editar/', views.gestion_jugador_editar, name='gestion_jugador_editar'),
     path('gestion/partidos/', views.gestion_partidos, name='gestion_partidos'),
