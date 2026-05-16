@@ -13,6 +13,7 @@ from django.templatetags.static import static
 from html2image import Html2Image
 from django.views.decorators.http import require_POST
 
+from .forms import EquipoForm, JugadorForm, PartidoForm
 from .models import Categoria, Equipo, Partido, Gol, Tarjeta, Jugador, AlineacionPartido, SustitucionPartido
 
 
@@ -1662,6 +1663,153 @@ def crear_jugador_equipo(request, equipo_id):
 
     return render(request, 'equipos/crear_jugador.html', {
         'equipo': equipo
+    })
+
+
+@login_required
+@user_passes_test(es_editor_torneo)
+def gestion_panel(request):
+    return render(request, "gestion/panel.html", {
+        "total_equipos": Equipo.objects.count(),
+        "total_jugadores": Jugador.objects.count(),
+        "total_partidos": Partido.objects.count(),
+    })
+
+
+@login_required
+@user_passes_test(es_editor_torneo)
+def gestion_equipos(request):
+    equipos = Equipo.objects.select_related("categoria").order_by("categoria__nombre", "nombre")
+    return render(request, "gestion/equipos.html", {"equipos": equipos})
+
+
+@login_required
+@user_passes_test(es_editor_torneo)
+def gestion_equipo_nuevo(request):
+    form = EquipoForm(request.POST or None, request.FILES or None)
+
+    if request.method == "POST" and form.is_valid():
+        equipo = form.save()
+        messages.success(request, "Equipo creado correctamente.")
+        return redirect("gestion_equipo_editar", equipo_id=equipo.id)
+
+    return render(request, "gestion/formulario.html", {
+        "titulo": "Nuevo equipo",
+        "form": form,
+        "volver_url": "gestion_equipos",
+    })
+
+
+@login_required
+@user_passes_test(es_editor_torneo)
+def gestion_equipo_editar(request, equipo_id):
+    equipo = get_object_or_404(Equipo, id=equipo_id)
+    form = EquipoForm(request.POST or None, request.FILES or None, instance=equipo)
+
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        messages.success(request, "Equipo actualizado correctamente.")
+        return redirect("gestion_equipos")
+
+    return render(request, "gestion/formulario.html", {
+        "titulo": f"Editar equipo: {equipo.nombre}",
+        "form": form,
+        "volver_url": "gestion_equipos",
+    })
+
+
+@login_required
+@user_passes_test(es_editor_torneo)
+def gestion_jugadores(request):
+    jugadores = Jugador.objects.select_related("equipo", "equipo__categoria").order_by(
+        "equipo__categoria__nombre",
+        "equipo__nombre",
+        "dorsal",
+        "nombres",
+    )
+    return render(request, "gestion/jugadores.html", {"jugadores": jugadores})
+
+
+@login_required
+@user_passes_test(es_editor_torneo)
+def gestion_jugador_nuevo(request):
+    form = JugadorForm(request.POST or None, request.FILES or None)
+
+    if request.method == "POST" and form.is_valid():
+        jugador = form.save()
+        messages.success(request, "Jugador creado correctamente.")
+        return redirect("gestion_jugador_editar", jugador_id=jugador.id)
+
+    return render(request, "gestion/formulario.html", {
+        "titulo": "Nuevo jugador",
+        "form": form,
+        "volver_url": "gestion_jugadores",
+    })
+
+
+@login_required
+@user_passes_test(es_editor_torneo)
+def gestion_jugador_editar(request, jugador_id):
+    jugador = get_object_or_404(Jugador.objects.select_related("equipo"), id=jugador_id)
+    form = JugadorForm(request.POST or None, request.FILES or None, instance=jugador)
+
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        messages.success(request, "Jugador actualizado correctamente.")
+        return redirect("gestion_jugadores")
+
+    return render(request, "gestion/formulario.html", {
+        "titulo": f"Editar jugador: {jugador.nombres}",
+        "form": form,
+        "volver_url": "gestion_jugadores",
+    })
+
+
+@login_required
+@user_passes_test(es_editor_torneo)
+def gestion_partidos(request):
+    partidos = Partido.objects.select_related("categoria", "equipo_local", "equipo_visitante").order_by(
+        "fecha",
+        "hora",
+        "categoria__nombre",
+        "grupo",
+        "fase",
+    )
+    return render(request, "gestion/partidos.html", {"partidos": partidos})
+
+
+@login_required
+@user_passes_test(es_editor_torneo)
+def gestion_partido_nuevo(request):
+    form = PartidoForm(request.POST or None)
+
+    if request.method == "POST" and form.is_valid():
+        partido = form.save()
+        messages.success(request, "Partido creado correctamente.")
+        return redirect("gestion_partido_editar", partido_id=partido.id)
+
+    return render(request, "gestion/formulario.html", {
+        "titulo": "Nuevo partido",
+        "form": form,
+        "volver_url": "gestion_partidos",
+    })
+
+
+@login_required
+@user_passes_test(es_editor_torneo)
+def gestion_partido_editar(request, partido_id):
+    partido = get_object_or_404(Partido, id=partido_id)
+    form = PartidoForm(request.POST or None, instance=partido)
+
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        messages.success(request, "Partido actualizado correctamente.")
+        return redirect("gestion_partidos")
+
+    return render(request, "gestion/formulario.html", {
+        "titulo": f"Editar partido: {partido.equipo_local} vs {partido.equipo_visitante}",
+        "form": form,
+        "volver_url": "gestion_partidos",
     })
 
 

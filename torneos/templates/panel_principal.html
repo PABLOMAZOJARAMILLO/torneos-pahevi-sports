@@ -1074,6 +1074,12 @@
         Descargar programación completa
     </a>
 
+    {% if request.user.is_staff %}
+    <a class="boton secundario" href="{% url 'gestion_panel' %}">
+        Gestión del torneo
+    </a>
+    {% endif %}
+
     {% for categoria, datos_categoria in estructura.items %}
     <div class="card-categoria" onclick="mostrarCategoria('categoria-{{ forloop.counter }}')">
         <div class="card-logo">

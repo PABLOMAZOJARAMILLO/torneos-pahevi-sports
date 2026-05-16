@@ -1,0 +1,23 @@
+{% extends "gestion/base.html" %}
+
+{% block title %}Gestión del torneo{% endblock %}
+{% block heading %}Gestión del torneo{% endblock %}
+
+{% block content %}
+<div class="grid">
+    <a class="card" href="{% url 'gestion_equipos' %}">
+        <h2>Equipos</h2>
+        <p class="muted">{{ total_equipos }} registrados</p>
+    </a>
+
+    <a class="card" href="{% url 'gestion_jugadores' %}">
+        <h2>Jugadores</h2>
+        <p class="muted">{{ total_jugadores }} registrados</p>
+    </a>
+
+    <a class="card" href="{% url 'gestion_partidos' %}">
+        <h2>Partidos</h2>
+        <p class="muted">{{ total_partidos }} registrados</p>
+    </a>
+</div>
+{% endblock %}

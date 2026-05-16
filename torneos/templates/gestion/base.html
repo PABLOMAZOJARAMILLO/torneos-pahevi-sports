@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Gestión{% endblock %}</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            padding: 16px;
+            font-family: Arial, sans-serif;
+            background: #07111f;
+            color: white;
+            font-weight: 700;
+        }
+        a { color: inherit; }
+        .shell {
+            max-width: 980px;
+            margin: 0 auto;
+        }
+        .topbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 18px;
+        }
+        h1 {
+            margin: 0;
+            color: #00ff66;
+            font-size: clamp(26px, 6vw, 44px);
+            text-transform: uppercase;
+        }
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 44px;
+            padding: 10px 16px;
+            border: 0;
+            border-radius: 24px;
+            background: #00e565;
+            color: #03110a;
+            text-decoration: none;
+            font-weight: 900;
+            cursor: pointer;
+        }
+        .btn.secondary {
+            background: #e5e7eb;
+            color: #07111f;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+            gap: 14px;
+        }
+        .card, .row, form {
+            background: #101d30;
+            border: 1px solid rgba(0,255,102,0.35);
+            border-radius: 14px;
+            padding: 14px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+        }
+        .row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 10px;
+        }
+        .muted {
+            color: #cbd5e1;
+            font-size: 14px;
+        }
+        label {
+            display: block;
+            margin: 13px 0 6px;
+            color: #bbf7d0;
+        }
+        input, select, textarea {
+            width: 100%;
+            min-height: 44px;
+            border: 1px solid #334155;
+            border-radius: 10px;
+            padding: 10px;
+            background: #f8fafc;
+            color: #07111f;
+            font: inherit;
+        }
+        input[type="checkbox"] {
+            width: auto;
+            min-height: auto;
+        }
+        .messages {
+            margin-bottom: 14px;
+        }
+        .message {
+            padding: 10px 12px;
+            border-radius: 10px;
+            background: #064e3b;
+            color: white;
+            margin-bottom: 8px;
+        }
+        img.avatar {
+            width: 56px;
+            height: 56px;
+            object-fit: contain;
+            background: white;
+            border-radius: 10px;
+            padding: 3px;
+        }
+        @media (max-width: 640px) {
+            body { padding: 12px; }
+            .topbar { align-items: flex-start; flex-direction: column; }
+            .row { align-items: flex-start; flex-direction: column; }
+            .row .btn { width: 100%; }
+        }
+    </style>
+</head>
+<body>
+<main class="shell">
+    <div class="topbar">
+        <h1>{% block heading %}Gestión{% endblock %}</h1>
+        <a class="btn secondary" href="{% url 'panel' %}">Volver al panel</a>
+    </div>
+
+    {% if messages %}
+    <div class="messages">
+        {% for message in messages %}
+            <div class="message">{{ message }}</div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    {% block content %}{% endblock %}
+</main>
+</body>
+</html>

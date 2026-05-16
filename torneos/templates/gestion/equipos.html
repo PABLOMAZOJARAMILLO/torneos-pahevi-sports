@@ -1,0 +1,28 @@
+{% extends "gestion/base.html" %}
+
+{% block title %}Equipos{% endblock %}
+{% block heading %}Equipos{% endblock %}
+
+{% block content %}
+<p>
+    <a class="btn" href="{% url 'gestion_equipo_nuevo' %}">Nuevo equipo</a>
+    <a class="btn secondary" href="{% url 'gestion_panel' %}">Gestión</a>
+</p>
+
+{% for equipo in equipos %}
+<div class="row">
+    <div style="display:flex;align-items:center;gap:12px;">
+        {% if equipo.escudo %}
+            <img class="avatar" src="{{ equipo.escudo.url }}" alt="">
+        {% endif %}
+        <div>
+            <div>{{ equipo.nombre }}</div>
+            <div class="muted">{{ equipo.categoria.nombre }}{% if not equipo.activo %} · Inactivo{% endif %}</div>
+        </div>
+    </div>
+    <a class="btn" href="{% url 'gestion_equipo_editar' equipo.id %}">Editar</a>
+</div>
+{% empty %}
+<div class="card">No hay equipos registrados.</div>
+{% endfor %}
+{% endblock %}

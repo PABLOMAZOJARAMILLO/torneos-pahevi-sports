@@ -150,4 +150,15 @@ urlpatterns = [
     path('equipos/<int:equipo_id>/', views.detalle_equipo, name='detalle_equipo'),
     path('mis-equipos/', views.mis_equipos, name='mis_equipos'),
 
+    path('gestion/', views.gestion_panel, name='gestion_panel'),
+    path('gestion/equipos/', views.gestion_equipos, name='gestion_equipos'),
+    path('gestion/equipos/nuevo/', views.gestion_equipo_nuevo, name='gestion_equipo_nuevo'),
+    path('gestion/equipos/<int:equipo_id>/editar/', views.gestion_equipo_editar, name='gestion_equipo_editar'),
+    path('gestion/jugadores/', views.gestion_jugadores, name='gestion_jugadores'),
+    path('gestion/jugadores/nuevo/', views.gestion_jugador_nuevo, name='gestion_jugador_nuevo'),
+    path('gestion/jugadores/<int:jugador_id>/editar/', views.gestion_jugador_editar, name='gestion_jugador_editar'),
+    path('gestion/partidos/', views.gestion_partidos, name='gestion_partidos'),
+    path('gestion/partidos/nuevo/', views.gestion_partido_nuevo, name='gestion_partido_nuevo'),
+    path('gestion/partidos/<int:partido_id>/editar/', views.gestion_partido_editar, name='gestion_partido_editar'),
+
 ]
