@@ -1330,12 +1330,12 @@
     {% endfor %}
     </div>
 
-    <section class="portada-seccion" id="partidos-programados">
+    <section class="portada-seccion" id="timeline-partidos">
         <h2>Partidos</h2>
 
         <div class="partidos-portada">
             {% if partidos_programados %}
-            <div class="bloque-partidos-portada">
+            <div class="bloque-partidos-portada" id="punto-inicial-partidos">
                 <h3 class="bloque-titulo-portada">Programados</h3>
 
             {% for partido in partidos_programados %}
@@ -1381,7 +1381,7 @@
             {% endif %}
 
             {% if partidos_futuros %}
-            <div class="bloque-partidos-portada">
+            <div class="bloque-partidos-portada" {% if not partidos_programados %}id="punto-inicial-partidos"{% endif %}>
                 <h3 class="bloque-titulo-portada">Futuros</h3>
                 {% for partido in partidos_futuros %}
                     {% include "partials/partido_portada_card.html" %}
@@ -2363,13 +2363,13 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     const categoriasFijas = document.getElementById('categorias-fijas');
-    const partidosProgramados = document.getElementById('partidos-programados');
+    const puntoInicial = document.getElementById('punto-inicial-partidos') || document.getElementById('timeline-partidos');
 
-    if (partidosProgramados && volverEditor !== '1' && !window.location.hash) {
+    if (puntoInicial && volverEditor !== '1' && !window.location.hash) {
         window.setTimeout(function() {
             const encabezado = document.querySelector('.encabezado-panel');
             const altoFijo = (encabezado ? encabezado.offsetHeight : 0) + (categoriasFijas ? categoriasFijas.offsetHeight : 0) + 22;
-            const destino = partidosProgramados.getBoundingClientRect().top + window.pageYOffset - altoFijo;
+            const destino = puntoInicial.getBoundingClientRect().top + window.pageYOffset - altoFijo;
 
             window.scrollTo({
                 top: Math.max(0, destino),
