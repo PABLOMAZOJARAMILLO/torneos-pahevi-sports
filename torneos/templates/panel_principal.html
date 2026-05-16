@@ -2045,6 +2045,50 @@ document.addEventListener('DOMContentLoaded', function() {
         pantalla.style.display = 'block';
     }
 });
+
+document.addEventListener("DOMContentLoaded", function () {
+
+    const volver = new URLSearchParams(window.location.search).get("volver");
+
+    if (volver === "1") {
+
+        const categoriaId = localStorage.getItem("categoria_activa");
+        const tabActiva = localStorage.getItem("tab_activa");
+
+        if (categoriaId) {
+
+            const categoria = document.getElementById(
+                "categoria-" + categoriaId
+            );
+
+            if (categoria) {
+
+                document.getElementById("pantalla-categorias").style.display = "none";
+
+                document.querySelectorAll(".categoria").forEach(cat => {
+                    cat.style.display = "none";
+                });
+
+                categoria.style.display = "block";
+
+                if (tabActiva) {
+
+                    const boton = categoria.querySelector(
+                        `.tab-btn[data-tab="${tabActiva}"]`
+                    );
+
+                    if (boton) {
+                        mostrarTabCategoria(
+                            categoria.id,
+                            tabActiva,
+                            boton
+                        );
+                    }
+                }
+            }
+        }
+    }
+});
 </script>
 
 </body>

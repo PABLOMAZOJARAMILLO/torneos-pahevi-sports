@@ -181,7 +181,11 @@
 <body>
 <div class="app">
     <div class="topbar">
-        <a class="volver" href="{% url 'panel' %}">← Volver al panel</a>
+        <a class="volver"
+           href="{% url 'panel' %}?volver_editor=1&categoria={{ partido.categoria.nombre|urlencode }}&tab={% if partido.fase and partido.fase != 'GRUPOS' %}finales{% else %}fase1{% endif %}"
+           onclick="guardarContextoPanelEditor()">
+            ← Volver al panel
+        </a>
         <div class="titulo">Editor móvil del partido</div>
 
         <div class="marcador-card-editor">
@@ -194,12 +198,12 @@
         </div>
 
         <div class="tabs">
-            <button type="button" class="tab-btn active" onclick="mostrarEditorTab('resultado', this)">Resultado</button>
-            <button type="button" class="tab-btn" onclick="mostrarEditorTab('goles', this)">Goles</button>
-            <button type="button" class="tab-btn" onclick="mostrarEditorTab('tarjetas', this)">Tarjetas</button>
-            <button type="button" class="tab-btn" onclick="mostrarEditorTab('alineacion', this)">Alineación</button>
-            <button type="button" class="tab-btn" onclick="mostrarEditorTab('sustituciones', this)">Cambios</button>
-            <button type="button" class="tab-btn" onclick="mostrarEditorTab('penales-comite', this)">Penales/Comité</button>
+            <button type="button" class="tab-btn active" data-tab="resultado" onclick="mostrarEditorTab('resultado', this)">Resultado</button>
+            <button type="button" class="tab-btn" data-tab="goles" onclick="mostrarEditorTab('goles', this)">Goles</button>
+            <button type="button" class="tab-btn" data-tab="tarjetas" onclick="mostrarEditorTab('tarjetas', this)">Tarjetas</button>
+            <button type="button" class="tab-btn" data-tab="alineacion" onclick="mostrarEditorTab('alineacion', this)">Alineación</button>
+            <button type="button" class="tab-btn" data-tab="sustituciones" onclick="mostrarEditorTab('sustituciones', this)">Cambios</button>
+            <button type="button" class="tab-btn" data-tab="penales-comite" onclick="mostrarEditorTab('penales-comite', this)">Penales/Comité</button>
         </div>
     </div>
 
@@ -211,7 +215,7 @@
     </div>
     {% endif %}
 
-    <form method="POST" action="{% url 'guardar_info_partido_movil' partido.id %}">
+    <form method="POST" onsubmit="guardarContextoPanelEditor()" action="{% url 'guardar_info_partido_movil' partido.id %}">
         {% csrf_token %}
 
         <div id="resultado" class="tab-content active">
@@ -298,7 +302,7 @@
     <div id="goles" class="tab-content">
         <div class="card">
             <h2>Agregar goles</h2>
-            <form method="POST" action="{% url 'agregar_gol_movil' partido.id %}">
+            <form method="POST" onsubmit="guardarContextoPanelEditor()" action="{% url 'agregar_gol_movil' partido.id %}">
                 {% csrf_token %}
                 <label>Equipo</label>
                 <select name="equipo" required>
@@ -330,7 +334,7 @@
                         <div class="item-title">{{ gol.jugador.nombres }}</div>
                         <div class="item-sub">{{ gol.equipo.nombre }} · {{ gol.cantidad }} gol(es)</div>
                     </div>
-                    <form method="POST" action="{% url 'eliminar_gol_movil' gol.id %}">{% csrf_token %}<button class="btn-danger" type="submit">Eliminar</button></form>
+                    <form method="POST" onsubmit="guardarContextoPanelEditor()" action="{% url 'eliminar_gol_movil' gol.id %}">{% csrf_token %}<button class="btn-danger" type="submit">Eliminar</button></form>
                 </div>
             {% empty %}
                 <p class="nota">No hay goles registrados.</p>
@@ -341,7 +345,7 @@
     <div id="tarjetas" class="tab-content">
         <div class="card">
             <h2>Agregar tarjeta</h2>
-            <form method="POST" action="{% url 'agregar_tarjeta_movil' partido.id %}">
+            <form method="POST" onsubmit="guardarContextoPanelEditor()" action="{% url 'agregar_tarjeta_movil' partido.id %}">
                 {% csrf_token %}
                 <label>Equipo</label>
                 <select name="equipo" required>
@@ -376,7 +380,7 @@
                         <div class="item-title">{{ tarjeta.jugador.nombres }}</div>
                         <div class="item-sub">{{ tarjeta.equipo.nombre }} · {{ tarjeta.tipo }}</div>
                     </div>
-                    <form method="POST" action="{% url 'eliminar_tarjeta_movil' tarjeta.id %}">{% csrf_token %}<button class="btn-danger" type="submit">Eliminar</button></form>
+                    <form method="POST" onsubmit="guardarContextoPanelEditor()" action="{% url 'eliminar_tarjeta_movil' tarjeta.id %}">{% csrf_token %}<button class="btn-danger" type="submit">Eliminar</button></form>
                 </div>
             {% empty %}
                 <p class="nota">No hay tarjetas registradas.</p>
@@ -387,7 +391,7 @@
     <div id="alineacion" class="tab-content">
         <div class="card">
             <h2>Alineación</h2>
-            <form method="POST" action="{% url 'agregar_alineacion_movil' partido.id %}">
+            <form method="POST" onsubmit="guardarContextoPanelEditor()" action="{% url 'agregar_alineacion_movil' partido.id %}">
                 {% csrf_token %}
                 <label>Equipo</label>
                 <select name="equipo" required>
@@ -422,7 +426,7 @@
                         <div class="item-title">{{ a.jugador.nombres }}</div>
                         <div class="item-sub">{{ a.equipo.nombre }} · {{ a.rol }}</div>
                     </div>
-                    <form method="POST" action="{% url 'eliminar_alineacion_movil' a.id %}">{% csrf_token %}<button class="btn-danger" type="submit">Eliminar</button></form>
+                    <form method="POST" onsubmit="guardarContextoPanelEditor()" action="{% url 'eliminar_alineacion_movil' a.id %}">{% csrf_token %}<button class="btn-danger" type="submit">Eliminar</button></form>
                 </div>
             {% empty %}
                 <p class="nota">No hay alineación registrada.</p>
@@ -433,7 +437,7 @@
     <div id="sustituciones" class="tab-content">
         <div class="card">
             <h2>Sustituciones</h2>
-            <form method="POST" action="{% url 'agregar_sustitucion_movil' partido.id %}">
+            <form method="POST" onsubmit="guardarContextoPanelEditor()" action="{% url 'agregar_sustitucion_movil' partido.id %}">
                 {% csrf_token %}
                 <label>Equipo</label>
                 <select name="equipo" required>
@@ -483,7 +487,7 @@
                         <div class="item-title">Sale: {{ s.jugador_sale.nombres }} / Entra: {{ s.jugador_entra.nombres }}</div>
                         <div class="item-sub">{{ s.equipo.nombre }} · Min {{ s.minuto|default:'-' }} · {{ s.observacion|default:'' }}</div>
                     </div>
-                    <form method="POST" action="{% url 'eliminar_sustitucion_movil' s.id %}">{% csrf_token %}<button class="btn-danger" type="submit">Eliminar</button></form>
+                    <form method="POST" onsubmit="guardarContextoPanelEditor()" action="{% url 'eliminar_sustitucion_movil' s.id %}">{% csrf_token %}<button class="btn-danger" type="submit">Eliminar</button></form>
                 </div>
             {% empty %}
                 <p class="nota">No hay sustituciones registradas.</p>
@@ -493,36 +497,76 @@
 </div>
 
 <script>
+function guardarContextoPanelEditor() {
+    const botonActivo = document.querySelector('.tab-btn.active');
+    const tabEditor = botonActivo ? (botonActivo.dataset.tab || 'resultado') : 'resultado';
+
+    localStorage.setItem('editor_partido_tab_activa_{{ partido.id }}', tabEditor);
+    localStorage.setItem('panel_volver_categoria_nombre', '{{ partido.categoria.nombre|escapejs }}');
+
+    {% if partido.fase and partido.fase != 'GRUPOS' %}
+        localStorage.setItem('panel_volver_tab', 'finales');
+    {% else %}
+        localStorage.setItem('panel_volver_tab', 'fase1');
+    {% endif %}
+
+    localStorage.setItem('panel_volver_partido_id', '{{ partido.id }}');
+}
+
 function mostrarEditorTab(tabId, boton) {
     document.querySelectorAll('.tab-content').forEach(function(tab) {
         tab.classList.remove('active');
     });
+
     document.querySelectorAll('.tab-btn').forEach(function(btn) {
         btn.classList.remove('active');
     });
+
     const tab = document.getElementById(tabId);
-    if (tab) tab.classList.add('active');
-    if (boton) boton.classList.add('active');
+    if (tab) {
+        tab.classList.add('active');
+    }
+
+    if (boton) {
+        boton.classList.add('active');
+        localStorage.setItem('editor_partido_tab_activa_{{ partido.id }}', tabId);
+    }
+
+    if (history.replaceState) {
+        history.replaceState(null, null, '#' + tabId);
+    }
+}
+
+function activarTabEditor(tabId) {
+    if (!tabId) return false;
+
+    const tab = document.getElementById(tabId);
+    const boton = document.querySelector('.tab-btn[data-tab="' + tabId + '"]');
+
+    if (!tab || !boton) return false;
+
+    mostrarEditorTab(tabId, boton);
+    return true;
 }
 
 function activarHashInicial() {
     const hash = window.location.hash.replace('#', '');
-    if (!hash) return;
-    const tab = document.getElementById(hash);
-    if (!tab) return;
-    const botones = document.querySelectorAll('.tab-btn');
-    const mapa = {
-        'resultado': 0,
-        'goles': 1,
-        'tarjetas': 2,
-        'alineacion': 3,
-        'sustituciones': 4,
-        'penales-comite': 5
-    };
-    mostrarEditorTab(hash, botones[mapa[hash]]);
+    if (activarTabEditor(hash)) return;
+
+    const tabGuardada = localStorage.getItem('editor_partido_tab_activa_{{ partido.id }}');
+    if (activarTabEditor(tabGuardada)) return;
+
+    activarTabEditor('resultado');
 }
 
-document.addEventListener('DOMContentLoaded', activarHashInicial);
+document.querySelectorAll('input, select, textarea').forEach(function(campo) {
+    campo.addEventListener('change', guardarContextoPanelEditor);
+});
+
+document.addEventListener('DOMContentLoaded', function() {
+    activarHashInicial();
+    guardarContextoPanelEditor();
+});
 </script>
 </body>
 </html>
