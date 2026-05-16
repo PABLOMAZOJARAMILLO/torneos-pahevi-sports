@@ -391,15 +391,6 @@
         padding-top: 10px;
     }
 
-    .categoria.vista-tablas > h1 {
-        transform: translateY(-18px);
-        opacity: 0;
-        height: 0;
-        margin: 0;
-        overflow: hidden;
-        pointer-events: none;
-    }
-
     .categoria.vista-tablas .btn-volver {
         margin-bottom: 6px;
         padding: 9px 18px;
@@ -428,6 +419,31 @@
         font-weight: bold;
         margin-bottom: 18px;
         cursor: pointer;
+    }
+
+    .categoria-barra-interna {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        margin-bottom: 10px;
+    }
+
+    .categoria-barra-interna .btn-volver {
+        margin: 0;
+        flex-shrink: 0;
+    }
+
+    .titulo-categoria-compacto {
+        margin: 0;
+        color: #00ff66;
+        font-size: 22px;
+        line-height: 1;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+
+    .categoria.vista-tablas .categoria-barra-interna {
+        margin-bottom: 4px;
     }
 
     .bloque,
@@ -1654,9 +1670,10 @@ body.solo-lectura .fase-btn {
 {% for categoria, datos_categoria in estructura.items %}
 <div class="categoria categoria-oculta" id="categoria-{{ forloop.counter }}">
 
-    <button class="btn-volver" onclick="volverCategorias()">← Volver a categorías</button>
-
-    <h1>{{ categoria }}</h1>
+    <div class="categoria-barra-interna">
+        <button class="btn-volver" onclick="volverCategorias()">← Categorías</button>
+        <h1 class="titulo-categoria-compacto">{{ categoria }}</h1>
+    </div>
 
     <div class="tabs-mobile">
         <button type="button" class="tab-btn active" onclick="mostrarTabCategoria('categoria-{{ forloop.counter }}', 'posiciones', this)">Tabla posiciones</button>
