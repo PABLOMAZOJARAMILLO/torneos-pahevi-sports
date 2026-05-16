@@ -1396,8 +1396,8 @@
                     <div class="card-partido">
                         <div class="partido-contenido">
                             <div class="equipo-card">
-                                {% if item.partido.equipo_local.escudo %}
-                                    <img src="/static/torneos/escudos/{{ item.partido.equipo_local.escudo.name|cut:'escudos/' }}">
+                                {% if item.escudo_local %}
+                                    <img src="{{ item.escudo_local }}">
                                 {% endif %}
                                 <span>{{ item.partido.equipo_local.nombre }}</span>
                             </div>
@@ -1427,8 +1427,8 @@
                             </div>
 			    
                             <div class="equipo-card">
-                                {% if item.partido.equipo_visitante.escudo %}
-                                    <img src="/static/torneos/escudos/{{ item.partido.equipo_visitante.escudo.name|cut:'escudos/' }}">
+                                {% if item.escudo_visitante %}
+                                    <img src="{{ item.escudo_visitante }}">
                                 {% endif %}
                                 <span>{{ item.partido.equipo_visitante.nombre }}</span>
                             </div>

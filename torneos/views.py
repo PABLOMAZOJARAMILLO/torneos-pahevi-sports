@@ -159,7 +159,8 @@ def construir_estructura():
             estructura[categoria]["partidos_por_fecha"][fecha].append({
                 "grupo": grupo,
                 "partido": partido,
-            
+                "escudo_local": escudo_url(partido.equipo_local),
+                "escudo_visitante": escudo_url(partido.equipo_visitante),
             })
 
         for equipo in [partido.equipo_local, partido.equipo_visitante]:
