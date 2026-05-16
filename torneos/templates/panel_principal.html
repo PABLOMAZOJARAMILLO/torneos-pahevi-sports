@@ -1282,7 +1282,21 @@
     {% endif %}
     </div>
 
-    <div class="categorias-grid">
+    {% if partidos_resultados %}
+    <section class="portada-seccion portada-resultados">
+        <h2>Finalizados</h2>
+        <div class="partidos-portada">
+            <div class="bloque-partidos-portada">
+                <h3 class="bloque-titulo-portada">Resultados recientes</h3>
+                {% for partido in partidos_resultados %}
+                    {% include "partials/partido_portada_card.html" %}
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+    {% endif %}
+
+    <div class="categorias-grid" id="categorias-fijas">
     {% for categoria, datos_categoria in estructura.items %}
     <div class="card-categoria" onclick="mostrarCategoria('categoria-{{ forloop.counter }}')">
         <div class="card-logo">
@@ -1303,12 +1317,11 @@
         <h2>Partidos</h2>
 
         <div class="partidos-portada">
-            {% regroup partidos_portada by bloque as bloques_partidos %}
-            {% for bloque in bloques_partidos %}
+            {% if partidos_programados %}
             <div class="bloque-partidos-portada">
-                <h3 class="bloque-titulo-portada">{{ bloque.grouper }}</h3>
+                <h3 class="bloque-titulo-portada">Programados</h3>
 
-            {% for partido in bloque.list %}
+            {% for partido in partidos_programados %}
             <a class="partido-portada" href="{% url 'partido_detalle_publico' partido.id %}">
                 <div class="partido-meta">
                     <span>{{ partido.categoria }}{% if partido.numero_fecha %} · Fecha {{ partido.numero_fecha }}{% endif %}</span>
@@ -1348,9 +1361,20 @@
             </a>
             {% endfor %}
             </div>
-            {% empty %}
-            <div class="partido-portada">No hay partidos programados o finalizados.</div>
-            {% endfor %}
+            {% endif %}
+
+            {% if partidos_futuros %}
+            <div class="bloque-partidos-portada">
+                <h3 class="bloque-titulo-portada">Futuros</h3>
+                {% for partido in partidos_futuros %}
+                    {% include "partials/partido_portada_card.html" %}
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            {% if not partidos_programados and not partidos_futuros %}
+            <div class="partido-portada">No hay partidos programados o futuros.</div>
+            {% endif %}
         </div>
     </section>
 </div>
@@ -2319,6 +2343,16 @@ document.addEventListener('DOMContentLoaded', function() {
     const pantalla = document.getElementById('pantalla-categorias');
     if (pantalla) {
         pantalla.style.display = 'block';
+    }
+
+    const categoriasFijas = document.getElementById('categorias-fijas');
+    const yaPosicionado = sessionStorage.getItem('portada_categorias_posicionada');
+
+    if (categoriasFijas && !yaPosicionado && volverEditor !== '1') {
+        window.setTimeout(function() {
+            categoriasFijas.scrollIntoView({ block: 'start' });
+            sessionStorage.setItem('portada_categorias_posicionada', '1');
+        }, 120);
     }
 });
 </script>

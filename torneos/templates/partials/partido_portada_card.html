@@ -1,0 +1,37 @@
+<a class="partido-portada" href="{% url 'partido_detalle_publico' partido.id %}">
+    <div class="partido-meta">
+        <span>{{ partido.categoria }}{% if partido.numero_fecha %} · Fecha {{ partido.numero_fecha }}{% endif %}</span>
+        <span class="estado-chip {{ partido.estado|lower }}">{{ partido.estado }}</span>
+    </div>
+
+    <div class="versus-portada">
+        <div class="equipo-portada">
+            {% if partido.escudo_local %}
+                <img src="{{ partido.escudo_local }}">
+            {% endif %}
+            <span>{{ partido.local }}</span>
+        </div>
+
+        {% if partido.estado == "PROGRAMADO" %}
+        <div class="marcador-portada programado">{{ partido.hora }}</div>
+        {% else %}
+        <div class="marcador-portada">
+            <span>{{ partido.goles_local }}</span>
+            <span>-</span>
+            <span>{{ partido.goles_visitante }}</span>
+        </div>
+        {% endif %}
+
+        <div class="equipo-portada">
+            {% if partido.escudo_visitante %}
+                <img src="{{ partido.escudo_visitante }}">
+            {% endif %}
+            <span>{{ partido.visitante }}</span>
+        </div>
+    </div>
+
+    <div class="partido-extra">
+        <span>{{ partido.fecha }} · {{ partido.cancha }}</span>
+        <span>{% if partido.eventos %}{{ partido.eventos }} eventos{% else %}Ver detalle{% endif %}</span>
+    </div>
+</a>

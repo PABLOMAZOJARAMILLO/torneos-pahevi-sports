@@ -860,10 +860,14 @@ def construir_partidos_portada():
 def panel_principal(request):
     estructura = construir_estructura()
     logos = rutas_logos(request)
+    partidos_portada = construir_partidos_portada()
 
     return render(request, "panel_principal.html", {
         "estructura": estructura,
-        "partidos_portada": construir_partidos_portada(),
+        "partidos_portada": partidos_portada,
+        "partidos_resultados": [p for p in partidos_portada if p["bloque"] == "RESULTADOS RECIENTES"],
+        "partidos_programados": [p for p in partidos_portada if p["bloque"] == "PROGRAMADOS"],
+        "partidos_futuros": [p for p in partidos_portada if p["bloque"] == "FUTUROS"],
         "logo_alcaldia": logos["logo_alcaldia"],
         "logo_torneo": logos["logo_torneo"],
         "logo_imcred": logos["logo_imcred"],
