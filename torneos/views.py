@@ -804,17 +804,6 @@ def construir_partidos_portada():
 
     partidos_portada = []
 
-    def orden_numero_fecha(valor):
-        if not valor:
-            return 9999
-
-        coincidencia = re.search(r"\d+", str(valor))
-
-        if coincidencia:
-            return int(coincidencia.group())
-
-        return 9999
-
     for partido in partidos:
         if partido.estado not in estados_visibles:
             continue
@@ -822,24 +811,20 @@ def construir_partidos_portada():
         if partido.estado in ["FINALIZADO", "DECIDIDO_COMITE", "WO"]:
             bloque = "RESULTADOS RECIENTES"
             orden_bloque = 0
-            orden_fixture = 0
-            orden_fecha = -partido.fecha.toordinal()
+            orden_fecha = partido.fecha.toordinal()
         elif partido.fecha <= hoy:
             bloque = "PROGRAMADOS"
             orden_bloque = 1
-            orden_fixture = orden_numero_fecha(partido.numero_fecha)
             orden_fecha = partido.fecha.toordinal()
         else:
             bloque = "FUTUROS"
             orden_bloque = 2
-            orden_fixture = orden_numero_fecha(partido.numero_fecha)
             orden_fecha = partido.fecha.toordinal()
 
         partidos_portada.append({
             "id": partido.id,
             "bloque": bloque,
             "orden_bloque": orden_bloque,
-            "orden_fixture": orden_fixture,
             "orden_fecha": orden_fecha,
             "categoria": partido.categoria.nombre,
             "grupo": partido.grupo or "",
@@ -865,7 +850,6 @@ def construir_partidos_portada():
         partidos_portada,
         key=lambda partido: (
             partido["orden_bloque"],
-            partido["orden_fixture"],
             partido["orden_fecha"],
             partido["hora"] or time(0, 0),
             partido["categoria"],
