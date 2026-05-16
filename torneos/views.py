@@ -1209,10 +1209,36 @@ def construir_partidos_programacion(request, categoria_obj=None):
 
 def medidas_programacion(cantidad):
     if cantidad > 8:
+        filas = (cantidad + 1) // 2
+        alto_disponible = 1600
+        espacio_entre_tarjetas = 12 * max(filas - 1, 0)
+        alto_tarjeta = max(95, min(270, (alto_disponible - espacio_entre_tarjetas) // filas))
+
+        if alto_tarjeta >= 240:
+            fuente_detalle = 18
+            fuente_grupo = 19
+            fuente_equipo = 21
+            escudo = 56
+        elif alto_tarjeta >= 180:
+            fuente_detalle = 15
+            fuente_grupo = 16
+            fuente_equipo = 18
+            escudo = 44
+        else:
+            fuente_detalle = 13
+            fuente_grupo = 14
+            fuente_equipo = 15
+            escudo = 34
+
         return {
             "ancho": 1080,
-            "alto": 360 + (cantidad * 250),
+            "alto": 1920,
             "compacta": True,
+            "alto_tarjeta": alto_tarjeta,
+            "fuente_detalle": fuente_detalle,
+            "fuente_grupo": fuente_grupo,
+            "fuente_equipo": fuente_equipo,
+            "escudo": escudo,
         }
 
     if cantidad <= 4:
@@ -1226,6 +1252,11 @@ def medidas_programacion(cantidad):
         "ancho": 1080,
         "alto": alto,
         "compacta": False,
+        "alto_tarjeta": 0,
+        "fuente_detalle": 0,
+        "fuente_grupo": 0,
+        "fuente_equipo": 0,
+        "escudo": 0,
     }
 
 
@@ -1249,6 +1280,11 @@ def descargar_programacion_categoria(request, categoria):
         "partidos": partidos_programacion,
         "ancho": medidas["ancho"],
         "compacta": medidas["compacta"],
+        "alto_tarjeta": medidas["alto_tarjeta"],
+        "fuente_detalle": medidas["fuente_detalle"],
+        "fuente_grupo": medidas["fuente_grupo"],
+        "fuente_equipo": medidas["fuente_equipo"],
+        "escudo": medidas["escudo"],
         "logo_alcaldia": logos["logo_alcaldia"],
         "logo_torneo": logos["logo_torneo"],
         "logo_imcred": logos["logo_imcred"],
@@ -1274,6 +1310,11 @@ def descargar_programacion_general(request):
         "partidos": partidos_programacion,
         "ancho": medidas["ancho"],
         "compacta": medidas["compacta"],
+        "alto_tarjeta": medidas["alto_tarjeta"],
+        "fuente_detalle": medidas["fuente_detalle"],
+        "fuente_grupo": medidas["fuente_grupo"],
+        "fuente_equipo": medidas["fuente_equipo"],
+        "escudo": medidas["escudo"],
         "logo_alcaldia": logos["logo_alcaldia"],
         "logo_torneo": logos["logo_torneo"],
         "logo_imcred": logos["logo_imcred"],

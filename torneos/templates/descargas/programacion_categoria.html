@@ -195,79 +195,88 @@ body {
 }
 
 .contenedor.compacta {
-    min-height: auto;
+    min-height: 1920px;
+    height: 1920px;
+    overflow: hidden;
 }
 
 .contenedor.compacta .encabezado {
-    height: 160px;
+    height: 130px;
+    padding: 12px 42px;
 }
 
 .contenedor.compacta .logo-lado {
-    width: 230px;
-    height: 115px;
+    width: 210px;
+    height: 95px;
 }
 
 .contenedor.compacta .logo-centro {
-    width: 340px;
-    height: 120px;
+    width: 330px;
+    height: 100px;
 }
 
 .contenedor.compacta .logo-derecha {
-    width: 280px;
-    height: 115px;
+    width: 260px;
+    height: 95px;
 }
 
 .contenedor.compacta .titulo {
-    padding: 24px 10px 20px;
+    padding: 22px 10px 20px;
 }
 
 .contenedor.compacta .titulo h1 {
-    font-size: 52px;
+    font-size: 46px;
 }
 
 .contenedor.compacta .titulo h2 {
-    font-size: 34px;
+    font-size: 30px;
 }
 
 .contenedor.compacta .lista-partidos {
-    width: 94%;
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
+    width: 96%;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
 }
 
 .contenedor.compacta .partido {
-    min-height: 215px;
-    margin: 0 auto;
-    padding: 14px 20px 16px;
-    border-radius: 18px;
+    min-height: {{ alto_tarjeta }}px;
+    height: {{ alto_tarjeta }}px;
+    margin: 0;
+    padding: 11px 12px 12px;
+    border-radius: 16px;
 }
 
 .contenedor.compacta .detalle-superior {
-    font-size: 23px;
-    padding: 7px 10px;
+    font-size: {{ fuente_detalle }}px;
+    padding: 6px 7px;
+    line-height: 1.1;
 }
 
 .contenedor.compacta .grupo {
-    font-size: 24px;
-    margin-bottom: 9px;
+    font-size: {{ fuente_grupo }}px;
+    margin-bottom: 8px;
+    line-height: 1.12;
 }
 
 .contenedor.compacta .fila-partido {
-    grid-template-columns: 1fr 90px 1fr;
+    grid-template-columns: 1fr 52px 1fr;
+    gap: 8px;
 }
 
 .contenedor.compacta .equipo {
-    font-size: 28px;
+    font-size: {{ fuente_equipo }}px;
+    line-height: 1.08;
 }
 
 .contenedor.compacta .equipo img {
-    width: 72px;
-    height: 72px;
+    width: {{ escudo }}px;
+    height: {{ escudo }}px;
+    margin-bottom: 4px;
 }
 
 .contenedor.compacta .vs {
-    font-size: 42px;
+    font-size: 28px;
 }
 </style>
 </head>
