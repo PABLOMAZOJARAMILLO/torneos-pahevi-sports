@@ -1851,6 +1851,31 @@ def distribuir_equipos_en_grupos(equipos, cabezas, cantidad_grupos):
     return grupos
 
 
+def armar_grupos_desde_formulario(equipos, cabezas, request_post, cantidad_grupos):
+    grupos = {chr(65 + i): [] for i in range(cantidad_grupos)}
+    equipos_por_id = {str(equipo.id): equipo for equipo in equipos}
+    usados = set()
+
+    for indice, cabeza in enumerate(cabezas):
+        if cabeza and cabeza.id not in usados:
+            grupos[chr(65 + indice)].append(cabeza)
+            usados.add(cabeza.id)
+
+    for indice in range(cantidad_grupos):
+        grupo_nombre = chr(65 + indice)
+
+        for equipo_id in request_post.getlist(f"equipos_grupo_{indice}"):
+            equipo = equipos_por_id.get(equipo_id)
+
+            if equipo and equipo.id not in usados:
+                grupos[grupo_nombre].append(equipo)
+                usados.add(equipo.id)
+
+    sin_asignar = [equipo for equipo in equipos if equipo.id not in usados]
+
+    return grupos, sin_asignar
+
+
 @login_required
 @user_passes_test(es_editor_torneo)
 def gestion_generar_fixture(request):
@@ -1893,7 +1918,18 @@ def gestion_generar_fixture(request):
             cabeza = equipos.filter(id=cabeza_id).first() if cabeza_id else None
             cabezas.append(cabeza)
 
-        grupos_generados = distribuir_equipos_en_grupos(equipos, cabezas, cantidad_grupos)
+        grupos_generados, sin_asignar = armar_grupos_desde_formulario(equipos, cabezas, request.POST, cantidad_grupos)
+
+        if sin_asignar:
+            nombres_sin_asignar = ", ".join(equipo.nombre for equipo in sin_asignar)
+            messages.error(request, f"Faltan equipos por asignar a un grupo: {nombres_sin_asignar}.")
+            return redirect(f"{request.path}?categoria={categoria.id}&grupos={cantidad_grupos}")
+
+        grupos_vacios = [nombre for nombre, equipos_grupo in grupos_generados.items() if len(equipos_grupo) < 2]
+
+        if grupos_vacios:
+            messages.error(request, f"Cada grupo debe tener al menos 2 equipos. Revisa: {', '.join(grupos_vacios)}.")
+            return redirect(f"{request.path}?categoria={categoria.id}&grupos={cantidad_grupos}")
 
         if reemplazar:
             Partido.objects.filter(categoria=categoria, fase="GRUPOS").delete()

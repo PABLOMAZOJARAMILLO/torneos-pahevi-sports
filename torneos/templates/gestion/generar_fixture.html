@@ -47,6 +47,14 @@
                     <option value="{{ equipo.id }}">{{ equipo.nombre }}</option>
                 {% endfor %}
             </select>
+
+            <label>Equipos sorteados para este grupo</label>
+            {% for equipo in equipos %}
+                <label style="display:flex;align-items:center;gap:8px;margin:8px 0;color:white;">
+                    <input type="checkbox" name="equipos_grupo_{{ forloop.parentloop.counter0 }}" value="{{ equipo.id }}">
+                    {{ equipo.nombre }}
+                </label>
+            {% endfor %}
         </div>
         {% endfor %}
     </div>
