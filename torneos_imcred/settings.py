@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
 from pathlib import Path
+import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -39,6 +40,9 @@ INSTALLED_APPS = [
     'import_export',
     'torneos',
 ]
+
+if os.getenv("USE_SUPABASE_STORAGE", "").lower() in {"1", "true", "yes"}:
+    INSTALLED_APPS.append("storages")
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
@@ -74,16 +78,18 @@ WSGI_APPLICATION = 'torneos_imcred.wsgi.application'
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
 
-import os
 import dj_database_url
 
 DATABASES = {
     "default": dj_database_url.config(
         default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}",
         conn_max_age=600,
-        ssl_require=False
+        ssl_require=os.getenv("DATABASE_SSL_REQUIRE", "").lower() in {"1", "true", "yes"},
     )
 }
+
+for parametro_no_django in ("pgbouncer", "connection_limit", "pool_timeout"):
+    DATABASES["default"].get("OPTIONS", {}).pop(parametro_no_django, None)
 
 # Password validation
 # https://docs.djangoproject.com/en/6.0/ref/settings/#auth-password-validators
@@ -123,6 +129,11 @@ STATIC_URL = '/static/'
 
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
+
+USE_SUPABASE_STORAGE = os.getenv("USE_SUPABASE_STORAGE", "").lower() in {"1", "true", "yes"}
+
 STORAGES = {
     "default": {
         "BACKEND": "django.core.files.storage.FileSystemStorage",
@@ -132,8 +143,26 @@ STORAGES = {
     },
 }
 
-MEDIA_URL = '/media/'
-MEDIA_ROOT = BASE_DIR / 'media'
+if USE_SUPABASE_STORAGE:
+    SUPABASE_STORAGE_BUCKET = os.getenv("SUPABASE_STORAGE_BUCKET", "torneos-media")
+    SUPABASE_PUBLIC_MEDIA_URL = os.getenv("SUPABASE_PUBLIC_MEDIA_URL", "").rstrip("/")
+
+    AWS_ACCESS_KEY_ID = os.getenv("SUPABASE_S3_ACCESS_KEY_ID")
+    AWS_SECRET_ACCESS_KEY = os.getenv("SUPABASE_S3_SECRET_ACCESS_KEY")
+    AWS_STORAGE_BUCKET_NAME = SUPABASE_STORAGE_BUCKET
+    AWS_S3_ENDPOINT_URL = os.getenv("SUPABASE_S3_ENDPOINT_URL")
+    AWS_S3_REGION_NAME = os.getenv("SUPABASE_S3_REGION_NAME", "us-east-1")
+    AWS_S3_ADDRESSING_STYLE = "path"
+    AWS_DEFAULT_ACL = None
+    AWS_QUERYSTRING_AUTH = False
+    AWS_S3_FILE_OVERWRITE = False
+    AWS_S3_OBJECT_PARAMETERS = {
+        "CacheControl": "max-age=86400",
+    }
+
+    STORAGES["default"] = {
+        "BACKEND": "torneos.storage_backends.SupabaseMediaStorage",
+    }
 LOGIN_URL = "/admin/login/"
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
