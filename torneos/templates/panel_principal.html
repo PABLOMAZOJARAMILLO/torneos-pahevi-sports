@@ -42,23 +42,23 @@
         background: linear-gradient(135deg, #06111f, #102a48, #06111f);
         border: 1px solid rgba(0, 255, 102, 0.75);
         border-radius: 16px;
-        padding: 12px 28px;
+        padding: 10px 28px;
         margin-bottom: 16px;
         box-shadow: 0 8px 22px rgba(0, 0, 0, 0.28);
     }
 
     .logo-torneo {
-        width: 82px;
-        height: 82px;
+        width: 104px;
+        height: 78px;
         object-fit: contain;
         background: white;
-        border-radius: 50%;
+        border-radius: 14px;
         padding: 6px;
     }
 
     .logo-central {
-        width: 190px;
-        height: 74px;
+        width: 250px;
+        height: 82px;
         object-fit: contain;
     }
 
@@ -110,8 +110,8 @@
         position: sticky;
         top: 0;
         z-index: 20;
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        display: flex;
+        overflow-x: auto;
         gap: 12px;
         margin: 0 -20px 24px;
         padding: 12px 20px;
@@ -130,6 +130,7 @@
         padding: 12px 14px;
         cursor: pointer;
         box-shadow: 0 6px 18px rgba(15, 23, 42, 0.08);
+        min-width: 270px;
     }
 
     .card-categoria:hover {
@@ -176,9 +177,29 @@
     }
 
     .partidos-portada {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-        gap: 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+    }
+
+    .bloque-partidos-portada {
+        background: #edf2f7;
+        border-radius: 16px;
+        padding: 10px;
+    }
+
+    .bloque-titulo-portada {
+        display: inline-flex;
+        align-items: center;
+        min-height: 32px;
+        padding: 6px 14px;
+        margin: 0 0 10px;
+        border-radius: 999px;
+        background: white;
+        color: #1d8bd1;
+        font-size: 15px;
+        text-transform: uppercase;
+        box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
     }
 
     .partido-portada {
@@ -188,8 +209,13 @@
         border: 1px solid #dbe4ef;
         border-radius: 12px;
         padding: 12px;
+        margin-bottom: 8px;
         text-decoration: none;
         box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
+    }
+
+    .partido-portada:last-child {
+        margin-bottom: 0;
     }
 
     .partido-portada:hover {
@@ -289,13 +315,14 @@
         }
 
         .logo-torneo {
-            width: 58px;
-            height: 58px;
+            width: 72px;
+            height: 54px;
+            border-radius: 10px;
         }
 
         .logo-central {
-            width: 130px;
-            height: 52px;
+            width: 160px;
+            height: 58px;
         }
 
         .titulo-panel h1 {
@@ -310,20 +337,8 @@
             padding: 14px;
         }
 
-        .categorias-grid {
-            display: flex;
-            overflow-x: auto;
-            grid-template-columns: none;
-            margin: 0 -14px 18px;
-            padding: 10px 14px;
-        }
-
         .card-categoria {
             min-width: 245px;
-        }
-
-        .partidos-portada {
-            grid-template-columns: 1fr;
         }
     }
 
@@ -1288,7 +1303,12 @@
         <h2>Partidos</h2>
 
         <div class="partidos-portada">
-            {% for partido in partidos_portada %}
+            {% regroup partidos_portada by bloque as bloques_partidos %}
+            {% for bloque in bloques_partidos %}
+            <div class="bloque-partidos-portada">
+                <h3 class="bloque-titulo-portada">{{ bloque.grouper }}</h3>
+
+            {% for partido in bloque.list %}
             <a class="partido-portada" href="{% url 'partido_detalle_publico' partido.id %}">
                 <div class="partido-meta">
                     <span>{{ partido.categoria }}{% if partido.numero_fecha %} · Fecha {{ partido.numero_fecha }}{% endif %}</span>
@@ -1326,6 +1346,8 @@
                     <span>{% if partido.eventos %}{{ partido.eventos }} eventos{% else %}Ver detalle{% endif %}</span>
                 </div>
             </a>
+            {% endfor %}
+            </div>
             {% empty %}
             <div class="partido-portada">No hay partidos programados o finalizados.</div>
             {% endfor %}

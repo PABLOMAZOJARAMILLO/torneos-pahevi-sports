@@ -808,8 +808,24 @@ def construir_partidos_portada():
         if partido.estado not in estados_visibles:
             continue
 
+        if partido.estado in ["FINALIZADO", "DECIDIDO_COMITE", "WO"]:
+            bloque = "RESULTADOS RECIENTES"
+            orden_bloque = 0
+            orden_fecha = -partido.fecha.toordinal()
+        elif partido.fecha <= hoy:
+            bloque = "PROGRAMADOS"
+            orden_bloque = 1
+            orden_fecha = partido.fecha.toordinal()
+        else:
+            bloque = "FUTUROS"
+            orden_bloque = 2
+            orden_fecha = partido.fecha.toordinal()
+
         partidos_portada.append({
             "id": partido.id,
+            "bloque": bloque,
+            "orden_bloque": orden_bloque,
+            "orden_fecha": orden_fecha,
             "categoria": partido.categoria.nombre,
             "grupo": partido.grupo or "",
             "fase": partido.fase or "GRUPOS",
@@ -830,20 +846,15 @@ def construir_partidos_portada():
             "eventos": goles_por_partido[partido.id] + tarjetas_por_partido[partido.id],
         })
 
-    def prioridad(partido):
-        es_programado = partido["estado"] in ["PROGRAMADO", "EN_JUEGO"]
-        fecha = partido["fecha"]
-        hora = partido["hora"] or time(0, 0)
-
-        if es_programado and fecha >= hoy:
-            return (0, fecha, hora)
-
-        if not es_programado:
-            return (1, -fecha.toordinal(), hora)
-
-        return (2, -fecha.toordinal(), hora)
-
-    return sorted(partidos_portada, key=prioridad)[:24]
+    return sorted(
+        partidos_portada,
+        key=lambda partido: (
+            partido["orden_bloque"],
+            partido["orden_fecha"],
+            partido["hora"] or time(0, 0),
+            partido["categoria"],
+        )
+    )
 
 
 def panel_principal(request):
