@@ -107,17 +107,26 @@
     }
 
     .categorias-grid {
-        position: sticky;
+        position: fixed;
         top: 0;
+        left: 0;
+        right: 0;
         z-index: 20;
         display: flex;
         overflow-x: auto;
         gap: 12px;
-        margin: 0 -20px 24px;
-        padding: 12px 20px;
+        margin: 0;
+        padding: 10px 22px;
         background: rgba(244, 247, 251, 0.96);
         backdrop-filter: blur(8px);
         border-bottom: 1px solid #dbe4ef;
+        box-shadow: 0 6px 18px rgba(15, 23, 42, 0.12);
+        transform: translateY(-120%);
+        transition: transform 0.2s ease;
+    }
+
+    .categorias-grid.fija-visible {
+        transform: translateY(0);
     }
 
     .card-categoria {
@@ -335,6 +344,10 @@
 
         .pantalla-categorias {
             padding: 14px;
+        }
+
+        .categorias-grid {
+            padding: 9px 12px;
         }
 
         .card-categoria {
@@ -2348,9 +2361,17 @@ document.addEventListener('DOMContentLoaded', function() {
     const categoriasFijas = document.getElementById('categorias-fijas');
     const yaPosicionado = sessionStorage.getItem('portada_categorias_posicionada');
 
+    if (categoriasFijas) {
+        categoriasFijas.classList.add('fija-visible');
+    }
+
     if (categoriasFijas && !yaPosicionado && volverEditor !== '1') {
         window.setTimeout(function() {
-            categoriasFijas.scrollIntoView({ block: 'start' });
+            const posicionCategorias = categoriasFijas.offsetTop || 0;
+            window.scrollTo({
+                top: Math.max(0, posicionCategorias - 8),
+                behavior: 'auto'
+            });
             sessionStorage.setItem('portada_categorias_posicionada', '1');
         }, 120);
     }
