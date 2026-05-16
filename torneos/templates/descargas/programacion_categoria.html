@@ -198,6 +198,10 @@ body {
     min-height: 1920px;
     height: 1920px;
     overflow: hidden;
+    background:
+        linear-gradient(rgba(2, 6, 23, 0.24), rgba(2, 6, 23, 0.34)),
+        radial-gradient(circle at 72% 18%, rgba(255,255,255,0.18), transparent 20%),
+        linear-gradient(135deg, #274d1f 0%, #6c963d 45%, #244719 100%);
 }
 
 .contenedor.compacta .encabezado {
@@ -278,6 +282,118 @@ body {
 .contenedor.compacta .vs {
     font-size: 28px;
 }
+
+.programacion-estado {
+    width: 94%;
+    margin: 0 auto;
+}
+
+.contenedor.compacta .programacion-estado {
+    display: block;
+}
+
+.bloque-dia {
+    margin-bottom: 13px;
+}
+
+.bloque-titulo {
+    width: 90%;
+    margin: 0 auto 8px;
+    padding: 7px 18px;
+    background: #030712;
+    color: white;
+    font-size: 27px;
+    line-height: 1;
+    text-align: center;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    box-sizing: border-box;
+}
+
+.fila-programacion {
+    display: grid;
+    grid-template-columns: 118px 1fr 118px 1fr;
+    align-items: center;
+    min-height: 93px;
+    margin-bottom: 8px;
+    gap: 0;
+}
+
+.hora-partido {
+    height: 84px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: #f1db19;
+    color: white;
+    border-radius: 7px;
+    font-size: 32px;
+    line-height: 1;
+    text-transform: uppercase;
+}
+
+.hora-partido .categoria-fila {
+    margin-top: 4px;
+    font-size: 12px;
+    line-height: 1;
+    color: rgba(255,255,255,0.95);
+    letter-spacing: 0;
+}
+
+.fila-programacion:nth-child(odd) .hora-partido,
+.fila-programacion:nth-child(odd) .vs-estado {
+    background: #178f25;
+}
+
+.equipo-estado {
+    height: 84px;
+    display: grid;
+    grid-template-columns: 66px 1fr;
+    align-items: center;
+    background: rgba(255, 250, 241, 0.95);
+    color: #12070a;
+    font-size: 31px;
+    line-height: 1.02;
+    letter-spacing: 5px;
+    text-transform: uppercase;
+    padding: 0 12px;
+    box-sizing: border-box;
+}
+
+.equipo-estado.visitante {
+    grid-template-columns: 1fr 66px;
+}
+
+.equipo-estado img {
+    width: 56px;
+    height: 56px;
+    object-fit: contain;
+}
+
+.equipo-estado .nombre-equipo {
+    text-align: center;
+}
+
+.vs-estado {
+    height: 84px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f1db19;
+    color: white;
+    font-size: 30px;
+    letter-spacing: 1px;
+}
+
+.recordatorio {
+    margin: 14px auto 0;
+    color: #050505;
+    text-align: center;
+    font-size: 44px;
+    font-weight: 900;
+    letter-spacing: 2px;
+}
 </style>
 </head>
 
@@ -304,6 +420,50 @@ body {
         <h2>PROGRAMACIÓN DE PARTIDOS</h2>
     </div>
 
+    {% if compacta %}
+    <div class="programacion-estado">
+        {% regroup partidos by bloque as bloques_programacion %}
+
+        {% for bloque in bloques_programacion %}
+        <div class="bloque-dia">
+            <div class="bloque-titulo">{{ bloque.grouper }}</div>
+
+            {% for p in bloque.list %}
+            <div class="fila-programacion">
+                <div class="hora-partido">
+                    <span>{{ p.hora_texto }}</span>
+                    {% if mostrar_categoria %}
+                        <span class="categoria-fila">{{ p.categoria }}</span>
+                    {% endif %}
+                </div>
+
+                <div class="equipo-estado">
+                    {% if p.escudo_local %}
+                        <img src="{{ p.escudo_local }}">
+                    {% endif %}
+                    <div class="nombre-equipo">{{ p.local }}</div>
+                </div>
+
+                <div class="vs-estado">VS</div>
+
+                <div class="equipo-estado visitante">
+                    <div class="nombre-equipo">{{ p.visitante }}</div>
+                    {% if p.escudo_visitante %}
+                        <img src="{{ p.escudo_visitante }}">
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% empty %}
+        <div class="sin-partidos">
+            No hay partidos programados para esta categorÃ­a.
+        </div>
+        {% endfor %}
+
+        <div class="recordatorio">SE LES RECUERDA SER PUNTUALES</div>
+    </div>
+    {% else %}
     <div class="lista-partidos">
 
         {% for p in partidos %}
@@ -346,6 +506,7 @@ body {
         {% endfor %}
 
     </div>
+    {% endif %}
 
 </div>
 

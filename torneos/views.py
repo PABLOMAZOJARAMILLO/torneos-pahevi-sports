@@ -1152,6 +1152,20 @@ def construir_partidos_programacion(request, categoria_obj=None):
         5: "SÁBADO",
         6: "DOMINGO",
     }
+    meses = {
+        1: "ENERO",
+        2: "FEBRERO",
+        3: "MARZO",
+        4: "ABRIL",
+        5: "MAYO",
+        6: "JUNIO",
+        7: "JULIO",
+        8: "AGOSTO",
+        9: "SEPTIEMBRE",
+        10: "OCTUBRE",
+        11: "NOVIEMBRE",
+        12: "DICIEMBRE",
+    }
 
     partidos = Partido.objects.filter(
         estado="PROGRAMADO",
@@ -1188,9 +1202,24 @@ def construir_partidos_programacion(request, categoria_obj=None):
             dia_semana = dias_semana[p.fecha.weekday()]
 
         fase = p.fase or "GRUPOS"
+        fecha_corta = ""
+
+        if p.fecha:
+            fecha_corta = f"{dia_semana} {p.fecha.day} {meses[p.fecha.month]}"
+
+        hora_12 = ""
+
+        if p.hora:
+            hora = p.hora.hour
+            periodo = "AM" if hora < 12 else "PM"
+            hora_12 = hora % 12 or 12
+            minuto = f":{p.hora.minute:02d}" if p.hora.minute else ""
+            hora_12 = f"{hora_12}{minuto} {periodo}"
 
         partidos_programacion.append({
             "categoria": p.categoria.nombre if p.categoria else "",
+            "bloque": f"{fecha_corta} / CANCHA {p.cancha}",
+            "hora_texto": hora_12,
             "grupo": p.grupo,
             "fase": fase,
             "estado": p.estado,
