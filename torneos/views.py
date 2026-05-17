@@ -185,6 +185,32 @@ def documentos_publicos_por_tipo():
     }
 
 
+def subir_documento_cloudinary(archivo, tipo):
+    import cloudinary
+    import cloudinary.uploader
+
+    cloudinary_url = getattr(settings, "CLOUDINARY_URL", "")
+
+    if cloudinary_url:
+        os.environ["CLOUDINARY_URL"] = cloudinary_url
+        cloudinary.config(secure=True)
+    else:
+        cloudinary.config(
+            cloud_name=settings.CLOUDINARY_CLOUD_NAME,
+            api_key=settings.CLOUDINARY_API_KEY,
+            api_secret=settings.CLOUDINARY_API_SECRET,
+            secure=True,
+        )
+
+    archivo.seek(0)
+    resultado = cloudinary.uploader.upload(
+        archivo,
+        resource_type="auto",
+        folder=f"documentos/{limpiar_ruta_cloudinary(tipo)}",
+    )
+    return resultado.get("secure_url") or resultado["url"]
+
+
 def limpiar_nombre(nombre):
     nombre = str(nombre).strip()
     nombre = re.sub(r'[\\/*?:"<>|]', '', nombre)
@@ -2162,7 +2188,12 @@ def gestion_documento_nuevo(request):
     form = DocumentoForm(request.POST or None, request.FILES or None)
 
     if request.method == "POST" and form.is_valid():
-        form.save()
+        documento = form.save(commit=False)
+        documento.archivo = subir_documento_cloudinary(
+            form.cleaned_data["archivo_subido"],
+            documento.tipo,
+        )
+        documento.save()
         messages.success(request, "Documento creado correctamente.")
         return redirect("gestion_documentos")
 
@@ -2180,7 +2211,13 @@ def gestion_documento_editar(request, documento_id):
     form = DocumentoForm(request.POST or None, request.FILES or None, instance=documento)
 
     if request.method == "POST" and form.is_valid():
-        form.save()
+        documento = form.save(commit=False)
+        archivo_subido = form.cleaned_data.get("archivo_subido")
+
+        if archivo_subido:
+            documento.archivo = subir_documento_cloudinary(archivo_subido, documento.tipo)
+
+        documento.save()
         messages.success(request, "Documento actualizado correctamente.")
         return redirect("gestion_documentos")
 

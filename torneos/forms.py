@@ -4,18 +4,25 @@ from .models import Documento, Equipo, Jugador, Partido
 
 
 class DocumentoForm(forms.ModelForm):
+    archivo_subido = forms.FileField(label="Archivo", required=False)
+
     class Meta:
         model = Documento
         fields = [
             "tipo",
             "titulo",
             "descripcion",
-            "archivo",
+            "archivo_subido",
             "activo",
         ]
         widgets = {
             "descripcion": forms.Textarea(attrs={"rows": 3}),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if not self.instance.pk:
+            self.fields["archivo_subido"].required = True
 
 
 class EquipoForm(forms.ModelForm):

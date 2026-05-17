@@ -85,7 +85,7 @@ class Documento(models.Model):
     tipo = models.CharField(max_length=20, choices=TIPOS, verbose_name="Tipo")
     titulo = models.CharField(max_length=180, verbose_name="Título")
     descripcion = models.TextField(blank=True, null=True, verbose_name="Descripción")
-    archivo = models.FileField(upload_to=ruta_documento, verbose_name="Archivo")
+    archivo = models.URLField(max_length=600, verbose_name="Archivo")
     activo = models.BooleanField(default=True, verbose_name="Activo")
     creado_en = models.DateTimeField(auto_now_add=True, verbose_name="Creado en")
 

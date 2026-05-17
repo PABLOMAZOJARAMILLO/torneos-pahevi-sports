@@ -32,7 +32,7 @@
         {% endif %}
         <div class="muted">
             {% if documento.activo %}Visible{% else %}Oculto{% endif %}
-            {% if documento.archivo %} - <a href="{{ documento.archivo.url }}" target="_blank" rel="noopener">Ver archivo</a>{% endif %}
+            {% if documento.archivo %} - <a href="{{ documento.archivo }}" target="_blank" rel="noopener">Ver archivo</a>{% endif %}
         </div>
     </div>
     <a class="btn" href="{% url 'gestion_documento_editar' documento.id %}">Editar</a>
