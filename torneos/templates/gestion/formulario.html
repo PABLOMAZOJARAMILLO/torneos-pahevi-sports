@@ -4,6 +4,74 @@
 {% block heading %}{{ titulo }}{% endblock %}
 
 {% block content %}
+<style>
+    .cloudinary-picker {
+        margin: 18px 0;
+        padding: 14px;
+        border: 1px solid rgba(0, 255, 102, 0.35);
+        border-radius: 14px;
+        background: rgba(15, 23, 42, 0.72);
+    }
+    .cloudinary-picker h2 {
+        margin: 0 0 6px;
+        color: #00ff66;
+        font-size: 18px;
+        text-transform: uppercase;
+    }
+    .cloudinary-picker p {
+        margin: 0 0 12px;
+    }
+    .cloudinary-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(118px, 1fr));
+        gap: 10px;
+        max-height: 420px;
+        overflow: auto;
+        padding-right: 4px;
+    }
+    .cloudinary-option {
+        display: grid;
+        gap: 7px;
+        align-content: start;
+        border: 2px solid rgba(148, 163, 184, 0.32);
+        border-radius: 12px;
+        padding: 8px;
+        background: #0b1526;
+        color: #e5e7eb;
+        cursor: pointer;
+        text-align: center;
+        font: inherit;
+    }
+    .cloudinary-option img {
+        width: 100%;
+        aspect-ratio: 1 / 1;
+        object-fit: contain;
+        background: #fff;
+        border-radius: 9px;
+        padding: 6px;
+    }
+    .cloudinary-option span {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-size: 12px;
+    }
+    .cloudinary-option.is-selected {
+        border-color: #00ff66;
+        box-shadow: 0 0 0 3px rgba(0, 255, 102, 0.16);
+    }
+    .cloudinary-actions {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-top: 12px;
+    }
+    .cloudinary-selected {
+        color: #bbf7d0;
+        font-size: 13px;
+    }
+</style>
+
 <p><a class="btn secondary" href="{% url volver_url %}">Volver</a></p>
 
 <form method="post" enctype="multipart/form-data">
@@ -19,6 +87,28 @@
         {% endfor %}
     {% endfor %}
 
+    {% if cloudinary_images %}
+        <section class="cloudinary-picker" data-cloudinary-picker>
+            <h2>{{ cloudinary_label }}</h2>
+            <p class="muted">Puedes subir una imagen nueva arriba, o elegir una de estas sin volverla a cargar.</p>
+            <input type="hidden" name="imagen_cloudinary" id="imagen-cloudinary">
+            <div class="cloudinary-grid">
+                {% for image in cloudinary_images %}
+                    <button class="cloudinary-option" type="button" data-public-id="{{ image.public_id }}">
+                        <img src="{{ image.url }}" alt="{{ image.nombre }}" loading="lazy">
+                        <span title="{{ image.public_id }}">{{ image.nombre }}</span>
+                    </button>
+                {% endfor %}
+            </div>
+            <div class="cloudinary-actions">
+                <button class="btn secondary" type="button" data-clear-cloudinary>Quitar seleccion</button>
+                <span class="cloudinary-selected" data-selected-cloudinary>No has seleccionado imagen existente.</span>
+            </div>
+        </section>
+    {% elif cloudinary_label %}
+        <div class="message">No se pudieron cargar imagenes de Cloudinary en este momento. Puedes seguir subiendo una imagen nueva.</div>
+    {% endif %}
+
     {% if form.non_field_errors %}
         {% for error in form.non_field_errors %}
             <div class="message">{{ error }}</div>
@@ -27,4 +117,31 @@
 
     <p><button class="btn" type="submit">Guardar</button></p>
 </form>
+
+<script>
+    (function () {
+        var picker = document.querySelector('[data-cloudinary-picker]');
+        if (!picker) return;
+
+        var input = document.getElementById('imagen-cloudinary');
+        var label = picker.querySelector('[data-selected-cloudinary]');
+        var buttons = picker.querySelectorAll('.cloudinary-option');
+        var clear = picker.querySelector('[data-clear-cloudinary]');
+
+        buttons.forEach(function (button) {
+            button.addEventListener('click', function () {
+                buttons.forEach(function (item) { item.classList.remove('is-selected'); });
+                button.classList.add('is-selected');
+                input.value = button.getAttribute('data-public-id');
+                label.textContent = 'Seleccionada: ' + input.value;
+            });
+        });
+
+        clear.addEventListener('click', function () {
+            buttons.forEach(function (item) { item.classList.remove('is-selected'); });
+            input.value = '';
+            label.textContent = 'No has seleccionado imagen existente.';
+        });
+    })();
+</script>
 {% endblock %}

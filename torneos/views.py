@@ -4,6 +4,7 @@ from concurrent.futures import ThreadPoolExecutor, TimeoutError
 import os
 import re
 
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.http import FileResponse, HttpResponse
@@ -24,6 +25,50 @@ from .models import Categoria, Equipo, Partido, Gol, Tarjeta, Jugador, Alineacio
 
 def es_editor_torneo(user):
     return user.is_authenticated and (user.is_staff or user.is_superuser)
+
+
+def listar_imagenes_cloudinary(max_results=80):
+    if not getattr(settings, "USE_CLOUDINARY_STORAGE", False):
+        return []
+
+    try:
+        import cloudinary.api
+
+        configurar = getattr(default_storage, "_configure", None)
+        if configurar:
+            configurar()
+
+        respuesta = cloudinary.api.resources(
+            resource_type="image",
+            type="upload",
+            max_results=max_results,
+            direction="desc",
+        )
+    except Exception:
+        return []
+
+    imagenes = []
+    for recurso in respuesta.get("resources", []):
+        public_id = recurso.get("public_id", "")
+        url = recurso.get("secure_url") or recurso.get("url")
+        if not public_id or not url:
+            continue
+
+        carpeta = public_id.split("/", 1)[0] if "/" in public_id else "General"
+        imagenes.append({
+            "public_id": public_id,
+            "url": url,
+            "carpeta": carpeta,
+            "nombre": public_id.rsplit("/", 1)[-1],
+        })
+
+    return imagenes
+
+
+def aplicar_imagen_cloudinary(instancia, campo, public_id, archivo_subido):
+    public_id = (public_id or "").strip()
+    if public_id and not archivo_subido:
+        setattr(instancia, campo, public_id)
 
 
 def limpiar_nombre(nombre):
@@ -2153,7 +2198,15 @@ def gestion_equipo_nuevo(request):
     form = EquipoForm(request.POST or None, request.FILES or None)
 
     if request.method == "POST" and form.is_valid():
-        equipo = form.save()
+        equipo = form.save(commit=False)
+        aplicar_imagen_cloudinary(
+            equipo,
+            "escudo",
+            request.POST.get("imagen_cloudinary"),
+            request.FILES.get("escudo"),
+        )
+        equipo.save()
+        form.save_m2m()
         messages.success(request, "Equipo creado correctamente.")
         return redirect("gestion_equipo_editar", equipo_id=equipo.id)
 
@@ -2161,6 +2214,8 @@ def gestion_equipo_nuevo(request):
         "titulo": "Nuevo equipo",
         "form": form,
         "volver_url": "gestion_equipos",
+        "cloudinary_images": listar_imagenes_cloudinary(),
+        "cloudinary_label": "Seleccionar escudo existente de Cloudinary",
     })
 
 
@@ -2171,7 +2226,15 @@ def gestion_equipo_editar(request, equipo_id):
     form = EquipoForm(request.POST or None, request.FILES or None, instance=equipo)
 
     if request.method == "POST" and form.is_valid():
-        form.save()
+        equipo = form.save(commit=False)
+        aplicar_imagen_cloudinary(
+            equipo,
+            "escudo",
+            request.POST.get("imagen_cloudinary"),
+            request.FILES.get("escudo"),
+        )
+        equipo.save()
+        form.save_m2m()
         messages.success(request, "Equipo actualizado correctamente.")
         return redirect("gestion_equipos")
 
@@ -2179,6 +2242,8 @@ def gestion_equipo_editar(request, equipo_id):
         "titulo": f"Editar equipo: {equipo.nombre}",
         "form": form,
         "volver_url": "gestion_equipos",
+        "cloudinary_images": listar_imagenes_cloudinary(),
+        "cloudinary_label": "Seleccionar escudo existente de Cloudinary",
     })
 
 
@@ -2220,7 +2285,15 @@ def gestion_jugador_nuevo(request):
     form = JugadorForm(request.POST or None, request.FILES or None)
 
     if request.method == "POST" and form.is_valid():
-        jugador = form.save()
+        jugador = form.save(commit=False)
+        aplicar_imagen_cloudinary(
+            jugador,
+            "foto",
+            request.POST.get("imagen_cloudinary"),
+            request.FILES.get("foto"),
+        )
+        jugador.save()
+        form.save_m2m()
         messages.success(request, "Jugador creado correctamente.")
         return redirect("gestion_jugador_editar", jugador_id=jugador.id)
 
@@ -2228,6 +2301,8 @@ def gestion_jugador_nuevo(request):
         "titulo": "Nuevo jugador",
         "form": form,
         "volver_url": "gestion_jugadores",
+        "cloudinary_images": listar_imagenes_cloudinary(),
+        "cloudinary_label": "Seleccionar foto existente de Cloudinary",
     })
 
 
@@ -2238,7 +2313,15 @@ def gestion_jugador_editar(request, jugador_id):
     form = JugadorForm(request.POST or None, request.FILES or None, instance=jugador)
 
     if request.method == "POST" and form.is_valid():
-        form.save()
+        jugador = form.save(commit=False)
+        aplicar_imagen_cloudinary(
+            jugador,
+            "foto",
+            request.POST.get("imagen_cloudinary"),
+            request.FILES.get("foto"),
+        )
+        jugador.save()
+        form.save_m2m()
         messages.success(request, "Jugador actualizado correctamente.")
         return redirect("gestion_jugadores")
 
@@ -2246,6 +2329,8 @@ def gestion_jugador_editar(request, jugador_id):
         "titulo": f"Editar jugador: {jugador.nombres}",
         "form": form,
         "volver_url": "gestion_jugadores",
+        "cloudinary_images": listar_imagenes_cloudinary(),
+        "cloudinary_label": "Seleccionar foto existente de Cloudinary",
     })
 
 
