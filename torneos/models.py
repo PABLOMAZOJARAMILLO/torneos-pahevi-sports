@@ -1,5 +1,34 @@
+import os
+import re
+
 from django.db import models
 from django.contrib.auth.models import User
+
+
+def limpiar_ruta_cloudinary(valor):
+    valor = str(valor or "").strip().upper()
+    valor = re.sub(r'[\\/*?:"<>|#%&{}$!@+=`~]', '', valor)
+    valor = re.sub(r'\s+', '_', valor)
+    return valor or "SIN_NOMBRE"
+
+
+def extension_archivo(nombre_archivo):
+    _, extension = os.path.splitext(nombre_archivo or "")
+    return extension.lower() or ".jpg"
+
+
+def ruta_escudo_equipo(instance, filename):
+    categoria = limpiar_ruta_cloudinary(getattr(instance.categoria, "nombre", "SIN_CATEGORIA"))
+    equipo = limpiar_ruta_cloudinary(instance.nombre)
+    return f"equipos/{categoria}/{equipo}/escudo{extension_archivo(filename)}"
+
+
+def ruta_foto_jugador(instance, filename):
+    equipo = instance.equipo
+    categoria = limpiar_ruta_cloudinary(getattr(equipo.categoria, "nombre", "SIN_CATEGORIA"))
+    equipo_nombre = limpiar_ruta_cloudinary(getattr(equipo, "nombre", "SIN_EQUIPO"))
+    jugador = limpiar_ruta_cloudinary(instance.cedula or instance.nombres)
+    return f"jugadores/{categoria}/{equipo_nombre}/{jugador}{extension_archivo(filename)}"
 
 
 class Torneo(models.Model):
@@ -50,7 +79,7 @@ class Equipo(models.Model):
     telefono_dt = models.CharField(max_length=30, blank=True, null=True, verbose_name='Celular DT')
     asistente_tecnico = models.CharField(max_length=150, blank=True, null=True, verbose_name='Asistente técnico')
     telefono_at = models.CharField(max_length=30, blank=True, null=True, verbose_name='Celular AT')
-    escudo = models.ImageField(upload_to='escudos/', blank=True, null=True, verbose_name='Escudo')
+    escudo = models.ImageField(upload_to=ruta_escudo_equipo, blank=True, null=True, verbose_name='Escudo')
     activo = models.BooleanField(default=True, verbose_name='Activo')
 
     class Meta:
@@ -76,7 +105,7 @@ class Jugador(models.Model):
     fecha_nacimiento = models.DateField(verbose_name='Fecha de nacimiento')
     telefono = models.CharField(max_length=30, blank=True, null=True, verbose_name='Teléfono')
     estado = models.CharField(max_length=20, choices=ESTADOS, default='ACTIVO', verbose_name='Estado')
-    foto = models.ImageField(upload_to='jugadores/', blank=True, null=True, verbose_name='Foto')
+    foto = models.ImageField(upload_to=ruta_foto_jugador, blank=True, null=True, verbose_name='Foto')
 
     class Meta:
         verbose_name = 'Jugador'
