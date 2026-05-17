@@ -1371,6 +1371,18 @@ body.solo-lectura {
     padding-top: 204px !important;
 }
 
+body.categoria-activa {
+    padding-top: 148px !important;
+}
+
+body.categoria-activa .pantalla-categorias {
+    display: none !important;
+}
+
+body.categoria-activa .categoria {
+    display: block !important;
+}
+
 .pantalla-categorias > .titulo-app,
 .pantalla-categorias > .subtitulo-app {
     display: none !important;
@@ -1525,6 +1537,10 @@ body.solo-lectura .menu-principal {
         padding-top: 166px !important;
     }
 
+    body.categoria-activa {
+        padding-top: 102px !important;
+    }
+
     .encabezado-panel {
         height: 92px !important;
         border-radius: 0 !important;
@@ -1642,7 +1658,7 @@ body.solo-lectura .menu-principal {
     </style>
 </head>
 
-<body class="{% if not request.user.is_staff %}solo-lectura{% endif %}">
+<body class="{% if not request.user.is_staff %}solo-lectura{% endif %}{% if categoria_seleccionada %} categoria-activa{% endif %}">
 
 <div class="encabezado-panel">
     {% if logo_alcaldia %}
@@ -1803,7 +1819,7 @@ body.solo-lectura .menu-principal {
 {% if renderizar_categorias_detalle %}
 <div id="categoria-detalle"></div>
 {% for categoria, datos_categoria in estructura.items %}
-<div class="categoria categoria-oculta" id="categoria-{{ forloop.counter }}">
+<div class="categoria" id="categoria-{{ forloop.counter }}">
 
     <div class="categoria-barra-interna">
         <button class="btn-volver" onclick="volverCategorias()">← Categorías</button>
@@ -2614,6 +2630,11 @@ function mostrarCategoria(idCategoria) {
 }
 
 function volverCategorias() {
+    if (categoriaInicial) {
+        window.location.href = window.location.pathname;
+        return;
+    }
+
     document.querySelectorAll('.categoria').forEach(function(cat) {
         cat.style.display = 'none';
         cat.classList.remove('vista-tablas');
@@ -2809,12 +2830,7 @@ document.addEventListener('DOMContentLoaded', function() {
             categoriaCargada.style.display = 'block';
             categoriaCargada.classList.add('vista-tablas');
             activarPrimeraPestana(categoriaCargada);
-            window.setTimeout(function() {
-                const detalle = document.getElementById('categoria-detalle');
-                if (detalle) {
-                    detalle.scrollIntoView({ behavior: 'auto', block: 'start' });
-                }
-            }, 80);
+            window.scrollTo({ top: 0, behavior: 'auto' });
             return;
         }
     }
