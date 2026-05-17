@@ -190,21 +190,10 @@ def subir_documento_cloudinary(archivo, tipo):
     import cloudinary.uploader
 
     cloudinary_url = getattr(settings, "CLOUDINARY_URL", "").strip()
-
-    cloud_name = getattr(settings, "CLOUDINARY_CLOUD_NAME", "").strip()
-    api_key = getattr(settings, "CLOUDINARY_API_KEY", "").strip()
-    api_secret = getattr(settings, "CLOUDINARY_API_SECRET", "").strip()
-
-    if cloud_name and api_key and api_secret:
-        cloudinary.config(
-            cloud_name=cloud_name,
-            api_key=api_key,
-            api_secret=api_secret,
-            secure=True,
-        )
-    elif cloudinary_url:
+    if cloudinary_url:
         os.environ["CLOUDINARY_URL"] = cloudinary_url
-        cloudinary.config(secure=True)
+
+    cloudinary.config(secure=True)
 
     archivo.seek(0)
     resultado = cloudinary.uploader.upload(
