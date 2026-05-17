@@ -52,6 +52,8 @@ def listar_imagenes_cloudinary(max_results=80):
                 url = recurso.get("secure_url") or recurso.get("url")
                 if not public_id or not url:
                     continue
+                if public_id.startswith("documentos/"):
+                    continue
 
                 carpeta = public_id.split("/", 1)[0] if "/" in public_id else "General"
                 imagenes.append({
