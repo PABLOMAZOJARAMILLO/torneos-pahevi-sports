@@ -1429,6 +1429,76 @@ body.solo-lectura .fase-btn {
     font-size: 11px !important;
 }
 
+.menu-principal {
+    position: fixed;
+    top: 178px;
+    left: 0;
+    right: 0;
+    z-index: 38;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 10px 18px;
+    background: #f4f7fb;
+    border-bottom: 1px solid #dbe4ef;
+    box-shadow: 0 6px 18px rgba(15, 23, 42, 0.12);
+}
+
+body.solo-lectura .menu-principal {
+    top: 126px;
+}
+
+.selector-categoria {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 260px;
+}
+
+.selector-categoria span {
+    color: #10213f;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0;
+}
+
+.selector-categoria select {
+    min-height: 42px;
+    border: 1px solid #cbd5e1;
+    border-radius: 10px;
+    padding: 8px 12px;
+    background: #ffffff;
+    color: #10213f;
+    font-weight: 900;
+}
+
+.pestanas-principales {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+}
+
+.pestana-principal {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 38px;
+    padding: 8px 14px;
+    border: 1px solid #cbd5e1;
+    border-radius: 999px;
+    background: #ffffff;
+    color: #10213f;
+    text-decoration: none;
+    font-weight: 900;
+    white-space: nowrap;
+}
+
+.pestana-principal.activa {
+    background: #00e565;
+    border-color: #00e565;
+    color: #03110a;
+}
+
 @media (max-width: 768px) {
     body {
         padding: 218px 10px 10px !important;
@@ -1482,8 +1552,35 @@ body.solo-lectura .fase-btn {
         padding: 8px 10px !important;
     }
 
+    .menu-principal {
+        top: 140px !important;
+        min-height: 72px !important;
+        padding: 8px 10px !important;
+        align-items: stretch;
+        flex-direction: column;
+        gap: 7px;
+    }
+
     body.solo-lectura .categorias-grid {
         top: 92px !important;
+    }
+
+    body.solo-lectura .menu-principal {
+        top: 92px !important;
+    }
+
+    .selector-categoria {
+        min-width: 0;
+        width: 100%;
+    }
+
+    .selector-categoria select {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .pestanas-principales {
+        width: 100%;
     }
 
     .categorias-grid .card-categoria {
@@ -1584,22 +1681,26 @@ body.solo-lectura .fase-btn {
     </section>
     {% endif %}
 
-    <div class="categorias-grid" id="categorias-fijas">
-    {% for categoria, datos_categoria in estructura.items %}
-    <a class="card-categoria" href="?categoria={{ categoria|urlencode }}">
-        <div class="card-logo">
-            <img src="{{ logo_imcred }}">
+    <nav class="menu-principal" id="categorias-fijas">
+        <div class="selector-categoria">
+            <span>Categoría</span>
+            <select onchange="abrirCategoriaSelect(this.value)">
+                <option value="">Seleccionar</option>
+                {% for categoria in categorias_menu %}
+                    <option value="{{ categoria.nombre }}" {% if categoria.nombre == categoria_seleccionada %}selected{% endif %}>
+                        {{ categoria.nombre }}
+                    </option>
+                {% endfor %}
+            </select>
         </div>
 
-        <div class="card-info">
-            <h2>{{ categoria }}</h2>
-            <p>Ver resultados, posiciones y estadísticas</p>
+        <div class="pestanas-principales">
+            <a href="#timeline-partidos" class="pestana-principal activa">Partidos</a>
+            <a href="#reglamentos" class="pestana-principal">Reglamentos</a>
+            <a href="#resoluciones" class="pestana-principal">Resoluciones</a>
+            <a href="#demandas" class="pestana-principal">Demandas</a>
         </div>
-
-        <div class="card-icono">›</div>
-    </a>
-    {% endfor %}
-    </div>
+    </nav>
 
     <section class="portada-seccion" id="timeline-partidos">
         <h2>Partidos</h2>
@@ -1665,9 +1766,25 @@ body.solo-lectura .fase-btn {
             {% endif %}
         </div>
     </section>
+
+    <section class="portada-seccion seccion-documentos" id="reglamentos">
+        <h2>Reglamentos</h2>
+        <div class="partido-portada">Próximamente podrás consultar reglamentos del torneo.</div>
+    </section>
+
+    <section class="portada-seccion seccion-documentos" id="resoluciones">
+        <h2>Resoluciones</h2>
+        <div class="partido-portada">Próximamente podrás consultar resoluciones oficiales.</div>
+    </section>
+
+    <section class="portada-seccion seccion-documentos" id="demandas">
+        <h2>Demandas</h2>
+        <div class="partido-portada">Próximamente podrás consultar demandas y decisiones.</div>
+    </section>
 </div>
 
 {% if renderizar_categorias_detalle %}
+<div id="categoria-detalle"></div>
 {% for categoria, datos_categoria in estructura.items %}
 <div class="categoria categoria-oculta" id="categoria-{{ forloop.counter }}">
 
@@ -2424,6 +2541,11 @@ body.solo-lectura .fase-btn {
 <script>
 const categoriaInicial = "{{ categoria_seleccionada|default:''|escapejs }}";
 
+function abrirCategoriaSelect(categoria) {
+    if (!categoria) return;
+    window.location.href = '?categoria=' + encodeURIComponent(categoria) + '#categoria-detalle';
+}
+
 function toggleEquipo(idEquipo) {
     const detalle = document.getElementById(idEquipo);
     if (!detalle) return;
@@ -2648,11 +2770,15 @@ document.addEventListener('DOMContentLoaded', function() {
     if (categoriaInicial) {
         const categoriaCargada = document.querySelector('.categoria');
         if (categoriaCargada) {
-            document.getElementById('pantalla-categorias').style.display = 'none';
             categoriaCargada.style.display = 'block';
             categoriaCargada.classList.add('vista-tablas');
             activarPrimeraPestana(categoriaCargada);
-            window.scrollTo({ top: 0, behavior: 'auto' });
+            window.setTimeout(function() {
+                const detalle = document.getElementById('categoria-detalle');
+                if (detalle) {
+                    detalle.scrollIntoView({ behavior: 'auto', block: 'start' });
+                }
+            }, 80);
             return;
         }
     }

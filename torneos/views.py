@@ -1032,6 +1032,7 @@ def panel_principal(request):
 
     return render(request, "panel_principal.html", {
         "estructura": estructura,
+        "categorias_menu": categorias,
         "categoria_seleccionada": categoria_seleccionada,
         "renderizar_categorias_detalle": bool(categoria_seleccionada),
         "partidos_portada": partidos_portada,
