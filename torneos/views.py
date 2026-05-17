@@ -28,41 +28,146 @@ def es_editor_torneo(user):
 
 
 def listar_imagenes_cloudinary(max_results=80):
-    if not getattr(settings, "USE_CLOUDINARY_STORAGE", False):
-        return []
+    imagenes = []
+
+    if getattr(settings, "USE_CLOUDINARY_STORAGE", False):
+        try:
+            import cloudinary.api
+
+            configurar = getattr(default_storage, "_configure", None)
+            if configurar:
+                configurar()
+
+            respuesta = cloudinary.api.resources(
+                resource_type="image",
+                type="upload",
+                max_results=max_results,
+            )
+        except Exception as exc:
+            print(f"No se pudieron listar imagenes de Cloudinary: {exc}")
+        else:
+            for recurso in respuesta.get("resources", []):
+                public_id = recurso.get("public_id", "")
+                url = recurso.get("secure_url") or recurso.get("url")
+                if not public_id or not url:
+                    continue
+
+                carpeta = public_id.split("/", 1)[0] if "/" in public_id else "General"
+                imagenes.append({
+                    "public_id": public_id,
+                    "url": url,
+                    "carpeta": carpeta,
+                    "nombre": public_id.rsplit("/", 1)[-1],
+                })
+
+    if imagenes:
+        return imagenes
+
+    return listar_imagenes_usadas()
+
+
+def listar_imagenes_usadas():
+    imagenes = []
+    vistos = set()
+
+    def agregar(nombre, url):
+        nombre = str(nombre or "").strip()
+        url = str(url or "").strip()
+        if not nombre or nombre in vistos:
+            return
+        vistos.add(nombre)
+        imagenes.append({
+            "public_id": nombre,
+            "url": url,
+            "carpeta": nombre.split("/", 1)[0] if "/" in nombre else "General",
+            "nombre": nombre.rsplit("/", 1)[-1],
+        })
+
+    for equipo in Equipo.objects.exclude(escudo="").exclude(escudo__isnull=True).order_by("nombre"):
+        try:
+            agregar(equipo.escudo.name, equipo.escudo.url)
+        except Exception:
+            continue
+
+    for jugador in Jugador.objects.exclude(foto="").exclude(foto__isnull=True).order_by("nombres"):
+        try:
+            agregar(jugador.foto.name, jugador.foto.url)
+        except Exception:
+            continue
+
+    return imagenes
+
+
+def url_imagen_cloudinary(public_id):
+    if not public_id:
+        return ""
 
     try:
-        import cloudinary.api
-
         configurar = getattr(default_storage, "_configure", None)
         if configurar:
             configurar()
 
-        respuesta = cloudinary.api.resources(
+        import cloudinary.utils
+
+        return cloudinary.utils.cloudinary_url(
+            str(public_id),
             resource_type="image",
-            type="upload",
-            max_results=max_results,
-            direction="desc",
-        )
+            secure=True,
+        )[0]
     except Exception:
-        return []
+        return ""
 
-    imagenes = []
-    for recurso in respuesta.get("resources", []):
-        public_id = recurso.get("public_id", "")
-        url = recurso.get("secure_url") or recurso.get("url")
-        if not public_id or not url:
-            continue
 
-        carpeta = public_id.split("/", 1)[0] if "/" in public_id else "General"
-        imagenes.append({
-            "public_id": public_id,
-            "url": url,
-            "carpeta": carpeta,
-            "nombre": public_id.rsplit("/", 1)[-1],
-        })
+@login_required
+@user_passes_test(es_editor_torneo)
+def gestion_biblioteca_cloudinary(request):
+    imagenes = listar_imagenes_cloudinary(500)
+    q = request.GET.get("q", "").strip()
 
-    return imagenes
+    if q:
+        imagenes = [
+            imagen for imagen in imagenes
+            if q.lower() in imagen["public_id"].lower()
+        ]
+
+    return render(request, "gestion/biblioteca_cloudinary.html", {
+        "imagenes": imagenes,
+        "q": q,
+        "equipos": Equipo.objects.select_related("categoria").order_by("categoria__nombre", "nombre"),
+        "jugadores": Jugador.objects.select_related("equipo").order_by("equipo__nombre", "nombres"),
+    })
+
+
+@login_required
+@user_passes_test(es_editor_torneo)
+def gestion_asignar_imagen_cloudinary(request):
+    if request.method != "POST":
+        return redirect("gestion_biblioteca_cloudinary")
+
+    public_id = (request.POST.get("public_id") or "").strip()
+    tipo = request.POST.get("tipo")
+    objeto_id = request.POST.get("objeto_id")
+
+    if not public_id or not tipo or not objeto_id:
+        messages.error(request, "Selecciona una imagen y un destino.")
+        return redirect("gestion_biblioteca_cloudinary")
+
+    if tipo == "equipo":
+        equipo = get_object_or_404(Equipo, id=objeto_id)
+        equipo.escudo = public_id
+        equipo.save(update_fields=["escudo"])
+        messages.success(request, f"Imagen asignada al equipo {equipo.nombre}.")
+        return redirect("gestion_equipo_editar", equipo_id=equipo.id)
+
+    if tipo == "jugador":
+        jugador = get_object_or_404(Jugador, id=objeto_id)
+        jugador.foto = public_id
+        jugador.save(update_fields=["foto"])
+        messages.success(request, f"Imagen asignada al jugador {jugador.nombres}.")
+        return redirect("gestion_jugador_editar", jugador_id=jugador.id)
+
+    messages.error(request, "Destino no valido.")
+    return redirect("gestion_biblioteca_cloudinary")
 
 
 def aplicar_imagen_cloudinary(instancia, campo, public_id, archivo_subido):

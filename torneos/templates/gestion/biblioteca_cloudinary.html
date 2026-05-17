@@ -1,0 +1,103 @@
+{% extends "gestion/base.html" %}
+
+{% block title %}Biblioteca Cloudinary{% endblock %}
+{% block heading %}Biblioteca Cloudinary{% endblock %}
+
+{% block content %}
+<style>
+    .library-tools {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-bottom: 14px;
+    }
+    .library-tools input {
+        min-width: min(100%, 320px);
+        flex: 1;
+    }
+    .asset-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+        gap: 14px;
+    }
+    .asset-card {
+        display: grid;
+        gap: 10px;
+        background: #101d30;
+        border: 1px solid rgba(0, 255, 102, 0.35);
+        border-radius: 14px;
+        padding: 12px;
+    }
+    .asset-card img {
+        width: 100%;
+        height: 170px;
+        object-fit: contain;
+        background: #fff;
+        border-radius: 10px;
+        padding: 8px;
+    }
+    .asset-name {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        color: #bbf7d0;
+        font-size: 13px;
+    }
+    .asset-actions {
+        display: grid;
+        gap: 8px;
+    }
+    .asset-actions button {
+        width: 100%;
+    }
+</style>
+
+<p><a class="btn secondary" href="{% url 'gestion_panel' %}">Volver</a></p>
+
+<form class="library-tools" method="get">
+    <input type="search" name="q" value="{{ q }}" placeholder="Buscar por nombre o carpeta">
+    <button class="btn" type="submit">Buscar</button>
+    <a class="btn secondary" href="{% url 'gestion_biblioteca_cloudinary' %}">Limpiar</a>
+</form>
+
+{% if imagenes %}
+    <div class="asset-grid">
+        {% for image in imagenes %}
+            <article class="asset-card">
+                <img src="{{ image.url }}" alt="{{ image.nombre }}" loading="lazy">
+                <div class="asset-name" title="{{ image.public_id }}">{{ image.public_id }}</div>
+
+                <form class="asset-actions" method="post" action="{% url 'gestion_asignar_imagen_cloudinary' %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="public_id" value="{{ image.public_id }}">
+
+                    <label>Asignar como escudo</label>
+                    <select name="objeto_id">
+                        {% for equipo in equipos %}
+                            <option value="{{ equipo.id }}">{{ equipo.categoria.nombre }} - {{ equipo.nombre }}</option>
+                        {% endfor %}
+                    </select>
+                    <input type="hidden" name="tipo" value="equipo">
+                    <button class="btn" type="submit">Asignar a equipo</button>
+                </form>
+
+                <form class="asset-actions" method="post" action="{% url 'gestion_asignar_imagen_cloudinary' %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="public_id" value="{{ image.public_id }}">
+
+                    <label>Asignar como foto</label>
+                    <select name="objeto_id">
+                        {% for jugador in jugadores %}
+                            <option value="{{ jugador.id }}">{{ jugador.equipo.nombre }} - {{ jugador.nombres }}</option>
+                        {% endfor %}
+                    </select>
+                    <input type="hidden" name="tipo" value="jugador">
+                    <button class="btn secondary" type="submit">Asignar a jugador</button>
+                </form>
+            </article>
+        {% endfor %}
+    </div>
+{% else %}
+    <div class="message">No se encontraron imagenes. Si acabas de subir una, espera unos segundos y vuelve a entrar.</div>
+{% endif %}
+{% endblock %}

@@ -153,6 +153,8 @@ urlpatterns = [
 
     path('gestion/', views.gestion_panel, name='gestion_panel'),
     path('gestion/probar-storage/', views.gestion_probar_storage, name='gestion_probar_storage'),
+    path('gestion/biblioteca-cloudinary/', views.gestion_biblioteca_cloudinary, name='gestion_biblioteca_cloudinary'),
+    path('gestion/biblioteca-cloudinary/asignar/', views.gestion_asignar_imagen_cloudinary, name='gestion_asignar_imagen_cloudinary'),
     path('gestion/generar-fixture/', views.gestion_generar_fixture, name='gestion_generar_fixture'),
     path('gestion/equipos/', views.gestion_equipos, name='gestion_equipos'),
     path('gestion/equipos/nuevo/', views.gestion_equipo_nuevo, name='gestion_equipo_nuevo'),
