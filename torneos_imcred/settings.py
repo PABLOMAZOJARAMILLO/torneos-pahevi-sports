@@ -133,6 +133,7 @@ MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
 USE_SUPABASE_STORAGE = os.getenv("USE_SUPABASE_STORAGE", "").lower() in {"1", "true", "yes"}
+USE_CLOUDINARY_STORAGE = os.getenv("USE_CLOUDINARY_STORAGE", "").lower() in {"1", "true", "yes"}
 
 STORAGES = {
     "default": {
@@ -143,7 +144,15 @@ STORAGES = {
     },
 }
 
-if USE_SUPABASE_STORAGE:
+if USE_CLOUDINARY_STORAGE:
+    CLOUDINARY_CLOUD_NAME = os.getenv("CLOUDINARY_CLOUD_NAME")
+    CLOUDINARY_API_KEY = os.getenv("CLOUDINARY_API_KEY")
+    CLOUDINARY_API_SECRET = os.getenv("CLOUDINARY_API_SECRET")
+
+    STORAGES["default"] = {
+        "BACKEND": "torneos.storage_backends.CloudinaryMediaStorage",
+    }
+elif USE_SUPABASE_STORAGE:
     from botocore.config import Config
 
     SUPABASE_STORAGE_BUCKET = os.getenv("SUPABASE_STORAGE_BUCKET", "torneos-media")
