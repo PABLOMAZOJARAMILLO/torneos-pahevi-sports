@@ -144,6 +144,8 @@ STORAGES = {
 }
 
 if USE_SUPABASE_STORAGE:
+    from botocore.config import Config
+
     SUPABASE_STORAGE_BUCKET = os.getenv("SUPABASE_STORAGE_BUCKET", "torneos-media")
     SUPABASE_PUBLIC_MEDIA_URL = os.getenv("SUPABASE_PUBLIC_MEDIA_URL", "").rstrip("/")
 
@@ -153,9 +155,17 @@ if USE_SUPABASE_STORAGE:
     AWS_S3_ENDPOINT_URL = os.getenv("SUPABASE_S3_ENDPOINT_URL")
     AWS_S3_REGION_NAME = os.getenv("SUPABASE_S3_REGION_NAME", "us-east-1")
     AWS_S3_ADDRESSING_STYLE = "path"
+    AWS_S3_SIGNATURE_VERSION = "s3v4"
     AWS_DEFAULT_ACL = None
     AWS_QUERYSTRING_AUTH = False
     AWS_S3_FILE_OVERWRITE = False
+    AWS_S3_CLIENT_CONFIG = Config(
+        connect_timeout=5,
+        read_timeout=20,
+        retries={"max_attempts": 2},
+        signature_version="s3v4",
+        s3={"addressing_style": "path"},
+    )
     AWS_S3_OBJECT_PARAMETERS = {
         "CacheControl": "max-age=86400",
     }
