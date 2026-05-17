@@ -3,6 +3,7 @@ from datetime import date, datetime, time
 from concurrent.futures import ThreadPoolExecutor, TimeoutError
 import os
 import re
+import uuid
 
 from django.conf import settings
 from django.contrib import messages
@@ -186,6 +187,44 @@ def documentos_publicos_por_tipo():
     }
 
 
+def subir_documento_supabase(archivo, tipo):
+    import boto3
+    from urllib.parse import quote
+
+    bucket = os.getenv("SUPABASE_STORAGE_BUCKET", "torneos-media").strip()
+    endpoint_url = os.getenv("SUPABASE_S3_ENDPOINT_URL", "").strip()
+    access_key = os.getenv("SUPABASE_S3_ACCESS_KEY_ID", "").strip()
+    secret_key = os.getenv("SUPABASE_S3_SECRET_ACCESS_KEY", "").strip()
+    region_name = os.getenv("SUPABASE_S3_REGION_NAME", "us-east-1").strip()
+    public_base = os.getenv("SUPABASE_PUBLIC_MEDIA_URL", "").strip().rstrip("/")
+
+    if not all([bucket, endpoint_url, access_key, secret_key, public_base]):
+        return ""
+
+    nombre_archivo = limpiar_ruta_cloudinary(os.path.splitext(archivo.name)[0])
+    extension = os.path.splitext(archivo.name)[1].lower() or ".pdf"
+    llave = f"documentos/{limpiar_ruta_cloudinary(tipo)}/{uuid.uuid4().hex}_{nombre_archivo}{extension}"
+
+    cliente = boto3.client(
+        "s3",
+        endpoint_url=endpoint_url,
+        aws_access_key_id=access_key,
+        aws_secret_access_key=secret_key,
+        region_name=region_name,
+    )
+
+    archivo.seek(0)
+    cliente.upload_fileobj(
+        archivo,
+        bucket,
+        llave,
+        ExtraArgs={
+            "ContentType": getattr(archivo, "content_type", "application/octet-stream"),
+        },
+    )
+    return f"{public_base}/{quote(llave, safe='/')}"
+
+
 def subir_documento_cloudinary(archivo, tipo):
     import cloudinary
     import cloudinary.uploader
@@ -203,6 +242,14 @@ def subir_documento_cloudinary(archivo, tipo):
         folder=f"documentos/{limpiar_ruta_cloudinary(tipo)}",
     )
     return resultado.get("secure_url") or resultado["url"]
+
+
+def subir_documento_torneo(archivo, tipo):
+    url_supabase = subir_documento_supabase(archivo, tipo)
+    if url_supabase:
+        return url_supabase
+
+    return subir_documento_cloudinary(archivo, tipo)
 
 
 def limpiar_nombre(nombre):
@@ -2184,7 +2231,7 @@ def gestion_documento_nuevo(request):
 
     if request.method == "POST" and form.is_valid():
         documento = form.save(commit=False)
-        documento.archivo = subir_documento_cloudinary(
+        documento.archivo = subir_documento_torneo(
             form.cleaned_data["archivo_subido"],
             documento.tipo,
         )
@@ -2210,7 +2257,7 @@ def gestion_documento_editar(request, documento_id):
         archivo_subido = form.cleaned_data.get("archivo_subido")
 
         if archivo_subido:
-            documento.archivo = subir_documento_cloudinary(archivo_subido, documento.tipo)
+            documento.archivo = subir_documento_torneo(archivo_subido, documento.tipo)
 
         documento.save()
         messages.success(request, "Documento actualizado correctamente.")
