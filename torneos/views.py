@@ -1923,8 +1923,12 @@ def gestion_probar_storage(request):
         return nombre, default_storage.url(nombre)
 
     try:
-        with ThreadPoolExecutor(max_workers=1) as executor:
-            nombre, url = executor.submit(subir_prueba).result(timeout=10)
+        executor = ThreadPoolExecutor(max_workers=1)
+        future = executor.submit(subir_prueba)
+        try:
+            nombre, url = future.result(timeout=10)
+        finally:
+            executor.shutdown(wait=False, cancel_futures=True)
     except TimeoutError:
         return HttpResponse(
             "ERROR STORAGE\n\nTimeoutError: Supabase Storage no respondio en 10 segundos desde Render.",
