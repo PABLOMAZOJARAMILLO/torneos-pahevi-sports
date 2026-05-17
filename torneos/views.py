@@ -1,5 +1,6 @@
 from collections import defaultdict
 from datetime import date, datetime, time
+from concurrent.futures import ThreadPoolExecutor, TimeoutError
 import os
 import re
 
@@ -1916,9 +1917,20 @@ def crear_jugador_equipo(request, equipo_id):
 @login_required
 @user_passes_test(es_editor_torneo)
 def gestion_probar_storage(request):
+    def subir_prueba():
+        nombre_archivo = f"pruebas/render-test-{datetime.now().strftime('%Y%m%d%H%M%S')}.txt"
+        nombre = default_storage.save(nombre_archivo, ContentFile(b"ok"))
+        return nombre, default_storage.url(nombre)
+
     try:
-        nombre = default_storage.save("pruebas/render-test.txt", ContentFile(b"ok"))
-        url = default_storage.url(nombre)
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            nombre, url = executor.submit(subir_prueba).result(timeout=10)
+    except TimeoutError:
+        return HttpResponse(
+            "ERROR STORAGE\n\nTimeoutError: Supabase Storage no respondio en 10 segundos desde Render.",
+            status=504,
+            content_type="text/plain",
+        )
     except Exception as exc:
         return HttpResponse(
             f"ERROR STORAGE\n\n{type(exc).__name__}: {exc}",
