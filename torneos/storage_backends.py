@@ -64,13 +64,19 @@ class CloudinaryMediaStorage(Storage):
         self._configure()
         public_id = self._public_id(name)
         resource_type = self._resource_type(name)
+        upload_options = {
+            "public_id": public_id,
+            "resource_type": resource_type,
+            "overwrite": True,
+        }
+
+        if resource_type == "image":
+            upload_options["invalidate"] = True
+
         content.seek(0)
         cloudinary.uploader.upload(
             content,
-            public_id=public_id,
-            resource_type=resource_type,
-            overwrite=True,
-            invalidate=True,
+            **upload_options,
         )
         return public_id
 
