@@ -1527,6 +1527,10 @@ body.solo-lectura .menu-principal {
     display: block;
 }
 
+.seccion-documentos {
+    scroll-margin-top: 250px;
+}
+
 .documentos-lista {
     display: grid;
     gap: 10px;
@@ -1650,6 +1654,10 @@ body.solo-lectura .menu-principal {
     .selector-documentos select {
         flex: 1;
         min-width: 0;
+    }
+
+    .seccion-documentos {
+        scroll-margin-top: 190px;
     }
 
     .pestanas-principales {
@@ -2697,7 +2705,21 @@ function mostrarSeccionPrincipal(seccion, boton) {
 
     const destino = document.querySelector('[data-seccion-principal="' + seccion + '"]');
     if (destino) {
-        destino.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        const encabezado = document.querySelector('.encabezado-panel');
+        const acciones = document.querySelector('.acciones-portada');
+        const menu = document.getElementById('categorias-fijas');
+        const altoFijo = (
+            (encabezado ? encabezado.offsetHeight : 0) +
+            (acciones ? acciones.offsetHeight : 0) +
+            (menu ? menu.offsetHeight : 0) +
+            18
+        );
+        const posicion = destino.getBoundingClientRect().top + window.pageYOffset - altoFijo;
+
+        window.scrollTo({
+            top: Math.max(0, posicion),
+            behavior: 'smooth'
+        });
     }
 }
 
