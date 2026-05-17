@@ -31,6 +31,12 @@ def ruta_foto_jugador(instance, filename):
     return f"jugadores/{categoria}/{equipo_nombre}/{jugador}{extension_archivo(filename)}"
 
 
+def ruta_documento(instance, filename):
+    tipo = limpiar_ruta_cloudinary(instance.tipo)
+    titulo = limpiar_ruta_cloudinary(instance.titulo)
+    return f"documentos/{tipo}/{titulo}{extension_archivo(filename)}"
+
+
 class Torneo(models.Model):
     ESTADOS = [
         ('ACTIVO', 'Activo'),
@@ -67,6 +73,29 @@ class Categoria(models.Model):
 
     def __str__(self):
         return f"{self.nombre} - {self.torneo.nombre}"
+
+
+class Documento(models.Model):
+    TIPOS = [
+        ("REGLAMENTO", "Reglamento"),
+        ("RESOLUCION", "Resolución"),
+        ("DEMANDA", "Demanda"),
+    ]
+
+    tipo = models.CharField(max_length=20, choices=TIPOS, verbose_name="Tipo")
+    titulo = models.CharField(max_length=180, verbose_name="Título")
+    descripcion = models.TextField(blank=True, null=True, verbose_name="Descripción")
+    archivo = models.FileField(upload_to=ruta_documento, verbose_name="Archivo")
+    activo = models.BooleanField(default=True, verbose_name="Activo")
+    creado_en = models.DateTimeField(auto_now_add=True, verbose_name="Creado en")
+
+    class Meta:
+        verbose_name = "Documento"
+        verbose_name_plural = "Documentos"
+        ordering = ["tipo", "-creado_en", "titulo"]
+
+    def __str__(self):
+        return f"{self.get_tipo_display()} - {self.titulo}"
 
 
 class Equipo(models.Model):

@@ -1524,6 +1524,41 @@ body.solo-lectura .menu-principal {
     display: block;
 }
 
+.documentos-lista {
+    display: grid;
+    gap: 10px;
+}
+
+.documento-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 14px;
+    border: 1px solid #dbe4ef;
+    border-radius: 12px;
+    background: #ffffff;
+    color: #10213f;
+    text-decoration: none;
+}
+
+.documento-card strong {
+    display: block;
+    margin-bottom: 4px;
+}
+
+.documento-card span {
+    color: #4b5563;
+    font-size: 13px;
+}
+
+.documento-card em {
+    color: #00a85a;
+    font-style: normal;
+    font-weight: 900;
+    white-space: nowrap;
+}
+
 #categoria-detalle {
     scroll-margin-top: 260px;
 }
@@ -1802,17 +1837,53 @@ body.solo-lectura .menu-principal {
 
     <section class="portada-seccion seccion-documentos seccion-principal" id="reglamentos" data-seccion-principal="reglamentos">
         <h2>Reglamentos</h2>
-        <div class="partido-portada">Próximamente podrás consultar reglamentos del torneo.</div>
+        <div class="documentos-lista">
+            {% for documento in reglamentos %}
+                <a class="documento-card" href="{{ documento.archivo.url }}" target="_blank" rel="noopener">
+                    <div>
+                        <strong>{{ documento.titulo }}</strong>
+                        {% if documento.descripcion %}<span>{{ documento.descripcion }}</span>{% endif %}
+                    </div>
+                    <em>Ver</em>
+                </a>
+            {% empty %}
+                <div class="partido-portada">Próximamente podrás consultar reglamentos del torneo.</div>
+            {% endfor %}
+        </div>
     </section>
 
     <section class="portada-seccion seccion-documentos seccion-principal" id="resoluciones" data-seccion-principal="resoluciones">
         <h2>Resoluciones</h2>
-        <div class="partido-portada">Próximamente podrás consultar resoluciones oficiales.</div>
+        <div class="documentos-lista">
+            {% for documento in resoluciones %}
+                <a class="documento-card" href="{{ documento.archivo.url }}" target="_blank" rel="noopener">
+                    <div>
+                        <strong>{{ documento.titulo }}</strong>
+                        {% if documento.descripcion %}<span>{{ documento.descripcion }}</span>{% endif %}
+                    </div>
+                    <em>Ver</em>
+                </a>
+            {% empty %}
+                <div class="partido-portada">Próximamente podrás consultar resoluciones oficiales.</div>
+            {% endfor %}
+        </div>
     </section>
 
     <section class="portada-seccion seccion-documentos seccion-principal" id="demandas" data-seccion-principal="demandas">
         <h2>Demandas</h2>
-        <div class="partido-portada">Próximamente podrás consultar demandas y decisiones.</div>
+        <div class="documentos-lista">
+            {% for documento in demandas %}
+                <a class="documento-card" href="{{ documento.archivo.url }}" target="_blank" rel="noopener">
+                    <div>
+                        <strong>{{ documento.titulo }}</strong>
+                        {% if documento.descripcion %}<span>{{ documento.descripcion }}</span>{% endif %}
+                    </div>
+                    <em>Ver</em>
+                </a>
+            {% empty %}
+                <div class="partido-portada">Próximamente podrás consultar demandas y decisiones.</div>
+            {% endfor %}
+        </div>
     </section>
 </div>
 

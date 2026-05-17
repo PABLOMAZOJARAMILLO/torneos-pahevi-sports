@@ -7,7 +7,7 @@ from import_export.admin import ImportExportModelAdmin
 from import_export.widgets import ForeignKeyWidget
 from openpyxl import load_workbook
 
-from .models import Torneo, Categoria, Equipo, Jugador, Partido, Gol, Tarjeta, AlineacionPartido, SustitucionPartido
+from .models import Torneo, Categoria, Documento, Equipo, Jugador, Partido, Gol, Tarjeta, AlineacionPartido, SustitucionPartido
 from django.contrib import admin
 
 admin.site.register(Torneo)
@@ -277,6 +277,14 @@ class CategoriaAdmin(ImportExportModelAdmin):
     resource_class = CategoriaResource
     list_display = ('nombre', 'edad_minima', 'edad_maxima')
     search_fields = ('nombre',)
+
+
+@admin.register(Documento)
+class DocumentoAdmin(admin.ModelAdmin):
+    list_display = ('tipo', 'titulo', 'activo', 'creado_en')
+    list_filter = ('tipo', 'activo')
+    search_fields = ('titulo', 'descripcion')
+    ordering = ('tipo', '-creado_en', 'titulo')
 
 
 class JugadorInline(admin.TabularInline):

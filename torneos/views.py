@@ -19,8 +19,8 @@ from html2image import Html2Image
 from django.views.decorators.http import require_POST
 from openpyxl import load_workbook
 
-from .forms import EquipoForm, JugadorForm, PartidoForm
-from .models import Categoria, Equipo, Partido, Gol, Tarjeta, Jugador, AlineacionPartido, SustitucionPartido
+from .forms import DocumentoForm, EquipoForm, JugadorForm, PartidoForm
+from .models import Categoria, Documento, Equipo, Partido, Gol, Tarjeta, Jugador, AlineacionPartido, SustitucionPartido
 
 
 def es_editor_torneo(user):
@@ -174,6 +174,15 @@ def aplicar_imagen_cloudinary(instancia, campo, public_id, archivo_subido):
     public_id = (public_id or "").strip()
     if public_id and not archivo_subido:
         setattr(instancia, campo, public_id)
+
+
+def documentos_publicos_por_tipo():
+    documentos = Documento.objects.filter(activo=True).order_by("tipo", "-creado_en", "titulo")
+    return {
+        "reglamentos": documentos.filter(tipo="REGLAMENTO"),
+        "resoluciones": documentos.filter(tipo="RESOLUCION"),
+        "demandas": documentos.filter(tipo="DEMANDA"),
+    }
 
 
 def limpiar_nombre(nombre):
@@ -1029,6 +1038,7 @@ def panel_principal(request):
 
     logos = rutas_logos(request)
     partidos_portada = construir_partidos_portada()
+    documentos = documentos_publicos_por_tipo()
 
     return render(request, "panel_principal.html", {
         "estructura": estructura,
@@ -1039,6 +1049,9 @@ def panel_principal(request):
         "partidos_resultados": [p for p in partidos_portada if p["bloque"] == "RESULTADOS RECIENTES"],
         "partidos_programados": [p for p in partidos_portada if p["bloque"] == "PROGRAMADOS"],
         "partidos_futuros": [p for p in partidos_portada if p["bloque"] == "FUTUROS"],
+        "reglamentos": documentos["reglamentos"],
+        "resoluciones": documentos["resoluciones"],
+        "demandas": documentos["demandas"],
         "logo_alcaldia": logos["logo_alcaldia"],
         "logo_torneo": logos["logo_torneo"],
         "logo_imcred": logos["logo_imcred"],
@@ -2123,6 +2136,58 @@ def gestion_panel(request):
         "total_equipos": Equipo.objects.count(),
         "total_jugadores": Jugador.objects.count(),
         "total_partidos": Partido.objects.count(),
+        "total_documentos": Documento.objects.count(),
+    })
+
+
+@login_required
+@user_passes_test(es_editor_torneo)
+def gestion_documentos(request):
+    documentos = Documento.objects.order_by("tipo", "-creado_en", "titulo")
+    tipo = request.GET.get("tipo", "").strip()
+
+    if tipo:
+        documentos = documentos.filter(tipo=tipo)
+
+    return render(request, "gestion/documentos.html", {
+        "documentos": documentos,
+        "tipo": tipo,
+        "tipos": Documento.TIPOS,
+    })
+
+
+@login_required
+@user_passes_test(es_editor_torneo)
+def gestion_documento_nuevo(request):
+    form = DocumentoForm(request.POST or None, request.FILES or None)
+
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        messages.success(request, "Documento creado correctamente.")
+        return redirect("gestion_documentos")
+
+    return render(request, "gestion/formulario.html", {
+        "titulo": "Nuevo documento",
+        "form": form,
+        "volver_url": "gestion_documentos",
+    })
+
+
+@login_required
+@user_passes_test(es_editor_torneo)
+def gestion_documento_editar(request, documento_id):
+    documento = get_object_or_404(Documento, id=documento_id)
+    form = DocumentoForm(request.POST or None, request.FILES or None, instance=documento)
+
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        messages.success(request, "Documento actualizado correctamente.")
+        return redirect("gestion_documentos")
+
+    return render(request, "gestion/formulario.html", {
+        "titulo": f"Editar documento: {documento.titulo}",
+        "form": form,
+        "volver_url": "gestion_documentos",
     })
 
 

@@ -1,6 +1,21 @@
 from django import forms
 
-from .models import Equipo, Jugador, Partido
+from .models import Documento, Equipo, Jugador, Partido
+
+
+class DocumentoForm(forms.ModelForm):
+    class Meta:
+        model = Documento
+        fields = [
+            "tipo",
+            "titulo",
+            "descripcion",
+            "archivo",
+            "activo",
+        ]
+        widgets = {
+            "descripcion": forms.Textarea(attrs={"rows": 3}),
+        }
 
 
 class EquipoForm(forms.ModelForm):

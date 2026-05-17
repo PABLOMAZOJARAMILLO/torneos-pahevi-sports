@@ -1,0 +1,43 @@
+{% extends "gestion/base.html" %}
+
+{% block title %}Documentos{% endblock %}
+{% block heading %}Documentos{% endblock %}
+
+{% block content %}
+<p>
+    <a class="btn secondary" href="{% url 'gestion_panel' %}">Volver</a>
+    <a class="btn" href="{% url 'gestion_documento_nuevo' %}">Nuevo documento</a>
+</p>
+
+<form method="get">
+    <label for="tipo">Filtrar por tipo</label>
+    <select id="tipo" name="tipo">
+        <option value="">Todos</option>
+        {% for valor, etiqueta in tipos %}
+            <option value="{{ valor }}" {% if tipo == valor %}selected{% endif %}>{{ etiqueta }}</option>
+        {% endfor %}
+    </select>
+    <p>
+        <button class="btn" type="submit">Filtrar</button>
+        <a class="btn secondary" href="{% url 'gestion_documentos' %}">Limpiar</a>
+    </p>
+</form>
+
+{% for documento in documentos %}
+<div class="row">
+    <div>
+        <strong>{{ documento.get_tipo_display }} - {{ documento.titulo }}</strong>
+        {% if documento.descripcion %}
+            <div class="muted">{{ documento.descripcion }}</div>
+        {% endif %}
+        <div class="muted">
+            {% if documento.activo %}Visible{% else %}Oculto{% endif %}
+            {% if documento.archivo %} - <a href="{{ documento.archivo.url }}" target="_blank" rel="noopener">Ver archivo</a>{% endif %}
+        </div>
+    </div>
+    <a class="btn" href="{% url 'gestion_documento_editar' documento.id %}">Editar</a>
+</div>
+{% empty %}
+    <div class="message">No hay documentos cargados.</div>
+{% endfor %}
+{% endblock %}

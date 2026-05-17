@@ -18,6 +18,17 @@ class SupabaseMediaStorage(S3Storage):
 
 
 class CloudinaryMediaStorage(Storage):
+    raw_extensions = {
+        ".pdf",
+        ".doc",
+        ".docx",
+        ".xls",
+        ".xlsx",
+        ".ppt",
+        ".pptx",
+        ".txt",
+    }
+
     def _configure(self):
         import cloudinary
 
@@ -37,20 +48,27 @@ class CloudinaryMediaStorage(Storage):
 
     def _public_id(self, name):
         clean_name = str(name).replace("\\", "/").lstrip("/")
-        if "." in clean_name:
+        if "." in clean_name and self._resource_type(clean_name) == "image":
             clean_name = clean_name.rsplit(".", 1)[0]
         return clean_name
+
+    def _resource_type(self, name):
+        extension = os.path.splitext(str(name).lower())[1]
+        if extension in self.raw_extensions:
+            return "raw"
+        return "image"
 
     def _save(self, name, content):
         import cloudinary.uploader
 
         self._configure()
         public_id = self._public_id(name)
+        resource_type = self._resource_type(name)
         content.seek(0)
         cloudinary.uploader.upload(
             content,
             public_id=public_id,
-            resource_type="image",
+            resource_type=resource_type,
             overwrite=True,
             invalidate=True,
         )
@@ -65,6 +83,6 @@ class CloudinaryMediaStorage(Storage):
         self._configure()
         return cloudinary.utils.cloudinary_url(
             str(name),
-            resource_type="image",
+            resource_type=self._resource_type(name),
             secure=True,
         )[0]
