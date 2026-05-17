@@ -20,7 +20,7 @@ from django.views.decorators.http import require_POST
 from openpyxl import load_workbook
 
 from .forms import DocumentoForm, EquipoForm, JugadorForm, PartidoForm
-from .models import Categoria, Documento, Equipo, Partido, Gol, Tarjeta, Jugador, AlineacionPartido, SustitucionPartido
+from .models import Categoria, Documento, Equipo, Partido, Gol, Tarjeta, Jugador, AlineacionPartido, SustitucionPartido, limpiar_ruta_cloudinary
 
 
 def es_editor_torneo(user):
