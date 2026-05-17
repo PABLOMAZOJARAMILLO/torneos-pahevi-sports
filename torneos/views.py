@@ -6,6 +6,8 @@ import re
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.http import FileResponse, HttpResponse
+from django.core.files.base import ContentFile
+from django.core.files.storage import default_storage
 from django.db.models import Q
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.staticfiles import finders
@@ -1909,6 +1911,25 @@ def crear_jugador_equipo(request, equipo_id):
     return render(request, 'equipos/crear_jugador.html', {
         'equipo': equipo
     })
+
+
+@login_required
+@user_passes_test(es_editor_torneo)
+def gestion_probar_storage(request):
+    try:
+        nombre = default_storage.save("pruebas/render-test.txt", ContentFile(b"ok"))
+        url = default_storage.url(nombre)
+    except Exception as exc:
+        return HttpResponse(
+            f"ERROR STORAGE\n\n{type(exc).__name__}: {exc}",
+            status=500,
+            content_type="text/plain",
+        )
+
+    return HttpResponse(
+        f"STORAGE OK\n\nArchivo: {nombre}\nURL: {url}",
+        content_type="text/plain",
+    )
 
 
 @login_required

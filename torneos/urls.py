@@ -152,6 +152,7 @@ urlpatterns = [
     path('mis-equipos/', views.mis_equipos, name='mis_equipos'),
 
     path('gestion/', views.gestion_panel, name='gestion_panel'),
+    path('gestion/probar-storage/', views.gestion_probar_storage, name='gestion_probar_storage'),
     path('gestion/generar-fixture/', views.gestion_generar_fixture, name='gestion_generar_fixture'),
     path('gestion/equipos/', views.gestion_equipos, name='gestion_equipos'),
     path('gestion/equipos/nuevo/', views.gestion_equipo_nuevo, name='gestion_equipo_nuevo'),
