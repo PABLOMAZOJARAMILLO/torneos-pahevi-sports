@@ -198,7 +198,7 @@ def subir_documento_cloudinary(archivo, tipo):
     archivo.seek(0)
     resultado = cloudinary.uploader.upload(
         archivo,
-        resource_type="auto",
+        resource_type="raw",
         folder=f"documentos/{limpiar_ruta_cloudinary(tipo)}",
     )
     return resultado.get("secure_url") or resultado["url"]
