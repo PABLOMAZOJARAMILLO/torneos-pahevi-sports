@@ -1764,6 +1764,7 @@ body.solo-lectura .menu-principal {
                 <option value="reglamentos">Reglamentos</option>
                 <option value="resoluciones">Resoluciones</option>
                 <option value="demandas">Demandas</option>
+                <option value="comunicados">Comunicados</option>
             </select>
         </div>
     </nav>
@@ -1889,6 +1890,23 @@ body.solo-lectura .menu-principal {
                 </a>
             {% empty %}
                 <div class="partido-portada">Próximamente podrás consultar demandas y decisiones.</div>
+            {% endfor %}
+        </div>
+    </section>
+
+    <section class="portada-seccion seccion-documentos seccion-principal" id="comunicados" data-seccion-principal="comunicados">
+        <h2>Comunicados</h2>
+        <div class="documentos-lista">
+            {% for documento in comunicados %}
+                <a class="documento-card" href="{{ documento.archivo }}" target="_blank" rel="noopener">
+                    <div>
+                        <strong>{{ documento.titulo }}</strong>
+                        {% if documento.descripcion %}<span>{{ documento.descripcion }}</span>{% endif %}
+                    </div>
+                    <em>Ver</em>
+                </a>
+            {% empty %}
+                <div class="partido-portada">Próximamente podrás consultar comunicados oficiales.</div>
             {% endfor %}
         </div>
     </section>

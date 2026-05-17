@@ -80,6 +80,7 @@ class Documento(models.Model):
         ("REGLAMENTO", "Reglamento"),
         ("RESOLUCION", "Resolución"),
         ("DEMANDA", "Demanda"),
+        ("COMUNICADO", "Comunicado"),
     ]
 
     tipo = models.CharField(max_length=20, choices=TIPOS, verbose_name="Tipo")

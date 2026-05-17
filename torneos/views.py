@@ -182,6 +182,7 @@ def documentos_publicos_por_tipo():
         "reglamentos": documentos.filter(tipo="REGLAMENTO"),
         "resoluciones": documentos.filter(tipo="RESOLUCION"),
         "demandas": documentos.filter(tipo="DEMANDA"),
+        "comunicados": documentos.filter(tipo="COMUNICADO"),
     }
 
 
@@ -1071,6 +1072,7 @@ def panel_principal(request):
         "reglamentos": documentos["reglamentos"],
         "resoluciones": documentos["resoluciones"],
         "demandas": documentos["demandas"],
+        "comunicados": documentos["comunicados"],
         "logo_alcaldia": logos["logo_alcaldia"],
         "logo_torneo": logos["logo_torneo"],
         "logo_imcred": logos["logo_imcred"],
