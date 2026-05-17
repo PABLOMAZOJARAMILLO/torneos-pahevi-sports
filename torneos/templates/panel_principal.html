@@ -1460,21 +1460,24 @@ body.solo-lectura .menu-principal {
     top: 126px;
 }
 
-.selector-categoria {
+.selector-categoria,
+.selector-documentos {
     display: flex;
     align-items: center;
     gap: 10px;
     min-width: 260px;
 }
 
-.selector-categoria span {
+.selector-categoria span,
+.selector-documentos span {
     color: #10213f;
     font-size: 13px;
     text-transform: uppercase;
     letter-spacing: 0;
 }
 
-.selector-categoria select {
+.selector-categoria select,
+.selector-documentos select {
     min-height: 42px;
     border: 1px solid #cbd5e1;
     border-radius: 10px;
@@ -1637,12 +1640,14 @@ body.solo-lectura .menu-principal {
         top: 92px !important;
     }
 
-    .selector-categoria {
+    .selector-categoria,
+    .selector-documentos {
         min-width: 0;
         width: 100%;
     }
 
-    .selector-categoria select {
+    .selector-categoria select,
+    .selector-documentos select {
         flex: 1;
         min-width: 0;
     }
@@ -1735,20 +1740,6 @@ body.solo-lectura .menu-principal {
     </div>
     {% endif %}
 
-    {% if partidos_resultados %}
-    <section class="portada-seccion portada-resultados">
-        <h2>Finalizados</h2>
-        <div class="partidos-portada">
-            <div class="bloque-partidos-portada">
-                <h3 class="bloque-titulo-portada">Resultados recientes</h3>
-                {% for partido in partidos_resultados %}
-                    {% include "partials/partido_portada_card.html" %}
-                {% endfor %}
-            </div>
-        </div>
-    </section>
-    {% endif %}
-
     <nav class="menu-principal" id="categorias-fijas">
         <div class="selector-categoria">
             <span>Categoría</span>
@@ -1764,9 +1755,16 @@ body.solo-lectura .menu-principal {
 
         <div class="pestanas-principales">
             <button type="button" class="pestana-principal activa" onclick="mostrarSeccionPrincipal('partidos', this)">Partidos</button>
-            <button type="button" class="pestana-principal" onclick="mostrarSeccionPrincipal('reglamentos', this)">Reglamentos</button>
-            <button type="button" class="pestana-principal" onclick="mostrarSeccionPrincipal('resoluciones', this)">Resoluciones</button>
-            <button type="button" class="pestana-principal" onclick="mostrarSeccionPrincipal('demandas', this)">Demandas</button>
+        </div>
+
+        <div class="selector-documentos">
+            <span>Documentos torneo</span>
+            <select id="selector-documentos-torneo" onchange="mostrarDocumentoPrincipal(this.value)">
+                <option value="">Seleccionar</option>
+                <option value="reglamentos">Reglamentos</option>
+                <option value="resoluciones">Resoluciones</option>
+                <option value="demandas">Demandas</option>
+            </select>
         </div>
     </nav>
 
@@ -1774,6 +1772,15 @@ body.solo-lectura .menu-principal {
         <h2>Partidos</h2>
 
         <div class="partidos-portada">
+            {% if partidos_resultados %}
+            <div class="bloque-partidos-portada">
+                <h3 class="bloque-titulo-portada">Resultados recientes</h3>
+                {% for partido in partidos_resultados %}
+                    {% include "partials/partido_portada_card.html" %}
+                {% endfor %}
+            </div>
+            {% endif %}
+
             {% if partidos_programados %}
             <div class="bloque-partidos-portada" id="punto-inicial-partidos">
                 <h3 class="bloque-titulo-portada">Programados</h3>
@@ -2663,10 +2670,22 @@ function mostrarSeccionPrincipal(seccion, boton) {
         boton.classList.add('activa');
     }
 
+    if (seccion === 'partidos') {
+        const selectorDocumentos = document.getElementById('selector-documentos-torneo');
+        if (selectorDocumentos) {
+            selectorDocumentos.value = '';
+        }
+    }
+
     const destino = document.querySelector('[data-seccion-principal="' + seccion + '"]');
     if (destino) {
         destino.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
+}
+
+function mostrarDocumentoPrincipal(seccion) {
+    if (!seccion) return;
+    mostrarSeccionPrincipal(seccion);
 }
 
 function toggleEquipo(idEquipo) {
