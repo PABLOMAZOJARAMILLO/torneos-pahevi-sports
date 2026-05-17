@@ -1,4 +1,5 @@
 from urllib.parse import quote
+from urllib.parse import urlparse
 
 from django.conf import settings
 from django.core.files.storage import Storage
@@ -19,6 +20,18 @@ class SupabaseMediaStorage(S3Storage):
 class CloudinaryMediaStorage(Storage):
     def _configure(self):
         import cloudinary
+
+        cloudinary_url = getattr(settings, "CLOUDINARY_URL", "")
+
+        if cloudinary_url:
+            parsed = urlparse(cloudinary_url)
+            cloudinary.config(
+                cloud_name=parsed.hostname,
+                api_key=parsed.username,
+                api_secret=parsed.password,
+                secure=True,
+            )
+            return
 
         cloudinary.config(
             cloud_name=settings.CLOUDINARY_CLOUD_NAME,

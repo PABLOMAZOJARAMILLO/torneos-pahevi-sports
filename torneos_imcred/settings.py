@@ -145,6 +145,7 @@ STORAGES = {
 }
 
 if USE_CLOUDINARY_STORAGE:
+    CLOUDINARY_URL = os.getenv("CLOUDINARY_URL", "").strip()
     CLOUDINARY_CLOUD_NAME = os.getenv("CLOUDINARY_CLOUD_NAME", "").strip()
     CLOUDINARY_API_KEY = os.getenv("CLOUDINARY_API_KEY", "").strip()
     CLOUDINARY_API_SECRET = os.getenv("CLOUDINARY_API_SECRET", "").strip()
