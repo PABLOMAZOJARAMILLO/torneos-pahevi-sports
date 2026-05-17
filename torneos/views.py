@@ -1011,12 +1011,29 @@ def construir_partidos_portada():
 
 
 def panel_principal(request):
-    estructura = construir_estructura()
+    categoria_seleccionada = request.GET.get("categoria", "").strip()
+    categorias = Categoria.objects.order_by("nombre")
+
+    if categoria_seleccionada:
+        estructura_total = construir_estructura()
+        estructura = {
+            nombre: datos
+            for nombre, datos in estructura_total.items()
+            if nombre == categoria_seleccionada
+        }
+    else:
+        estructura = {
+            categoria.nombre: estructura_base_categoria()
+            for categoria in categorias
+        }
+
     logos = rutas_logos(request)
     partidos_portada = construir_partidos_portada()
 
     return render(request, "panel_principal.html", {
         "estructura": estructura,
+        "categoria_seleccionada": categoria_seleccionada,
+        "renderizar_categorias_detalle": bool(categoria_seleccionada),
         "partidos_portada": partidos_portada,
         "partidos_resultados": [p for p in partidos_portada if p["bloque"] == "RESULTADOS RECIENTES"],
         "partidos_programados": [p for p in partidos_portada if p["bloque"] == "PROGRAMADOS"],

@@ -1586,7 +1586,7 @@ body.solo-lectura .fase-btn {
 
     <div class="categorias-grid" id="categorias-fijas">
     {% for categoria, datos_categoria in estructura.items %}
-    <div class="card-categoria" onclick="mostrarCategoria('categoria-{{ forloop.counter }}')">
+    <a class="card-categoria" href="?categoria={{ categoria|urlencode }}">
         <div class="card-logo">
             <img src="{{ logo_imcred }}">
         </div>
@@ -1599,7 +1599,7 @@ body.solo-lectura .fase-btn {
         <div class="card-icono">›</div>
     </div>
     {% endfor %}
-    </div>
+    </a>
 
     <section class="portada-seccion" id="timeline-partidos">
         <h2>Partidos</h2>
@@ -1667,6 +1667,7 @@ body.solo-lectura .fase-btn {
     </section>
 </div>
 
+{% if renderizar_categorias_detalle %}
 {% for categoria, datos_categoria in estructura.items %}
 <div class="categoria categoria-oculta" id="categoria-{{ forloop.counter }}">
 
@@ -2418,8 +2419,10 @@ body.solo-lectura .fase-btn {
 {% empty %}
     <h2>No hay categorías registradas</h2>
 {% endfor %}
+{% endif %}
 
 <script>
+const categoriaInicial = "{{ categoria_seleccionada|default:''|escapejs }}";
 
 function toggleEquipo(idEquipo) {
     const detalle = document.getElementById(idEquipo);
@@ -2638,6 +2641,18 @@ document.addEventListener('DOMContentLoaded', function() {
                 mostrarTabCategoria(categoriaEncontrada.id, tab, boton);
             }
 
+            return;
+        }
+    }
+
+    if (categoriaInicial) {
+        const categoriaCargada = document.querySelector('.categoria');
+        if (categoriaCargada) {
+            document.getElementById('pantalla-categorias').style.display = 'none';
+            categoriaCargada.style.display = 'block';
+            categoriaCargada.classList.add('vista-tablas');
+            activarPrimeraPestana(categoriaCargada);
+            window.scrollTo({ top: 0, behavior: 'auto' });
             return;
         }
     }
