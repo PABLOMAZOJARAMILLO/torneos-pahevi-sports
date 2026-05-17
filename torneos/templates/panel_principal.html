@@ -1490,13 +1490,30 @@ body.solo-lectura .menu-principal {
     color: #10213f;
     text-decoration: none;
     font-weight: 900;
+    font: inherit;
     white-space: nowrap;
+}
+
+.pestana-principal {
+    cursor: pointer;
 }
 
 .pestana-principal.activa {
     background: #00e565;
     border-color: #00e565;
     color: #03110a;
+}
+
+.seccion-principal {
+    display: none;
+}
+
+.seccion-principal.activa {
+    display: block;
+}
+
+#categoria-detalle {
+    scroll-margin-top: 260px;
 }
 
 @media (max-width: 768px) {
@@ -1695,14 +1712,14 @@ body.solo-lectura .menu-principal {
         </div>
 
         <div class="pestanas-principales">
-            <a href="#timeline-partidos" class="pestana-principal activa">Partidos</a>
-            <a href="#reglamentos" class="pestana-principal">Reglamentos</a>
-            <a href="#resoluciones" class="pestana-principal">Resoluciones</a>
-            <a href="#demandas" class="pestana-principal">Demandas</a>
+            <button type="button" class="pestana-principal activa" onclick="mostrarSeccionPrincipal('partidos', this)">Partidos</button>
+            <button type="button" class="pestana-principal" onclick="mostrarSeccionPrincipal('reglamentos', this)">Reglamentos</button>
+            <button type="button" class="pestana-principal" onclick="mostrarSeccionPrincipal('resoluciones', this)">Resoluciones</button>
+            <button type="button" class="pestana-principal" onclick="mostrarSeccionPrincipal('demandas', this)">Demandas</button>
         </div>
     </nav>
 
-    <section class="portada-seccion" id="timeline-partidos">
+    <section class="portada-seccion seccion-principal activa" id="timeline-partidos" data-seccion-principal="partidos">
         <h2>Partidos</h2>
 
         <div class="partidos-portada">
@@ -1767,17 +1784,17 @@ body.solo-lectura .menu-principal {
         </div>
     </section>
 
-    <section class="portada-seccion seccion-documentos" id="reglamentos">
+    <section class="portada-seccion seccion-documentos seccion-principal" id="reglamentos" data-seccion-principal="reglamentos">
         <h2>Reglamentos</h2>
         <div class="partido-portada">Próximamente podrás consultar reglamentos del torneo.</div>
     </section>
 
-    <section class="portada-seccion seccion-documentos" id="resoluciones">
+    <section class="portada-seccion seccion-documentos seccion-principal" id="resoluciones" data-seccion-principal="resoluciones">
         <h2>Resoluciones</h2>
         <div class="partido-portada">Próximamente podrás consultar resoluciones oficiales.</div>
     </section>
 
-    <section class="portada-seccion seccion-documentos" id="demandas">
+    <section class="portada-seccion seccion-documentos seccion-principal" id="demandas" data-seccion-principal="demandas">
         <h2>Demandas</h2>
         <div class="partido-portada">Próximamente podrás consultar demandas y decisiones.</div>
     </section>
@@ -2544,6 +2561,25 @@ const categoriaInicial = "{{ categoria_seleccionada|default:''|escapejs }}";
 function abrirCategoriaSelect(categoria) {
     if (!categoria) return;
     window.location.href = '?categoria=' + encodeURIComponent(categoria) + '#categoria-detalle';
+}
+
+function mostrarSeccionPrincipal(seccion, boton) {
+    document.querySelectorAll('[data-seccion-principal]').forEach(function(item) {
+        item.classList.toggle('activa', item.dataset.seccionPrincipal === seccion);
+    });
+
+    document.querySelectorAll('.pestana-principal').forEach(function(item) {
+        item.classList.remove('activa');
+    });
+
+    if (boton) {
+        boton.classList.add('activa');
+    }
+
+    const destino = document.querySelector('[data-seccion-principal="' + seccion + '"]');
+    if (destino) {
+        destino.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
 }
 
 function toggleEquipo(idEquipo) {
