@@ -38,6 +38,17 @@ def cerrar_sesion(request):
     return redirect("panel")
 
 
+def service_worker(request):
+    sw_path = finders.find("sw.js")
+    if not sw_path:
+        return HttpResponse("", content_type="application/javascript")
+
+    with open(sw_path, "r", encoding="utf-8") as archivo:
+        response = HttpResponse(archivo.read(), content_type="application/javascript")
+    response["Service-Worker-Allowed"] = "/"
+    return response
+
+
 def torneo_actual(request):
     torneos = Torneo.objects.order_by("-fecha_inicio", "nombre")
     torneo_id = request.GET.get("torneo") or request.session.get("torneo_id")

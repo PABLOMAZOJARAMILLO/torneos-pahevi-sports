@@ -1,12 +1,20 @@
 {
   "name": "Torneos IMCRED",
   "short_name": "IMCRED",
+  "id": "/",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
   "background_color": "#07111f",
-  "theme_color": "#00ff66",
+  "theme_color": "#07111f",
   "orientation": "portrait",
   "icons": [
+    {
+      "src": "/static/torneos/img/icono-180.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    },
     {
       "src": "/static/torneos/img/icono-192.png",
       "sizes": "192x192",
