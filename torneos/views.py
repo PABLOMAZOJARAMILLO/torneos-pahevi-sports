@@ -1,4 +1,5 @@
 from collections import defaultdict
+from types import SimpleNamespace
 from datetime import date, datetime, time
 from concurrent.futures import ThreadPoolExecutor, TimeoutError
 import os
@@ -203,12 +204,87 @@ def documentos_publicos_por_tipo(torneo=None):
     documentos = Documento.objects.filter(activo=True).order_by("tipo", "-creado_en", "titulo")
     if torneo:
         documentos = documentos.filter(Q(torneo=torneo) | Q(torneo__isnull=True))
-    return {
+    documentos_por_tipo = {
         "reglamentos": documentos.filter(tipo="REGLAMENTO"),
         "resoluciones": documentos.filter(tipo="RESOLUCION"),
         "demandas": documentos.filter(tipo="DEMANDA"),
         "comunicados": documentos.filter(tipo="COMUNICADO"),
     }
+
+    if any(documentos_por_tipo[tipo].exists() for tipo in documentos_por_tipo):
+        return documentos_por_tipo
+
+    return listar_documentos_cloudinary_por_tipo()
+
+
+def listar_documentos_cloudinary_por_tipo(max_results=500):
+    documentos = {
+        "reglamentos": [],
+        "resoluciones": [],
+        "demandas": [],
+        "comunicados": [],
+    }
+
+    if not getattr(settings, "USE_CLOUDINARY_STORAGE", False):
+        return documentos
+
+    try:
+        configurar = getattr(default_storage, "_configure", None)
+        if configurar:
+            configurar()
+
+        import cloudinary.api
+
+        recursos = []
+        for resource_type in ("raw", "image"):
+            respuesta = cloudinary.api.resources(
+                resource_type=resource_type,
+                type="upload",
+                prefix="documentos/",
+                max_results=max_results,
+            )
+            recursos.extend(respuesta.get("resources", []))
+    except Exception as exc:
+        print(f"No se pudieron recuperar documentos de Cloudinary: {exc}")
+        return documentos
+
+    tipos = {
+        "REGLAMENTO": "reglamentos",
+        "RESOLUCION": "resoluciones",
+        "DEMANDA": "demandas",
+        "COMUNICADO": "comunicados",
+    }
+
+    vistos = set()
+    for recurso in recursos:
+        public_id = recurso.get("public_id", "")
+        url = recurso.get("secure_url") or recurso.get("url")
+        if not public_id or not url or public_id in vistos:
+            continue
+
+        partes = public_id.split("/")
+        if len(partes) < 3:
+            continue
+
+        tipo = partes[1].upper()
+        llave = tipos.get(tipo)
+        if not llave:
+            continue
+
+        vistos.add(public_id)
+        titulo = partes[-1].rsplit(".", 1)[0].replace("_", " ").replace("-", " ").strip().upper()
+        documentos[llave].append(SimpleNamespace(
+            id=None,
+            titulo=titulo or tipo,
+            descripcion="",
+            archivo=url,
+            tipo=tipo,
+        ))
+
+    for llave in documentos:
+        documentos[llave].sort(key=lambda item: item.titulo)
+
+    return documentos
 
 
 def documento_publico(request, documento_id):

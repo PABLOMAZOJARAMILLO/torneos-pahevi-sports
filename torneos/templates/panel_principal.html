@@ -2017,7 +2017,7 @@ body.solo-lectura .menu-principal {
         <h2>Reglamentos</h2>
         <div class="documentos-lista">
             {% for documento in reglamentos %}
-                <a class="documento-card" href="{% url 'documento_publico' documento.id %}">
+                <a class="documento-card" href="{% if documento.id %}{% url 'documento_publico' documento.id %}{% else %}{{ documento.archivo }}{% endif %}" target="_blank" rel="noopener">
                     <div>
                         <strong>{{ documento.titulo }}</strong>
                         {% if documento.descripcion %}<span>{{ documento.descripcion }}</span>{% endif %}
@@ -2034,7 +2034,7 @@ body.solo-lectura .menu-principal {
         <h2>Resoluciones</h2>
         <div class="documentos-lista">
             {% for documento in resoluciones %}
-                <a class="documento-card" href="{% url 'documento_publico' documento.id %}">
+                <a class="documento-card" href="{% if documento.id %}{% url 'documento_publico' documento.id %}{% else %}{{ documento.archivo }}{% endif %}" target="_blank" rel="noopener">
                     <div>
                         <strong>{{ documento.titulo }}</strong>
                         {% if documento.descripcion %}<span>{{ documento.descripcion }}</span>{% endif %}
@@ -2051,7 +2051,7 @@ body.solo-lectura .menu-principal {
         <h2>Demandas</h2>
         <div class="documentos-lista">
             {% for documento in demandas %}
-                <a class="documento-card" href="{% url 'documento_publico' documento.id %}">
+                <a class="documento-card" href="{% if documento.id %}{% url 'documento_publico' documento.id %}{% else %}{{ documento.archivo }}{% endif %}" target="_blank" rel="noopener">
                     <div>
                         <strong>{{ documento.titulo }}</strong>
                         {% if documento.descripcion %}<span>{{ documento.descripcion }}</span>{% endif %}
@@ -2068,7 +2068,7 @@ body.solo-lectura .menu-principal {
         <h2>Comunicados</h2>
         <div class="documentos-lista">
             {% for documento in comunicados %}
-                <a class="documento-card" href="{% url 'documento_publico' documento.id %}">
+                <a class="documento-card" href="{% if documento.id %}{% url 'documento_publico' documento.id %}{% else %}{{ documento.archivo }}{% endif %}" target="_blank" rel="noopener">
                     <div>
                         <strong>{{ documento.titulo }}</strong>
                         {% if documento.descripcion %}<span>{{ documento.descripcion }}</span>{% endif %}
