@@ -1580,6 +1580,7 @@ body.solo-lectura .menu-principal {
 .selector-categoria,
 .selector-documentos,
 .selector-partidos,
+.selector-menu,
 .selector-admin {
     display: flex;
     align-items: center;
@@ -1591,6 +1592,7 @@ body.solo-lectura .menu-principal {
 .selector-categoria span,
 .selector-documentos span,
 .selector-partidos span,
+.selector-menu span,
 .selector-admin span {
     color: #10213f;
     font-size: 13px;
@@ -1602,6 +1604,7 @@ body.solo-lectura .menu-principal {
 .selector-categoria select,
 .selector-documentos select,
 .selector-partidos select,
+.selector-menu select,
 .selector-admin select {
     min-height: 42px;
     border: 1px solid #cbd5e1;
@@ -1610,6 +1613,14 @@ body.solo-lectura .menu-principal {
     background: #ffffff;
     color: #10213f;
     font-weight: 900;
+}
+
+.menu-subselector {
+    display: none;
+}
+
+.menu-subselector.activo {
+    display: flex;
 }
 
 .pestanas-principales {
@@ -1732,11 +1743,11 @@ body.solo-lectura .menu-principal {
 
 @media (max-width: 768px) {
     body {
-        padding: 226px 10px 10px !important;
+        padding: 160px 10px 10px !important;
     }
 
     body.solo-lectura {
-        padding-top: 226px !important;
+        padding-top: 160px !important;
     }
 
     body.categoria-activa {
@@ -1834,6 +1845,7 @@ body.solo-lectura .menu-principal {
     .selector-categoria,
     .selector-documentos,
     .selector-partidos,
+    .selector-menu,
     .selector-admin {
         min-width: 0;
         width: 100%;
@@ -1847,6 +1859,7 @@ body.solo-lectura .menu-principal {
     .selector-categoria span,
     .selector-documentos span,
     .selector-partidos span,
+    .selector-menu span,
     .selector-admin span {
         font-size: 10px;
         line-height: 1;
@@ -1858,6 +1871,7 @@ body.solo-lectura .menu-principal {
     .selector-categoria select,
     .selector-documentos select,
     .selector-partidos select,
+    .selector-menu select,
     .selector-admin select {
         width: 100%;
         min-width: 0;
@@ -1869,7 +1883,7 @@ body.solo-lectura .menu-principal {
     }
 
     .seccion-documentos {
-        scroll-margin-top: 190px;
+        scroll-margin-top: 150px;
     }
 
     .pestanas-principales {
@@ -2049,7 +2063,18 @@ body.solo-lectura .menu-principal {
     </div>
 
     <nav class="menu-principal" id="categorias-fijas">
-        <div class="selector-torneo">
+        <div class="selector-menu">
+            <span>Menú</span>
+            <select id="selector-menu-principal" onchange="mostrarSubmenuPrincipal(this.value)">
+                <option value="torneo">Torneo</option>
+                <option value="categoria">Categoría</option>
+                <option value="partidos" selected>Partidos</option>
+                <option value="documentos">Documentos</option>
+                <option value="admin">Admin</option>
+            </select>
+        </div>
+
+        <div class="selector-torneo menu-subselector" data-submenu="torneo">
             <span>Torneo</span>
             <select id="selector-torneo" onchange="cambiarTorneo(this.value)">
                 {% for torneo in torneos_menu %}
@@ -2060,7 +2085,7 @@ body.solo-lectura .menu-principal {
             </select>
         </div>
 
-        <div class="selector-categoria">
+        <div class="selector-categoria menu-subselector" data-submenu="categoria">
             <span>Categoría</span>
             <select onchange="abrirCategoriaSelect(this.value)">
                 <option value="">Seleccionar</option>
@@ -2072,7 +2097,7 @@ body.solo-lectura .menu-principal {
             </select>
         </div>
 
-        <div class="selector-partidos">
+        <div class="selector-partidos menu-subselector activo" data-submenu="partidos">
             <span>Partidos</span>
             <select id="selector-partidos" onchange="mostrarPartidosPrincipal(this.value)">
                 <option value="por-fechas">Resumen</option>
@@ -2085,7 +2110,7 @@ body.solo-lectura .menu-principal {
             </select>
         </div>
 
-        <div class="selector-documentos">
+        <div class="selector-documentos menu-subselector" data-submenu="documentos">
             <span>Documentos torneo</span>
             <select id="selector-documentos-torneo" onchange="mostrarDocumentoPrincipal(this.value)">
                 <option value="">Seleccionar</option>
@@ -2096,7 +2121,7 @@ body.solo-lectura .menu-principal {
             </select>
         </div>
 
-        <div class="selector-admin">
+        <div class="selector-admin menu-subselector" data-submenu="admin">
             <span>Admin</span>
             <select id="selector-admin" onchange="accionAdmin(this.value)">
                 <option value="">Seleccionar</option>
@@ -3037,6 +3062,19 @@ body.solo-lectura .menu-principal {
 const categoriaInicial = "{{ categoria_seleccionada|default:''|escapejs }}";
 const torneoInicial = "{{ torneo_seleccionado.id|default:'' }}";
 
+function mostrarSubmenuPrincipal(menu) {
+    if (!menu) return;
+
+    document.querySelectorAll('.menu-subselector').forEach(function(item) {
+        item.classList.toggle('activo', item.dataset.submenu === menu);
+    });
+
+    const selector = document.getElementById('selector-menu-principal');
+    if (selector) {
+        selector.value = menu;
+    }
+}
+
 function cambiarTorneo(torneoId) {
     const params = new URLSearchParams(window.location.search);
     if (torneoId) {
@@ -3120,11 +3158,13 @@ function mostrarSeccionPrincipal(seccion, boton, omitirScroll) {
 
 function mostrarDocumentoPrincipal(seccion) {
     if (!seccion) return;
+    mostrarSubmenuPrincipal('documentos');
     mostrarSeccionPrincipal(seccion);
 }
 
 function mostrarPartidosPrincipal(panel) {
     const panelActivo = panel || 'por-fechas';
+    mostrarSubmenuPrincipal('partidos');
     mostrarSeccionPrincipal('partidos', null, true);
     mostrarPanelPartidos(panelActivo);
 
