@@ -1,6 +1,23 @@
 from django import forms
 
-from .models import Documento, Equipo, Jugador, Partido
+from .models import Torneo, Documento, Equipo, Jugador, Partido
+
+
+class TorneoForm(forms.ModelForm):
+    class Meta:
+        model = Torneo
+        fields = [
+            "nombre",
+            "descripcion",
+            "fecha_inicio",
+            "fecha_fin",
+            "estado",
+        ]
+        widgets = {
+            "fecha_inicio": forms.DateInput(attrs={"type": "date"}),
+            "fecha_fin": forms.DateInput(attrs={"type": "date"}),
+            "descripcion": forms.Textarea(attrs={"rows": 3}),
+        }
 
 
 class DocumentoForm(forms.ModelForm):

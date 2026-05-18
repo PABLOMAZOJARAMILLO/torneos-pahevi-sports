@@ -20,7 +20,7 @@ from html2image import Html2Image
 from django.views.decorators.http import require_POST
 from openpyxl import load_workbook
 
-from .forms import DocumentoForm, EquipoForm, JugadorForm, PartidoForm
+from .forms import TorneoForm, DocumentoForm, EquipoForm, JugadorForm, PartidoForm
 from .models import Torneo, Categoria, Documento, Equipo, Partido, Gol, Tarjeta, Jugador, AlineacionPartido, SustitucionPartido, limpiar_ruta_cloudinary
 
 
@@ -2334,6 +2334,67 @@ def gestion_panel(request):
         "total_partidos": partidos.count(),
         "total_documentos": documentos.count(),
     })
+
+
+@login_required
+@user_passes_test(es_editor_torneo)
+def gestion_torneos(request):
+    torneos = Torneo.objects.order_by("-fecha_inicio", "nombre")
+
+    return render(request, "gestion/torneos.html", {
+        "torneos": torneos,
+        "torneo_seleccionado": torneo_actual(request),
+    })
+
+
+@login_required
+@user_passes_test(es_editor_torneo)
+def gestion_torneo_nuevo(request):
+    form = TorneoForm(request.POST or None)
+
+    if request.method == "POST" and form.is_valid():
+        torneo = form.save()
+        request.session["torneo_id"] = torneo.id
+        messages.success(request, "Torneo creado correctamente.")
+        return redirect("gestion_torneos")
+
+    return render(request, "gestion/formulario.html", {
+        "titulo": "Nuevo torneo",
+        "form": form,
+        "volver_url": "gestion_torneos",
+    })
+
+
+@login_required
+@user_passes_test(es_editor_torneo)
+def gestion_torneo_editar(request, torneo_id):
+    torneo = get_object_or_404(Torneo, id=torneo_id)
+    form = TorneoForm(request.POST or None, instance=torneo)
+
+    if request.method == "POST" and form.is_valid():
+        torneo = form.save()
+        request.session["torneo_id"] = torneo.id
+        messages.success(request, "Torneo actualizado correctamente.")
+        return redirect("gestion_torneos")
+
+    return render(request, "gestion/formulario.html", {
+        "titulo": f"Editar torneo: {torneo.nombre}",
+        "form": form,
+        "volver_url": "gestion_torneos",
+    })
+
+
+@login_required
+@user_passes_test(es_editor_torneo)
+@require_POST
+def gestion_torneo_activar(request, torneo_id):
+    torneo = get_object_or_404(Torneo, id=torneo_id)
+    Torneo.objects.exclude(id=torneo.id).filter(estado="ACTIVO").update(estado="FINALIZADO")
+    torneo.estado = "ACTIVO"
+    torneo.save(update_fields=["estado"])
+    request.session["torneo_id"] = torneo.id
+    messages.success(request, f"{torneo.nombre} quedó como torneo activo.")
+    return redirect("gestion_torneos")
 
 
 @login_required

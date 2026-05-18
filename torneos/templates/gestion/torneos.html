@@ -1,0 +1,41 @@
+{% extends "gestion/base.html" %}
+
+{% block title %}Torneos{% endblock %}
+{% block heading %}Torneos{% endblock %}
+
+{% block content %}
+<p>
+    <a class="btn" href="{% url 'gestion_torneo_nuevo' %}">Crear torneo</a>
+    <a class="btn secondary" href="{% url 'gestion_panel' %}">Volver a gestión</a>
+</p>
+
+{% for torneo in torneos %}
+    <div class="row">
+        <div>
+            <h2 style="margin:0 0 6px;">{{ torneo.nombre }}</h2>
+            <div class="muted">
+                Estado: {{ torneo.get_estado_display }} · Inicio: {{ torneo.fecha_inicio }}
+                {% if torneo.fecha_fin %} · Fin: {{ torneo.fecha_fin }}{% endif %}
+            </div>
+            {% if torneo.descripcion %}
+                <p class="muted">{{ torneo.descripcion }}</p>
+            {% endif %}
+            {% if torneo_seleccionado and torneo.id == torneo_seleccionado.id %}
+                <div class="message" style="display:inline-block;margin-top:8px;">Seleccionado actualmente</div>
+            {% endif %}
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <a class="btn secondary" href="{% url 'gestion_torneo_editar' torneo.id %}">Editar</a>
+            <form method="post" action="{% url 'gestion_torneo_activar' torneo.id %}" style="padding:0;border:0;background:transparent;box-shadow:none;">
+                {% csrf_token %}
+                <button class="btn" type="submit">Activar</button>
+            </form>
+        </div>
+    </div>
+{% empty %}
+    <div class="card">
+        <h2>No hay torneos</h2>
+        <p class="muted">Crea el primer torneo para empezar a organizar categorías, equipos y partidos.</p>
+    </div>
+{% endfor %}
+{% endblock %}

@@ -152,6 +152,10 @@ urlpatterns = [
     path('mis-equipos/', views.mis_equipos, name='mis_equipos'),
 
     path('gestion/', views.gestion_panel, name='gestion_panel'),
+    path('gestion/torneos/', views.gestion_torneos, name='gestion_torneos'),
+    path('gestion/torneos/nuevo/', views.gestion_torneo_nuevo, name='gestion_torneo_nuevo'),
+    path('gestion/torneos/<int:torneo_id>/editar/', views.gestion_torneo_editar, name='gestion_torneo_editar'),
+    path('gestion/torneos/<int:torneo_id>/activar/', views.gestion_torneo_activar, name='gestion_torneo_activar'),
     path('gestion/probar-storage/', views.gestion_probar_storage, name='gestion_probar_storage'),
     path('gestion/biblioteca-cloudinary/', views.gestion_biblioteca_cloudinary, name='gestion_biblioteca_cloudinary'),
     path('gestion/biblioteca-cloudinary/asignar/', views.gestion_asignar_imagen_cloudinary, name='gestion_asignar_imagen_cloudinary'),
