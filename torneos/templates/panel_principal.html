@@ -1504,6 +1504,30 @@ body.categoria-activa .categoria {
     line-height: 1 !important;
 }
 
+.texto-corto {
+    display: none;
+}
+
+.boton-admin-activo {
+    cursor: default;
+    opacity: 0.85;
+}
+
+.btn-atras-apk {
+    position: fixed;
+    right: 14px;
+    bottom: 18px;
+    z-index: 80;
+    display: none;
+    border: 0;
+    border-radius: 999px;
+    padding: 10px 16px;
+    background: #061224;
+    color: #ffffff;
+    font-weight: 900;
+    box-shadow: 0 10px 28px rgba(2, 6, 23, 0.28);
+}
+
 .categorias-grid {
     top: 178px !important;
     min-height: 70px !important;
@@ -1708,11 +1732,11 @@ body.solo-lectura .menu-principal {
 
 @media (max-width: 768px) {
     body {
-        padding: 226px 10px 10px !important;
+        padding: 250px 10px 10px !important;
     }
 
     body.solo-lectura {
-        padding-top: 178px !important;
+        padding-top: 250px !important;
     }
 
     body.categoria-activa {
@@ -1748,13 +1772,32 @@ body.solo-lectura .menu-principal {
     .acciones-portada {
         top: 92px !important;
         min-height: 48px !important;
+        height: 48px !important;
         padding: 8px 10px !important;
         gap: 8px !important;
+        flex-wrap: nowrap !important;
+        overflow-x: auto !important;
+        overflow-y: hidden !important;
+        align-items: center !important;
     }
 
     .acciones-portada .boton {
+        flex: 0 0 auto !important;
         padding: 9px 12px !important;
         font-size: 12px !important;
+        white-space: nowrap !important;
+    }
+
+    .acciones-portada .texto-largo {
+        display: none;
+    }
+
+    .acciones-portada .texto-corto {
+        display: inline;
+    }
+
+    .boton-admin-activo {
+        display: none !important;
     }
 
     .categorias-grid {
@@ -1779,6 +1822,12 @@ body.solo-lectura .menu-principal {
 
     body.solo-lectura .menu-principal {
         top: 140px !important;
+    }
+
+    .btn-atras-apk {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
     }
 
     .selector-torneo,
@@ -1977,12 +2026,18 @@ body.solo-lectura .menu-principal {
     <div class="acciones-portada">
     {% if request.user.is_staff %}
     <a class="boton" href="{% url 'descargar_programacion_general' %}">
-        Descargar programación completa
+        <span class="texto-largo">Descargar programación completa</span>
+        <span class="texto-corto">Descargar programación</span>
     </a>
 
     <a class="boton secundario" href="{% url 'gestion_panel' %}">
-        Gestión del torneo
+        <span class="texto-largo">Gestión del torneo</span>
+        <span class="texto-corto">Gestión</span>
     </a>
+
+    <span class="boton secundario boton-admin-activo">
+        Admin activo
+    </span>
     {% else %}
     <a class="boton secundario" href="/admin/login/?next={% url 'gestion_panel' %}">
         Ingresar admin
@@ -2038,6 +2093,8 @@ body.solo-lectura .menu-principal {
             </select>
         </div>
     </nav>
+
+    <button type="button" class="btn-atras-apk" onclick="volverApp()">Atrás</button>
 
     <section class="portada-seccion seccion-principal activa" id="timeline-partidos" data-seccion-principal="partidos">
         <h2>Partidos</h2>
@@ -3083,6 +3140,16 @@ function toggleEquipo(idEquipo) {
         header.classList.toggle('activo');
     }
 }
+
+function volverApp() {
+    if (window.history.length > 1) {
+        window.history.back();
+        return;
+    }
+
+    window.location.href = "/";
+}
+
 function mostrarCategoria(idCategoria) {
     const pantalla = document.getElementById('pantalla-categorias');
     if (pantalla) {
