@@ -2829,7 +2829,7 @@ function abrirCategoriaSelect(categoria) {
     window.location.href = '?categoria=' + encodeURIComponent(categoria) + '#categoria-detalle';
 }
 
-function mostrarSeccionPrincipal(seccion, boton) {
+function mostrarSeccionPrincipal(seccion, boton, omitirScroll) {
     document.querySelectorAll('[data-seccion-principal]').forEach(function(item) {
         item.classList.toggle('activa', item.dataset.seccionPrincipal === seccion);
     });
@@ -2850,7 +2850,7 @@ function mostrarSeccionPrincipal(seccion, boton) {
     }
 
     const destino = document.querySelector('[data-seccion-principal="' + seccion + '"]');
-    if (destino) {
+    if (destino && !omitirScroll) {
         const encabezado = document.querySelector('.encabezado-panel');
         const acciones = document.querySelector('.acciones-portada');
         const menu = document.getElementById('categorias-fijas');
@@ -2875,8 +2875,33 @@ function mostrarDocumentoPrincipal(seccion) {
 }
 
 function mostrarPartidosPrincipal(panel) {
-    mostrarSeccionPrincipal('partidos');
-    mostrarPanelPartidos(panel || 'por-fechas');
+    const panelActivo = panel || 'por-fechas';
+    mostrarSeccionPrincipal('partidos', null, true);
+    mostrarPanelPartidos(panelActivo);
+
+    window.setTimeout(function() {
+        const destino = panelActivo === 'por-fechas'
+            ? (document.getElementById('punto-inicial-partidos') || document.getElementById('timeline-partidos'))
+            : document.querySelector('[data-panel-partidos="' + panelActivo + '"]');
+
+        if (!destino) return;
+
+        const encabezado = document.querySelector('.encabezado-panel');
+        const acciones = document.querySelector('.acciones-portada');
+        const menu = document.getElementById('categorias-fijas');
+        const altoFijo = (
+            (encabezado ? encabezado.offsetHeight : 0) +
+            (acciones ? acciones.offsetHeight : 0) +
+            (menu ? menu.offsetHeight : 0) +
+            18
+        );
+        const posicion = destino.getBoundingClientRect().top + window.pageYOffset - altoFijo;
+
+        window.scrollTo({
+            top: Math.max(0, posicion),
+            behavior: 'smooth'
+        });
+    }, 40);
 }
 
 function mostrarPanelPartidos(panel) {
