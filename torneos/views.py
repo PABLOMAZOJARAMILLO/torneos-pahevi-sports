@@ -520,10 +520,19 @@ def escudo_url(equipo):
     if not equipo:
         return ""
 
-    if equipo.escudo and equipo.escudo.storage.exists(equipo.escudo.name):
-        return equipo.escudo.url
-
     if equipo.escudo:
+        try:
+            if equipo.escudo.url:
+                return equipo.escudo.url
+        except Exception:
+            pass
+
+        try:
+            if equipo.escudo.storage.exists(equipo.escudo.name):
+                return equipo.escudo.url
+        except Exception:
+            pass
+
         nombre_archivo = os.path.basename(equipo.escudo.name).replace(" ", "_")
         escudo = escudo_estatico_url(nombre_archivo)
 
@@ -588,6 +597,16 @@ def nombre_columna_partido(partido):
     return fase
 
 
+def etiqueta_columna_planilla(columna):
+    etiquetas = {
+        "CUARTOS": "CTOS",
+        "SEMIFINAL": "SF",
+        "TERCER_PUESTO": "TP",
+        "FINAL": "F",
+    }
+    return etiquetas.get(columna, columna)
+
+
 def construir_estructura(torneo=None):
     estructura = {}
 
@@ -647,7 +666,8 @@ def construir_estructura(torneo=None):
 
         for equipo in [partido.equipo_local, partido.equipo_visitante]:
             if equipo:
-                datos_grupo["tabla"].setdefault(equipo.nombre, {
+                datos_grupo["tabla"].setdefault(equipo.id, {
+                    "id": equipo.id,
                     "equipo": equipo.nombre,
                     "escudo": escudo_url(equipo),
                     "pj": 0,
@@ -664,8 +684,8 @@ def construir_estructura(torneo=None):
             gl = partido.goles_local or 0
             gv = partido.goles_visitante or 0
 
-            local = datos_grupo["tabla"][partido.equipo_local.nombre]
-            visitante = datos_grupo["tabla"][partido.equipo_visitante.nombre]
+            local = datos_grupo["tabla"][partido.equipo_local_id]
+            visitante = datos_grupo["tabla"][partido.equipo_visitante_id]
 
             local["pj"] += 1
             visitante["pj"] += 1
@@ -877,6 +897,13 @@ def construir_estructura(torneo=None):
             columnas_ordenadas.append(fase_fija)
 
         datos_categoria["columnas_planilla"] = columnas_ordenadas
+        datos_categoria["columnas_planilla_display"] = [
+            {
+                "valor": col,
+                "etiqueta": etiqueta_columna_planilla(col),
+            }
+            for col in columnas_ordenadas
+        ]
 
         goleadores = []
 

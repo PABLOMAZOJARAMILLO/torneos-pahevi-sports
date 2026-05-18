@@ -2298,8 +2298,8 @@ body.solo-lectura .menu-principal {
                         <th>#</th>
                         <th class="col-jugador">Jugador</th>
                         <th class="col-equipo">Equipo</th>
-                        {% for col in datos_categoria.columnas_planilla %}
-                            <th>{{ col }}</th>
+                        {% for col in datos_categoria.columnas_planilla_display %}
+                            <th>{{ col.etiqueta }}</th>
                         {% endfor %}
                         <th>Total</th>
                     </tr>
@@ -2349,8 +2349,8 @@ body.solo-lectura .menu-principal {
                     <tr>
                         <th>#</th>
                         <th class="col-equipo">Equipo</th>
-                        {% for col in datos_categoria.columnas_planilla %}
-                            <th>{{ col }}</th>
+                        {% for col in datos_categoria.columnas_planilla_display %}
+                            <th>{{ col.etiqueta }}</th>
                         {% endfor %}
                         <th>PJ</th>
                         <th>GC</th>
@@ -2404,8 +2404,8 @@ body.solo-lectura .menu-principal {
                         <th>#</th>
                         <th class="col-jugador">Jugador</th>
                         <th class="col-equipo">Equipo</th>
-                        {% for col in datos_categoria.columnas_planilla %}
-                            <th>{{ col }}</th>
+                        {% for col in datos_categoria.columnas_planilla_display %}
+                            <th>{{ col.etiqueta }}</th>
                         {% endfor %}
                         <th>A</th>
                         <th>R</th>

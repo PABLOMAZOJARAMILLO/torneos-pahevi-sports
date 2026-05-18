@@ -137,8 +137,8 @@ td {
 <th>Jugador</th>
 <th>Equipo</th>
 
-{% for col in datos_categoria.columnas_planilla %}
-<th>{{ col }}</th>
+{% for col in datos_categoria.columnas_planilla_display %}
+<th>{{ col.etiqueta }}</th>
 {% endfor %}
 
 <th>Total</th>
