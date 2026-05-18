@@ -211,10 +211,12 @@ def documentos_publicos_por_tipo(torneo=None):
         "comunicados": documentos.filter(tipo="COMUNICADO"),
     }
 
-    if any(documentos_por_tipo[tipo].exists() for tipo in documentos_por_tipo):
-        return documentos_por_tipo
+    documentos_cloudinary = listar_documentos_cloudinary_por_tipo()
+    for tipo, lista_cloudinary in documentos_cloudinary.items():
+        if not documentos_por_tipo[tipo].exists() and lista_cloudinary:
+            documentos_por_tipo[tipo] = lista_cloudinary
 
-    return listar_documentos_cloudinary_por_tipo()
+    return documentos_por_tipo
 
 
 def listar_documentos_cloudinary_por_tipo(max_results=500):
