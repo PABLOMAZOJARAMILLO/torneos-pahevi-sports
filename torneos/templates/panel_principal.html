@@ -1566,6 +1566,41 @@ body.solo-lectura .menu-principal {
     white-space: nowrap;
 }
 
+.subtabs-partidos {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding: 2px 0 12px;
+    margin-bottom: 6px;
+}
+
+.subtab-partidos {
+    min-height: 36px;
+    padding: 8px 14px;
+    border: 1px solid #cbd5e1;
+    border-radius: 999px;
+    background: #ffffff;
+    color: #10213f;
+    cursor: pointer;
+    font: inherit;
+    font-weight: 900;
+    white-space: nowrap;
+}
+
+.subtab-partidos.activa {
+    background: #10213f;
+    border-color: #10213f;
+    color: #ffffff;
+}
+
+.panel-partidos {
+    display: none;
+}
+
+.panel-partidos.activo {
+    display: block;
+}
+
 #categoria-detalle {
     scroll-margin-top: 260px;
 }
@@ -1780,7 +1815,14 @@ body.solo-lectura .menu-principal {
     <section class="portada-seccion seccion-principal activa" id="timeline-partidos" data-seccion-principal="partidos">
         <h2>Partidos</h2>
 
-        <div class="partidos-portada">
+        <div class="subtabs-partidos">
+            <button type="button" class="subtab-partidos activa" onclick="mostrarPanelPartidos('por-fechas', this)">Por fechas</button>
+            <button type="button" class="subtab-partidos" onclick="mostrarPanelPartidos('cuartos', this)">Cuartos</button>
+            <button type="button" class="subtab-partidos" onclick="mostrarPanelPartidos('semifinal', this)">Semifinal</button>
+            <button type="button" class="subtab-partidos" onclick="mostrarPanelPartidos('final', this)">Final</button>
+        </div>
+
+        <div class="partidos-portada panel-partidos activo" data-panel-partidos="por-fechas">
             {% if partidos_resultados %}
             <div class="bloque-partidos-portada">
                 <h3 class="bloque-titulo-portada">Resultados recientes</h3>
@@ -1848,6 +1890,39 @@ body.solo-lectura .menu-principal {
             {% if not partidos_programados and not partidos_futuros %}
             <div class="partido-portada">No hay partidos programados o futuros.</div>
             {% endif %}
+        </div>
+
+        <div class="partidos-portada panel-partidos" data-panel-partidos="cuartos">
+            <div class="bloque-partidos-portada">
+                <h3 class="bloque-titulo-portada">Cuartos de final</h3>
+                {% for partido in partidos_cuartos %}
+                    {% include "partials/partido_portada_card.html" %}
+                {% empty %}
+                    <div class="partido-portada">No hay partidos de cuartos registrados.</div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="partidos-portada panel-partidos" data-panel-partidos="semifinal">
+            <div class="bloque-partidos-portada">
+                <h3 class="bloque-titulo-portada">Semifinal</h3>
+                {% for partido in partidos_semifinal %}
+                    {% include "partials/partido_portada_card.html" %}
+                {% empty %}
+                    <div class="partido-portada">No hay partidos de semifinal registrados.</div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="partidos-portada panel-partidos" data-panel-partidos="final">
+            <div class="bloque-partidos-portada">
+                <h3 class="bloque-titulo-portada">Final y tercer puesto</h3>
+                {% for partido in partidos_final %}
+                    {% include "partials/partido_portada_card.html" %}
+                {% empty %}
+                    <div class="partido-portada">No hay partidos de final registrados.</div>
+                {% endfor %}
+            </div>
         </div>
     </section>
 
@@ -2726,6 +2801,20 @@ function mostrarSeccionPrincipal(seccion, boton) {
 function mostrarDocumentoPrincipal(seccion) {
     if (!seccion) return;
     mostrarSeccionPrincipal(seccion);
+}
+
+function mostrarPanelPartidos(panel, boton) {
+    document.querySelectorAll('[data-panel-partidos]').forEach(function(item) {
+        item.classList.toggle('activo', item.dataset.panelPartidos === panel);
+    });
+
+    document.querySelectorAll('.subtab-partidos').forEach(function(item) {
+        item.classList.remove('activa');
+    });
+
+    if (boton) {
+        boton.classList.add('activa');
+    }
 }
 
 function toggleEquipo(idEquipo) {

@@ -1052,6 +1052,24 @@ def construir_partidos_portada():
             orden_bloque = 2
             orden_fecha = partido.fecha.toordinal()
 
+        fase = partido.fase or "GRUPOS"
+        gl = partido.goles_local or 0
+        gv = partido.goles_visitante or 0
+        pl = partido.goles_local_penales or 0
+        pv = partido.goles_visitante_penales or 0
+        ganador_local = False
+        ganador_visitante = False
+
+        if fase != "GRUPOS" and partido.estado in ["FINALIZADO", "DECIDIDO_COMITE", "WO"]:
+            if gl > gv:
+                ganador_local = True
+            elif gv > gl:
+                ganador_visitante = True
+            elif pl > pv:
+                ganador_local = True
+            elif pv > pl:
+                ganador_visitante = True
+
         partidos_portada.append({
             "id": partido.id,
             "bloque": bloque,
@@ -1059,7 +1077,7 @@ def construir_partidos_portada():
             "orden_fecha": orden_fecha,
             "categoria": partido.categoria.nombre,
             "grupo": partido.grupo or "",
-            "fase": partido.fase or "GRUPOS",
+            "fase": fase,
             "numero_fecha": partido.numero_fecha or "",
             "estado": partido.estado,
             "fecha": partido.fecha,
@@ -1069,11 +1087,13 @@ def construir_partidos_portada():
             "visitante": partido.equipo_visitante.nombre,
             "escudo_local": escudo_url(partido.equipo_local),
             "escudo_visitante": escudo_url(partido.equipo_visitante),
-            "goles_local": partido.goles_local or 0,
-            "goles_visitante": partido.goles_visitante or 0,
-            "goles_local_penales": partido.goles_local_penales or 0,
-            "goles_visitante_penales": partido.goles_visitante_penales or 0,
-            "tiene_penales": (partido.goles_local_penales or 0) > 0 or (partido.goles_visitante_penales or 0) > 0,
+            "goles_local": gl,
+            "goles_visitante": gv,
+            "goles_local_penales": pl,
+            "goles_visitante_penales": pv,
+            "tiene_penales": pl > 0 or pv > 0,
+            "ganador_local": ganador_local,
+            "ganador_visitante": ganador_visitante,
             "eventos": goles_por_partido[partido.id] + tarjetas_por_partido[partido.id],
         })
 
@@ -1108,6 +1128,9 @@ def panel_principal(request):
     logos = rutas_logos(request)
     partidos_portada = construir_partidos_portada()
     documentos = documentos_publicos_por_tipo()
+    partidos_cuartos = [p for p in partidos_portada if p["fase"] == "CUARTOS"]
+    partidos_semifinal = [p for p in partidos_portada if p["fase"] == "SEMIFINAL"]
+    partidos_final = [p for p in partidos_portada if p["fase"] in ["FINAL", "TERCER_PUESTO"]]
 
     return render(request, "panel_principal.html", {
         "estructura": estructura,
@@ -1118,6 +1141,9 @@ def panel_principal(request):
         "partidos_resultados": [p for p in partidos_portada if p["bloque"] == "RESULTADOS RECIENTES"],
         "partidos_programados": [p for p in partidos_portada if p["bloque"] == "PROGRAMADOS"],
         "partidos_futuros": [p for p in partidos_portada if p["bloque"] == "FUTUROS"],
+        "partidos_cuartos": partidos_cuartos,
+        "partidos_semifinal": partidos_semifinal,
+        "partidos_final": partidos_final,
         "reglamentos": documentos["reglamentos"],
         "resoluciones": documentos["resoluciones"],
         "demandas": documentos["demandas"],

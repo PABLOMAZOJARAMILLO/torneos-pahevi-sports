@@ -9,7 +9,7 @@
             {% if partido.escudo_local %}
                 <img src="{{ partido.escudo_local }}">
             {% endif %}
-            <span>{{ partido.local }}</span>
+            <span>{% if partido.ganador_local %}<span class="estrella-ganador">★</span>{% endif %}{{ partido.local }}</span>
         </div>
 
         {% if partido.estado == "PROGRAMADO" %}
@@ -26,7 +26,7 @@
             {% if partido.escudo_visitante %}
                 <img src="{{ partido.escudo_visitante }}">
             {% endif %}
-            <span>{{ partido.visitante }}</span>
+            <span>{% if partido.ganador_visitante %}<span class="estrella-ganador">★</span>{% endif %}{{ partido.visitante }}</span>
         </div>
     </div>
 
