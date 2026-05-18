@@ -9,6 +9,7 @@ from urllib.parse import quote
 
 from django.conf import settings
 from django.contrib import messages
+from django.contrib.auth import logout
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.http import FileResponse, HttpResponse
 from django.core.files.base import ContentFile
@@ -30,6 +31,11 @@ from .models import Torneo, Categoria, Documento, Equipo, Partido, Gol, Tarjeta,
 
 def es_editor_torneo(user):
     return user.is_authenticated and (user.is_staff or user.is_superuser)
+
+
+def cerrar_sesion(request):
+    logout(request)
+    return redirect("panel")
 
 
 def torneo_actual(request):

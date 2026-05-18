@@ -3056,7 +3056,7 @@ function accionAdmin(accion) {
         login: "/admin/login/?next={% url 'gestion_panel' %}",
         descargar: "{% url 'descargar_programacion_general' %}",
         gestion: "{% url 'gestion_panel' %}",
-        salir: "/admin/logout/"
+        salir: "{% url 'cerrar_sesion' %}"
     };
 
     if (selector) {

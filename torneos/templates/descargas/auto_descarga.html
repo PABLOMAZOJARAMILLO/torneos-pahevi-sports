@@ -59,9 +59,20 @@ window.onload = function() {
         }).then(function(canvas) {
             const dataUrl = canvas.toDataURL("image/png");
 
-            if (window.AndroidDownloader && typeof window.AndroidDownloader.guardarImagen === "function") {
-                window.AndroidDownloader.guardarImagen(dataUrl, "{{ nombre_archivo }}");
-                document.querySelector(".mensaje").innerText = "Imagen guardada en el celular";
+            if (window.AndroidDownloader) {
+                if (typeof window.AndroidDownloader.guardarImagen === "function") {
+                    window.AndroidDownloader.guardarImagen(dataUrl, "{{ nombre_archivo }}");
+                } else if (typeof window.AndroidDownloader.postMessage === "function") {
+                    window.AndroidDownloader.postMessage(JSON.stringify({
+                        dataUrl: dataUrl,
+                        nombreArchivo: "{{ nombre_archivo }}"
+                    }));
+                } else {
+                    document.querySelector(".mensaje").innerText = "La APK no pudo recibir la imagen";
+                    return;
+                }
+
+                document.querySelector(".mensaje").innerText = "Guardando imagen en Fotos/TorneosIMCRED...";
                 return;
             }
 
@@ -70,7 +81,7 @@ window.onload = function() {
             enlace.href = dataUrl;
             enlace.click();
 
-            document.querySelector(".mensaje").innerText = "Imagen descargada correctamente";
+            document.querySelector(".mensaje").innerText = "Imagen generada. Si estás en APK, instala la versión nueva para guardar en Galería.";
         });
     }, 1000);
 }
