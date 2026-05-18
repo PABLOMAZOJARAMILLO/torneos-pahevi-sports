@@ -516,9 +516,13 @@ def escudo_estatico_url(nombre_archivo):
     return ""
 
 
+def escudo_default_url():
+    return static("torneos/img/logo_imcred.png")
+
+
 def escudo_url(equipo):
     if not equipo:
-        return ""
+        return escudo_default_url()
 
     if equipo.escudo:
         try:
@@ -547,7 +551,7 @@ def escudo_url(equipo):
         if escudo:
             return escudo
 
-    return ""
+    return escudo_default_url()
 
 def url_absoluta(request, url):
     if not url:
