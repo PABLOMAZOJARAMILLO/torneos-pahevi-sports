@@ -1,6 +1,7 @@
-<a class="partido-portada" href="{% url 'partido_detalle_publico' partido.id %}">
+<a class="partido-portada {{ partido.categoria_clase }}" href="{% url 'partido_detalle_publico' partido.id %}">
     <div class="partido-meta">
-        <span>{{ partido.categoria }}{% if partido.numero_fecha %} · Fecha {{ partido.numero_fecha }}{% endif %}</span>
+        <span class="categoria-pill">{{ partido.categoria }}</span>
+        <span>{% if partido.numero_fecha %}Fecha {{ partido.numero_fecha }}{% else %}{{ partido.fase }}{% endif %}</span>
         <span class="estado-chip {{ partido.estado|lower }}">{{ partido.estado }}</span>
     </div>
 
@@ -10,6 +11,9 @@
                 <img src="{{ partido.escudo_local }}">
             {% endif %}
             <span>{% if partido.ganador_local %}<span class="estrella-ganador">★</span>{% endif %}{{ partido.local }}</span>
+            {% if partido.ganador_local and partido.fase == "FINAL" %}
+                <strong class="campeon-badge">CAMPEON</strong>
+            {% endif %}
         </div>
 
         {% if partido.estado == "PROGRAMADO" %}
@@ -27,6 +31,9 @@
                 <img src="{{ partido.escudo_visitante }}">
             {% endif %}
             <span>{% if partido.ganador_visitante %}<span class="estrella-ganador">★</span>{% endif %}{{ partido.visitante }}</span>
+            {% if partido.ganador_visitante and partido.fase == "FINAL" %}
+                <strong class="campeon-badge">CAMPEON</strong>
+            {% endif %}
         </div>
     </div>
 

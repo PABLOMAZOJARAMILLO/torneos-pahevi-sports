@@ -204,9 +204,10 @@
     }
 
     .bloque-partidos-portada {
-        background: #edf2f7;
+        background: linear-gradient(135deg, #eef6ff, #ecfdf5);
+        border: 1px solid #d7e4f3;
         border-radius: 16px;
-        padding: 10px;
+        padding: 12px;
     }
 
     .bloque-titulo-portada {
@@ -224,15 +225,50 @@
     }
 
     .partido-portada {
+        --cat-color: #00b94f;
+        --cat-soft: #e9fff2;
+        position: relative;
         display: block;
-        background: white;
+        background: linear-gradient(135deg, #ffffff 0%, var(--cat-soft) 100%);
         color: #0f172a;
-        border: 1px solid #dbe4ef;
-        border-radius: 12px;
-        padding: 12px;
-        margin-bottom: 8px;
+        border: 1px solid rgba(15, 23, 42, 0.1);
+        border-left: 7px solid var(--cat-color);
+        border-radius: 14px;
+        padding: 13px 14px;
+        margin-bottom: 10px;
         text-decoration: none;
-        box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
+        box-shadow: 0 10px 24px rgba(15, 23, 42, 0.1);
+        overflow: hidden;
+        transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease;
+    }
+
+    .partido-portada::before {
+        content: "";
+        position: absolute;
+        inset: 0 0 auto 0;
+        height: 4px;
+        background: linear-gradient(90deg, var(--cat-color), rgba(255,255,255,0));
+        opacity: 0.95;
+    }
+
+    .partido-portada.cat-plus {
+        --cat-color: #07689f;
+        --cat-soft: #e8f5ff;
+    }
+
+    .partido-portada.cat-senior {
+        --cat-color: #facc15;
+        --cat-soft: #fff8d6;
+    }
+
+    .partido-portada.cat-interbarrios {
+        --cat-color: #15803d;
+        --cat-soft: #e7f8ed;
+    }
+
+    .partido-portada.cat-general {
+        --cat-color: #7c3aed;
+        --cat-soft: #f3ecff;
     }
 
     .partido-portada:last-child {
@@ -240,17 +276,33 @@
     }
 
     .partido-portada:hover {
-        border-color: #00b94f;
+        border-color: var(--cat-color);
+        transform: translateY(-1px);
+        box-shadow: 0 14px 28px rgba(15, 23, 42, 0.14);
     }
 
     .partido-meta {
         display: flex;
+        flex-wrap: wrap;
         justify-content: space-between;
+        align-items: center;
         gap: 8px;
-        color: #64748b;
-        font-size: 13px;
+        color: #475569;
+        font-size: 12px;
         text-transform: uppercase;
         margin-bottom: 10px;
+        font-weight: 800;
+    }
+
+    .categoria-pill {
+        display: inline-flex;
+        align-items: center;
+        min-height: 24px;
+        padding: 4px 10px;
+        border-radius: 999px;
+        background: var(--cat-color);
+        color: #ffffff;
+        box-shadow: 0 4px 10px rgba(15, 23, 42, 0.16);
     }
 
     .estado-chip {
@@ -261,6 +313,7 @@
         background: #e2e8f0;
         color: #0f172a;
         font-size: 12px;
+        font-weight: 900;
     }
 
     .estado-chip.programado {
@@ -275,11 +328,22 @@
         color: #166534;
     }
 
+    .estado-chip.en_juego {
+        background: #fee2e2;
+        color: #991b1b;
+    }
+
+    .estado-chip.aplazado,
+    .estado-chip.suspendido {
+        background: #fef3c7;
+        color: #92400e;
+    }
+
     .versus-portada {
         display: grid;
-        grid-template-columns: 1fr 86px 1fr;
+        grid-template-columns: minmax(0, 1fr) 92px minmax(0, 1fr);
         align-items: center;
-        gap: 10px;
+        gap: 12px;
     }
 
     .equipo-portada {
@@ -288,14 +352,19 @@
         font-size: 15px;
         color: #0f172a;
         text-transform: uppercase;
+        font-weight: 900;
     }
 
     .equipo-portada img {
-        width: 46px;
-        height: 46px;
+        width: 56px;
+        height: 56px;
         object-fit: contain;
         display: block;
-        margin: 0 auto 5px;
+        margin: 0 auto 6px;
+        padding: 4px;
+        background: rgba(255,255,255,0.86);
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(15, 23, 42, 0.12);
     }
 
     .marcador-portada {
@@ -303,17 +372,34 @@
         align-items: center;
         justify-content: center;
         min-height: 54px;
-        border-radius: 10px;
-        background: #0f172a;
+        border-radius: 14px;
+        background: linear-gradient(135deg, #07111f, #10213f);
         color: white;
         font-size: 24px;
         gap: 8px;
+        font-weight: 1000;
+        box-shadow: inset 0 -2px 0 rgba(255,255,255,0.08), 0 8px 16px rgba(15, 23, 42, 0.16);
     }
 
     .marcador-portada.programado {
-        background: #eef2f7;
-        color: #0f172a;
+        background: linear-gradient(135deg, var(--cat-color), #10213f);
+        color: #ffffff;
         font-size: 16px;
+    }
+
+    .campeon-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        margin-top: 6px;
+        padding: 4px 9px;
+        border-radius: 999px;
+        background: linear-gradient(135deg, #facc15, #f97316);
+        color: #10213f;
+        font-size: 11px;
+        line-height: 1;
+        letter-spacing: 0;
+        box-shadow: 0 5px 14px rgba(249, 115, 22, 0.28);
     }
 
     .partido-extra {
@@ -321,8 +407,9 @@
         justify-content: space-between;
         gap: 10px;
         margin-top: 10px;
-        color: #64748b;
+        color: #475569;
         font-size: 13px;
+        font-weight: 700;
     }
 
     @media (max-width: 760px) {
@@ -1844,43 +1931,7 @@ body.solo-lectura .menu-principal {
                 <h3 class="bloque-titulo-portada">Programados</h3>
 
             {% for partido in partidos_programados %}
-            <a class="partido-portada" href="{% url 'partido_detalle_publico' partido.id %}">
-                <div class="partido-meta">
-                    <span>{{ partido.categoria }}{% if partido.numero_fecha %} · Fecha {{ partido.numero_fecha }}{% endif %}</span>
-                    <span class="estado-chip {{ partido.estado|lower }}">{{ partido.estado }}</span>
-                </div>
-
-                <div class="versus-portada">
-                    <div class="equipo-portada">
-                        {% if partido.escudo_local %}
-                            <img src="{{ partido.escudo_local }}">
-                        {% endif %}
-                        <span>{{ partido.local }}</span>
-                    </div>
-
-                    {% if partido.estado == "PROGRAMADO" %}
-                    <div class="marcador-portada programado">{{ partido.hora }}</div>
-                    {% else %}
-                    <div class="marcador-portada">
-                        <span>{{ partido.goles_local }}</span>
-                        <span>-</span>
-                        <span>{{ partido.goles_visitante }}</span>
-                    </div>
-                    {% endif %}
-
-                    <div class="equipo-portada">
-                        {% if partido.escudo_visitante %}
-                            <img src="{{ partido.escudo_visitante }}">
-                        {% endif %}
-                        <span>{{ partido.visitante }}</span>
-                    </div>
-                </div>
-
-                <div class="partido-extra">
-                    <span>{{ partido.fecha }} · {{ partido.cancha }}</span>
-                    <span>{% if partido.eventos %}{{ partido.eventos }} eventos{% else %}Ver detalle{% endif %}</span>
-                </div>
-            </a>
+                {% include "partials/partido_portada_card.html" %}
             {% endfor %}
             </div>
             {% endif %}

@@ -1077,12 +1077,24 @@ def construir_partidos_portada():
             elif pv > pl:
                 ganador_visitante = True
 
+        categoria_nombre = partido.categoria.nombre
+        categoria_mayuscula = categoria_nombre.upper()
+        if "PLUS" in categoria_mayuscula:
+            categoria_clase = "cat-plus"
+        elif "SENIOR" in categoria_mayuscula:
+            categoria_clase = "cat-senior"
+        elif "INTER" in categoria_mayuscula:
+            categoria_clase = "cat-interbarrios"
+        else:
+            categoria_clase = "cat-general"
+
         partidos_portada.append({
             "id": partido.id,
             "bloque": bloque,
             "orden_bloque": orden_bloque,
             "orden_fecha": orden_fecha,
-            "categoria": partido.categoria.nombre,
+            "categoria": categoria_nombre,
+            "categoria_clase": categoria_clase,
             "grupo": partido.grupo or "",
             "fase": fase,
             "numero_fecha": partido.numero_fecha or "",
