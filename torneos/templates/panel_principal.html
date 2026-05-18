@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
@@ -606,7 +606,7 @@
     }
 
     /* ===========================
-       PESTAÑAS PRINCIPALES
+       PESTAÃ‘AS PRINCIPALES
        =========================== */
     .tabs-mobile {
         display: flex;
@@ -1217,7 +1217,7 @@
     }
 
     /* =========================
-       PESTAÑAS
+       PESTAÃ‘AS
     ========================= */
 
     .tabs-mobile{
@@ -1271,7 +1271,7 @@
 }
 
 /* =========================================
-   CORRECCIÓN DEFINITIVA ENCABEZADO Y PARTIDOS
+   CORRECCIÃ“N DEFINITIVA ENCABEZADO Y PARTIDOS
    PEGAR AL FINAL DEL STYLE
 ========================================= */
 
@@ -1369,7 +1369,7 @@
 
 
     /* ===========================
-       EDITOR MÓVIL DE PARTIDOS
+       EDITOR MÃ“VIL DE PARTIDOS
        =========================== */
     .acciones-partido {
         margin-top: 10px;
@@ -1582,6 +1582,119 @@ body.solo-lectura .fase-btn {
 
 body.solo-lectura .menu-principal {
     top: 126px;
+}
+
+.menu-desplegable {
+    position: relative;
+}
+
+.menu-toggle-principal {
+    display: inline-flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    min-width: 190px;
+    min-height: 42px;
+    border: 0;
+    border-radius: 12px;
+    padding: 9px 16px;
+    background: #0b1a2c;
+    color: #ffffff;
+    font: inherit;
+    font-weight: 900;
+    cursor: pointer;
+    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.18);
+}
+
+.menu-toggle-principal::after {
+    content: "âŒ„";
+    color: #00e565;
+    font-size: 18px;
+    line-height: 1;
+}
+
+.menu-desplegable.abierto .menu-toggle-principal::after {
+    content: "âŒƒ";
+}
+
+.menu-panel-principal {
+    position: absolute;
+    top: calc(100% + 10px);
+    left: 0;
+    display: none;
+    grid-template-columns: 230px minmax(240px, 360px);
+    min-width: min(92vw, 620px);
+    max-width: calc(100vw - 28px);
+    border-radius: 14px;
+    overflow: hidden;
+    background: #132536;
+    color: #ffffff;
+    box-shadow: 0 20px 44px rgba(0, 0, 0, 0.32);
+}
+
+.menu-desplegable.abierto .menu-panel-principal {
+    display: grid;
+}
+
+.menu-columna-principal {
+    display: grid;
+    gap: 2px;
+    padding: 10px;
+    background: #142838;
+}
+
+.menu-opcion-principal,
+.submenu-boton {
+    width: 100%;
+    min-height: 44px;
+    border: 0;
+    border-radius: 8px;
+    padding: 10px 13px;
+    background: transparent;
+    color: #ffffff;
+    font: inherit;
+    font-weight: 900;
+    text-align: left;
+    cursor: pointer;
+}
+
+.menu-opcion-principal:hover,
+.menu-opcion-principal.activo {
+    background: #203746;
+    color: #35a2ff;
+}
+
+.menu-contenido-principal {
+    position: relative;
+    min-height: 100%;
+    padding: 10px;
+    background: #1b2e3a;
+}
+
+.submenu-panel {
+    display: none;
+    gap: 6px;
+}
+
+.submenu-panel.activo {
+    display: grid;
+}
+
+.submenu-boton {
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.submenu-boton:hover,
+.submenu-boton.activo {
+    background: #00e565;
+    color: #03110a;
+}
+
+.submenu-ayuda {
+    margin: 4px 4px 10px;
+    color: #b9c7d3;
+    font-size: 12px;
+    font-weight: 800;
 }
 
 .selector-torneo,
@@ -1829,10 +1942,9 @@ body.solo-lectura .menu-principal {
         top: 92px !important;
         min-height: 0 !important;
         padding: 6px 8px !important;
-        display: grid;
-        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        display: flex;
         align-items: start;
-        gap: 6px 8px;
+        gap: 6px;
     }
 
     body.solo-lectura .categorias-grid {
@@ -1847,6 +1959,42 @@ body.solo-lectura .menu-principal {
         display: inline-flex;
         align-items: center;
         justify-content: center;
+    }
+
+    .menu-desplegable {
+        width: 100%;
+    }
+
+    .menu-toggle-principal {
+        width: 100%;
+        min-height: 38px;
+        border-radius: 10px;
+        padding: 8px 12px;
+    }
+
+    .menu-panel-principal {
+        position: fixed;
+        top: 140px;
+        left: 8px;
+        right: 8px;
+        grid-template-columns: minmax(130px, 38%) minmax(0, 1fr);
+        min-width: 0;
+        max-width: none;
+        max-height: calc(100vh - 158px);
+        overflow-y: auto;
+        border-radius: 12px;
+    }
+
+    .menu-columna-principal,
+    .menu-contenido-principal {
+        padding: 8px;
+    }
+
+    .menu-opcion-principal,
+    .submenu-boton {
+        min-height: 38px;
+        padding: 8px 9px;
+        font-size: 12px;
     }
 
     .selector-torneo,
@@ -2034,7 +2182,7 @@ body.solo-lectura .menu-principal {
             <img src="{{ logo_torneo }}" class="logo-central">
         {% endif %}
         <h1>TORNEO IMCRED</h1>
-        <p>Panel oficial de resultados, posiciones y estadísticas</p>
+        <p>Panel oficial de resultados, posiciones y estadÃ­sticas</p>
     </div>
 
     {% if logo_imcred %}
@@ -2046,18 +2194,18 @@ body.solo-lectura .menu-principal {
 
 <div class="pantalla-categorias" id="pantalla-categorias">
     <h1 class="titulo-app">TORNEO IMCRED</h1>
-    <p class="subtitulo-app">Selecciona una categoría</p>
+    <p class="subtitulo-app">Selecciona una categorÃ­a</p>
 
     <div class="acciones-portada">
     {% if request.user.is_staff %}
     <a class="boton" href="{% url 'descargar_programacion_general' %}">
-        <span class="texto-largo">Descargar programación completa</span>
-        <span class="texto-corto">Descargar programación</span>
+        <span class="texto-largo">Descargar programaciÃ³n completa</span>
+        <span class="texto-corto">Descargar programaciÃ³n</span>
     </a>
 
     <a class="boton secundario" href="{% url 'gestion_panel' %}">
-        <span class="texto-largo">Gestión del torneo</span>
-        <span class="texto-corto">Gestión</span>
+        <span class="texto-largo">GestiÃ³n del torneo</span>
+        <span class="texto-corto">GestiÃ³n</span>
     </a>
 
     <span class="boton secundario boton-admin-activo">
@@ -2071,80 +2219,76 @@ body.solo-lectura .menu-principal {
     </div>
 
     <nav class="menu-principal" id="categorias-fijas">
-        <div class="selector-menu">
-            <span>Menú</span>
-            <select id="selector-menu-principal" onchange="mostrarSubmenuPrincipal(this.value)">
-                <option value="torneo">Torneo</option>
-                <option value="categoria">Categoría</option>
-                <option value="partidos" selected>Partidos</option>
-                <option value="documentos">Documentos</option>
-                <option value="admin">Admin</option>
-            </select>
-        </div>
+        <div class="menu-desplegable" id="menu-desplegable-principal">
+            <button type="button" class="menu-toggle-principal" onclick="toggleMenuPrincipal()">
+                Menú
+            </button>
 
-        <div class="selector-torneo menu-subselector" data-submenu="torneo">
-            <span>Torneo</span>
-            <select id="selector-torneo" onchange="cambiarTorneo(this.value)">
-                {% for torneo in torneos_menu %}
-                    <option value="{{ torneo.id }}" {% if torneo_seleccionado and torneo.id == torneo_seleccionado.id %}selected{% endif %}>
-                        {{ torneo.nombre }}
-                    </option>
-                {% endfor %}
-            </select>
-        </div>
+            <div class="menu-panel-principal" id="menu-panel-principal">
+                <div class="menu-columna-principal">
+                    <button type="button" class="menu-opcion-principal" data-menu="torneo" onclick="mostrarSubmenuPrincipal('torneo')">Torneo</button>
+                    <button type="button" class="menu-opcion-principal" data-menu="categoria" onclick="mostrarSubmenuPrincipal('categoria')">Categorías</button>
+                    <button type="button" class="menu-opcion-principal activo" data-menu="partidos" onclick="mostrarSubmenuPrincipal('partidos')">Partidos</button>
+                    <button type="button" class="menu-opcion-principal" data-menu="documentos" onclick="mostrarSubmenuPrincipal('documentos')">Documentos</button>
+                    <button type="button" class="menu-opcion-principal" data-menu="admin" onclick="mostrarSubmenuPrincipal('admin')">Admin</button>
+                </div>
 
-        <div class="selector-categoria menu-subselector" data-submenu="categoria">
-            <span>Categoría</span>
-            <select onchange="abrirCategoriaSelect(this.value)">
-                <option value="">Seleccionar</option>
-                {% for categoria in categorias_menu %}
-                    <option value="{{ categoria.nombre }}" {% if categoria.nombre == categoria_seleccionada %}selected{% endif %}>
-                        {{ categoria.nombre }}
-                    </option>
-                {% endfor %}
-            </select>
-        </div>
+                <div class="menu-contenido-principal">
+                    <div class="submenu-panel" data-submenu="torneo">
+                        <div class="submenu-ayuda">Selecciona el torneo</div>
+                        {% for torneo in torneos_menu %}
+                            <button type="button" class="submenu-boton {% if torneo_seleccionado and torneo.id == torneo_seleccionado.id %}activo{% endif %}" onclick="cambiarTorneo('{{ torneo.id }}')">
+                                {{ torneo.nombre }}
+                            </button>
+                        {% endfor %}
+                    </div>
 
-        <div class="selector-partidos menu-subselector activo" data-submenu="partidos">
-            <span>Partidos</span>
-            <select id="selector-partidos" onchange="mostrarPartidosPrincipal(this.value)">
-                <option value="por-fechas">Resumen</option>
-                {% for bloque_fecha in partidos_fechas %}
-                    <option value="{{ bloque_fecha.key }}">{{ bloque_fecha.label }}</option>
-                {% endfor %}
-                <option value="cuartos">Cuartos</option>
-                <option value="semifinal">Semifinal</option>
-                <option value="final">Final</option>
-            </select>
-        </div>
+                    <div class="submenu-panel" data-submenu="categoria">
+                        <div class="submenu-ayuda">Abre una categoría</div>
+                        {% for categoria in categorias_menu %}
+                            <button type="button" class="submenu-boton {% if categoria.nombre == categoria_seleccionada %}activo{% endif %}" onclick="abrirCategoriaSelect('{{ categoria.nombre|escapejs }}')">
+                                {{ categoria.nombre }}
+                            </button>
+                        {% endfor %}
+                    </div>
 
-        <div class="selector-documentos menu-subselector" data-submenu="documentos">
-            <span>Documentos torneo</span>
-            <select id="selector-documentos-torneo" onchange="mostrarDocumentoPrincipal(this.value)">
-                <option value="">Seleccionar</option>
-                <option value="reglamentos">Reglamentos</option>
-                <option value="resoluciones">Resoluciones</option>
-                <option value="demandas">Demandas</option>
-                <option value="comunicados">Comunicados</option>
-            </select>
-        </div>
+                    <div class="submenu-panel activo" data-submenu="partidos">
+                        <div class="submenu-ayuda">Consulta partidos</div>
+                        <button type="button" class="submenu-boton activo" data-partidos-panel="por-fechas" onclick="mostrarPartidosPrincipal('por-fechas')">Resumen</button>
+                        {% for bloque_fecha in partidos_fechas %}
+                            <button type="button" class="submenu-boton" data-partidos-panel="{{ bloque_fecha.key }}" onclick="mostrarPartidosPrincipal('{{ bloque_fecha.key }}')">
+                                {{ bloque_fecha.label }}
+                            </button>
+                        {% endfor %}
+                        <button type="button" class="submenu-boton" data-partidos-panel="cuartos" onclick="mostrarPartidosPrincipal('cuartos')">Cuartos</button>
+                        <button type="button" class="submenu-boton" data-partidos-panel="semifinal" onclick="mostrarPartidosPrincipal('semifinal')">Semifinal</button>
+                        <button type="button" class="submenu-boton" data-partidos-panel="final" onclick="mostrarPartidosPrincipal('final')">Final</button>
+                    </div>
 
-        <div class="selector-admin menu-subselector" data-submenu="admin">
-            <span>Admin</span>
-            <select id="selector-admin" onchange="accionAdmin(this.value)">
-                <option value="">Seleccionar</option>
-                {% if request.user.is_staff %}
-                    <option value="descargar">Descargar programación</option>
-                    <option value="gestion">Gestión torneo</option>
-                    <option value="salir">Cerrar sesión</option>
-                {% else %}
-                    <option value="login">Ingresar admin</option>
-                {% endif %}
-            </select>
+                    <div class="submenu-panel" data-submenu="documentos">
+                        <div class="submenu-ayuda">Documentos del torneo</div>
+                        <button type="button" class="submenu-boton" data-documento-seccion="reglamentos" onclick="mostrarDocumentoPrincipal('reglamentos')">Reglamentos</button>
+                        <button type="button" class="submenu-boton" data-documento-seccion="resoluciones" onclick="mostrarDocumentoPrincipal('resoluciones')">Resoluciones</button>
+                        <button type="button" class="submenu-boton" data-documento-seccion="demandas" onclick="mostrarDocumentoPrincipal('demandas')">Demandas</button>
+                        <button type="button" class="submenu-boton" data-documento-seccion="comunicados" onclick="mostrarDocumentoPrincipal('comunicados')">Comunicados</button>
+                    </div>
+
+                    <div class="submenu-panel" data-submenu="admin">
+                        <div class="submenu-ayuda">Opciones administrativas</div>
+                        {% if request.user.is_staff %}
+                            <button type="button" class="submenu-boton" onclick="accionAdmin('descargar')">Descargar programación</button>
+                            <button type="button" class="submenu-boton" onclick="accionAdmin('gestion')">Gestión torneo</button>
+                            <button type="button" class="submenu-boton" onclick="accionAdmin('salir')">Cerrar sesión</button>
+                        {% else %}
+                            <button type="button" class="submenu-boton" onclick="accionAdmin('login')">Ingresar admin</button>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
         </div>
     </nav>
 
-    <button type="button" class="btn-atras-apk" onclick="volverApp()">Atrás</button>
+    <button type="button" class="btn-atras-apk" onclick="volverApp()">AtrÃ¡s</button>
 
     <section class="portada-seccion seccion-principal activa" id="timeline-partidos" data-seccion-principal="partidos">
         <h2>Partidos</h2>
@@ -2242,7 +2386,7 @@ body.solo-lectura .menu-principal {
                     <em>Ver</em>
                 </a>
             {% empty %}
-                <div class="partido-portada">Próximamente podrás consultar reglamentos del torneo.</div>
+                <div class="partido-portada">PrÃ³ximamente podrÃ¡s consultar reglamentos del torneo.</div>
             {% endfor %}
         </div>
     </section>
@@ -2259,7 +2403,7 @@ body.solo-lectura .menu-principal {
                     <em>Ver</em>
                 </a>
             {% empty %}
-                <div class="partido-portada">Próximamente podrás consultar resoluciones oficiales.</div>
+                <div class="partido-portada">PrÃ³ximamente podrÃ¡s consultar resoluciones oficiales.</div>
             {% endfor %}
         </div>
     </section>
@@ -2276,7 +2420,7 @@ body.solo-lectura .menu-principal {
                     <em>Ver</em>
                 </a>
             {% empty %}
-                <div class="partido-portada">Próximamente podrás consultar demandas y decisiones.</div>
+                <div class="partido-portada">PrÃ³ximamente podrÃ¡s consultar demandas y decisiones.</div>
             {% endfor %}
         </div>
     </section>
@@ -2293,7 +2437,7 @@ body.solo-lectura .menu-principal {
                     <em>Ver</em>
                 </a>
             {% empty %}
-                <div class="partido-portada">Próximamente podrás consultar comunicados oficiales.</div>
+                <div class="partido-portada">PrÃ³ximamente podrÃ¡s consultar comunicados oficiales.</div>
             {% endfor %}
         </div>
     </section>
@@ -2305,7 +2449,7 @@ body.solo-lectura .menu-principal {
 <div class="categoria" id="categoria-{{ forloop.counter }}">
 
     <div class="categoria-barra-interna">
-        <button class="btn-volver" onclick="volverCategorias()">← Categorías</button>
+        <button class="btn-volver" onclick="volverCategorias()">â† CategorÃ­as</button>
         <h1 class="titulo-categoria-compacto">{{ categoria }}</h1>
     </div>
 
@@ -2323,7 +2467,7 @@ body.solo-lectura .menu-principal {
     <div class="tab-content active" data-tab="posiciones">
         <div class="bloque">
             <h2>Tabla de posiciones</h2>
-            <p class="aviso-deslizar">← Desliza la tabla hacia los lados para verla completa →</p>
+            <p class="aviso-deslizar">â† Desliza la tabla hacia los lados para verla completa â†’</p>
 
             {% for grupo, datos_grupo in datos_categoria.grupos.items %}
                 {% if grupo != "FINAL" %}
@@ -2383,7 +2527,7 @@ body.solo-lectura .menu-principal {
                 </div>
                 {% endif %}
             {% empty %}
-                <p>Esta categoría todavía no tiene grupos o partidos registrados.</p>
+                <p>Esta categorÃ­a todavÃ­a no tiene grupos o partidos registrados.</p>
             {% endfor %}
         </div>
     </div>
@@ -2399,7 +2543,7 @@ body.solo-lectura .menu-principal {
             </div>
             {% endif %}
 
-            <p class="aviso-deslizar">← Desliza la tabla hacia los lados para verla completa →</p>
+            <p class="aviso-deslizar">â† Desliza la tabla hacia los lados para verla completa â†’</p>
 
             <div class="tabla-responsive">
                 <table>
@@ -2451,7 +2595,7 @@ body.solo-lectura .menu-principal {
             </div>
             {% endif %}
 
-            <p class="aviso-deslizar">← Desliza la tabla hacia los lados para verla completa →</p>
+            <p class="aviso-deslizar">â† Desliza la tabla hacia los lados para verla completa â†’</p>
 
             <div class="tabla-responsive">
                 <table>
@@ -2505,7 +2649,7 @@ body.solo-lectura .menu-principal {
             </div>
             {% endif %}
 
-            <p class="aviso-deslizar">← Desliza la tabla hacia los lados para verla completa →</p>
+            <p class="aviso-deslizar">â† Desliza la tabla hacia los lados para verla completa â†’</p>
 
             <div class="tabla-responsive">
                 <table>
@@ -2552,7 +2696,7 @@ body.solo-lectura .menu-principal {
         <div class="bloque">
             <h2>Alertas de sanciones por tarjetas</h2>
 
-            <p class="aviso-deslizar">← Desliza la tabla hacia los lados para verla completa →</p>
+            <p class="aviso-deslizar">â† Desliza la tabla hacia los lados para verla completa â†’</p>
 
             <div class="tabla-responsive tabla-posiciones">
                 <table>
@@ -2563,7 +2707,7 @@ body.solo-lectura .menu-principal {
                         <th>Amarillas grupos</th>
                         <th>Amarillas finales</th>
                         <th>Rojas</th>
-                        <th>Estado / Observación</th>
+                        <th>Estado / ObservaciÃ³n</th>
                     </tr>
 
                     {% for a in datos_categoria.alertas_tarjetas %}
@@ -2585,7 +2729,7 @@ body.solo-lectura .menu-principal {
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="7">No hay jugadores en alerta o sanción.</td>
+                        <td colspan="7">No hay jugadores en alerta o sanciÃ³n.</td>
                     </tr>
                     {% endfor %}
                 </table>
@@ -2600,7 +2744,7 @@ body.solo-lectura .menu-principal {
 
             {% if request.user.is_staff %}
             <div class="descargas-tab">
-                <a class="boton" href="{% url 'descargar_programacion_categoria' categoria %}">Descargar programación</a>
+                <a class="boton" href="{% url 'descargar_programacion_categoria' categoria %}">Descargar programaciÃ³n</a>
             </div>
             {% endif %}
 
@@ -2639,15 +2783,15 @@ body.solo-lectura .menu-principal {
                                 </div>
                                 {% endif %}
                                 <div class="detalle-partido-card">
-                                    <div>📅 {{ item.partido.fecha }}</div>
-                                    <div>🕒 {{ item.partido.hora }}</div>
-                                    <div>🏟️ {{ item.partido.cancha|default:"Por definir" }}</div>
+                                    <div>ðŸ“… {{ item.partido.fecha }}</div>
+                                    <div>ðŸ•’ {{ item.partido.hora }}</div>
+                                    <div>ðŸŸï¸ {{ item.partido.cancha|default:"Por definir" }}</div>
                                 </div>
                                 
                                     {% if request.user.is_staff %}
                                     <a class="btn-editor-movil"
                                        href="{% url 'editor_partido_movil' item.partido.id %}">
-                                      ✏️ Editar partido
+                                      âœï¸ Editar partido
                                     </a>
                                     {% endif %}
                             </div>
@@ -2664,13 +2808,13 @@ body.solo-lectura .menu-principal {
                         <div class="acciones-partido">
                             <button type="button" class="btn-menu-partido" onclick="abrirMenuPartido('menu-partido-{{ item.partido.id }}')">+</button>
                             <div class="menu-partido" id="menu-partido-{{ item.partido.id }}">
-                                <a href="{% url 'editor_partido_movil' item.partido.id %}">✏️ Editar partido completo</a>
-                                <a href="{% url 'editor_partido_movil' item.partido.id %}#resultado">✅ Resultado, estado y programación</a>
-                                <a href="{% url 'editor_partido_movil' item.partido.id %}#goles">⚽ Goles</a>
-                                <a href="{% url 'editor_partido_movil' item.partido.id %}#tarjetas">🟨🟥 Tarjetas</a>
-                                <a href="{% url 'editor_partido_movil' item.partido.id %}#alineacion">📋 Alineación</a>
-                                <a href="{% url 'editor_partido_movil' item.partido.id %}#sustituciones">🔁 Sustituciones</a>
-                                <a href="{% url 'editor_partido_movil' item.partido.id %}#penales-comite">🥅 Penales y comité</a>
+                                <a href="{% url 'editor_partido_movil' item.partido.id %}">âœï¸ Editar partido completo</a>
+                                <a href="{% url 'editor_partido_movil' item.partido.id %}#resultado">âœ… Resultado, estado y programaciÃ³n</a>
+                                <a href="{% url 'editor_partido_movil' item.partido.id %}#goles">âš½ Goles</a>
+                                <a href="{% url 'editor_partido_movil' item.partido.id %}#tarjetas">ðŸŸ¨ðŸŸ¥ Tarjetas</a>
+                                <a href="{% url 'editor_partido_movil' item.partido.id %}#alineacion">ðŸ“‹ AlineaciÃ³n</a>
+                                <a href="{% url 'editor_partido_movil' item.partido.id %}#sustituciones">ðŸ” Sustituciones</a>
+                                <a href="{% url 'editor_partido_movil' item.partido.id %}#penales-comite">ðŸ¥… Penales y comitÃ©</a>
                             </div>
                         </div>
                         {% endif %}
@@ -2692,13 +2836,13 @@ body.solo-lectura .menu-principal {
         {% if request.user.is_staff %}
         <div class="descargas-tab">
             <a class="boton" href="{% url 'descargar_programacion_categoria' categoria %}">
-                Descargar programación
+                Descargar programaciÃ³n
             </a>
         </div>
         {% endif %}
 
         {% if request.user.is_staff %}
-        <h3>🏆 Generar fase final</h3>
+        <h3>ðŸ† Generar fase final</h3>
 
         <div class="grupo-botones">
             <a class="boton fase-btn" href="{% url 'generar_llaves_cuartos' categoria %}">Cuartos</a>
@@ -2725,7 +2869,7 @@ body.solo-lectura .menu-principal {
                                     <img src="{{ p.escudo_local }}">
                                 {% endif %}
                                 <div class="nombre-equipo-llave">
-                                    {% if p.ganador_local %}<span class="estrella-ganador">⭐</span>{% endif %}
+                                    {% if p.ganador_local %}<span class="estrella-ganador">â­</span>{% endif %}
                                     {{ p.local }}
                                 </div>
                             </div>
@@ -2748,14 +2892,14 @@ body.solo-lectura .menu-principal {
                                 {% endif %}
 
                                 <div class="detalle-llave">
-                                    {% if p.fecha %}<div>📅 {{ p.fecha }}</div>{% endif %}
-                                    {% if p.hora %}<div>🕒 {{ p.hora }}</div>{% endif %}
-                                    {% if p.cancha %}<div>🏟️ {{ p.cancha }}</div>{% endif %}
+                                    {% if p.fecha %}<div>ðŸ“… {{ p.fecha }}</div>{% endif %}
+                                    {% if p.hora %}<div>ðŸ•’ {{ p.hora }}</div>{% endif %}
+                                    {% if p.cancha %}<div>ðŸŸï¸ {{ p.cancha }}</div>{% endif %}
                                 </div>
 
                                 {% if request.user.is_staff and p.id %}
                                 <a class="btn-editor-movil" href="{% url 'editor_partido_movil' p.id %}">
-                                    ✏️ Editar
+                                    âœï¸ Editar
                                 </a>
                                 {% endif %}
                             </div>
@@ -2765,7 +2909,7 @@ body.solo-lectura .menu-principal {
                                     <img src="{{ p.escudo_visitante }}">
                                 {% endif %}
                                 <div class="nombre-equipo-llave">
-                                    {% if p.ganador_visitante %}<span class="estrella-ganador">⭐</span>{% endif %}
+                                    {% if p.ganador_visitante %}<span class="estrella-ganador">â­</span>{% endif %}
                                     {{ p.visitante }}
                                 </div>
                             </div>
@@ -2789,7 +2933,7 @@ body.solo-lectura .menu-principal {
                                     <img src="{{ p.escudo_local }}">
                                 {% endif %}
                                 <div class="nombre-equipo-llave">
-                                    {% if p.ganador_local %}<span class="estrella-ganador">⭐</span>{% endif %}
+                                    {% if p.ganador_local %}<span class="estrella-ganador">â­</span>{% endif %}
                                     {{ p.local }}
                                 </div>
                             </div>
@@ -2812,14 +2956,14 @@ body.solo-lectura .menu-principal {
                                 {% endif %}
 
                                 <div class="detalle-llave">
-                                    {% if p.fecha %}<div>📅 {{ p.fecha }}</div>{% endif %}
-                                    {% if p.hora %}<div>🕒 {{ p.hora }}</div>{% endif %}
-                                    {% if p.cancha %}<div>🏟️ {{ p.cancha }}</div>{% endif %}
+                                    {% if p.fecha %}<div>ðŸ“… {{ p.fecha }}</div>{% endif %}
+                                    {% if p.hora %}<div>ðŸ•’ {{ p.hora }}</div>{% endif %}
+                                    {% if p.cancha %}<div>ðŸŸï¸ {{ p.cancha }}</div>{% endif %}
                                 </div>
 
                                 {% if request.user.is_staff and p.id %}
                                 <a class="btn-editor-movil" href="{% url 'editor_partido_movil' p.id %}">
-                                    ✏️ Editar
+                                    âœï¸ Editar
                                 </a>
                                 {% endif %}
                             </div>
@@ -2829,7 +2973,7 @@ body.solo-lectura .menu-principal {
                                     <img src="{{ p.escudo_visitante }}">
                                 {% endif %}
                                 <div class="nombre-equipo-llave">
-                                    {% if p.ganador_visitante %}<span class="estrella-ganador">⭐</span>{% endif %}
+                                    {% if p.ganador_visitante %}<span class="estrella-ganador">â­</span>{% endif %}
                                     {{ p.visitante }}
                                 </div>
                             </div>
@@ -2853,7 +2997,7 @@ body.solo-lectura .menu-principal {
                                     <img src="{{ p.escudo_local }}">
                                 {% endif %}
                                 <div class="nombre-equipo-llave">
-                                    {% if p.ganador_local %}<span class="estrella-ganador">⭐</span>{% endif %}
+                                    {% if p.ganador_local %}<span class="estrella-ganador">â­</span>{% endif %}
                                     {{ p.local }}
                                 </div>
                             </div>
@@ -2876,14 +3020,14 @@ body.solo-lectura .menu-principal {
                                 {% endif %}
 
                                 <div class="detalle-llave">
-                                    {% if p.fecha %}<div>📅 {{ p.fecha }}</div>{% endif %}
-                                    {% if p.hora %}<div>🕒 {{ p.hora }}</div>{% endif %}
-                                    {% if p.cancha %}<div>🏟️ {{ p.cancha }}</div>{% endif %}
+                                    {% if p.fecha %}<div>ðŸ“… {{ p.fecha }}</div>{% endif %}
+                                    {% if p.hora %}<div>ðŸ•’ {{ p.hora }}</div>{% endif %}
+                                    {% if p.cancha %}<div>ðŸŸï¸ {{ p.cancha }}</div>{% endif %}
                                 </div>
 
                                 {% if request.user.is_staff and p.id %}
                                 <a class="btn-editor-movil" href="{% url 'editor_partido_movil' p.id %}">
-                                    ✏️ Editar
+                                    âœï¸ Editar
                                 </a>
                                 {% endif %}
                             </div>
@@ -2893,7 +3037,7 @@ body.solo-lectura .menu-principal {
                                     <img src="{{ p.escudo_visitante }}">
                                 {% endif %}
                                 <div class="nombre-equipo-llave">
-                                    {% if p.ganador_visitante %}<span class="estrella-ganador">⭐</span>{% endif %}
+                                    {% if p.ganador_visitante %}<span class="estrella-ganador">â­</span>{% endif %}
                                     {{ p.visitante }}
                                 </div>
                             </div>
@@ -2915,7 +3059,7 @@ body.solo-lectura .menu-principal {
                                     <img src="{{ p.escudo_local }}">
                                 {% endif %}
                                 <div class="nombre-equipo-llave">
-                                    {% if p.ganador_local %}<span class="estrella-ganador">⭐</span>{% endif %}
+                                    {% if p.ganador_local %}<span class="estrella-ganador">â­</span>{% endif %}
                                     {{ p.local }}
                                 </div>
                             </div>
@@ -2938,14 +3082,14 @@ body.solo-lectura .menu-principal {
                                 {% endif %}
 
                                 <div class="detalle-llave">
-                                    {% if p.fecha %}<div>📅 {{ p.fecha }}</div>{% endif %}
-                                    {% if p.hora %}<div>🕒 {{ p.hora }}</div>{% endif %}
-                                    {% if p.cancha %}<div>🏟️ {{ p.cancha }}</div>{% endif %}
+                                    {% if p.fecha %}<div>ðŸ“… {{ p.fecha }}</div>{% endif %}
+                                    {% if p.hora %}<div>ðŸ•’ {{ p.hora }}</div>{% endif %}
+                                    {% if p.cancha %}<div>ðŸŸï¸ {{ p.cancha }}</div>{% endif %}
                                 </div>
 
                                 {% if request.user.is_staff and p.id %}
                                 <a class="btn-editor-movil" href="{% url 'editor_partido_movil' p.id %}">
-                                    ✏️ Editar
+                                    âœï¸ Editar
                                 </a>
                                 {% endif %}
                             </div>
@@ -2955,7 +3099,7 @@ body.solo-lectura .menu-principal {
                                     <img src="{{ p.escudo_visitante }}">
                                 {% endif %}
                                 <div class="nombre-equipo-llave">
-                                    {% if p.ganador_visitante %}<span class="estrella-ganador">⭐</span>{% endif %}
+                                    {% if p.ganador_visitante %}<span class="estrella-ganador">â­</span>{% endif %}
                                     {{ p.visitante }}
                                 </div>
                             </div>
@@ -2970,7 +3114,7 @@ body.solo-lectura .menu-principal {
         </div>
         {% else %}
             <div class="bloque">
-                <p>No hay llaves finales registradas todavía.</p>
+                <p>No hay llaves finales registradas todavÃ­a.</p>
             </div>
         {% endif %}
     </div>
@@ -2991,19 +3135,19 @@ body.solo-lectura .menu-principal {
                     {% endif %}
                     <h2>{{ equipo.nombre }}</h2>
                 </div>
-                <span class="card-icono">›</span>
+                <span class="card-icono">â€º</span>
             </div>
 
             <div class="equipo-detalle" id="equipo-{{ forloop.parentloop.counter }}-{{ forloop.counter }}">
 
-                <h3>Cuerpo técnico</h3>
+                <h3>Cuerpo tÃ©cnico</h3>
                 <table>
                     <tr>
                         <th>Cargo</th>
                         <th>Nombre</th>
                     </tr>
                     <tr>
-                        <td>Técnico</td>
+                        <td>TÃ©cnico</td>
                         <td>{{ equipo.director_tecnico|default:"No registrado" }}</td>
                     </tr>
                     <tr>
@@ -3025,7 +3169,7 @@ body.solo-lectura .menu-principal {
                             <th>Foto</th>
                             <th>Dorsal</th>
                             <th>Jugador</th>
-                            <th>Cédula</th>
+                            <th>CÃ©dula</th>
                             <th>Edad</th>
                             <th>Estado</th>
                         </tr>
@@ -3046,7 +3190,7 @@ body.solo-lectura .menu-principal {
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="7">Este equipo aún no tiene jugadores registrados.</td>
+                            <td colspan="7">Este equipo aÃºn no tiene jugadores registrados.</td>
                         </tr>
                         {% endfor %}
                     </table>
@@ -3055,14 +3199,14 @@ body.solo-lectura .menu-principal {
             </div>
         </div>
         {% empty %}
-            <p>No hay equipos registrados en esta categoría.</p>
+            <p>No hay equipos registrados en esta categorÃ­a.</p>
         {% endfor %}
     </div>
 </div>
-</div>  <!-- CIERRE DE LA CATEGORÍA -->
+</div>  <!-- CIERRE DE LA CATEGORÃA -->
 
 {% empty %}
-    <h2>No hay categorías registradas</h2>
+    <h2>No hay categorÃ­as registradas</h2>
 {% endfor %}
 {% endif %}
 
@@ -3078,17 +3222,30 @@ if ('serviceWorker' in navigator) {
 const categoriaInicial = "{{ categoria_seleccionada|default:''|escapejs }}";
 const torneoInicial = "{{ torneo_seleccionado.id|default:'' }}";
 
+function toggleMenuPrincipal() {
+    const menu = document.getElementById('menu-desplegable-principal');
+    if (menu) {
+        menu.classList.toggle('abierto');
+    }
+}
+
+function cerrarMenuPrincipal() {
+    const menu = document.getElementById('menu-desplegable-principal');
+    if (menu) {
+        menu.classList.remove('abierto');
+    }
+}
+
 function mostrarSubmenuPrincipal(menu) {
     if (!menu) return;
 
-    document.querySelectorAll('.menu-subselector').forEach(function(item) {
+    document.querySelectorAll('.submenu-panel').forEach(function(item) {
         item.classList.toggle('activo', item.dataset.submenu === menu);
     });
 
-    const selector = document.getElementById('selector-menu-principal');
-    if (selector) {
-        selector.value = menu;
-    }
+    document.querySelectorAll('.menu-opcion-principal').forEach(function(item) {
+        item.classList.toggle('activo', item.dataset.menu === menu);
+    });
 }
 
 function cambiarTorneo(torneoId) {
@@ -3103,7 +3260,6 @@ function cambiarTorneo(torneoId) {
 }
 
 function accionAdmin(accion) {
-    const selector = document.getElementById('selector-admin');
     if (!accion) return;
 
     const urls = {
@@ -3113,9 +3269,7 @@ function accionAdmin(accion) {
         salir: "{% url 'cerrar_sesion' %}"
     };
 
-    if (selector) {
-        selector.value = '';
-    }
+    cerrarMenuPrincipal();
 
     if (urls[accion]) {
         window.location.href = urls[accion];
@@ -3176,6 +3330,12 @@ function mostrarDocumentoPrincipal(seccion) {
     if (!seccion) return;
     mostrarSubmenuPrincipal('documentos');
     mostrarSeccionPrincipal(seccion);
+
+    document.querySelectorAll('[data-documento-seccion]').forEach(function(item) {
+        item.classList.toggle('activo', item.dataset.documentoSeccion === seccion);
+    });
+
+    cerrarMenuPrincipal();
 }
 
 function mostrarPartidosPrincipal(panel) {
@@ -3183,6 +3343,7 @@ function mostrarPartidosPrincipal(panel) {
     mostrarSubmenuPrincipal('partidos');
     mostrarSeccionPrincipal('partidos', null, true);
     mostrarPanelPartidos(panelActivo);
+    cerrarMenuPrincipal();
 
     window.setTimeout(function() {
         const destino = panelActivo === 'por-fechas'
@@ -3216,10 +3377,9 @@ function mostrarPanelPartidos(panel) {
         item.classList.toggle('activo', item.dataset.panelPartidos === panel);
     });
 
-    const selector = document.getElementById('selector-partidos');
-    if (selector) {
-        selector.value = panel;
-    }
+    document.querySelectorAll('[data-partidos-panel]').forEach(function(item) {
+        item.classList.toggle('activo', item.dataset.partidosPanel === panel);
+    });
 }
 
 function toggleEquipo(idEquipo) {
@@ -3428,6 +3588,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
     const categoriaNombre = localStorage.getItem('panel_volver_categoria_nombre');
     const tabVolver = localStorage.getItem('panel_volver_tab');
+
+    document.addEventListener('click', function(event) {
+        const menu = document.getElementById('menu-desplegable-principal');
+        if (menu && menu.classList.contains('abierto') && !menu.contains(event.target)) {
+            cerrarMenuPrincipal();
+        }
+    });
 
     document.querySelectorAll('.categoria').forEach(function(cat) {
         cat.style.display = 'none';
