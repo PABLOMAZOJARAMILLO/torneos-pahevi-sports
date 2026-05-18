@@ -1459,7 +1459,7 @@
 
 /* Ajuste final portada: evita encabezados duplicados y capas montadas */
 body {
-    padding-top: 260px !important;
+    padding-top: 204px !important;
 }
 
 body.solo-lectura {
@@ -1492,10 +1492,7 @@ body.categoria-activa .categoria {
 }
 
 .acciones-portada {
-    top: 126px !important;
-    min-height: 52px !important;
-    align-items: center !important;
-    padding: 9px 22px !important;
+    display: none !important;
 }
 
 .acciones-portada .boton {
@@ -1562,7 +1559,7 @@ body.solo-lectura .fase-btn {
 
 .menu-principal {
     position: fixed;
-    top: 178px;
+    top: 126px;
     left: 0;
     right: 0;
     z-index: 38;
@@ -1576,13 +1573,14 @@ body.solo-lectura .fase-btn {
 }
 
 body.solo-lectura .menu-principal {
-    top: 178px;
+    top: 126px;
 }
 
 .selector-torneo,
 .selector-categoria,
 .selector-documentos,
-.selector-partidos {
+.selector-partidos,
+.selector-admin {
     display: flex;
     align-items: center;
     gap: 10px;
@@ -1592,7 +1590,8 @@ body.solo-lectura .menu-principal {
 .selector-torneo span,
 .selector-categoria span,
 .selector-documentos span,
-.selector-partidos span {
+.selector-partidos span,
+.selector-admin span {
     color: #10213f;
     font-size: 13px;
     text-transform: uppercase;
@@ -1602,7 +1601,8 @@ body.solo-lectura .menu-principal {
 .selector-torneo select,
 .selector-categoria select,
 .selector-documentos select,
-.selector-partidos select {
+.selector-partidos select,
+.selector-admin select {
     min-height: 42px;
     border: 1px solid #cbd5e1;
     border-radius: 10px;
@@ -1732,11 +1732,11 @@ body.solo-lectura .menu-principal {
 
 @media (max-width: 768px) {
     body {
-        padding: 250px 10px 10px !important;
+        padding: 226px 10px 10px !important;
     }
 
     body.solo-lectura {
-        padding-top: 250px !important;
+        padding-top: 226px !important;
     }
 
     body.categoria-activa {
@@ -1807,7 +1807,7 @@ body.solo-lectura .menu-principal {
     }
 
     .menu-principal {
-        top: 140px !important;
+        top: 92px !important;
         min-height: 0 !important;
         padding: 6px 8px !important;
         display: grid;
@@ -1821,7 +1821,7 @@ body.solo-lectura .menu-principal {
     }
 
     body.solo-lectura .menu-principal {
-        top: 140px !important;
+        top: 92px !important;
     }
 
     .btn-atras-apk {
@@ -1833,7 +1833,8 @@ body.solo-lectura .menu-principal {
     .selector-torneo,
     .selector-categoria,
     .selector-documentos,
-    .selector-partidos {
+    .selector-partidos,
+    .selector-admin {
         min-width: 0;
         width: 100%;
         display: flex;
@@ -1845,7 +1846,8 @@ body.solo-lectura .menu-principal {
     .selector-torneo span,
     .selector-categoria span,
     .selector-documentos span,
-    .selector-partidos span {
+    .selector-partidos span,
+    .selector-admin span {
         font-size: 10px;
         line-height: 1;
         font-weight: 900;
@@ -1855,7 +1857,8 @@ body.solo-lectura .menu-principal {
     .selector-torneo select,
     .selector-categoria select,
     .selector-documentos select,
-    .selector-partidos select {
+    .selector-partidos select,
+    .selector-admin select {
         width: 100%;
         min-width: 0;
         min-height: 34px;
@@ -2090,6 +2093,20 @@ body.solo-lectura .menu-principal {
                 <option value="resoluciones">Resoluciones</option>
                 <option value="demandas">Demandas</option>
                 <option value="comunicados">Comunicados</option>
+            </select>
+        </div>
+
+        <div class="selector-admin">
+            <span>Admin</span>
+            <select id="selector-admin" onchange="accionAdmin(this.value)">
+                <option value="">Seleccionar</option>
+                {% if request.user.is_staff %}
+                    <option value="descargar">Descargar programación</option>
+                    <option value="gestion">Gestión torneo</option>
+                    <option value="salir">Cerrar sesión</option>
+                {% else %}
+                    <option value="login">Ingresar admin</option>
+                {% endif %}
             </select>
         </div>
     </nav>
@@ -3029,6 +3046,26 @@ function cambiarTorneo(torneoId) {
     }
     params.delete('categoria');
     window.location.href = '?' + params.toString();
+}
+
+function accionAdmin(accion) {
+    const selector = document.getElementById('selector-admin');
+    if (!accion) return;
+
+    const urls = {
+        login: "/admin/login/?next={% url 'gestion_panel' %}",
+        descargar: "{% url 'descargar_programacion_general' %}",
+        gestion: "{% url 'gestion_panel' %}",
+        salir: "/admin/logout/"
+    };
+
+    if (selector) {
+        selector.value = '';
+    }
+
+    if (urls[accion]) {
+        window.location.href = urls[accion];
+    }
 }
 
 function abrirCategoriaSelect(categoria) {

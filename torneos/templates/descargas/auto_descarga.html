@@ -57,9 +57,17 @@ window.onload = function() {
             windowWidth: elemento.scrollWidth,
             windowHeight: elemento.scrollHeight
         }).then(function(canvas) {
+            const dataUrl = canvas.toDataURL("image/png");
+
+            if (window.AndroidDownloader && typeof window.AndroidDownloader.guardarImagen === "function") {
+                window.AndroidDownloader.guardarImagen(dataUrl, "{{ nombre_archivo }}");
+                document.querySelector(".mensaje").innerText = "Imagen guardada en el celular";
+                return;
+            }
+
             const enlace = document.createElement("a");
             enlace.download = "{{ nombre_archivo }}";
-            enlace.href = canvas.toDataURL("image/png");
+            enlace.href = dataUrl;
             enlace.click();
 
             document.querySelector(".mensaje").innerText = "Imagen descargada correctamente";

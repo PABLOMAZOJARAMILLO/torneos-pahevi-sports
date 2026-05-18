@@ -5,6 +5,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
 import android.util.Base64;
+import android.webkit.JavascriptInterface;
 import android.widget.Toast;
 
 import com.getcapacitor.BridgeActivity;
@@ -18,16 +19,21 @@ public class MainActivity extends BridgeActivity {
 
         getBridge().getWebView().setDownloadListener((url, userAgent, contentDisposition, mimetype, contentLength) -> {
             if (url != null && url.startsWith("data:image/png;base64,")) {
-                guardarImagenBase64(url);
+                guardarImagenBase64(url, "");
             }
         });
+
+        getBridge().getWebView().addJavascriptInterface(new AndroidDownloader(), "AndroidDownloader");
     }
 
-    private void guardarImagenBase64(String dataUrl) {
+    private void guardarImagenBase64(String dataUrl, String nombreArchivo) {
         try {
             String base64 = dataUrl.substring(dataUrl.indexOf(",") + 1);
             byte[] bytes = Base64.decode(base64, Base64.DEFAULT);
-            String nombre = "programacion_imcred_" + System.currentTimeMillis() + ".png";
+            String nombre = limpiarNombre(nombreArchivo);
+            if (nombre.isEmpty()) {
+                nombre = "programacion_imcred_" + System.currentTimeMillis() + ".png";
+            }
 
             ContentValues values = new ContentValues();
             values.put(MediaStore.Images.Media.DISPLAY_NAME, nombre);
@@ -49,6 +55,26 @@ public class MainActivity extends BridgeActivity {
             Toast.makeText(this, "Imagen guardada en Fotos/TorneosIMCRED", Toast.LENGTH_LONG).show();
         } catch (Exception e) {
             Toast.makeText(this, "No se pudo descargar la imagen", Toast.LENGTH_LONG).show();
+        }
+    }
+
+    private String limpiarNombre(String nombreArchivo) {
+        if (nombreArchivo == null) {
+            return "";
+        }
+
+        String nombre = nombreArchivo.trim().replaceAll("[\\\\/:*?\"<>|]", "_");
+        if (nombre.isEmpty()) {
+            return "";
+        }
+
+        return nombre.toLowerCase().endsWith(".png") ? nombre : nombre + ".png";
+    }
+
+    public class AndroidDownloader {
+        @JavascriptInterface
+        public void guardarImagen(String dataUrl, String nombreArchivo) {
+            runOnUiThread(() -> guardarImagenBase64(dataUrl, nombreArchivo));
         }
     }
 }
