@@ -2205,11 +2205,13 @@ body.solo-lectura .menu-principal {
                 <div class="grupo">
                     <h2>Grupo {{ grupo }}</h2>
 
+                    {% if request.user.is_staff %}
                     <div class="descargas-tab">
                         <a class="boton" href="{% url 'descargar_tabla_grupo' categoria grupo %}">
                             Descargar tabla Grupo {{ grupo }}
                         </a>
                     </div>
+                    {% endif %}
 
                     <div class="tabla-responsive tabla-posiciones">
                         <table>
@@ -2266,9 +2268,11 @@ body.solo-lectura .menu-principal {
         <div class="bloque">
             <h2>Goleadores por fechas y fases</h2>
 
+            {% if request.user.is_staff %}
             <div class="descargas-tab">
                 <a class="boton" href="{% url 'descargar_goleadores_categoria' categoria %}">Descargar goleadores</a>
             </div>
+            {% endif %}
 
             <p class="aviso-deslizar">← Desliza la tabla hacia los lados para verla completa →</p>
 
@@ -2316,9 +2320,11 @@ body.solo-lectura .menu-principal {
         <div class="bloque">
             <h2>Valla menos vencida por fechas y fases</h2>
 
+            {% if request.user.is_staff %}
             <div class="descargas-tab">
                 <a class="boton" href="{% url 'descargar_valla_categoria' categoria %}">Descargar valla menos vencida</a>
             </div>
+            {% endif %}
 
             <p class="aviso-deslizar">← Desliza la tabla hacia los lados para verla completa →</p>
 
@@ -2368,9 +2374,11 @@ body.solo-lectura .menu-principal {
         <div class="bloque">
             <h2>Tarjetas por fechas y fases</h2>
 
+            {% if request.user.is_staff %}
             <div class="descargas-tab">
                 <a class="boton" href="{% url 'descargar_tarjetas_categoria' categoria %}">Descargar tarjetas</a>
             </div>
+            {% endif %}
 
             <p class="aviso-deslizar">← Desliza la tabla hacia los lados para verla completa →</p>
 
@@ -2465,9 +2473,11 @@ body.solo-lectura .menu-principal {
         <div class="bloque">
             <h2>Fechas fase 1</h2>
 
+            {% if request.user.is_staff %}
             <div class="descargas-tab">
                 <a class="boton" href="{% url 'descargar_programacion_categoria' categoria %}">Descargar programación</a>
             </div>
+            {% endif %}
 
             <div class="fechas-menu">
                 {% for fecha, partidos_fecha in datos_categoria.partidos_por_fecha.items %}
@@ -2554,11 +2564,13 @@ body.solo-lectura .menu-principal {
     <div class="bloque">
         <h2>Fechas fase finales</h2>
 
+        {% if request.user.is_staff %}
         <div class="descargas-tab">
             <a class="boton" href="{% url 'descargar_programacion_categoria' categoria %}">
                 Descargar programación
             </a>
         </div>
+        {% endif %}
 
         {% if request.user.is_staff %}
         <h3>🏆 Generar fase final</h3>
