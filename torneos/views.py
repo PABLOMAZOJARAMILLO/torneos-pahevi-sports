@@ -14,10 +14,12 @@ from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
 from django.db.models import Q
 from django.shortcuts import render, redirect, get_object_or_404
+from django.urls import reverse
 from django.contrib.staticfiles import finders
 from django.template.loader import render_to_string
 from django.templatetags.static import static
 from html2image import Html2Image
+import requests
 from django.views.decorators.http import require_POST
 from openpyxl import load_workbook
 
@@ -211,13 +213,20 @@ def documentos_publicos_por_tipo(torneo=None):
 
 def documento_publico(request, documento_id):
     documento = get_object_or_404(Documento, id=documento_id, activo=True)
-    archivo_url = documento.archivo
+    archivo_url = request.build_absolute_uri(reverse("documento_archivo_publico", args=[documento.id]))
     visor_url = f"https://docs.google.com/gview?embedded=1&url={quote(archivo_url, safe='')}"
-    return render(request, "documento_publico.html", {
-        "documento": documento,
-        "archivo_url": archivo_url,
-        "visor_url": visor_url,
-    })
+    return redirect(visor_url)
+
+
+def documento_archivo_publico(request, documento_id):
+    documento = get_object_or_404(Documento, id=documento_id, activo=True)
+    respuesta = requests.get(documento.archivo, timeout=20)
+    respuesta.raise_for_status()
+    content_type = respuesta.headers.get("Content-Type") or "application/pdf"
+    response = HttpResponse(respuesta.content, content_type=content_type)
+    nombre = limpiar_ruta_cloudinary(documento.titulo) or f"documento-{documento.id}"
+    response["Content-Disposition"] = f'inline; filename="{nombre}.pdf"'
+    return response
 
 
 def subir_documento_supabase(archivo, tipo):

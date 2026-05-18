@@ -29,6 +29,7 @@ urlpatterns = [
     path('', panel_principal, name='panel'),
     path('partido/<int:partido_id>/', views.detalle_partido_publico, name='partido_detalle_publico'),
     path('documentos/<int:documento_id>/', views.documento_publico, name='documento_publico'),
+    path('documentos/<int:documento_id>/archivo.pdf', views.documento_archivo_publico, name='documento_archivo_publico'),
 
     path(
         'descargar/tabla/<str:categoria>/<str:grupo>/',
