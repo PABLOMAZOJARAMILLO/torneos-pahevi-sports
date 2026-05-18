@@ -1,0 +1,46 @@
+[
+{
+  "model": "auth.user",
+  "pk": 1,
+  "fields": {
+    "password": "pbkdf2_sha256$1200000$mJXPHL3yRDz8l8MeEXEkSN$dsD/50JbcRM2RvUI0oPvaef1y9lGYh0aN5OmyWqD/G0=",
+    "last_login": null,
+    "is_superuser": true,
+    "username": "admin",
+    "first_name": "",
+    "last_name": "",
+    "email": "pablomazo1709@hotmail.com",
+    "is_staff": true,
+    "is_active": true,
+    "date_joined": "2026-05-09T06:34:52.043Z",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "pk": 2,
+  "fields": {
+    "password": "pbkdf2_sha256$1200000$dQBPri5BIgrF7ZJY4hod7d$+7lSV/v1ysItAHbiZ2H8ROG0GhbUeAh1Yp9GCxp5bqw=",
+    "last_login": "2026-05-09T15:17:04.507Z",
+    "is_superuser": true,
+    "username": "pablo",
+    "first_name": "",
+    "last_name": "",
+    "email": "pablomazo1709@hotmail.com",
+    "is_staff": true,
+    "is_active": true,
+    "date_joined": "2026-05-09T06:39:03.985Z",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "fl4sj2bdgwz76njk425vkxlycu68gqyz",
+  "fields": {
+    "session_data": ".eJxVjDkOwjAQRe8yNbK84C0lfc5gzdgTHEC2lKVC3B1FSgHd13tP_w0J962mfeUlzQUG0HD5ZYT5ye0Q5YHt3kXubVtmEkciTruKsRd-3c7276DiWmEAr7OJPhi-qmjROgqUrYnRk1WG2EeJkw1lIix8TClddjJoJMcuOwWfL9R5N9s:1wLjQO:to_oBl5pQ5Sj1176mg1m4S_HjZy8x7jquqRfiIdIjVs",
+    "expire_date": "2026-05-23T15:17:04.514Z"
+  }
+}
+]
