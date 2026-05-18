@@ -275,15 +275,16 @@ class TarjetaResource(resources.ModelResource):
 @admin.register(Categoria)
 class CategoriaAdmin(ImportExportModelAdmin):
     resource_class = CategoriaResource
-    list_display = ('nombre', 'edad_minima', 'edad_maxima')
-    search_fields = ('nombre',)
+    list_display = ('nombre', 'torneo', 'edad_minima', 'edad_maxima')
+    list_filter = ('torneo',)
+    search_fields = ('nombre', 'torneo__nombre')
 
 
 @admin.register(Documento)
 class DocumentoAdmin(admin.ModelAdmin):
-    list_display = ('tipo', 'titulo', 'activo', 'creado_en')
-    list_filter = ('tipo', 'activo')
-    search_fields = ('titulo', 'descripcion')
+    list_display = ('tipo', 'torneo', 'titulo', 'activo', 'creado_en')
+    list_filter = ('torneo', 'tipo', 'activo')
+    search_fields = ('titulo', 'descripcion', 'torneo__nombre')
     ordering = ('tipo', '-creado_en', 'titulo')
 
 
@@ -298,7 +299,7 @@ class JugadorInline(admin.TabularInline):
 class EquipoAdmin(ImportExportModelAdmin):
     resource_class = EquipoResource
     list_display = ('nombre', 'categoria', 'delegado', 'telefono', 'director_tecnico', 'telefono_dt', 'asistente_tecnico', 'telefono_at', 'activo')
-    list_filter = ('categoria', 'activo')
+    list_filter = ('categoria__torneo', 'categoria', 'activo')
     search_fields = ('nombre', 'delegado', 'telefono', 'director_tecnico', 'telefono_dt', 'asistente_tecnico', 'telefono_at')
     inlines = [JugadorInline]
 
@@ -346,7 +347,7 @@ class SustitucionInline(admin.TabularInline):
 class PartidoAdmin(ImportExportModelAdmin):
     resource_class = PartidoResource
     list_display = ('categoria', 'grupo', 'numero_fecha', 'fase', 'equipo_local', 'equipo_visitante', 'goles_local', 'goles_visitante', 'estado', 'fecha', 'hora', 'cancha', 'ajuste_puntos_local', 'ajuste_puntos_visitante', 'goles_local_penales', 'goles_visitante_penales')
-    list_filter = ('categoria', 'grupo', 'numero_fecha', 'fase', 'estado')
+    list_filter = ('categoria__torneo', 'categoria', 'grupo', 'numero_fecha', 'fase', 'estado')
     search_fields = ('equipo_local__nombre', 'equipo_visitante__nombre', 'cancha')
     inlines = [GolInline, TarjetaInline, AlineacionInline, SustitucionInline]
     ordering = ('categoria__nombre', 'grupo', 'numero_fecha', 'fase', 'fecha', 'hora')

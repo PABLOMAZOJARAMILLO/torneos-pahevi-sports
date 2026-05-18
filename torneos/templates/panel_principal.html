@@ -1547,6 +1547,7 @@ body.solo-lectura .menu-principal {
     top: 126px;
 }
 
+.selector-torneo,
 .selector-categoria,
 .selector-documentos,
 .selector-partidos {
@@ -1556,6 +1557,7 @@ body.solo-lectura .menu-principal {
     min-width: 260px;
 }
 
+.selector-torneo span,
 .selector-categoria span,
 .selector-documentos span,
 .selector-partidos span {
@@ -1565,6 +1567,7 @@ body.solo-lectura .menu-principal {
     letter-spacing: 0;
 }
 
+.selector-torneo select,
 .selector-categoria select,
 .selector-documentos select,
 .selector-partidos select {
@@ -1769,6 +1772,7 @@ body.solo-lectura .menu-principal {
         top: 92px !important;
     }
 
+    .selector-torneo,
     .selector-categoria,
     .selector-documentos,
     .selector-partidos {
@@ -1776,6 +1780,7 @@ body.solo-lectura .menu-principal {
         width: 100%;
     }
 
+    .selector-torneo select,
     .selector-categoria select,
     .selector-documentos select,
     .selector-partidos select {
@@ -1876,6 +1881,17 @@ body.solo-lectura .menu-principal {
     {% endif %}
 
     <nav class="menu-principal" id="categorias-fijas">
+        <div class="selector-torneo">
+            <span>Torneo</span>
+            <select id="selector-torneo" onchange="cambiarTorneo(this.value)">
+                {% for torneo in torneos_menu %}
+                    <option value="{{ torneo.id }}" {% if torneo_seleccionado and torneo.id == torneo_seleccionado.id %}selected{% endif %}>
+                        {{ torneo.nombre }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+
         <div class="selector-categoria">
             <span>Categoría</span>
             <select onchange="abrirCategoriaSelect(this.value)">
@@ -2823,10 +2839,27 @@ body.solo-lectura .menu-principal {
 
 <script>
 const categoriaInicial = "{{ categoria_seleccionada|default:''|escapejs }}";
+const torneoInicial = "{{ torneo_seleccionado.id|default:'' }}";
+
+function cambiarTorneo(torneoId) {
+    const params = new URLSearchParams(window.location.search);
+    if (torneoId) {
+        params.set('torneo', torneoId);
+    } else {
+        params.delete('torneo');
+    }
+    params.delete('categoria');
+    window.location.href = '?' + params.toString();
+}
 
 function abrirCategoriaSelect(categoria) {
     if (!categoria) return;
-    window.location.href = '?categoria=' + encodeURIComponent(categoria) + '#categoria-detalle';
+    const params = new URLSearchParams(window.location.search);
+    params.set('categoria', categoria);
+    if (torneoInicial) {
+        params.set('torneo', torneoInicial);
+    }
+    window.location.href = '?' + params.toString() + '#categoria-detalle';
 }
 
 function mostrarSeccionPrincipal(seccion, boton, omitirScroll) {

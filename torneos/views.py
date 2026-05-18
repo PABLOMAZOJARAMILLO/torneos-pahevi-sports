@@ -21,11 +21,28 @@ from django.views.decorators.http import require_POST
 from openpyxl import load_workbook
 
 from .forms import DocumentoForm, EquipoForm, JugadorForm, PartidoForm
-from .models import Categoria, Documento, Equipo, Partido, Gol, Tarjeta, Jugador, AlineacionPartido, SustitucionPartido, limpiar_ruta_cloudinary
+from .models import Torneo, Categoria, Documento, Equipo, Partido, Gol, Tarjeta, Jugador, AlineacionPartido, SustitucionPartido, limpiar_ruta_cloudinary
 
 
 def es_editor_torneo(user):
     return user.is_authenticated and (user.is_staff or user.is_superuser)
+
+
+def torneo_actual(request):
+    torneos = Torneo.objects.order_by("-fecha_inicio", "nombre")
+    torneo_id = request.GET.get("torneo") or request.session.get("torneo_id")
+    torneo = None
+
+    if torneo_id:
+        torneo = torneos.filter(id=torneo_id).first()
+
+    if not torneo:
+        torneo = torneos.filter(estado="ACTIVO").first() or torneos.first()
+
+    if torneo:
+        request.session["torneo_id"] = torneo.id
+
+    return torneo
 
 
 def listar_imagenes_cloudinary(max_results=80):
@@ -179,8 +196,10 @@ def aplicar_imagen_cloudinary(instancia, campo, public_id, archivo_subido):
         setattr(instancia, campo, public_id)
 
 
-def documentos_publicos_por_tipo():
+def documentos_publicos_por_tipo(torneo=None):
     documentos = Documento.objects.filter(activo=True).order_by("tipo", "-creado_en", "titulo")
+    if torneo:
+        documentos = documentos.filter(torneo=torneo)
     return {
         "reglamentos": documentos.filter(tipo="REGLAMENTO"),
         "resoluciones": documentos.filter(tipo="RESOLUCION"),
@@ -470,10 +489,12 @@ def nombre_columna_partido(partido):
     return fase
 
 
-def construir_estructura():
+def construir_estructura(torneo=None):
     estructura = {}
 
     categorias = Categoria.objects.all().order_by("nombre")
+    if torneo:
+        categorias = categorias.filter(torneo=torneo)
 
     for categoria in categorias:
         estructura[categoria.nombre] = estructura_base_categoria()
@@ -490,6 +511,8 @@ def construir_estructura():
         "fecha",
         "hora"
     )
+    if torneo:
+        partidos = partidos.filter(categoria__torneo=torneo)
 
     columnas_por_categoria = defaultdict(list)
 
@@ -1012,7 +1035,7 @@ def preparar_categoria_para_descarga(request, datos_categoria):
     return datos_categoria
 
 
-def construir_partidos_portada():
+def construir_partidos_portada(torneo=None):
     hoy = date.today()
     partidos = Partido.objects.filter(
         fecha__isnull=False,
@@ -1021,6 +1044,8 @@ def construir_partidos_portada():
         "equipo_local",
         "equipo_visitante",
     )
+    if torneo:
+        partidos = partidos.filter(categoria__torneo=torneo)
 
     estados_visibles = [
         "PROGRAMADO",
@@ -1129,11 +1154,14 @@ def construir_partidos_portada():
 
 
 def panel_principal(request):
+    torneo = torneo_actual(request)
     categoria_seleccionada = request.GET.get("categoria", "").strip()
     categorias = Categoria.objects.order_by("nombre")
+    if torneo:
+        categorias = categorias.filter(torneo=torneo)
 
     if categoria_seleccionada:
-        estructura_total = construir_estructura()
+        estructura_total = construir_estructura(torneo)
         estructura = {
             nombre: datos
             for nombre, datos in estructura_total.items()
@@ -1146,8 +1174,8 @@ def panel_principal(request):
         }
 
     logos = rutas_logos(request)
-    partidos_portada = construir_partidos_portada()
-    documentos = documentos_publicos_por_tipo()
+    partidos_portada = construir_partidos_portada(torneo)
+    documentos = documentos_publicos_por_tipo(torneo)
     fechas_grupos = sorted(
         {
             p["numero_fecha"]
@@ -1190,6 +1218,8 @@ def panel_principal(request):
 
     return render(request, "panel_principal.html", {
         "estructura": estructura,
+        "torneos_menu": Torneo.objects.order_by("-fecha_inicio", "nombre"),
+        "torneo_seleccionado": torneo,
         "categorias_menu": categorias,
         "categoria_seleccionada": categoria_seleccionada,
         "renderizar_categorias_detalle": bool(categoria_seleccionada),
@@ -2285,18 +2315,34 @@ def gestion_probar_storage(request):
 @login_required
 @user_passes_test(es_editor_torneo)
 def gestion_panel(request):
+    torneo = torneo_actual(request)
+    equipos = Equipo.objects.all()
+    jugadores = Jugador.objects.all()
+    partidos = Partido.objects.all()
+    documentos = Documento.objects.all()
+
+    if torneo:
+        equipos = equipos.filter(categoria__torneo=torneo)
+        jugadores = jugadores.filter(equipo__categoria__torneo=torneo)
+        partidos = partidos.filter(categoria__torneo=torneo)
+        documentos = documentos.filter(torneo=torneo)
+
     return render(request, "gestion/panel.html", {
-        "total_equipos": Equipo.objects.count(),
-        "total_jugadores": Jugador.objects.count(),
-        "total_partidos": Partido.objects.count(),
-        "total_documentos": Documento.objects.count(),
+        "torneo_seleccionado": torneo,
+        "total_equipos": equipos.count(),
+        "total_jugadores": jugadores.count(),
+        "total_partidos": partidos.count(),
+        "total_documentos": documentos.count(),
     })
 
 
 @login_required
 @user_passes_test(es_editor_torneo)
 def gestion_documentos(request):
+    torneo = torneo_actual(request)
     documentos = Documento.objects.order_by("tipo", "-creado_en", "titulo")
+    if torneo:
+        documentos = documentos.filter(torneo=torneo)
     tipo = request.GET.get("tipo", "").strip()
 
     if tipo:
@@ -2312,10 +2358,13 @@ def gestion_documentos(request):
 @login_required
 @user_passes_test(es_editor_torneo)
 def gestion_documento_nuevo(request):
-    form = DocumentoForm(request.POST or None, request.FILES or None)
+    torneo = torneo_actual(request)
+    form = DocumentoForm(request.POST or None, request.FILES or None, initial={"torneo": torneo})
 
     if request.method == "POST" and form.is_valid():
         documento = form.save(commit=False)
+        if not documento.torneo:
+            documento.torneo = torneo
         documento.archivo = subir_documento_torneo(
             form.cleaned_data["archivo_subido"],
             documento.tipo,

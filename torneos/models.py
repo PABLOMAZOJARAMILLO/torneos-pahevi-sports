@@ -65,14 +65,16 @@ class Categoria(models.Model):
     descripcion = models.TextField(blank=True, null=True, verbose_name='Descripción')
     edad_minima = models.IntegerField(verbose_name='Edad mínima')
     edad_maxima = models.IntegerField(verbose_name='Edad máxima')
-    torneo = models.ForeignKey(Torneo, on_delete=models.CASCADE, related_name='categorias')
+    torneo = models.ForeignKey(Torneo, on_delete=models.CASCADE, related_name='categorias', blank=True, null=True)
 
     class Meta:
         verbose_name = 'Categoría'
         verbose_name_plural = 'Categorías'
 
     def __str__(self):
-        return f"{self.nombre} - {self.torneo.nombre}"
+        if self.torneo:
+            return f"{self.nombre} - {self.torneo.nombre}"
+        return self.nombre
 
 
 class Documento(models.Model):
@@ -84,6 +86,7 @@ class Documento(models.Model):
     ]
 
     tipo = models.CharField(max_length=20, choices=TIPOS, verbose_name="Tipo")
+    torneo = models.ForeignKey(Torneo, on_delete=models.CASCADE, related_name="documentos", blank=True, null=True)
     titulo = models.CharField(max_length=180, verbose_name="Título")
     descripcion = models.TextField(blank=True, null=True, verbose_name="Descripción")
     archivo = models.URLField(max_length=600, verbose_name="Archivo")

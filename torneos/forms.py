@@ -9,6 +9,7 @@ class DocumentoForm(forms.ModelForm):
     class Meta:
         model = Documento
         fields = [
+            "torneo",
             "tipo",
             "titulo",
             "descripcion",
