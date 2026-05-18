@@ -1128,6 +1128,25 @@ def panel_principal(request):
     logos = rutas_logos(request)
     partidos_portada = construir_partidos_portada()
     documentos = documentos_publicos_por_tipo()
+    fechas_grupos = sorted(
+        {
+            p["numero_fecha"]
+            for p in partidos_portada
+            if p["fase"] == "GRUPOS" and p["numero_fecha"]
+        },
+        key=lambda valor: (
+            int(valor) if str(valor).isdigit() else 9999,
+            str(valor),
+        )
+    )
+    partidos_fechas = [
+        {
+            "key": f"fecha-{re.sub(r'[^a-zA-Z0-9_-]+', '-', str(fecha)).strip('-').lower()}",
+            "label": f"Fecha {fecha}",
+            "partidos": [p for p in partidos_portada if p["fase"] == "GRUPOS" and p["numero_fecha"] == fecha],
+        }
+        for fecha in fechas_grupos
+    ]
     partidos_cuartos = [p for p in partidos_portada if p["fase"] == "CUARTOS"]
     partidos_semifinal = [p for p in partidos_portada if p["fase"] == "SEMIFINAL"]
     partidos_final = [p for p in partidos_portada if p["fase"] in ["FINAL", "TERCER_PUESTO"]]
@@ -1141,6 +1160,7 @@ def panel_principal(request):
         "partidos_resultados": [p for p in partidos_portada if p["bloque"] == "RESULTADOS RECIENTES"],
         "partidos_programados": [p for p in partidos_portada if p["bloque"] == "PROGRAMADOS"],
         "partidos_futuros": [p for p in partidos_portada if p["bloque"] == "FUTUROS"],
+        "partidos_fechas": partidos_fechas,
         "partidos_cuartos": partidos_cuartos,
         "partidos_semifinal": partidos_semifinal,
         "partidos_final": partidos_final,

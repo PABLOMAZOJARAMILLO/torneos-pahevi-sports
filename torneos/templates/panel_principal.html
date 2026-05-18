@@ -1461,7 +1461,8 @@ body.solo-lectura .menu-principal {
 }
 
 .selector-categoria,
-.selector-documentos {
+.selector-documentos,
+.selector-partidos {
     display: flex;
     align-items: center;
     gap: 10px;
@@ -1469,7 +1470,8 @@ body.solo-lectura .menu-principal {
 }
 
 .selector-categoria span,
-.selector-documentos span {
+.selector-documentos span,
+.selector-partidos span {
     color: #10213f;
     font-size: 13px;
     text-transform: uppercase;
@@ -1477,7 +1479,8 @@ body.solo-lectura .menu-principal {
 }
 
 .selector-categoria select,
-.selector-documentos select {
+.selector-documentos select,
+.selector-partidos select {
     min-height: 42px;
     border: 1px solid #cbd5e1;
     border-radius: 10px;
@@ -1680,13 +1683,15 @@ body.solo-lectura .menu-principal {
     }
 
     .selector-categoria,
-    .selector-documentos {
+    .selector-documentos,
+    .selector-partidos {
         min-width: 0;
         width: 100%;
     }
 
     .selector-categoria select,
-    .selector-documentos select {
+    .selector-documentos select,
+    .selector-partidos select {
         flex: 1;
         min-width: 0;
     }
@@ -1796,8 +1801,17 @@ body.solo-lectura .menu-principal {
             </select>
         </div>
 
-        <div class="pestanas-principales">
-            <button type="button" class="pestana-principal activa" onclick="mostrarSeccionPrincipal('partidos', this)">Partidos</button>
+        <div class="selector-partidos">
+            <span>Partidos</span>
+            <select id="selector-partidos" onchange="mostrarPartidosPrincipal(this.value)">
+                <option value="por-fechas">Programados</option>
+                {% for bloque_fecha in partidos_fechas %}
+                    <option value="{{ bloque_fecha.key }}">{{ bloque_fecha.label }}</option>
+                {% endfor %}
+                <option value="cuartos">Cuartos</option>
+                <option value="semifinal">Semifinal</option>
+                <option value="final">Final</option>
+            </select>
         </div>
 
         <div class="selector-documentos">
@@ -1814,13 +1828,6 @@ body.solo-lectura .menu-principal {
 
     <section class="portada-seccion seccion-principal activa" id="timeline-partidos" data-seccion-principal="partidos">
         <h2>Partidos</h2>
-
-        <div class="subtabs-partidos">
-            <button type="button" class="subtab-partidos activa" onclick="mostrarPanelPartidos('por-fechas', this)">Por fechas</button>
-            <button type="button" class="subtab-partidos" onclick="mostrarPanelPartidos('cuartos', this)">Cuartos</button>
-            <button type="button" class="subtab-partidos" onclick="mostrarPanelPartidos('semifinal', this)">Semifinal</button>
-            <button type="button" class="subtab-partidos" onclick="mostrarPanelPartidos('final', this)">Final</button>
-        </div>
 
         <div class="partidos-portada panel-partidos activo" data-panel-partidos="por-fechas">
             {% if partidos_resultados %}
@@ -1891,6 +1898,19 @@ body.solo-lectura .menu-principal {
             <div class="partido-portada">No hay partidos programados o futuros.</div>
             {% endif %}
         </div>
+
+        {% for bloque_fecha in partidos_fechas %}
+        <div class="partidos-portada panel-partidos" data-panel-partidos="{{ bloque_fecha.key }}">
+            <div class="bloque-partidos-portada">
+                <h3 class="bloque-titulo-portada">{{ bloque_fecha.label }}</h3>
+                {% for partido in bloque_fecha.partidos %}
+                    {% include "partials/partido_portada_card.html" %}
+                {% empty %}
+                    <div class="partido-portada">No hay partidos registrados en esta fecha.</div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endfor %}
 
         <div class="partidos-portada panel-partidos" data-panel-partidos="cuartos">
             <div class="bloque-partidos-portada">
@@ -2803,17 +2823,21 @@ function mostrarDocumentoPrincipal(seccion) {
     mostrarSeccionPrincipal(seccion);
 }
 
-function mostrarPanelPartidos(panel, boton) {
+function mostrarPartidosPrincipal(panel) {
+    mostrarSeccionPrincipal('partidos');
+    mostrarPanelPartidos(panel || 'por-fechas');
+}
+
+function mostrarPanelPartidos(panel) {
+    if (!panel) return;
+
     document.querySelectorAll('[data-panel-partidos]').forEach(function(item) {
         item.classList.toggle('activo', item.dataset.panelPartidos === panel);
     });
 
-    document.querySelectorAll('.subtab-partidos').forEach(function(item) {
-        item.classList.remove('activa');
-    });
-
-    if (boton) {
-        boton.classList.add('activa');
+    const selector = document.getElementById('selector-partidos');
+    if (selector) {
+        selector.value = panel;
     }
 }
 
