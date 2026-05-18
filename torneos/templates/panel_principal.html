@@ -1552,7 +1552,7 @@ body.solo-lectura .fase-btn {
 }
 
 body.solo-lectura .menu-principal {
-    top: 126px;
+    top: 178px;
 }
 
 .selector-torneo,
@@ -1778,7 +1778,7 @@ body.solo-lectura .menu-principal {
     }
 
     body.solo-lectura .menu-principal {
-        top: 92px !important;
+        top: 140px !important;
     }
 
     .selector-torneo,
@@ -1974,19 +1974,21 @@ body.solo-lectura .menu-principal {
     <h1 class="titulo-app">TORNEO IMCRED</h1>
     <p class="subtitulo-app">Selecciona una categoría</p>
 
-    {% if request.user.is_staff %}
     <div class="acciones-portada">
+    {% if request.user.is_staff %}
     <a class="boton" href="{% url 'descargar_programacion_general' %}">
         Descargar programación completa
     </a>
 
-    {% if request.user.is_staff %}
     <a class="boton secundario" href="{% url 'gestion_panel' %}">
         Gestión del torneo
     </a>
+    {% else %}
+    <a class="boton secundario" href="/admin/login/?next={% url 'gestion_panel' %}">
+        Ingresar admin
+    </a>
     {% endif %}
     </div>
-    {% endif %}
 
     <nav class="menu-principal" id="categorias-fijas">
         <div class="selector-torneo">
