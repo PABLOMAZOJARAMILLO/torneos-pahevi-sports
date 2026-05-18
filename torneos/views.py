@@ -1170,6 +1170,23 @@ def panel_principal(request):
     partidos_cuartos = [p for p in partidos_portada if p["fase"] == "CUARTOS"]
     partidos_semifinal = [p for p in partidos_portada if p["fase"] == "SEMIFINAL"]
     partidos_final = [p for p in partidos_portada if p["fase"] in ["FINAL", "TERCER_PUESTO"]]
+    partidos_resultados = sorted(
+        [p for p in partidos_portada if p["bloque"] == "RESULTADOS RECIENTES"],
+        key=lambda p: (-p["orden_fecha"], p["hora_orden"], p["categoria"]),
+    )
+    partidos_programados = sorted(
+        [p for p in partidos_portada if p["bloque"] == "PROGRAMADOS"],
+        key=lambda p: (
+            0 if p["fecha"] >= date.today() else 1,
+            p["orden_fecha"] if p["fecha"] >= date.today() else -p["orden_fecha"],
+            p["hora_orden"],
+            p["categoria"],
+        ),
+    )
+    partidos_futuros = sorted(
+        [p for p in partidos_portada if p["bloque"] == "FUTUROS"],
+        key=lambda p: (p["orden_fecha"], p["hora_orden"], p["categoria"]),
+    )
 
     return render(request, "panel_principal.html", {
         "estructura": estructura,
@@ -1177,9 +1194,9 @@ def panel_principal(request):
         "categoria_seleccionada": categoria_seleccionada,
         "renderizar_categorias_detalle": bool(categoria_seleccionada),
         "partidos_portada": partidos_portada,
-        "partidos_resultados": [p for p in partidos_portada if p["bloque"] == "RESULTADOS RECIENTES"],
-        "partidos_programados": [p for p in partidos_portada if p["bloque"] == "PROGRAMADOS"],
-        "partidos_futuros": [p for p in partidos_portada if p["bloque"] == "FUTUROS"],
+        "partidos_resultados": partidos_resultados,
+        "partidos_programados": partidos_programados,
+        "partidos_futuros": partidos_futuros,
         "partidos_fechas": partidos_fechas,
         "partidos_cuartos": partidos_cuartos,
         "partidos_semifinal": partidos_semifinal,
