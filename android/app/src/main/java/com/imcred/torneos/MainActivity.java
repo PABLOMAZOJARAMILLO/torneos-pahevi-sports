@@ -5,6 +5,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
 import android.util.Base64;
+import android.webkit.WebSettings;
 import android.webkit.JavascriptInterface;
 import android.widget.Toast;
 
@@ -16,6 +17,9 @@ public class MainActivity extends BridgeActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        getBridge().getWebView().clearCache(true);
+        getBridge().getWebView().getSettings().setCacheMode(WebSettings.LOAD_NO_CACHE);
 
         getBridge().getWebView().setDownloadListener((url, userAgent, contentDisposition, mimetype, contentLength) -> {
             if (url != null && url.startsWith("data:image/png;base64,")) {
