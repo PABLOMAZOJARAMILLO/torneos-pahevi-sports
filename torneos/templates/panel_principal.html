@@ -1700,11 +1700,11 @@ body.solo-lectura .menu-principal {
 
 @media (max-width: 768px) {
     body {
-        padding: 218px 10px 10px !important;
+        padding: 226px 10px 10px !important;
     }
 
     body.solo-lectura {
-        padding-top: 166px !important;
+        padding-top: 178px !important;
     }
 
     body.categoria-activa {
@@ -1757,11 +1757,12 @@ body.solo-lectura .menu-principal {
 
     .menu-principal {
         top: 140px !important;
-        min-height: 72px !important;
-        padding: 8px 10px !important;
-        align-items: stretch;
-        flex-direction: column;
-        gap: 7px;
+        min-height: 0 !important;
+        padding: 6px 8px !important;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        align-items: start;
+        gap: 6px 8px;
     }
 
     body.solo-lectura .categorias-grid {
@@ -1778,14 +1779,33 @@ body.solo-lectura .menu-principal {
     .selector-partidos {
         min-width: 0;
         width: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 3px;
+    }
+
+    .selector-torneo span,
+    .selector-categoria span,
+    .selector-documentos span,
+    .selector-partidos span {
+        font-size: 10px;
+        line-height: 1;
+        font-weight: 900;
+        white-space: nowrap;
     }
 
     .selector-torneo select,
     .selector-categoria select,
     .selector-documentos select,
     .selector-partidos select {
-        flex: 1;
+        width: 100%;
         min-width: 0;
+        min-height: 34px;
+        padding: 5px 24px 5px 8px;
+        border-radius: 9px;
+        font-size: 13px;
+        line-height: 1.1;
     }
 
     .seccion-documentos {
