@@ -32,6 +32,10 @@
         font-weight: bold;
     }
 
+    body.menu-abierto {
+        overflow: hidden;
+    }
+
     img {
         max-width: 100%;
         height: auto;
@@ -1607,14 +1611,14 @@ body.solo-lectura .menu-principal {
 }
 
 .menu-toggle-principal::after {
-    content: "âŒ„";
+    content: "v";
     color: #00e565;
     font-size: 18px;
     line-height: 1;
 }
 
 .menu-desplegable.abierto .menu-toggle-principal::after {
-    content: "âŒƒ";
+    content: "^";
 }
 
 .menu-panel-principal {
@@ -1625,6 +1629,7 @@ body.solo-lectura .menu-principal {
     grid-template-columns: 230px minmax(240px, 360px);
     min-width: min(92vw, 620px);
     max-width: calc(100vw - 28px);
+    max-height: calc(100vh - 170px);
     border-radius: 14px;
     overflow: hidden;
     background: #132536;
@@ -1639,7 +1644,10 @@ body.solo-lectura .menu-principal {
 .menu-columna-principal {
     display: grid;
     gap: 2px;
+    align-content: start;
     padding: 10px;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
     background: #142838;
 }
 
@@ -1667,7 +1675,11 @@ body.solo-lectura .menu-principal {
 .menu-contenido-principal {
     position: relative;
     min-height: 100%;
+    max-height: calc(100vh - 170px);
     padding: 10px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
     background: #1b2e3a;
 }
 
@@ -1981,8 +1993,16 @@ body.solo-lectura .menu-principal {
         min-width: 0;
         max-width: none;
         max-height: calc(100vh - 158px);
-        overflow-y: auto;
+        overflow: hidden;
         border-radius: 12px;
+    }
+
+    .menu-columna-principal,
+    .menu-contenido-principal {
+        max-height: calc(100vh - 158px);
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        -webkit-overflow-scrolling: touch;
     }
 
     .menu-columna-principal,
@@ -3226,6 +3246,7 @@ function toggleMenuPrincipal() {
     const menu = document.getElementById('menu-desplegable-principal');
     if (menu) {
         menu.classList.toggle('abierto');
+        document.body.classList.toggle('menu-abierto', menu.classList.contains('abierto'));
     }
 }
 
@@ -3234,6 +3255,7 @@ function cerrarMenuPrincipal() {
     if (menu) {
         menu.classList.remove('abierto');
     }
+    document.body.classList.remove('menu-abierto');
 }
 
 function mostrarSubmenuPrincipal(menu) {
