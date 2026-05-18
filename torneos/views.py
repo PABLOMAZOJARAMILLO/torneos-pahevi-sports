@@ -4,6 +4,7 @@ from concurrent.futures import ThreadPoolExecutor, TimeoutError
 import os
 import re
 import uuid
+from urllib.parse import quote
 
 from django.conf import settings
 from django.contrib import messages
@@ -206,6 +207,17 @@ def documentos_publicos_por_tipo(torneo=None):
         "demandas": documentos.filter(tipo="DEMANDA"),
         "comunicados": documentos.filter(tipo="COMUNICADO"),
     }
+
+
+def documento_publico(request, documento_id):
+    documento = get_object_or_404(Documento, id=documento_id, activo=True)
+    archivo_url = documento.archivo
+    visor_url = f"https://docs.google.com/gview?embedded=1&url={quote(archivo_url, safe='')}"
+    return render(request, "documento_publico.html", {
+        "documento": documento,
+        "archivo_url": archivo_url,
+        "visor_url": visor_url,
+    })
 
 
 def subir_documento_supabase(archivo, tipo):
