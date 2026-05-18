@@ -1,4 +1,5 @@
 {% extends "gestion/base.html" %}
+{% load texto_limpio %}
 
 {% block title %}Jugadores{% endblock %}
 {% block heading %}Jugadores{% endblock %}
@@ -43,7 +44,7 @@
             <img class="avatar" src="{{ jugador.foto.url }}" alt="">
         {% endif %}
         <div>
-            <div>{% if jugador.dorsal %}#{{ jugador.dorsal }} · {% endif %}{{ jugador.nombres }}</div>
+            <div>{% if jugador.dorsal %}#{{ jugador.dorsal }} · {% endif %}{{ jugador.nombres|texto_limpio }}</div>
             <div class="muted">{{ jugador.equipo.nombre }} · {{ jugador.equipo.categoria.nombre }} · {{ jugador.estado }}</div>
         </div>
     </div>

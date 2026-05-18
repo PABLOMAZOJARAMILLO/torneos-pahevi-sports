@@ -1,3 +1,4 @@
+{% load texto_limpio %}
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -27,7 +28,7 @@
             <img src="{{ jugador.foto.url }}" width="80">
         {% endif %}
 
-        <h3>#{{ jugador.dorsal }} - {{ jugador.nombres }}</h3>
+        <h3>#{{ jugador.dorsal }} - {{ jugador.nombres|texto_limpio }}</h3>
 
         <p>Cédula: {{ jugador.cedula }}</p>
 

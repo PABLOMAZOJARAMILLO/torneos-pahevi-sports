@@ -1,3 +1,4 @@
+{% load texto_limpio %}
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -149,7 +150,7 @@ td {
 <tr>
 <td>{{ forloop.counter }}</td>
 <td class="col-jugador-descarga">
-    {{ t.jugador }}
+    {{ t.jugador|texto_limpio }}
 </td>
 
 <td class="col-equipo-descarga">

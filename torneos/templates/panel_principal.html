@@ -1,3 +1,4 @@
+{% load texto_limpio %}
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -2580,7 +2581,7 @@ body.solo-lectura .menu-principal {
                     {% for g in datos_categoria.goleadores_planilla %}
                     <tr>
                         <td>{{ forloop.counter }}</td>
-                        <td class="col-jugador">{{ g.jugador }}</td>
+                        <td class="col-jugador">{{ g.jugador|texto_limpio }}</td>
                         <td class="col-equipo">
                             <div class="equipo-logo">
                                 {% if g.escudo %}
@@ -2688,7 +2689,7 @@ body.solo-lectura .menu-principal {
                     {% for t in datos_categoria.tarjetas_planilla %}
                     <tr>
                         <td>{{ forloop.counter }}</td>
-                        <td class="col-jugador">{{ t.jugador }}</td>
+                        <td class="col-jugador">{{ t.jugador|texto_limpio }}</td>
                         <td class="col-equipo">
                             <div class="equipo-logo">
                                 {% if t.escudo %}
@@ -2733,7 +2734,7 @@ body.solo-lectura .menu-principal {
                     {% for a in datos_categoria.alertas_tarjetas %}
                     <tr>
                         <td>{{ forloop.counter }}</td>
-                        <td class="col-jugador">{{ a.jugador }}</td>
+                        <td class="col-jugador">{{ a.jugador|texto_limpio }}</td>
                         <td class="col-equipo">
                             <div class="equipo-logo">
                                 {% if a.escudo %}
@@ -3203,7 +3204,7 @@ body.solo-lectura .menu-principal {
                                 {% endif %}
                             </td>
                             <td>{{ jugador.dorsal }}</td>
-                            <td>{{ jugador.nombres }}</td>
+                            <td>{{ jugador.nombres|texto_limpio }}</td>
                             <td>{{ jugador.cedula }}</td>
                             <td>{{ jugador.edad }}</td>
                             <td>{{ jugador.estado }}</td>

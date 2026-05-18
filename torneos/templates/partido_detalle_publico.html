@@ -1,3 +1,4 @@
+{% load texto_limpio %}
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -132,7 +133,7 @@
     <section class="card">
         <h2>Goles</h2>
         {% for gol in goles %}
-            <div class="line"><span>{{ gol.jugador.nombres }}</span><span>{{ gol.equipo.nombre }} · {{ gol.cantidad }}</span></div>
+            <div class="line"><span>{{ gol.jugador.nombres|texto_limpio }}</span><span>{{ gol.equipo.nombre }} · {{ gol.cantidad }}</span></div>
         {% empty %}
             <p class="muted">Sin goles registrados.</p>
         {% endfor %}
@@ -141,7 +142,7 @@
     <section class="card">
         <h2>Tarjetas</h2>
         {% for tarjeta in tarjetas %}
-            <div class="line"><span>{{ tarjeta.jugador.nombres }}</span><span>{{ tarjeta.equipo.nombre }} · {{ tarjeta.tipo }}</span></div>
+            <div class="line"><span>{{ tarjeta.jugador.nombres|texto_limpio }}</span><span>{{ tarjeta.equipo.nombre }} · {{ tarjeta.tipo }}</span></div>
         {% empty %}
             <p class="muted">Sin tarjetas registradas.</p>
         {% endfor %}
@@ -150,7 +151,7 @@
     <section class="card">
         <h2>Alineación</h2>
         {% for item in alineaciones %}
-            <div class="line"><span>{{ item.jugador.nombres }}</span><span>{{ item.equipo.nombre }} · {{ item.rol }}</span></div>
+            <div class="line"><span>{{ item.jugador.nombres|texto_limpio }}</span><span>{{ item.equipo.nombre }} · {{ item.rol }}</span></div>
         {% empty %}
             <p class="muted">Sin alineación registrada.</p>
         {% endfor %}

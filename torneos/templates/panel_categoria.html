@@ -1,3 +1,4 @@
+{% load texto_limpio %}
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -101,7 +102,7 @@
     {% for g in goleadores %}
     <tr>
         <td>{{ forloop.counter }}</td>
-        <td>{{ g.jugador }}</td>
+        <td>{{ g.jugador|texto_limpio }}</td>
         <td>{{ g.goles }}</td>
     </tr>
     {% empty %}
@@ -125,7 +126,7 @@
     {% for t in tarjetas %}
     <tr>
         <td>{{ forloop.counter }}</td>
-        <td>{{ t.jugador }}</td>
+        <td>{{ t.jugador|texto_limpio }}</td>
         <td>{{ t.equipo }}</td>
         <td>{{ t.A }}</td>
         <td>{{ t.R }}</td>
