@@ -1016,14 +1016,21 @@ def construir_partidos_portada():
     hoy = date.today()
     partidos = Partido.objects.filter(
         fecha__isnull=False,
-        hora__isnull=False,
     ).select_related(
         "categoria",
         "equipo_local",
         "equipo_visitante",
     )
 
-    estados_visibles = ["PROGRAMADO", "EN_JUEGO", "FINALIZADO", "DECIDIDO_COMITE", "WO"]
+    estados_visibles = [
+        "PROGRAMADO",
+        "EN_JUEGO",
+        "FINALIZADO",
+        "DECIDIDO_COMITE",
+        "WO",
+        "APLAZADO",
+        "SUSPENDIDO",
+    ]
     tarjetas_por_partido = defaultdict(int)
     goles_por_partido = defaultdict(int)
 
@@ -1081,7 +1088,8 @@ def construir_partidos_portada():
             "numero_fecha": partido.numero_fecha or "",
             "estado": partido.estado,
             "fecha": partido.fecha,
-            "hora": partido.hora,
+            "hora": partido.hora.strftime("%H:%M") if partido.hora else "Por definir",
+            "hora_orden": partido.hora or time(0, 0),
             "cancha": partido.cancha or "Por definir",
             "local": partido.equipo_local.nombre,
             "visitante": partido.equipo_visitante.nombre,
@@ -1102,7 +1110,7 @@ def construir_partidos_portada():
         key=lambda partido: (
             partido["orden_bloque"],
             partido["orden_fecha"],
-            partido["hora"] or time(0, 0),
+            partido["hora_orden"],
             partido["categoria"],
         )
     )
@@ -1132,7 +1140,7 @@ def panel_principal(request):
         {
             p["numero_fecha"]
             for p in partidos_portada
-            if p["fase"] == "GRUPOS" and p["numero_fecha"]
+            if p["numero_fecha"]
         },
         key=lambda valor: (
             int(valor) if str(valor).isdigit() else 9999,
@@ -1143,7 +1151,7 @@ def panel_principal(request):
         {
             "key": f"fecha-{re.sub(r'[^a-zA-Z0-9_-]+', '-', str(fecha)).strip('-').lower()}",
             "label": f"Fecha {fecha}",
-            "partidos": [p for p in partidos_portada if p["fase"] == "GRUPOS" and p["numero_fecha"] == fecha],
+            "partidos": [p for p in partidos_portada if p["numero_fecha"] == fecha],
         }
         for fecha in fechas_grupos
     ]
