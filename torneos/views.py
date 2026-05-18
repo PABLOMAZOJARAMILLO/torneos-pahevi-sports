@@ -202,7 +202,7 @@ def aplicar_imagen_cloudinary(instancia, campo, public_id, archivo_subido):
 def documentos_publicos_por_tipo(torneo=None):
     documentos = Documento.objects.filter(activo=True).order_by("tipo", "-creado_en", "titulo")
     if torneo:
-        documentos = documentos.filter(torneo=torneo)
+        documentos = documentos.filter(Q(torneo=torneo) | Q(torneo__isnull=True))
     return {
         "reglamentos": documentos.filter(tipo="REGLAMENTO"),
         "resoluciones": documentos.filter(tipo="RESOLUCION"),
@@ -2424,7 +2424,7 @@ def gestion_documentos(request):
     torneo = torneo_actual(request)
     documentos = Documento.objects.order_by("tipo", "-creado_en", "titulo")
     if torneo:
-        documentos = documentos.filter(torneo=torneo)
+        documentos = documentos.filter(Q(torneo=torneo) | Q(torneo__isnull=True))
     tipo = request.GET.get("tipo", "").strip()
 
     if tipo:
