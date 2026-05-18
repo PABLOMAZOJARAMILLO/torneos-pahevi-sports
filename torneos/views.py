@@ -1397,7 +1397,8 @@ def crear_imagen_desde_html(html, nombre_archivo, ancho=1600, alto=1800):
 @login_required
 @user_passes_test(es_editor_torneo)
 def descargar_tabla_grupo(request, categoria, grupo):
-    estructura = construir_estructura()
+    torneo = torneo_actual(request)
+    estructura = construir_estructura(torneo)
     datos_categoria = estructura.get(categoria)
 
     if not datos_categoria:
@@ -1427,7 +1428,8 @@ def descargar_tabla_grupo(request, categoria, grupo):
 @login_required
 @user_passes_test(es_editor_torneo)
 def descargar_goleadores_categoria(request, categoria):
-    estructura = construir_estructura()
+    torneo = torneo_actual(request)
+    estructura = construir_estructura(torneo)
     datos_categoria = estructura.get(categoria)
 
     if not datos_categoria:
@@ -1451,7 +1453,8 @@ def descargar_goleadores_categoria(request, categoria):
 @login_required
 @user_passes_test(es_editor_torneo)
 def descargar_tarjetas_categoria(request, categoria):
-    estructura = construir_estructura()
+    torneo = torneo_actual(request)
+    estructura = construir_estructura(torneo)
     datos_categoria = estructura.get(categoria)
 
     if not datos_categoria:
@@ -1475,7 +1478,8 @@ def descargar_tarjetas_categoria(request, categoria):
 @login_required
 @user_passes_test(es_editor_torneo)
 def descargar_valla_categoria(request, categoria):
-    estructura = construir_estructura()
+    torneo = torneo_actual(request)
+    estructura = construir_estructura(torneo)
     datos_categoria = estructura.get(categoria)
 
     if not datos_categoria:
@@ -1499,7 +1503,8 @@ def descargar_valla_categoria(request, categoria):
 @login_required
 @user_passes_test(es_editor_torneo)
 def descargar_imagen(request, categoria):
-    estructura_total = construir_estructura()
+    torneo = torneo_actual(request)
+    estructura_total = construir_estructura(torneo)
 
     if categoria not in estructura_total:
         return HttpResponse("Categoría no encontrada")
@@ -1538,8 +1543,8 @@ def grupo_completo(categoria, grupo):
     return True
 
 
-def obtener_tabla_categoria_grupo(categoria_nombre, grupo):
-    estructura = construir_estructura()
+def obtener_tabla_categoria_grupo(categoria_nombre, grupo, torneo=None):
+    estructura = construir_estructura(torneo)
     datos_categoria = estructura.get(categoria_nombre)
 
     if not datos_categoria:
@@ -1596,7 +1601,11 @@ def crear_o_actualizar_cuarto(categoria, numero, local, visitante):
 @login_required
 @user_passes_test(es_editor_torneo)
 def generar_llaves_cuartos(request, categoria):
-    categoria_obj = Categoria.objects.filter(nombre=categoria).first()
+    torneo = torneo_actual(request)
+    categorias = Categoria.objects.filter(nombre=categoria)
+    if torneo:
+        categorias = categorias.filter(torneo=torneo)
+    categoria_obj = categorias.first()
 
     if not categoria_obj:
         messages.error(request, "Categoría no encontrada.")
@@ -1604,7 +1613,7 @@ def generar_llaves_cuartos(request, categoria):
 
     # PLUS 50: un solo grupo
     if categoria.upper() == "PLUS 50":
-        tabla_general = obtener_tabla_categoria_grupo(categoria, "A")
+        tabla_general = obtener_tabla_categoria_grupo(categoria, "A", torneo)
 
         if len(tabla_general) < 4:
             messages.error(request, "No hay suficientes equipos para generar las semifinales de PLUS 50.")
@@ -1630,8 +1639,8 @@ def generar_llaves_cuartos(request, categoria):
         messages.error(request, f"El Grupo B de {categoria} todavía tiene partidos pendientes.")
         return redirect("panel")
 
-    tabla_a = obtener_tabla_categoria_grupo(categoria, "A")
-    tabla_b = obtener_tabla_categoria_grupo(categoria, "B")
+    tabla_a = obtener_tabla_categoria_grupo(categoria, "A", torneo)
+    tabla_b = obtener_tabla_categoria_grupo(categoria, "B", torneo)
 
     if len(tabla_a) < 4 or len(tabla_b) < 4:
         messages.error(request, "No hay suficientes equipos para generar los cuartos.")
@@ -1723,7 +1732,11 @@ def crear_o_actualizar_partido_final(categoria, fase, numero_fecha, local, visit
 @login_required
 @user_passes_test(es_editor_torneo)
 def generar_semifinales(request, categoria):
-    categoria_obj = Categoria.objects.filter(nombre=categoria).first()
+    torneo = torneo_actual(request)
+    categorias = Categoria.objects.filter(nombre=categoria)
+    if torneo:
+        categorias = categorias.filter(torneo=torneo)
+    categoria_obj = categorias.first()
 
     if not categoria_obj:
         messages.error(request, "Categoría no encontrada.")
@@ -1757,7 +1770,11 @@ def generar_semifinales(request, categoria):
 @login_required
 @user_passes_test(es_editor_torneo)
 def generar_final(request, categoria):
-    categoria_obj = Categoria.objects.filter(nombre=categoria).first()
+    torneo = torneo_actual(request)
+    categorias = Categoria.objects.filter(nombre=categoria)
+    if torneo:
+        categorias = categorias.filter(torneo=torneo)
+    categoria_obj = categorias.first()
 
     if not categoria_obj:
         messages.error(request, "Categoría no encontrada.")
@@ -1810,7 +1827,11 @@ def perdedor_partido(partido):
 @login_required
 @user_passes_test(es_editor_torneo)
 def generar_tercer_puesto(request, categoria):
-    categoria_obj = Categoria.objects.filter(nombre=categoria).first()
+    torneo = torneo_actual(request)
+    categorias = Categoria.objects.filter(nombre=categoria)
+    if torneo:
+        categorias = categorias.filter(torneo=torneo)
+    categoria_obj = categorias.first()
 
     if not categoria_obj:
         messages.error(request, "Categoría no encontrada.")
@@ -2018,7 +2039,11 @@ def medidas_programacion(cantidad):
 @login_required
 @user_passes_test(es_editor_torneo)
 def descargar_programacion_categoria(request, categoria):
-    categoria_obj = Categoria.objects.filter(nombre=categoria).first()
+    torneo = torneo_actual(request)
+    categorias = Categoria.objects.filter(nombre=categoria)
+    if torneo:
+        categorias = categorias.filter(torneo=torneo)
+    categoria_obj = categorias.first()
 
     if not categoria_obj:
         return HttpResponse("Categoría no encontrada")
@@ -2640,7 +2665,10 @@ def armar_grupos_desde_formulario(equipos, cabezas, request_post, cantidad_grupo
 @login_required
 @user_passes_test(es_editor_torneo)
 def gestion_generar_fixture(request):
+    torneo = torneo_actual(request)
     categorias = Categoria.objects.order_by("nombre")
+    if torneo:
+        categorias = categorias.filter(torneo=torneo)
     categoria = None
     equipos = Equipo.objects.none()
     cantidad_grupos = 2
@@ -2649,7 +2677,7 @@ def gestion_generar_fixture(request):
     categoria_id = request.GET.get("categoria") or request.POST.get("categoria")
 
     if categoria_id:
-        categoria = Categoria.objects.filter(id=categoria_id).first()
+        categoria = categorias.filter(id=categoria_id).first()
 
     if categoria:
         equipos = Equipo.objects.filter(categoria=categoria, activo=True).order_by("nombre")
@@ -2735,7 +2763,12 @@ def gestion_generar_fixture(request):
 @login_required
 @user_passes_test(es_editor_torneo)
 def gestion_equipos(request):
+    torneo = torneo_actual(request)
+    categorias = Categoria.objects.order_by("nombre")
     equipos = Equipo.objects.select_related("categoria").order_by("categoria__nombre", "nombre")
+    if torneo:
+        categorias = categorias.filter(torneo=torneo)
+        equipos = equipos.filter(categoria__torneo=torneo)
     q = request.GET.get("q", "").strip()
     categoria_id = request.GET.get("categoria", "").strip()
 
@@ -2747,7 +2780,7 @@ def gestion_equipos(request):
 
     return render(request, "gestion/equipos.html", {
         "equipos": equipos,
-        "categorias": Categoria.objects.order_by("nombre"),
+        "categorias": categorias,
         "q": q,
         "categoria_id": categoria_id,
     })
@@ -2756,7 +2789,8 @@ def gestion_equipos(request):
 @login_required
 @user_passes_test(es_editor_torneo)
 def gestion_equipo_nuevo(request):
-    form = EquipoForm(request.POST or None, request.FILES or None)
+    torneo = torneo_actual(request)
+    form = EquipoForm(request.POST or None, request.FILES or None, torneo=torneo)
 
     if request.method == "POST" and form.is_valid():
         equipo = form.save(commit=False)
@@ -2783,8 +2817,12 @@ def gestion_equipo_nuevo(request):
 @login_required
 @user_passes_test(es_editor_torneo)
 def gestion_equipo_editar(request, equipo_id):
-    equipo = get_object_or_404(Equipo, id=equipo_id)
-    form = EquipoForm(request.POST or None, request.FILES or None, instance=equipo)
+    torneo = torneo_actual(request)
+    equipos = Equipo.objects.select_related("categoria")
+    if torneo:
+        equipos = equipos.filter(categoria__torneo=torneo)
+    equipo = get_object_or_404(equipos, id=equipo_id)
+    form = EquipoForm(request.POST or None, request.FILES or None, instance=equipo, torneo=torneo)
 
     if request.method == "POST" and form.is_valid():
         equipo = form.save(commit=False)
@@ -2811,12 +2849,19 @@ def gestion_equipo_editar(request, equipo_id):
 @login_required
 @user_passes_test(es_editor_torneo)
 def gestion_jugadores(request):
+    torneo = torneo_actual(request)
+    categorias = Categoria.objects.order_by("nombre")
+    equipos = Equipo.objects.select_related("categoria").order_by("categoria__nombre", "nombre")
     jugadores = Jugador.objects.select_related("equipo", "equipo__categoria").order_by(
         "equipo__categoria__nombre",
         "equipo__nombre",
         "dorsal",
         "nombres",
     )
+    if torneo:
+        categorias = categorias.filter(torneo=torneo)
+        equipos = equipos.filter(categoria__torneo=torneo)
+        jugadores = jugadores.filter(equipo__categoria__torneo=torneo)
     q = request.GET.get("q", "").strip()
     categoria_id = request.GET.get("categoria", "").strip()
     equipo_id = request.GET.get("equipo", "").strip()
@@ -2832,8 +2877,8 @@ def gestion_jugadores(request):
 
     return render(request, "gestion/jugadores.html", {
         "jugadores": jugadores,
-        "categorias": Categoria.objects.order_by("nombre"),
-        "equipos": Equipo.objects.select_related("categoria").order_by("categoria__nombre", "nombre"),
+        "categorias": categorias,
+        "equipos": equipos,
         "q": q,
         "categoria_id": categoria_id,
         "equipo_id": equipo_id,
@@ -2843,7 +2888,8 @@ def gestion_jugadores(request):
 @login_required
 @user_passes_test(es_editor_torneo)
 def gestion_jugador_nuevo(request):
-    form = JugadorForm(request.POST or None, request.FILES or None)
+    torneo = torneo_actual(request)
+    form = JugadorForm(request.POST or None, request.FILES or None, torneo=torneo)
 
     if request.method == "POST" and form.is_valid():
         jugador = form.save(commit=False)
@@ -2870,8 +2916,12 @@ def gestion_jugador_nuevo(request):
 @login_required
 @user_passes_test(es_editor_torneo)
 def gestion_jugador_editar(request, jugador_id):
-    jugador = get_object_or_404(Jugador.objects.select_related("equipo"), id=jugador_id)
-    form = JugadorForm(request.POST or None, request.FILES or None, instance=jugador)
+    torneo = torneo_actual(request)
+    jugadores = Jugador.objects.select_related("equipo", "equipo__categoria")
+    if torneo:
+        jugadores = jugadores.filter(equipo__categoria__torneo=torneo)
+    jugador = get_object_or_404(jugadores, id=jugador_id)
+    form = JugadorForm(request.POST or None, request.FILES or None, instance=jugador, torneo=torneo)
 
     if request.method == "POST" and form.is_valid():
         jugador = form.save(commit=False)
@@ -2898,6 +2948,8 @@ def gestion_jugador_editar(request, jugador_id):
 @login_required
 @user_passes_test(es_editor_torneo)
 def gestion_importar_planilla(request):
+    torneo = torneo_actual(request)
+
     if request.method == "POST":
         archivo = request.FILES.get("archivo_excel")
 
@@ -2926,7 +2978,10 @@ def gestion_importar_planilla(request):
                 messages.error(request, "No se encontró el equipo en la celda I3.")
                 return redirect("gestion_importar_planilla")
 
-            categoria = Categoria.objects.filter(nombre__iexact=categoria_nombre).first()
+            categorias = Categoria.objects.filter(nombre__iexact=categoria_nombre)
+            if torneo:
+                categorias = categorias.filter(torneo=torneo)
+            categoria = categorias.first()
 
             if not categoria:
                 messages.error(request, f"No existe la categoría: {categoria_nombre}. Créala primero.")
@@ -3019,6 +3074,11 @@ def gestion_importar_planilla(request):
 @login_required
 @user_passes_test(es_editor_torneo)
 def gestion_partidos(request):
+    torneo = torneo_actual(request)
+    categorias = Categoria.objects.order_by("nombre")
+    if torneo:
+        categorias = categorias.filter(torneo=torneo)
+
     partidos = Partido.objects.select_related("categoria", "equipo_local", "equipo_visitante").order_by(
         "fecha",
         "hora",
@@ -3026,6 +3086,9 @@ def gestion_partidos(request):
         "grupo",
         "fase",
     )
+    if torneo:
+        partidos = partidos.filter(categoria__torneo=torneo)
+
     q = request.GET.get("q", "").strip()
     categoria_id = request.GET.get("categoria", "").strip()
     estado = request.GET.get("estado", "").strip()
@@ -3045,7 +3108,7 @@ def gestion_partidos(request):
 
     return render(request, "gestion/partidos.html", {
         "partidos": partidos,
-        "categorias": Categoria.objects.order_by("nombre"),
+        "categorias": categorias,
         "estados": Partido.ESTADOS,
         "q": q,
         "categoria_id": categoria_id,
@@ -3056,7 +3119,8 @@ def gestion_partidos(request):
 @login_required
 @user_passes_test(es_editor_torneo)
 def gestion_partido_nuevo(request):
-    form = PartidoForm(request.POST or None)
+    torneo = torneo_actual(request)
+    form = PartidoForm(request.POST or None, torneo=torneo)
 
     if request.method == "POST" and form.is_valid():
         partido = form.save()
@@ -3073,8 +3137,12 @@ def gestion_partido_nuevo(request):
 @login_required
 @user_passes_test(es_editor_torneo)
 def gestion_partido_editar(request, partido_id):
-    partido = get_object_or_404(Partido, id=partido_id)
-    form = PartidoForm(request.POST or None, instance=partido)
+    torneo = torneo_actual(request)
+    partidos = Partido.objects.select_related("categoria", "equipo_local", "equipo_visitante")
+    if torneo:
+        partidos = partidos.filter(categoria__torneo=torneo)
+    partido = get_object_or_404(partidos, id=partido_id)
+    form = PartidoForm(request.POST or None, instance=partido, torneo=torneo)
 
     if request.method == "POST" and form.is_valid():
         form.save()
@@ -3091,6 +3159,8 @@ def gestion_partido_editar(request, partido_id):
 @login_required
 @user_passes_test(es_editor_torneo)
 def gestion_importar_partidos(request):
+    torneo = torneo_actual(request)
+
     if request.method == "POST":
         archivo = request.FILES.get("archivo_excel")
 
@@ -3125,7 +3195,10 @@ def gestion_importar_partidos(request):
                     errores.append(f"Fila {numero_fila}: falta categoría, local o visitante.")
                     continue
 
-                categoria = Categoria.objects.filter(nombre__iexact=categoria_nombre).first()
+                categorias = Categoria.objects.filter(nombre__iexact=categoria_nombre)
+                if torneo:
+                    categorias = categorias.filter(torneo=torneo)
+                categoria = categorias.first()
 
                 if not categoria:
                     omitidos += 1
