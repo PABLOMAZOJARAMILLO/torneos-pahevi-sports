@@ -30,6 +30,21 @@ body {
     font-weight: bold;
     z-index: 9999;
 }
+
+.volver {
+    position: fixed;
+    right: 15px;
+    top: 15px;
+    border: 0;
+    border-radius: 999px;
+    padding: 12px 18px;
+    background: #ffffff;
+    color: #061224;
+    font-family: Arial, sans-serif;
+    font-weight: bold;
+    z-index: 9999;
+    box-shadow: 0 8px 22px rgba(0,0,0,0.22);
+}
 </style>
 </head>
 
@@ -39,11 +54,25 @@ body {
     Generando imagen, espera unos segundos...
 </div>
 
+<button class="volver" type="button" onclick="volverDespuesDescarga()">Volver</button>
+
 <div id="zona-descarga">
     {{ contenido_html|safe }}
 </div>
 
 <script>
+function volverDespuesDescarga() {
+    if (window.history.length > 1) {
+        window.history.back();
+    } else {
+        window.location.href = "/";
+    }
+}
+
+function volverAutomaticamente() {
+    setTimeout(volverDespuesDescarga, 2500);
+}
+
 window.onload = function() {
     const elemento = document.getElementById("zona-descarga");
 
@@ -73,6 +102,7 @@ window.onload = function() {
                 }
 
                 document.querySelector(".mensaje").innerText = "Guardando imagen en Fotos/TorneosIMCRED...";
+                volverAutomaticamente();
                 return;
             }
 
@@ -81,7 +111,8 @@ window.onload = function() {
             enlace.href = dataUrl;
             enlace.click();
 
-            document.querySelector(".mensaje").innerText = "Imagen generada. Si estás en APK, instala la versión nueva para guardar en Galería.";
+            document.querySelector(".mensaje").innerText = "Imagen generada. Volviendo...";
+            volverAutomaticamente();
         });
     }, 1000);
 }
