@@ -1804,7 +1804,7 @@ body.solo-lectura .menu-principal {
         <div class="selector-partidos">
             <span>Partidos</span>
             <select id="selector-partidos" onchange="mostrarPartidosPrincipal(this.value)">
-                <option value="por-fechas">Programados</option>
+                <option value="por-fechas">Resumen</option>
                 {% for bloque_fecha in partidos_fechas %}
                     <option value="{{ bloque_fecha.key }}">{{ bloque_fecha.label }}</option>
                 {% endfor %}
@@ -3085,6 +3085,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     const categoriasFijas = document.getElementById('categorias-fijas');
     const puntoInicial = document.getElementById('punto-inicial-partidos') || document.getElementById('timeline-partidos');
+    mostrarPanelPartidos('por-fechas');
 
     if (puntoInicial && volverEditor !== '1' && !window.location.hash) {
         window.setTimeout(function() {
