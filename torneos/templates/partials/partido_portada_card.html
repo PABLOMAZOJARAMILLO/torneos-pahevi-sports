@@ -4,6 +4,12 @@
         <span class="categoria-pill">{{ partido.categoria }}</span>
         <span>{% if partido.numero_fecha %}Fecha {{ partido.numero_fecha }}{% else %}{{ partido.fase }}{% endif %}</span>
         <span class="estado-chip {{ partido.estado|lower }}">
+            {% if partido.estado == "EN_JUEGO" and partido.inicio_en_vivo %}
+            <div class="live-clock"
+                data-inicio="{{ partido.inicio_en_vivo|date:'c' }}">
+                ⏱ 0'
+            </div>
+            {% endif %}
            {% if partido.estado == "EN_JUEGO" %}
                 🔴 EN VIVO
             {% else %}

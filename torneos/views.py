@@ -3172,9 +3172,14 @@ def gestion_partido_nuevo(request):
 
     if request.method == "POST" and form.is_valid():
         partido = form.save()
+        from django.utils import timezone
+
+        if partido.estado == "EN_JUEGO" and not partido.inicio_en_vivo:
+            partido.inicio_en_vivo = timezone.now()
+            partido.save()
         messages.success(request, "Partido creado correctamente.")
         return redirect("gestion_partido_editar", partido_id=partido.id)
-
+        
     return render(request, "gestion/formulario.html", {
         "titulo": "Nuevo partido",
         "form": form,

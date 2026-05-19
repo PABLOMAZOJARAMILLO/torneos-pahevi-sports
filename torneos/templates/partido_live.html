@@ -10,11 +10,14 @@
 
 <h1>🔴 EN VIVO</h1>
 
-<h2 id="reloj-live"
-    data-fecha="{{ fecha_inicio_live }}"
-    data-hora="{{ hora_inicio_live }}">
+{% if partido.inicio_en_vivo %}
+
+<h2 class="live-clock"
+    data-inicio="{{ partido.inicio_en_vivo|date:'c' }}">
     ⏱ 0'
 </h2>
+
+{% endif %}
 
 <h2>
     {{ partido.equipo_local.nombre }}

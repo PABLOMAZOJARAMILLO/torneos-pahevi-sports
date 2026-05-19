@@ -3688,6 +3688,34 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 </script>
+<script>
+function actualizarRelojesLive() {
+
+    document.querySelectorAll(".live-clock").forEach(function(el){
+
+        const inicio = new Date(el.dataset.inicio);
+        const ahora = new Date();
+
+        let minutos = Math.floor((ahora - inicio) / 60000);
+
+        if (minutos < 0){
+            minutos = 0;
+        }
+
+        if (minutos > 90){
+            el.innerHTML = "⏱ 90+'";
+        } else {
+            el.innerHTML = "⏱ " + minutos + "'";
+        }
+
+    });
+
+}
+
+actualizarRelojesLive();
+
+setInterval(actualizarRelojesLive, 30000);
+</script>
 
 </body>
 </html>

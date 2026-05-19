@@ -188,6 +188,7 @@ class Partido(models.Model):
     goles_visitante_penales = models.IntegerField(default=0, blank=True, null=True)
     siguiente_partido = models.ForeignKey('self', on_delete=models.SET_NULL, blank=True, null=True, related_name='partidos_origen', verbose_name='Partido siguiente')
     slot_siguiente = models.CharField(max_length=20, choices=(('LOCAL', 'Local'), ('VISITANTE', 'Visitante')), blank=True, null=True, verbose_name='Entra como')
+    inicio_en_vivo = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         verbose_name = 'Partido'
