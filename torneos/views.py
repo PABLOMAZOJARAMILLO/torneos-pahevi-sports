@@ -1290,6 +1290,8 @@ def construir_partidos_portada(torneo=None):
             "inicio_en_vivo": partido.inicio_en_vivo,
             "cronometro_pausado": partido.cronometro_pausado,
             "segundos_acumulados": partido.segundos_acumulados,
+            "estado": partido.estado,
+            "inicio_en_vivo": partido.inicio_en_vivo,
         })
 
     return sorted(
