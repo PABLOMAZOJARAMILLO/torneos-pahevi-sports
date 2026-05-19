@@ -192,6 +192,13 @@ class Partido(models.Model):
     inicio_en_vivo = models.DateTimeField(blank=True, null=True, verbose_name="Inicio real en vivo")
     cronometro_pausado = models.BooleanField(default=False, verbose_name="Cronómetro pausado")   
     segundos_acumulados = models.PositiveIntegerField(default=0, verbose_name="Segundos acumulados")
+    PERIODOS_PARTIDO = [
+    ("PT", "Primer tiempo"),
+    ("ET", "Entretiempo"),
+    ("ST", "Segundo tiempo"),
+    ("FIN", "Finalizado"),
+    ]   
+    periodo_en_vivo = models.CharField(max_length=5, choices=PERIODOS_PARTIDO, default="PT", blank=True)
 
     class Meta:
         verbose_name = 'Partido'

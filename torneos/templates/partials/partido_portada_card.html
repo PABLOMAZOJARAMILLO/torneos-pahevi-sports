@@ -10,12 +10,17 @@
             {{ partido.estado }}
             {% endif %}
         </span>
-            {% if partido.estado == "EN_JUEGO" %}
-                <span class="reloj-partido"
-                    data-inicio="{{ partido.inicio_en_vivo|date:'c' }}">
-                    ⏱ 00:00
-                </span>
-            {% endif %}
+    {% if partido.estado == "EN_JUEGO" %}
+
+        <div class="reloj-partido"
+             data-inicio="{{ partido.inicio_en_vivo|date:'c' }}"
+             data-periodo="{{ partido.periodo_en_vivo }}">
+
+             🟢 1T · 00:00
+
+        </div>
+
+    {   % endif %}
     </div>
 
     <div class="versus-portada">

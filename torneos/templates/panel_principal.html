@@ -3718,10 +3718,12 @@ setInterval(actualizarRelojesLive, 30000);
 </script>
  <script>
 function actualizarRelojesPartido() {
-    document.querySelectorAll(".reloj-partido").forEach(function(el) {
+
+    document.querySelectorAll(".reloj-partido").forEach(function(el){
+
         const inicioTexto = el.dataset.inicio;
 
-        if (!inicioTexto) {
+        if (!inicioTexto){
             el.innerHTML = "⏱ 00:00";
             return;
         }
@@ -3731,21 +3733,41 @@ function actualizarRelojesPartido() {
 
         let totalSegundos = Math.floor((ahora - inicio) / 1000);
 
-        if (totalSegundos < 0) totalSegundos = 0;
+        if (totalSegundos < 0){
+            totalSegundos = 0;
+        }
 
         const minutos = Math.floor(totalSegundos / 60);
         const segundos = totalSegundos % 60;
 
+        const minutosTexto = String(minutos).padStart(2, '0');
+        const segundosTexto = String(segundos).padStart(2, '0');
+
+        let periodo = "";
+
+        if (el.dataset.periodo == "PT"){
+            periodo = "🟢 1T · ";
+
+        } else if (el.dataset.periodo == "ET"){
+            periodo = "🟠 ET · ";
+
+        } else if (el.dataset.periodo == "ST"){
+            periodo = "🔵 2T · ";
+        }
+
         el.innerHTML =
-            "⏱ " +
-            String(minutos).padStart(2, "0") +
+            periodo +
+            minutosTexto +
             ":" +
-            String(segundos).padStart(2, "0");
+            segundosTexto;
+
     });
+
 }
 
 actualizarRelojesPartido();
+
 setInterval(actualizarRelojesPartido, 1000);
-</script>   
+</script>
 </body>
 </html>
