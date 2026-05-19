@@ -3342,6 +3342,8 @@ def partido_live(request, partido_id):
         "partido": partido,
         "escudo_local": escudo_url(partido.equipo_local),
         "escudo_visitante": escudo_url(partido.equipo_visitante),
+        "fecha_inicio_live": partido.fecha.strftime("%Y-%m-%d") if partido.fecha else "",
+        "hora_inicio_live": partido.hora.strftime("%H:%M") if partido.hora else "",
     })
 
 

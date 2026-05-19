@@ -1,4 +1,20 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Partido en vivo</title>
+</head>
+
+<body>
+
 <h1>🔴 EN VIVO</h1>
+
+<h2 id="reloj-live"
+    data-fecha="{{ fecha_inicio_live }}"
+    data-hora="{{ hora_inicio_live }}">
+    ⏱ 0'
+</h2>
 
 <h2>
     {{ partido.equipo_local.nombre }}
@@ -6,6 +22,38 @@
     {{ partido.equipo_visitante.nombre }}
 </h2>
 
-<p>{{ partido.fecha }} · {{ partido.hora }} · {{ partido.cancha }}</p>
+<p>
+    {{ partido.fecha }} · {{ partido.hora }} · {{ partido.cancha }}
+</p>
 
 <a href="{% url 'panel' %}">Volver al panel</a>
+
+<script>
+function actualizarRelojLive() {
+    const reloj = document.getElementById("reloj-live");
+    if (!reloj) return;
+
+    const fecha = reloj.dataset.fecha;
+    const hora = reloj.dataset.hora;
+
+    if (!fecha || !hora) {
+        reloj.innerHTML = "⏱ Sin hora";
+        return;
+    }
+
+    const inicio = new Date(fecha + "T" + hora + ":00-05:00");
+    const ahora = new Date();
+
+    let minutos = Math.floor((ahora - inicio) / 60000);
+
+    if (minutos < 0) minutos = 0;
+
+    reloj.innerHTML = "⏱ " + minutos + "'";
+}
+
+actualizarRelojLive();
+setInterval(actualizarRelojLive, 30000);
+</script>
+
+</body>
+</html>
