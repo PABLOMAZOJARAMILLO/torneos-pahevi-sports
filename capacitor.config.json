@@ -1,6 +1,6 @@
 {
   "appId": "com.imcred.torneos",
-  "appName": "Torneos IMCRED",
+  "appName": "Torneos PMJ",
   "webDir": "www",
   "server": {
     "url": "https://torneos-imcred.onrender.com",

@@ -1,0 +1,11 @@
+<h1>🔴 EN VIVO</h1>
+
+<h2>
+    {{ partido.equipo_local.nombre }}
+    {{ partido.goles_local }} - {{ partido.goles_visitante }}
+    {{ partido.equipo_visitante.nombre }}
+</h2>
+
+<p>{{ partido.fecha }} · {{ partido.hora }} · {{ partido.cancha }}</p>
+
+<a href="{% url 'panel' %}">Volver al panel</a>

@@ -32,7 +32,11 @@ urlpatterns = [
     path('partido/<int:partido_id>/', views.detalle_partido_publico, name='partido_detalle_publico'),
     path('documentos/<int:documento_id>/', views.documento_publico, name='documento_publico'),
     path('documentos/<int:documento_id>/archivo.pdf', views.documento_archivo_publico, name='documento_archivo_publico'),
-
+    path(
+    'partido/<int:partido_id>/live/',
+    views.partido_live,
+    name='partido_live'
+    ),
     path(
         'descargar/tabla/<str:categoria>/<str:grupo>/',
         descargar_tabla_grupo,

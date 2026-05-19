@@ -47,6 +47,20 @@ class DocumentoForm(forms.ModelForm):
             self.fields["archivo_subido"].required = True
 
 
+class CategoriaForm(forms.ModelForm):
+    class Meta:
+        model = Categoria
+        fields = [
+            "nombre",
+            "descripcion",
+            "edad_minima",
+            "edad_maxima",
+        ]
+        widgets = {
+            "descripcion": forms.Textarea(attrs={"rows": 3}),
+        }
+
+
 class EquipoForm(forms.ModelForm):
     class Meta:
         model = Equipo

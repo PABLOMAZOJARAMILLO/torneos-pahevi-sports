@@ -1,8 +1,15 @@
-<a class="partido-portada {{ partido.categoria_clase }}" href="{% url 'partido_detalle_publico' partido.id %}">
+<a class="partido-portada {{ partido.categoria_clase }}"
+   href="{% if partido.estado == 'EN_JUEGO' %}{% url 'partido_live' partido.id %}{% else %}{% url 'partido_detalle_publico' partido.id %}{% endif %}">
     <div class="partido-meta">
         <span class="categoria-pill">{{ partido.categoria }}</span>
         <span>{% if partido.numero_fecha %}Fecha {{ partido.numero_fecha }}{% else %}{{ partido.fase }}{% endif %}</span>
-        <span class="estado-chip {{ partido.estado|lower }}">{{ partido.estado }}</span>
+        <span class="estado-chip {{ partido.estado|lower }}">
+           {% if partido.estado == "EN_JUEGO" %}
+                🔴 EN VIVO
+            {% else %}
+                {{ partido.estado }}
+             {% endif %}
+        </span>
     </div>
 
     <div class="versus-portada">

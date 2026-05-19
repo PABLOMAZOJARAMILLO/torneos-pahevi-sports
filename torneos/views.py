@@ -1,4 +1,4 @@
-from collections import defaultdict
+﻿from collections import defaultdict
 from types import SimpleNamespace
 from datetime import date, datetime, time
 from concurrent.futures import ThreadPoolExecutor, TimeoutError
@@ -3328,5 +3328,20 @@ def gestion_importar_partidos(request):
             return redirect("gestion_importar_partidos")
 
     return render(request, "gestion/importar_partidos.html")
+def partido_live(request, partido_id):
+    partido = get_object_or_404(
+        Partido.objects.select_related(
+            "categoria",
+            "equipo_local",
+            "equipo_visitante"
+        ),
+        id=partido_id
+    )
+
+    return render(request, "partido_live.html", {
+        "partido": partido,
+        "escudo_local": escudo_url(partido.equipo_local),
+        "escudo_visitante": escudo_url(partido.equipo_visitante),
+    })
 
 
