@@ -3359,5 +3359,89 @@ def partido_live(request, partido_id):
         "fecha_inicio_live": partido.fecha.strftime("%Y-%m-%d") if partido.fecha else "",
         "hora_inicio_live": partido.hora.strftime("%H:%M") if partido.hora else "",
     })
+def _pausar_cronometro(partido):
+    if partido.inicio_en_vivo:
+        diferencia = timezone.now() - partido.inicio_en_vivo
+        partido.segundos_acumulados += int(diferencia.total_seconds())
 
+    partido.inicio_en_vivo = None
+    partido.cronometro_pausado = True
+    partido.save()
+
+
+@login_required
+@user_passes_test(es_editor_torneo)
+def cronometro_primer_tiempo(request, partido_id):
+    partido = get_object_or_404(Partido, id=partido_id)
+    partido.estado = "EN_JUEGO"
+    partido.periodo_en_vivo = "PT"
+    partido.cronometro_pausado = False
+
+    if not partido.inicio_en_vivo:
+        partido.inicio_en_vivo = timezone.now()
+
+    partido.save()
+    return redirect("editor_partido_movil", partido_id=partido.id)
+
+
+@login_required
+@user_passes_test(es_editor_torneo)
+def cronometro_entretiempo(request, partido_id):
+    partido = get_object_or_404(Partido, id=partido_id)
+    _pausar_cronometro(partido)
+    partido.periodo_en_vivo = "ET"
+    partido.save()
+    return redirect("editor_partido_movil", partido_id=partido.id)
+
+
+@login_required
+@user_passes_test(es_editor_torneo)
+def cronometro_segundo_tiempo(request, partido_id):
+    partido = get_object_or_404(Partido, id=partido_id)
+    partido.estado = "EN_JUEGO"
+    partido.periodo_en_vivo = "ST"
+    partido.cronometro_pausado = False
+    partido.inicio_en_vivo = timezone.now()
+    partido.save()
+    return redirect("editor_partido_movil", partido_id=partido.id)
+
+
+@login_required
+@user_passes_test(es_editor_torneo)
+def cronometro_pausar(request, partido_id):
+    partido = get_object_or_404(Partido, id=partido_id)
+    _pausar_cronometro(partido)
+    return redirect("editor_partido_movil", partido_id=partido.id)
+
+
+@login_required
+@user_passes_test(es_editor_torneo)
+def cronometro_reanudar(request, partido_id):
+    partido = get_object_or_404(Partido, id=partido_id)
+    partido.estado = "EN_JUEGO"
+    partido.cronometro_pausado = False
+    partido.inicio_en_vivo = timezone.now()
+    partido.save()
+    return redirect("editor_partido_movil", partido_id=partido.id)
+
+
+@login_required
+@user_passes_test(es_editor_torneo)
+def cronometro_suspender(request, partido_id):
+    partido = get_object_or_404(Partido, id=partido_id)
+    _pausar_cronometro(partido)
+    partido.estado = "SUSPENDIDO"
+    partido.save()
+    return redirect("editor_partido_movil", partido_id=partido.id)
+
+
+@login_required
+@user_passes_test(es_editor_torneo)
+def cronometro_finalizar(request, partido_id):
+    partido = get_object_or_404(Partido, id=partido_id)
+    _pausar_cronometro(partido)
+    partido.estado = "FINALIZADO"
+    partido.periodo_en_vivo = "FIN"
+    partido.save()
+    return redirect("editor_partido_movil", partido_id=partido.id)
 

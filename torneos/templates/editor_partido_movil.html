@@ -198,6 +198,19 @@
             <div class="estado-chip">{{ partido.estado }}</div>
         </div>
 
+<div class="card">
+    <h2>Cronómetro en vivo</h2>
+
+    <div class="grid-2">
+        <a class="btn" href="{% url 'cronometro_primer_tiempo' partido.id %}">▶ 1T</a>
+        <a class="btn" href="{% url 'cronometro_entretiempo' partido.id %}">⏸ Entretiempo</a>
+        <a class="btn" href="{% url 'cronometro_segundo_tiempo' partido.id %}">▶ 2T</a>
+        <a class="btn" href="{% url 'cronometro_pausar' partido.id %}">⏸ Pausar</a>
+        <a class="btn" href="{% url 'cronometro_reanudar' partido.id %}">▶ Reanudar</a>
+        <a class="btn" href="{% url 'cronometro_suspender' partido.id %}">⚠ Suspender</a>
+        <a class="btn" href="{% url 'cronometro_finalizar' partido.id %}">🏁 Finalizar</a>
+    </div>
+</div>        
         <div class="tabs">
             <button type="button" class="tab-btn active" data-tab="resultado" onclick="mostrarEditorTab('resultado', this)">Resultado</button>
             <button type="button" class="tab-btn" data-tab="goles" onclick="mostrarEditorTab('goles', this)">Goles</button>

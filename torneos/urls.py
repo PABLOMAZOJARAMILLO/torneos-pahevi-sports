@@ -182,5 +182,11 @@ urlpatterns = [
     path('gestion/partidos/importar/', views.gestion_importar_partidos, name='gestion_importar_partidos'),
     path('gestion/partidos/nuevo/', views.gestion_partido_nuevo, name='gestion_partido_nuevo'),
     path('gestion/partidos/<int:partido_id>/editar/', views.gestion_partido_editar, name='gestion_partido_editar'),
-
+    path('partido/<int:partido_id>/cronometro/primer-tiempo/', views.cronometro_primer_tiempo, name='cronometro_primer_tiempo'),
+    path('partido/<int:partido_id>/cronometro/entretiempo/', views.cronometro_entretiempo, name='cronometro_entretiempo'),
+    path('partido/<int:partido_id>/cronometro/segundo-tiempo/', views.cronometro_segundo_tiempo, name='cronometro_segundo_tiempo'),
+    path('partido/<int:partido_id>/cronometro/pausar/', views.cronometro_pausar, name='cronometro_pausar'),
+    path('partido/<int:partido_id>/cronometro/reanudar/', views.cronometro_reanudar, name='cronometro_reanudar'),
+    path('partido/<int:partido_id>/cronometro/suspender/', views.cronometro_suspender, name='cronometro_suspender'),
+    path('partido/<int:partido_id>/cronometro/finalizar/', views.cronometro_finalizar, name='cronometro_finalizar'),
 ]
