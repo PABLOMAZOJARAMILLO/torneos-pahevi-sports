@@ -5,16 +5,11 @@
         <span>{% if partido.numero_fecha %}Fecha {{ partido.numero_fecha }}{% else %}{{ partido.fase }}{% endif %}</span>
         <span class="estado-chip {{ partido.estado|lower }}">
             {% if partido.estado == "EN_JUEGO" %}
-                <span class="reloj-partido"
-                    data-inicio="{{ partido.inicio_en_vivo|date:'c' }}">
-                ⏱ 0'
-                </span>
+            <div class="reloj-partido"
+                data-inicio="{{ partido.inicio_en_vivo|date:'c' }}">
+                ⏱ 00:00
+            </div>
             {% endif %}
-           {% if partido.estado == "EN_JUEGO" %}
-                🔴 EN VIVO
-            {% else %}
-                {{ partido.estado }}
-             {% endif %}
         </span>
     </div>
 

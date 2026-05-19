@@ -3716,6 +3716,36 @@ actualizarRelojesLive();
 
 setInterval(actualizarRelojesLive, 30000);
 </script>
+ <script>
+function actualizarRelojesPartido() {
+    document.querySelectorAll(".reloj-partido").forEach(function(el) {
+        const inicioTexto = el.dataset.inicio;
 
+        if (!inicioTexto) {
+            el.innerHTML = "⏱ 00:00";
+            return;
+        }
+
+        const inicio = new Date(inicioTexto);
+        const ahora = new Date();
+
+        let totalSegundos = Math.floor((ahora - inicio) / 1000);
+
+        if (totalSegundos < 0) totalSegundos = 0;
+
+        const minutos = Math.floor(totalSegundos / 60);
+        const segundos = totalSegundos % 60;
+
+        el.innerHTML =
+            "⏱ " +
+            String(minutos).padStart(2, "0") +
+            ":" +
+            String(segundos).padStart(2, "0");
+    });
+}
+
+actualizarRelojesPartido();
+setInterval(actualizarRelojesPartido, 1000);
+</script>   
 </body>
 </html>
