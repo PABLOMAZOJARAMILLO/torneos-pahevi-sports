@@ -27,7 +27,7 @@ from openpyxl import load_workbook
 
 from .forms import TorneoForm, DocumentoForm, EquipoForm, JugadorForm, PartidoForm
 from .models import Torneo, Categoria, Documento, Equipo, Partido, Gol, Tarjeta, Jugador, AlineacionPartido, SustitucionPartido, limpiar_ruta_cloudinary
-
+from django.utils import timezone
 
 def es_editor_torneo(user):
     return user.is_authenticated and (user.is_staff or user.is_superuser)
@@ -2216,6 +2216,10 @@ def guardar_info_partido_movil(request, partido_id):
     partido.goles_local = request.POST.get('goles_local') or 0
     partido.goles_visitante = request.POST.get('goles_visitante') or 0
     partido.estado = request.POST.get('estado') or partido.estado
+
+    if partido.estado == "EN_JUEGO" and not partido.inicio_en_vivo:
+        partido.inicio_en_vivo = timezone.now()
+        
     partido.fecha = request.POST.get('fecha') or partido.fecha
     partido.hora = request.POST.get('hora') or partido.hora
     partido.cancha = request.POST.get('cancha') or ''

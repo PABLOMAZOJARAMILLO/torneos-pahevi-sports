@@ -10,14 +10,10 @@
 
 <h1>🔴 EN VIVO</h1>
 
-{% if partido.inicio_en_vivo %}
-
-<h2 class="live-clock"
+<h2 class="reloj-partido"
     data-inicio="{{ partido.inicio_en_vivo|date:'c' }}">
     ⏱ 0'
 </h2>
-
-{% endif %}
 
 <h2>
     {{ partido.equipo_local.nombre }}
@@ -57,6 +53,33 @@ function actualizarRelojLive() {
 actualizarRelojLive();
 setInterval(actualizarRelojLive, 30000);
 </script>
+<script>
+function actualizarRelojesPartido() {
+    document.querySelectorAll(".reloj-partido").forEach(function(el) {
+        const inicioTexto = el.dataset.inicio;
 
+        if (!inicioTexto) {
+            el.innerHTML = "⏱ Sin iniciar";
+            return;
+        }
+
+        const inicio = new Date(inicioTexto);
+        const ahora = new Date();
+
+        let minutos = Math.floor((ahora - inicio) / 60000);
+
+        if (minutos < 0) minutos = 0;
+
+        if (minutos > 90) {
+            el.innerHTML = "⏱ 90+'";
+        } else {
+            el.innerHTML = "⏱ " + minutos + "'";
+        }
+    });
+}
+
+actualizarRelojesPartido();
+setInterval(actualizarRelojesPartido, 30000);
+</script>
 </body>
 </html>
