@@ -1287,6 +1287,9 @@ def construir_partidos_portada(torneo=None):
             "ganador_local": ganador_local,
             "ganador_visitante": ganador_visitante,
             "eventos": goles_por_partido[partido.id] + tarjetas_por_partido[partido.id],
+            "inicio_en_vivo": partido.inicio_en_vivo,
+            "cronometro_pausado": partido.cronometro_pausado,
+            "segundos_acumulados": partido.segundos_acumulados,
         })
 
     return sorted(
@@ -2219,7 +2222,7 @@ def guardar_info_partido_movil(request, partido_id):
 
     if partido.estado == "EN_JUEGO" and not partido.inicio_en_vivo:
         partido.inicio_en_vivo = timezone.now()
-        
+
     partido.fecha = request.POST.get('fecha') or partido.fecha
     partido.hora = request.POST.get('hora') or partido.hora
     partido.cancha = request.POST.get('cancha') or ''
