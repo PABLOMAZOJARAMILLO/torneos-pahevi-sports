@@ -2187,6 +2187,98 @@ body.solo-lectura .menu-principal {
     }
 }
 
+/* Encabezado por torneo: solo imagenes arriba, titulo en la barra del menu */
+.encabezado-panel {
+    min-height: 132px !important;
+    justify-content: center !important;
+    gap: 26px !important;
+}
+
+.encabezado-panel .titulo-panel {
+    display: grid !important;
+    place-items: center !important;
+    flex: 0 1 auto !important;
+}
+
+.encabezado-panel .logo-central {
+    width: min(360px, 52vw) !important;
+    height: 118px !important;
+    max-height: 118px !important;
+    object-fit: contain !important;
+}
+
+.encabezado-panel .logo-torneo {
+    width: 96px !important;
+    height: 78px !important;
+    object-fit: contain !important;
+}
+
+.barra-torneo-titulo {
+    min-width: 0;
+    display: grid;
+    gap: 2px;
+    color: #061426;
+    line-height: 1.05;
+}
+
+.barra-torneo-titulo strong {
+    color: #061426;
+    font-size: clamp(17px, 3vw, 28px);
+    font-weight: 1000;
+    text-transform: uppercase;
+    letter-spacing: 0;
+}
+
+.barra-torneo-titulo small {
+    color: #475569;
+    font-size: 12px;
+    font-weight: 800;
+}
+
+@media (max-width: 760px) {
+    .encabezado-panel {
+        min-height: 104px !important;
+        gap: 12px !important;
+        padding: 8px 10px !important;
+    }
+
+    .encabezado-panel .logo-central {
+        width: min(220px, 50vw) !important;
+        height: 90px !important;
+        max-height: 90px !important;
+    }
+
+    .encabezado-panel .logo-torneo {
+        width: 58px !important;
+        height: 52px !important;
+        border-radius: 10px !important;
+    }
+
+    .menu-principal {
+        top: 104px !important;
+        gap: 10px !important;
+        padding: 8px 12px !important;
+    }
+
+    body.solo-lectura .menu-principal {
+        top: 104px !important;
+    }
+
+    .menu-toggle-principal {
+        min-width: 124px !important;
+        min-height: 38px !important;
+        padding: 8px 12px !important;
+    }
+
+    .barra-torneo-titulo strong {
+        font-size: 17px;
+    }
+
+    .barra-torneo-titulo small {
+        display: none;
+    }
+}
+
 </style>
 </head>
 
@@ -2201,8 +2293,6 @@ body.solo-lectura .menu-principal {
         {% if logo_torneo %}
             <img src="{{ logo_torneo }}" class="logo-central">
         {% endif %}
-        <h1>{{ torneo_seleccionado.nombre|default:"TORNEO IMCRED" }}</h1>
-        <p>{{ torneo_seleccionado.lema|default:"Panel oficial de resultados, posiciones y estadísticas" }}</p>
     </div>
 
     {% if logo_imcred %}
@@ -2306,6 +2396,13 @@ body.solo-lectura .menu-principal {
                     </div>
                 </div>
             </div>
+        </div>
+
+        <div class="barra-torneo-titulo">
+            <strong>{{ torneo_seleccionado.nombre|default:"TORNEOS" }}</strong>
+            {% if torneo_seleccionado.lema %}
+                <small>{{ torneo_seleccionado.lema }}</small>
+            {% endif %}
         </div>
     </nav>
 
