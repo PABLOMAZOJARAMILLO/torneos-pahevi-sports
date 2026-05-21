@@ -2189,17 +2189,21 @@ body.solo-lectura .menu-principal {
 
 /* Imagen principal general de la app */
 .encabezado-panel .logo-central {
-    width: 118px !important;
-    height: 118px !important;
-    max-height: 118px !important;
+    width: 148px !important;
+    height: 148px !important;
+    max-height: 148px !important;
     object-fit: contain !important;
+}
+
+.encabezado-panel.sin-logos-laterales {
+    justify-content: center !important;
 }
 
 @media (max-width: 760px) {
     .encabezado-panel .logo-central {
-        width: 82px !important;
-        height: 82px !important;
-        max-height: 82px !important;
+        width: 108px !important;
+        height: 108px !important;
+        max-height: 108px !important;
     }
 }
     </style>
@@ -2207,11 +2211,9 @@ body.solo-lectura .menu-principal {
 
 <body class="{% if not request.user.is_staff %}solo-lectura{% endif %}{% if categoria_seleccionada %} categoria-activa{% endif %}">
 
-<div class="encabezado-panel">
+<div class="encabezado-panel {% if not logo_alcaldia and not logo_imcred %}sin-logos-laterales{% endif %}">
     {% if logo_alcaldia %}
         <img src="{{ logo_alcaldia }}" class="logo-torneo">
-    {% else %}
-        <div class="logo-torneo"></div>
     {% endif %}
 
     <div class="titulo-panel">
@@ -2224,8 +2226,6 @@ body.solo-lectura .menu-principal {
 
     {% if logo_imcred %}
         <img src="{{ logo_imcred }}" class="logo-torneo">
-    {% else %}
-        <div class="logo-torneo"></div>
     {% endif %}
 </div>
 

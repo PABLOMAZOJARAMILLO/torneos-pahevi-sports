@@ -612,9 +612,9 @@ def logos_torneo(request, torneo=None):
     if not torneo:
         return logos
     return {
-        "logo_alcaldia": url_campo_imagen(torneo.logo_izquierdo) or logos["logo_alcaldia"],
+        "logo_alcaldia": url_campo_imagen(torneo.logo_izquierdo),
         "logo_torneo": url_campo_imagen(torneo.imagen_central) or logos["logo_torneo"],
-        "logo_imcred": url_campo_imagen(torneo.logo_derecho) or logos["logo_imcred"],
+        "logo_imcred": url_campo_imagen(torneo.logo_derecho),
     }
 
 
