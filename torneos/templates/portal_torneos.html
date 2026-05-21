@@ -112,6 +112,21 @@
             border-radius: 14px;
             padding: 10px;
         }
+        .torneo-card-sin-portada {
+            display: grid;
+            place-items: center;
+            width: min(100%, 270px);
+            aspect-ratio: 1 / 1;
+            margin: 0 auto;
+            background: linear-gradient(135deg, #f8fafc, #e2e8f0);
+            border: 2px dashed #94a3b8;
+            border-radius: 14px;
+            padding: 16px;
+            color: #475569;
+            font-size: 15px;
+            font-weight: 900;
+            text-transform: uppercase;
+        }
         .torneo-card-lema {
             display: block;
             margin-top: 4px;
@@ -147,6 +162,11 @@
                 border-radius: 12px;
                 padding: 7px;
             }
+            .torneo-card-sin-portada {
+                width: min(100%, 160px);
+                border-radius: 12px;
+                font-size: 12px;
+            }
             .torneo-card-lema {
                 font-size: 12px;
             }
@@ -181,10 +201,8 @@
                     <a class="torneo-card" href="{% url 'panel' %}?torneo={{ torneo.id }}">
                         {% if torneo.logo_portada %}
                             <img src="{{ torneo.logo_portada.url }}" class="torneo-card-imagen" alt="{{ torneo.nombre }}">
-                        {% elif torneo.logo_izquierdo %}
-                            <img src="{{ torneo.logo_izquierdo.url }}" class="torneo-card-imagen" alt="{{ torneo.nombre }}">
                         {% else %}
-                            <img src="{{ logo_app }}" class="torneo-card-imagen" alt="{{ torneo.nombre }}">
+                            <div class="torneo-card-sin-portada">Sin portada</div>
                         {% endif %}
                         <span>
                             {{ torneo.nombre }}
