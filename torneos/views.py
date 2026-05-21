@@ -2609,7 +2609,7 @@ def gestion_torneos(request):
 @login_required
 @user_passes_test(es_editor_torneo)
 def gestion_torneo_nuevo(request):
-    form = TorneoForm(request.POST or None)
+    form = TorneoForm(request.POST or None, request.FILES or None)
 
     if request.method == "POST" and form.is_valid():
         torneo = form.save(commit=False)
@@ -2631,7 +2631,7 @@ def gestion_torneo_nuevo(request):
 @user_passes_test(es_editor_torneo)
 def gestion_torneo_editar(request, torneo_id):
     torneo = get_object_or_404(torneos_para_usuario(request), id=torneo_id)
-    form = TorneoForm(request.POST or None, instance=torneo)
+    form = TorneoForm(request.POST or None, request.FILES or None, instance=torneo)
 
     if request.method == "POST" and form.is_valid():
         torneo = form.save()
