@@ -37,6 +37,26 @@ def ruta_documento(instance, filename):
     return f"documentos/{tipo}/{titulo}{extension_archivo(filename)}"
 
 
+def ruta_logo_portada_torneo(instance, filename):
+    torneo = limpiar_ruta_cloudinary(instance.nombre)
+    return f"torneos/{torneo}/logo_portada{extension_archivo(filename)}"
+
+
+def ruta_logo_izquierdo_torneo(instance, filename):
+    torneo = limpiar_ruta_cloudinary(instance.nombre)
+    return f"torneos/{torneo}/logo_izquierdo{extension_archivo(filename)}"
+
+
+def ruta_imagen_central_torneo(instance, filename):
+    torneo = limpiar_ruta_cloudinary(instance.nombre)
+    return f"torneos/{torneo}/imagen_central{extension_archivo(filename)}"
+
+
+def ruta_logo_derecho_torneo(instance, filename):
+    torneo = limpiar_ruta_cloudinary(instance.nombre)
+    return f"torneos/{torneo}/logo_derecho{extension_archivo(filename)}"
+
+
 class Torneo(models.Model):
     ESTADOS = [
         ('ACTIVO', 'Activo'),
@@ -47,6 +67,11 @@ class Torneo(models.Model):
     nombre = models.CharField(max_length=150, verbose_name='Nombre del torneo')
     organizador = models.ForeignKey(User, on_delete=models.SET_NULL, blank=True, null=True, related_name='torneos_organizados', verbose_name='Organizador')
     descripcion = models.TextField(blank=True, null=True, verbose_name='Descripción')
+    lema = models.CharField(max_length=180, blank=True, null=True, verbose_name='Lema')
+    logo_portada = models.ImageField(upload_to=ruta_logo_portada_torneo, blank=True, null=True, verbose_name='Logo de portada')
+    logo_izquierdo = models.ImageField(upload_to=ruta_logo_izquierdo_torneo, blank=True, null=True, verbose_name='Logo izquierdo del encabezado')
+    imagen_central = models.ImageField(upload_to=ruta_imagen_central_torneo, blank=True, null=True, verbose_name='Imagen central del encabezado')
+    logo_derecho = models.ImageField(upload_to=ruta_logo_derecho_torneo, blank=True, null=True, verbose_name='Logo derecho del encabezado')
     fecha_inicio = models.DateField(verbose_name='Fecha de inicio')
     fecha_fin = models.DateField(blank=True, null=True, verbose_name='Fecha de finalización')
     estado = models.CharField(max_length=20, choices=ESTADOS, default='ACTIVO', verbose_name='Estado')

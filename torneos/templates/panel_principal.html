@@ -2202,8 +2202,8 @@ body.solo-lectura .menu-principal {
         {% if logo_torneo %}
             <img src="{{ logo_torneo }}" class="logo-central">
         {% endif %}
-        <h1>TORNEO IMCRED</h1>
-        <p>Panel oficial de resultados, posiciones y estadísticas</p>
+        <h1>{{ torneo_seleccionado.nombre|default:"TORNEO IMCRED" }}</h1>
+        <p>{{ torneo_seleccionado.lema|default:"Panel oficial de resultados, posiciones y estadísticas" }}</p>
     </div>
 
     {% if logo_imcred %}
@@ -2257,6 +2257,9 @@ body.solo-lectura .menu-principal {
                 <div class="menu-contenido-principal">
                     <div class="submenu-panel" data-submenu="torneo">
                         <div class="submenu-ayuda">Selecciona el torneo</div>
+                        <button type="button" class="submenu-boton" onclick="cambiarTorneo('')">
+                            Todos los torneos
+                        </button>
                         {% for torneo in torneos_menu %}
                             <button type="button" class="submenu-boton {% if torneo_seleccionado and torneo.id == torneo_seleccionado.id %}activo{% endif %}" onclick="cambiarTorneo('{{ torneo.id }}')">
                                 {{ torneo.nombre }}
@@ -3275,8 +3278,10 @@ function cambiarTorneo(torneoId) {
     const params = new URLSearchParams(window.location.search);
     if (torneoId) {
         params.set('torneo', torneoId);
+        params.delete('portal');
     } else {
         params.delete('torneo');
+        params.set('portal', '1');
     }
     params.delete('categoria');
     window.location.href = '?' + params.toString();

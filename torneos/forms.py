@@ -9,6 +9,11 @@ class TorneoForm(forms.ModelForm):
         fields = [
             "nombre",
             "descripcion",
+            "lema",
+            "logo_portada",
+            "logo_izquierdo",
+            "imagen_central",
+            "logo_derecho",
             "fecha_inicio",
             "fecha_fin",
             "estado",

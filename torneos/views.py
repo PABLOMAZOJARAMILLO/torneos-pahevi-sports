@@ -1,4 +1,4 @@
-﻿from collections import defaultdict
+from collections import defaultdict
 from types import SimpleNamespace
 from datetime import date, datetime, time
 from concurrent.futures import ThreadPoolExecutor, TimeoutError
@@ -57,7 +57,7 @@ def service_worker(request):
     return response
 
 
-def torneo_actual(request):
+def torneo_actual(request, auto_seleccionar=True):
     torneos = torneos_para_usuario(request)
     torneo_id = request.GET.get("torneo") or request.session.get("torneo_id")
     torneo = None
@@ -65,7 +65,7 @@ def torneo_actual(request):
     if torneo_id:
         torneo = torneos.filter(id=torneo_id).first()
 
-    if not torneo:
+    if not torneo and auto_seleccionar:
         torneo = torneos.filter(estado="ACTIVO").first() or torneos.first()
 
     if torneo:
@@ -595,6 +595,26 @@ def rutas_logos(request):
         "logo_alcaldia": request.build_absolute_uri(static("torneos/img/logo_alcaldia.png")),
         "logo_torneo": request.build_absolute_uri(static("torneos/img/logo_torneo.png")),
         "logo_imcred": request.build_absolute_uri(static("torneos/img/logo_imcred.png")),
+    }
+
+
+def url_campo_imagen(campo):
+    if not campo:
+        return ""
+    try:
+        return campo.url
+    except Exception:
+        return ""
+
+
+def logos_torneo(request, torneo=None):
+    logos = rutas_logos(request)
+    if not torneo:
+        return logos
+    return {
+        "logo_alcaldia": url_campo_imagen(torneo.logo_izquierdo) or logos["logo_alcaldia"],
+        "logo_torneo": url_campo_imagen(torneo.imagen_central) or logos["logo_torneo"],
+        "logo_imcred": url_campo_imagen(torneo.logo_derecho) or logos["logo_imcred"],
     }
 
 
@@ -1336,7 +1356,20 @@ def construir_partidos_portada(torneo=None):
 
 
 def panel_principal(request):
-    torneo = torneo_actual(request)
+    if request.GET.get("portal") == "1":
+        request.session.pop("torneo_id", None)
+
+    torneo = torneo_actual(request, auto_seleccionar=False)
+    torneos_menu = torneos_para_usuario(request)
+    if not torneo:
+        logos = rutas_logos(request)
+        return render(request, "portal_torneos.html", {
+            "torneos_menu": torneos_menu,
+            "logo_alcaldia": logos["logo_alcaldia"],
+            "logo_torneo": logos["logo_torneo"],
+            "logo_imcred": logos["logo_imcred"],
+        })
+
     categoria_seleccionada = request.GET.get("categoria", "").strip()
     categorias = Categoria.objects.order_by("nombre")
     if torneo:
@@ -1355,7 +1388,7 @@ def panel_principal(request):
             for categoria in categorias
         }
 
-    logos = rutas_logos(request)
+    logos = logos_torneo(request, torneo)
     partidos_portada = construir_partidos_portada(torneo)
     documentos = documentos_publicos_por_tipo(torneo)
     fechas_grupos = sorted(
@@ -1400,7 +1433,7 @@ def panel_principal(request):
 
     return render(request, "panel_principal.html", {
         "estructura": estructura,
-        "torneos_menu": torneos_para_usuario(request),
+        "torneos_menu": torneos_menu,
         "torneo_seleccionado": torneo,
         "categorias_menu": categorias,
         "categoria_seleccionada": categoria_seleccionada,
@@ -1502,7 +1535,7 @@ def descargar_tabla_grupo(request, categoria, grupo):
     if not datos_grupo:
         return HttpResponse("Grupo no encontrado")
 
-    logos = rutas_logos(request)
+    logos = logos_torneo(request, torneo)
 
     html = render_to_string("descargas/tabla_grupo.html", {
         "categoria": categoria,
@@ -1528,7 +1561,7 @@ def descargar_goleadores_categoria(request, categoria):
         return HttpResponse("Categoría no encontrada")
 
     datos_categoria = preparar_categoria_para_descarga(request, datos_categoria)
-    logos = rutas_logos(request)
+    logos = logos_torneo(request, torneo)
 
     html = render_to_string("descargas/goleadores_categoria.html", {
         "categoria": categoria,
@@ -1553,7 +1586,7 @@ def descargar_tarjetas_categoria(request, categoria):
         return HttpResponse("Categoría no encontrada")
 
     datos_categoria = preparar_categoria_para_descarga(request, datos_categoria)
-    logos = rutas_logos(request)
+    logos = logos_torneo(request, torneo)
 
     html = render_to_string("descargas/tarjetas_categoria.html", {
         "categoria": categoria,
@@ -1578,7 +1611,7 @@ def descargar_valla_categoria(request, categoria):
         return HttpResponse("Categoría no encontrada")
 
     datos_categoria = preparar_categoria_para_descarga(request, datos_categoria)
-    logos = rutas_logos(request)
+    logos = logos_torneo(request, torneo)
 
     html = render_to_string("descargas/valla_categoria.html", {
         "categoria": categoria,
@@ -1605,7 +1638,7 @@ def descargar_imagen(request, categoria):
         categoria: estructura_total[categoria]
     }
 
-    logos = rutas_logos(request)
+    logos = logos_torneo(request, torneo)
 
     html = render_to_string("panel_principal.html", {
         "estructura": estructura,
@@ -2145,7 +2178,7 @@ def descargar_programacion_categoria(request, categoria):
     if not partidos_programacion:
         return HttpResponse("No hay partidos programados con fecha, hora y cancha para esta categoría.")
 
-    logos = rutas_logos(request)
+    logos = logos_torneo(request, torneo)
     cantidad = len(partidos_programacion)
     medidas = medidas_programacion(cantidad)
 
@@ -2171,12 +2204,13 @@ def descargar_programacion_categoria(request, categoria):
 @login_required
 @user_passes_test(es_editor_torneo)
 def descargar_programacion_general(request):
+    torneo = torneo_actual(request)
     partidos_programacion = construir_partidos_programacion(request)
 
     if not partidos_programacion:
         return HttpResponse("No hay partidos programados con fecha, hora y cancha asignada.")
 
-    logos = rutas_logos(request)
+    logos = logos_torneo(request, torneo)
     cantidad = len(partidos_programacion)
     medidas = medidas_programacion(cantidad)
 
