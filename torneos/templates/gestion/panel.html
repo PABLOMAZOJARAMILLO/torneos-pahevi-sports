@@ -10,6 +10,11 @@
         <p class="muted">{% if torneo_seleccionado %}Activo: {{ torneo_seleccionado.nombre }}{% else %}Crear y administrar torneos{% endif %}</p>
     </a>
 
+    <a class="card" href="{% url 'gestion_categorias' %}">
+        <h2>Categorías</h2>
+        <p class="muted">{{ total_categorias }} registradas</p>
+    </a>
+
     <a class="card" href="{% url 'gestion_equipos' %}">
         <h2>Equipos</h2>
         <p class="muted">{{ total_equipos }} registrados</p>

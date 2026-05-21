@@ -62,11 +62,8 @@ body {
 
 <script>
 function volverDespuesDescarga() {
-    if (window.history.length > 1) {
-        window.history.back();
-    } else {
-        window.location.href = "/";
-    }
+    const volverUrl = "{{ volver_url|escapejs }}";
+    window.location.href = volverUrl || "/";
 }
 
 function volverAutomaticamente() {

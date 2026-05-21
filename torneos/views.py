@@ -25,12 +25,20 @@ import requests
 from django.views.decorators.http import require_POST
 from openpyxl import load_workbook
 
-from .forms import TorneoForm, DocumentoForm, EquipoForm, JugadorForm, PartidoForm
+from .forms import TorneoForm, CategoriaForm, DocumentoForm, EquipoForm, JugadorForm, PartidoForm
 from .models import Torneo, Categoria, Documento, Equipo, Partido, Gol, Tarjeta, Jugador, AlineacionPartido, SustitucionPartido, limpiar_ruta_cloudinary
 from django.utils import timezone
 
 def es_editor_torneo(user):
     return user.is_authenticated and (user.is_staff or user.is_superuser)
+
+
+def torneos_para_usuario(request):
+    torneos = Torneo.objects.order_by("-fecha_inicio", "nombre")
+    user = getattr(request, "user", None)
+    if user and user.is_authenticated and not user.is_superuser:
+        torneos = torneos.filter(Q(organizador=user) | Q(organizador__isnull=True))
+    return torneos
 
 
 def cerrar_sesion(request):
@@ -50,7 +58,7 @@ def service_worker(request):
 
 
 def torneo_actual(request):
-    torneos = Torneo.objects.order_by("-fecha_inicio", "nombre")
+    torneos = torneos_para_usuario(request)
     torneo_id = request.GET.get("torneo") or request.session.get("torneo_id")
     torneo = None
 
@@ -755,12 +763,16 @@ def construir_estructura(torneo=None):
         "total": 0,
     }))
 
-    for gol in Gol.objects.select_related(
+    goles_qs = Gol.objects.select_related(
         "partido__categoria",
         "jugador",
         "equipo",
         "partido"
-    ):
+    )
+    if torneo:
+        goles_qs = goles_qs.filter(partido__categoria__torneo=torneo)
+
+    for gol in goles_qs:
         if gol.partido.estado not in ["FINALIZADO", "DECIDIDO_COMITE"]:
             continue
 
@@ -789,12 +801,16 @@ def construir_estructura(torneo=None):
         "total": 0,
     }))
 
-    for tarjeta in Tarjeta.objects.select_related(
+    tarjetas_qs = Tarjeta.objects.select_related(
         "partido__categoria",
         "jugador",
         "equipo",
         "partido"
-    ):
+    )
+    if torneo:
+        tarjetas_qs = tarjetas_qs.filter(partido__categoria__torneo=torneo)
+
+    for tarjeta in tarjetas_qs:
         if tarjeta.partido.estado not in ["FINALIZADO", "DECIDIDO_COMITE"]:
             continue
 
@@ -867,12 +883,16 @@ def construir_estructura(torneo=None):
         "rojas_total": 0,
     }))
 
-    for tarjeta in Tarjeta.objects.select_related(
+    alertas_tarjetas_qs = Tarjeta.objects.select_related(
         "partido__categoria",
         "jugador",
         "equipo",
         "partido"
-    ):
+    )
+    if torneo:
+        alertas_tarjetas_qs = alertas_tarjetas_qs.filter(partido__categoria__torneo=torneo)
+
+    for tarjeta in alertas_tarjetas_qs:
         if tarjeta.partido.estado not in ["FINALIZADO", "DECIDIDO_COMITE"]:
             continue
 
@@ -1053,6 +1073,8 @@ def construir_estructura(torneo=None):
             "numero_fecha",
             "id"
         )
+        if torneo:
+            partidos_finales = partidos_finales.filter(categoria__torneo=torneo)
 
         llaves = {
             "cuartos": [],
@@ -1121,6 +1143,8 @@ def construir_estructura(torneo=None):
             categoria__nombre=categoria_nombre,
             activo=True
         ).prefetch_related("jugadores").order_by("nombre")
+        if torneo:
+            equipos_categoria = equipos_categoria.filter(categoria__torneo=torneo)
 
         lista_equipos = []
 
@@ -1206,10 +1230,16 @@ def construir_partidos_portada(torneo=None):
     tarjetas_por_partido = defaultdict(int)
     goles_por_partido = defaultdict(int)
 
-    for item in Tarjeta.objects.values("partido_id"):
+    tarjetas_eventos = Tarjeta.objects.all()
+    goles_eventos = Gol.objects.all()
+    if torneo:
+        tarjetas_eventos = tarjetas_eventos.filter(partido__categoria__torneo=torneo)
+        goles_eventos = goles_eventos.filter(partido__categoria__torneo=torneo)
+
+    for item in tarjetas_eventos.values("partido_id"):
         tarjetas_por_partido[item["partido_id"]] += 1
 
-    for item in Gol.objects.values("partido_id"):
+    for item in goles_eventos.values("partido_id"):
         goles_por_partido[item["partido_id"]] += 1
 
     partidos_portada = []
@@ -1370,7 +1400,7 @@ def panel_principal(request):
 
     return render(request, "panel_principal.html", {
         "estructura": estructura,
-        "torneos_menu": Torneo.objects.order_by("-fecha_inicio", "nombre"),
+        "torneos_menu": torneos_para_usuario(request),
         "torneo_seleccionado": torneo,
         "categorias_menu": categorias,
         "categoria_seleccionada": categoria_seleccionada,
@@ -1414,12 +1444,21 @@ def detalle_partido_publico(request, partido_id):
     })
 
 
-def crear_imagen_desde_html(html, nombre_archivo, ancho=1600, alto=1800):
+def url_retorno_descarga(request):
+    return (
+        request.GET.get("volver")
+        or request.META.get("HTTP_REFERER")
+        or reverse("panel")
+    )
+
+
+def crear_imagen_desde_html(html, nombre_archivo, ancho=1600, alto=1800, volver_url="/"):
     return render(None, "descargas/auto_descarga.html", {
         "contenido_html": html,
         "nombre_archivo": nombre_archivo,
         "ancho": ancho,
         "alto": alto,
+        "volver_url": volver_url,
     })
     carpeta_media = os.path.join(os.getcwd(), "media", "descargas")
     os.makedirs(carpeta_media, exist_ok=True)
@@ -1475,7 +1514,7 @@ def descargar_tabla_grupo(request, categoria, grupo):
     })
 
     nombre = limpiar_nombre(f"TABLA_{categoria}_{grupo}.png")
-    return crear_imagen_desde_html(html, nombre, 1600, 1200)
+    return crear_imagen_desde_html(html, nombre, 1600, 1200, url_retorno_descarga(request))
 
 
 @login_required
@@ -1500,7 +1539,7 @@ def descargar_goleadores_categoria(request, categoria):
     })
 
     nombre = limpiar_nombre(f"GOLEADORES_{categoria}.png")
-    return crear_imagen_desde_html(html, nombre, 1800, 2000)
+    return crear_imagen_desde_html(html, nombre, 1800, 2000, url_retorno_descarga(request))
 
 
 @login_required
@@ -1525,7 +1564,7 @@ def descargar_tarjetas_categoria(request, categoria):
     })
 
     nombre = limpiar_nombre(f"TARJETAS_{categoria}.png")
-    return crear_imagen_desde_html(html, nombre, 1800, 2000)
+    return crear_imagen_desde_html(html, nombre, 1800, 2000, url_retorno_descarga(request))
 
 
 @login_required
@@ -1550,7 +1589,7 @@ def descargar_valla_categoria(request, categoria):
     })
 
     nombre = limpiar_nombre(f"VALLA_MENOS_VENCIDA_{categoria}.png")
-    return crear_imagen_desde_html(html, nombre, 1800, 1800)
+    return crear_imagen_desde_html(html, nombre, 1800, 1800, url_retorno_descarga(request))
 
 
 @login_required
@@ -1576,7 +1615,7 @@ def descargar_imagen(request, categoria):
     })
 
     nombre = limpiar_nombre(f"PANEL_{categoria}.png")
-    return crear_imagen_desde_html(html, nombre, 1600, 2800)
+    return crear_imagen_desde_html(html, nombre, 1600, 2800, url_retorno_descarga(request))
 
 
 def grupo_completo(categoria, grupo):
@@ -2126,7 +2165,7 @@ def descargar_programacion_categoria(request, categoria):
     })
 
     nombre = limpiar_nombre(f"PROGRAMACION_PARTIDOS_PROGRAMADOS_{categoria}.png")
-    return crear_imagen_desde_html(html, nombre, medidas["ancho"], medidas["alto"])
+    return crear_imagen_desde_html(html, nombre, medidas["ancho"], medidas["alto"], url_retorno_descarga(request))
 
 
 @login_required
@@ -2158,7 +2197,7 @@ def descargar_programacion_general(request):
     })
 
     nombre = "PROGRAMACION_TODAS_LAS_CATEGORIAS.png"
-    return crear_imagen_desde_html(html, nombre, medidas["ancho"], medidas["alto"])
+    return crear_imagen_desde_html(html, nombre, medidas["ancho"], medidas["alto"], url_retorno_descarga(request))
 
 
 # ======================================================
@@ -2497,12 +2536,14 @@ def gestion_probar_storage(request):
 @user_passes_test(es_editor_torneo)
 def gestion_panel(request):
     torneo = torneo_actual(request)
+    categorias = Categoria.objects.all()
     equipos = Equipo.objects.all()
     jugadores = Jugador.objects.all()
     partidos = Partido.objects.all()
     documentos = Documento.objects.all()
 
     if torneo:
+        categorias = categorias.filter(torneo=torneo)
         equipos = equipos.filter(categoria__torneo=torneo)
         jugadores = jugadores.filter(equipo__categoria__torneo=torneo)
         partidos = partidos.filter(categoria__torneo=torneo)
@@ -2510,6 +2551,7 @@ def gestion_panel(request):
 
     return render(request, "gestion/panel.html", {
         "torneo_seleccionado": torneo,
+        "total_categorias": categorias.count(),
         "total_equipos": equipos.count(),
         "total_jugadores": jugadores.count(),
         "total_partidos": partidos.count(),
@@ -2520,7 +2562,7 @@ def gestion_panel(request):
 @login_required
 @user_passes_test(es_editor_torneo)
 def gestion_torneos(request):
-    torneos = Torneo.objects.order_by("-fecha_inicio", "nombre")
+    torneos = torneos_para_usuario(request)
 
     return render(request, "gestion/torneos.html", {
         "torneos": torneos,
@@ -2534,7 +2576,10 @@ def gestion_torneo_nuevo(request):
     form = TorneoForm(request.POST or None)
 
     if request.method == "POST" and form.is_valid():
-        torneo = form.save()
+        torneo = form.save(commit=False)
+        if request.user.is_authenticated:
+            torneo.organizador = request.user
+        torneo.save()
         request.session["torneo_id"] = torneo.id
         messages.success(request, "Torneo creado correctamente.")
         return redirect("gestion_torneos")
@@ -2549,7 +2594,7 @@ def gestion_torneo_nuevo(request):
 @login_required
 @user_passes_test(es_editor_torneo)
 def gestion_torneo_editar(request, torneo_id):
-    torneo = get_object_or_404(Torneo, id=torneo_id)
+    torneo = get_object_or_404(torneos_para_usuario(request), id=torneo_id)
     form = TorneoForm(request.POST or None, instance=torneo)
 
     if request.method == "POST" and form.is_valid():
@@ -2569,13 +2614,69 @@ def gestion_torneo_editar(request, torneo_id):
 @user_passes_test(es_editor_torneo)
 @require_POST
 def gestion_torneo_activar(request, torneo_id):
-    torneo = get_object_or_404(Torneo, id=torneo_id)
-    Torneo.objects.exclude(id=torneo.id).filter(estado="ACTIVO").update(estado="FINALIZADO")
-    torneo.estado = "ACTIVO"
-    torneo.save(update_fields=["estado"])
+    torneo = get_object_or_404(torneos_para_usuario(request), id=torneo_id)
     request.session["torneo_id"] = torneo.id
-    messages.success(request, f"{torneo.nombre} quedó como torneo activo.")
+    messages.success(request, f"Ahora estás gestionando: {torneo.nombre}.")
     return redirect("gestion_torneos")
+
+
+@login_required
+@user_passes_test(es_editor_torneo)
+def gestion_categorias(request):
+    torneo = torneo_actual(request)
+    categorias = Categoria.objects.select_related("torneo").order_by("nombre")
+    if torneo:
+        categorias = categorias.filter(torneo=torneo)
+
+    return render(request, "gestion/categorias.html", {
+        "categorias": categorias,
+        "torneo_seleccionado": torneo,
+    })
+
+
+@login_required
+@user_passes_test(es_editor_torneo)
+def gestion_categoria_nueva(request):
+    torneo = torneo_actual(request)
+    form = CategoriaForm(request.POST or None)
+
+    if request.method == "POST" and form.is_valid():
+        categoria = form.save(commit=False)
+        categoria.torneo = torneo
+        categoria.save()
+        messages.success(request, "Categoría creada correctamente.")
+        return redirect("gestion_categorias")
+
+    return render(request, "gestion/formulario.html", {
+        "titulo": "Nueva categoría",
+        "form": form,
+        "volver_url": "gestion_categorias",
+    })
+
+
+@login_required
+@user_passes_test(es_editor_torneo)
+def gestion_categoria_editar(request, categoria_id):
+    torneo = torneo_actual(request)
+    categorias = Categoria.objects.select_related("torneo")
+    if torneo:
+        categorias = categorias.filter(torneo=torneo)
+    categoria = get_object_or_404(categorias, id=categoria_id)
+    form = CategoriaForm(request.POST or None, instance=categoria)
+
+    if request.method == "POST" and form.is_valid():
+        categoria = form.save(commit=False)
+        if torneo:
+            categoria.torneo = torneo
+        categoria.save()
+        messages.success(request, "Categoría actualizada correctamente.")
+        return redirect("gestion_categorias")
+
+    return render(request, "gestion/formulario.html", {
+        "titulo": f"Editar categoría: {categoria.nombre}",
+        "form": form,
+        "volver_url": "gestion_categorias",
+    })
 
 
 @login_required

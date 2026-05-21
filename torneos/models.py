@@ -45,6 +45,7 @@ class Torneo(models.Model):
     ]
 
     nombre = models.CharField(max_length=150, verbose_name='Nombre del torneo')
+    organizador = models.ForeignKey(User, on_delete=models.SET_NULL, blank=True, null=True, related_name='torneos_organizados', verbose_name='Organizador')
     descripcion = models.TextField(blank=True, null=True, verbose_name='Descripción')
     fecha_inicio = models.DateField(verbose_name='Fecha de inicio')
     fecha_fin = models.DateField(blank=True, null=True, verbose_name='Fecha de finalización')

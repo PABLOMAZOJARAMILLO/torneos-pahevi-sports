@@ -28,7 +28,7 @@
             <a class="btn secondary" href="{% url 'gestion_torneo_editar' torneo.id %}">Editar</a>
             <form method="post" action="{% url 'gestion_torneo_activar' torneo.id %}" style="padding:0;border:0;background:transparent;box-shadow:none;">
                 {% csrf_token %}
-                <button class="btn" type="submit">Activar</button>
+                <button class="btn" type="submit">Gestionar</button>
             </form>
         </div>
     </div>

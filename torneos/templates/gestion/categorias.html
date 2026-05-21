@@ -1,0 +1,36 @@
+{% extends "gestion/base.html" %}
+
+{% block title %}Categorías{% endblock %}
+{% block heading %}Categorías{% endblock %}
+
+{% block content %}
+<p>
+    <a class="btn" href="{% url 'gestion_categoria_nueva' %}">Nueva categoría</a>
+    <a class="btn secondary" href="{% url 'gestion_panel' %}">Gestión</a>
+</p>
+
+{% if torneo_seleccionado %}
+    <div class="card" style="margin-bottom:14px;">
+        <strong>Torneo:</strong> {{ torneo_seleccionado.nombre }}
+        <div class="muted">Estas categorías pertenecen solo a este torneo.</div>
+    </div>
+{% endif %}
+
+{% for categoria in categorias %}
+<div class="row">
+    <div>
+        <h2 style="margin:0 0 6px;">{{ categoria.nombre }}</h2>
+        <div class="muted">
+            Edad: {{ categoria.edad_minima }} - {{ categoria.edad_maxima }}
+            {% if categoria.descripcion %} · {{ categoria.descripcion }}{% endif %}
+        </div>
+    </div>
+    <a class="btn" href="{% url 'gestion_categoria_editar' categoria.id %}">Editar</a>
+</div>
+{% empty %}
+<div class="card">
+    <h2>No hay categorías en este torneo</h2>
+    <p class="muted">Crea las categorías del torneo actual antes de cargar equipos, jugadores o partidos.</p>
+</div>
+{% endfor %}
+{% endblock %}

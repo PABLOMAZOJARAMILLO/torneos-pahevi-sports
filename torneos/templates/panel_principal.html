@@ -3295,6 +3295,11 @@ function accionAdmin(accion) {
     cerrarMenuPrincipal();
 
     if (urls[accion]) {
+        if (accion === 'descargar') {
+            const separador = urls[accion].includes('?') ? '&' : '?';
+            window.location.href = urls[accion] + separador + 'volver=' + encodeURIComponent(window.location.href);
+            return;
+        }
         window.location.href = urls[accion];
     }
 }
