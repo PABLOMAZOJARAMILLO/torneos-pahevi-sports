@@ -2187,26 +2187,7 @@ body.solo-lectura .menu-principal {
     }
 }
 
-/* Imagen principal general de la app */
-.encabezado-panel .logo-central {
-    width: 148px !important;
-    height: 148px !important;
-    max-height: 148px !important;
-    object-fit: contain !important;
-}
-
-.encabezado-panel.sin-logos-laterales {
-    justify-content: center !important;
-}
-
-@media (max-width: 760px) {
-    .encabezado-panel .logo-central {
-        width: 108px !important;
-        height: 108px !important;
-        max-height: 108px !important;
-    }
-}
-    </style>
+</style>
 </head>
 
 <body class="{% if not request.user.is_staff %}solo-lectura{% endif %}{% if categoria_seleccionada %} categoria-activa{% endif %}">

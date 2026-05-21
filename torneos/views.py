@@ -593,6 +593,7 @@ def url_absoluta(request, url):
 def rutas_logos(request):
     return {
         "logo_alcaldia": request.build_absolute_uri(static("torneos/img/logo_alcaldia.png")),
+        "logo_app": request.build_absolute_uri(static("torneos/img/logo_app.png")),
         "logo_torneo": request.build_absolute_uri(static("torneos/img/logo_torneo.png")),
         "logo_imcred": request.build_absolute_uri(static("torneos/img/logo_imcred.png")),
     }
@@ -1366,6 +1367,7 @@ def panel_principal(request):
         return render(request, "portal_torneos.html", {
             "torneos_menu": torneos_menu,
             "logo_alcaldia": logos["logo_alcaldia"],
+            "logo_app": logos["logo_app"],
             "logo_torneo": logos["logo_torneo"],
             "logo_imcred": logos["logo_imcred"],
         })

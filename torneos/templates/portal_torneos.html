@@ -157,7 +157,7 @@
     <header class="portal-header">
         <div class="portal-top">
             <div class="portal-brand">
-                <img src="{{ logo_torneo }}" alt="Imagen principal">
+                <img src="{{ logo_app }}" alt="Imagen principal">
                 <h1>TORNEOS</h1>
             </div>
         </div>
@@ -184,7 +184,7 @@
                         {% elif torneo.logo_izquierdo %}
                             <img src="{{ torneo.logo_izquierdo.url }}" class="torneo-card-imagen" alt="{{ torneo.nombre }}">
                         {% else %}
-                            <img src="{{ logo_torneo }}" class="torneo-card-imagen" alt="{{ torneo.nombre }}">
+                            <img src="{{ logo_app }}" class="torneo-card-imagen" alt="{{ torneo.nombre }}">
                         {% endif %}
                         <span>
                             {{ torneo.nombre }}
