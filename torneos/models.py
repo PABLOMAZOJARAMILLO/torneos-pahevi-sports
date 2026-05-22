@@ -57,6 +57,33 @@ def ruta_logo_derecho_torneo(instance, filename):
     return f"torneos/{torneo}/logo_derecho{extension_archivo(filename)}"
 
 
+def ruta_logo_organizador(instance, filename):
+    organizador = limpiar_ruta_cloudinary(instance.nombre)
+    return f"organizadores/{organizador}/logo{extension_archivo(filename)}"
+
+
+def ruta_portada_organizador(instance, filename):
+    organizador = limpiar_ruta_cloudinary(instance.nombre)
+    return f"organizadores/{organizador}/portada{extension_archivo(filename)}"
+
+
+class Organizador(models.Model):
+    nombre = models.CharField(max_length=150, unique=True, verbose_name='Nombre del organizador')
+    descripcion = models.TextField(blank=True, null=True, verbose_name='DescripciÃ³n')
+    logo = models.ImageField(upload_to=ruta_logo_organizador, blank=True, null=True, verbose_name='Logo del organizador')
+    portada = models.ImageField(upload_to=ruta_portada_organizador, blank=True, null=True, verbose_name='Portada del organizador')
+    activo = models.BooleanField(default=True, verbose_name='Activo')
+    creado_en = models.DateTimeField(auto_now_add=True, verbose_name='Creado en')
+
+    class Meta:
+        verbose_name = 'Organizador'
+        verbose_name_plural = 'Organizadores'
+        ordering = ['nombre']
+
+    def __str__(self):
+        return self.nombre
+
+
 class Torneo(models.Model):
     ESTADOS = [
         ('ACTIVO', 'Activo'),
@@ -65,7 +92,7 @@ class Torneo(models.Model):
     ]
 
     nombre = models.CharField(max_length=150, verbose_name='Nombre del torneo')
-    organizador = models.ForeignKey(User, on_delete=models.SET_NULL, blank=True, null=True, related_name='torneos_organizados', verbose_name='Organizador')
+    organizador = models.ForeignKey(Organizador, on_delete=models.SET_NULL, blank=True, null=True, related_name='torneos', verbose_name='Organizador')
     descripcion = models.TextField(blank=True, null=True, verbose_name='Descripción')
     lema = models.CharField(max_length=180, blank=True, null=True, verbose_name='Lema')
     logo_portada = models.ImageField(upload_to=ruta_logo_portada_torneo, blank=True, null=True, verbose_name='Logo de portada')

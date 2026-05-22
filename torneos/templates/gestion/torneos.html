@@ -6,7 +6,7 @@
 {% block content %}
 <p>
     <a class="btn" href="{% url 'gestion_torneo_nuevo' %}">Crear torneo</a>
-    <a class="btn secondary" href="{% url 'gestion_panel' %}">Volver a gestión</a>
+    <a class="btn secondary" href="{% url 'gestion_panel' %}">Volver a gestiÃ³n</a>
 </p>
 
 {% for torneo in torneos %}
@@ -14,7 +14,7 @@
         <div>
             <h2 style="margin:0 0 6px;">{{ torneo.nombre }}</h2>
             <div class="muted">
-                Estado: {{ torneo.get_estado_display }} · Inicio: {{ torneo.fecha_inicio }}
+                Organizador: {% if torneo.organizador %}{{ torneo.organizador.nombre }}{% else %}Sin organizador{% endif %} · Estado: {{ torneo.get_estado_display }} · Inicio: {{ torneo.fecha_inicio }}
                 {% if torneo.fecha_fin %} · Fin: {{ torneo.fecha_fin }}{% endif %}
             </div>
             {% if torneo.descripcion %}
@@ -35,7 +35,7 @@
 {% empty %}
     <div class="card">
         <h2>No hay torneos</h2>
-        <p class="muted">Crea el primer torneo para empezar a organizar categorías, equipos y partidos.</p>
+        <p class="muted">Crea el primer torneo para empezar a organizar categorÃ­as, equipos y partidos.</p>
     </div>
 {% endfor %}
 {% endblock %}

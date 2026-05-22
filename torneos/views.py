@@ -26,8 +26,8 @@ import requests
 from django.views.decorators.http import require_POST
 from openpyxl import load_workbook
 
-from .forms import TorneoForm, CategoriaForm, DocumentoForm, EquipoForm, JugadorForm, PartidoForm
-from .models import Torneo, Categoria, Documento, Equipo, Partido, Gol, Tarjeta, Jugador, AlineacionPartido, SustitucionPartido, limpiar_ruta_cloudinary
+from .forms import TorneoForm, OrganizadorForm, CategoriaForm, DocumentoForm, EquipoForm, JugadorForm, PartidoForm
+from .models import Torneo, Organizador, Categoria, Documento, Equipo, Partido, Gol, Tarjeta, Jugador, AlineacionPartido, SustitucionPartido, limpiar_ruta_cloudinary
 from django.utils import timezone
 
 def es_editor_torneo(user):
@@ -35,17 +35,14 @@ def es_editor_torneo(user):
 
 
 def torneos_para_usuario(request):
-    torneos = Torneo.objects.order_by("-fecha_inicio", "nombre")
-    user = getattr(request, "user", None)
-    if user and user.is_authenticated and not user.is_superuser:
-        torneos = torneos.filter(Q(organizador=user) | Q(organizador__isnull=True))
-    return torneos
+    return Torneo.objects.select_related("organizador").filter(
+        Q(organizador__activo=True) | Q(organizador__isnull=True)
+    ).order_by("-fecha_inicio", "nombre")
 
 
 def nombre_organizador_torneo(torneo):
     if torneo.organizador_id:
-        nombre = torneo.organizador.get_full_name() or torneo.organizador.username
-        return nombre.strip() or torneo.nombre
+        return torneo.organizador.nombre.strip() or torneo.nombre
     return torneo.nombre
 
 
@@ -60,7 +57,7 @@ def organizadores_para_portal(torneos):
                 grupo = SimpleNamespace(
                     id=torneo.organizador_id,
                     nombre=nombre_organizador_torneo(torneo),
-                    logo=torneo.logo_portada,
+                    logo=torneo.organizador.logo or torneo.logo_portada,
                     torneos=[],
                     es_organizador=True,
                 )
@@ -1443,11 +1440,11 @@ def panel_principal(request):
         torneos_portal = torneos_menu
         if organizador_id and str(organizador_id).isdigit():
             torneos_portal = torneos_menu.filter(organizador_id=organizador_id)
-            primer_torneo = torneos_portal.first()
-            if primer_torneo:
+            organizador = Organizador.objects.filter(id=organizador_id, activo=True).first()
+            if organizador:
                 organizador_actual = SimpleNamespace(
-                    id=primer_torneo.organizador_id,
-                    nombre=nombre_organizador_torneo(primer_torneo),
+                    id=organizador.id,
+                    nombre=organizador.nombre,
                 )
 
         logos = rutas_logos(request)
@@ -2736,6 +2733,7 @@ def gestion_probar_storage(request):
 @user_passes_test(es_editor_torneo)
 def gestion_panel(request):
     torneo = torneo_actual(request)
+    organizadores = Organizador.objects.all()
     categorias = Categoria.objects.all()
     equipos = Equipo.objects.all()
     jugadores = Jugador.objects.all()
@@ -2751,11 +2749,57 @@ def gestion_panel(request):
 
     return render(request, "gestion/panel.html", {
         "torneo_seleccionado": torneo,
+        "total_organizadores": organizadores.count(),
         "total_categorias": categorias.count(),
         "total_equipos": equipos.count(),
         "total_jugadores": jugadores.count(),
         "total_partidos": partidos.count(),
         "total_documentos": documentos.count(),
+    })
+
+
+@login_required
+@user_passes_test(es_editor_torneo)
+def gestion_organizadores(request):
+    organizadores = Organizador.objects.order_by("nombre")
+
+    return render(request, "gestion/organizadores.html", {
+        "organizadores": organizadores,
+    })
+
+
+@login_required
+@user_passes_test(es_editor_torneo)
+def gestion_organizador_nuevo(request):
+    form = OrganizadorForm(request.POST or None, request.FILES or None)
+
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        messages.success(request, "Organizador creado correctamente.")
+        return redirect("gestion_organizadores")
+
+    return render(request, "gestion/formulario.html", {
+        "titulo": "Nuevo organizador",
+        "form": form,
+        "volver_url": "gestion_organizadores",
+    })
+
+
+@login_required
+@user_passes_test(es_editor_torneo)
+def gestion_organizador_editar(request, organizador_id):
+    organizador = get_object_or_404(Organizador, id=organizador_id)
+    form = OrganizadorForm(request.POST or None, request.FILES or None, instance=organizador)
+
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        messages.success(request, "Organizador actualizado correctamente.")
+        return redirect("gestion_organizadores")
+
+    return render(request, "gestion/formulario.html", {
+        "titulo": f"Editar organizador: {organizador.nombre}",
+        "form": form,
+        "volver_url": "gestion_organizadores",
     })
 
 
@@ -2777,8 +2821,6 @@ def gestion_torneo_nuevo(request):
 
     if request.method == "POST" and form.is_valid():
         torneo = form.save(commit=False)
-        if request.user.is_authenticated and not torneo.organizador_id:
-            torneo.organizador = request.user
         aplicar_imagenes_torneo_cloudinary(torneo, request.FILES)
         torneo.save()
         request.session["torneo_id"] = torneo.id

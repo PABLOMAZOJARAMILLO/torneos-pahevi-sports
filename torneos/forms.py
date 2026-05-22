@@ -1,6 +1,21 @@
 from django import forms
 
-from .models import Torneo, Documento, Categoria, Equipo, Jugador, Partido
+from .models import Torneo, Organizador, Documento, Categoria, Equipo, Jugador, Partido
+
+
+class OrganizadorForm(forms.ModelForm):
+    class Meta:
+        model = Organizador
+        fields = [
+            "nombre",
+            "descripcion",
+            "logo",
+            "portada",
+            "activo",
+        ]
+        widgets = {
+            "descripcion": forms.Textarea(attrs={"rows": 3}),
+        }
 
 
 class TorneoForm(forms.ModelForm):

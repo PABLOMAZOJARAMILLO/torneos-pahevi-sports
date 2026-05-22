@@ -7,10 +7,11 @@ from import_export.admin import ImportExportModelAdmin
 from import_export.widgets import ForeignKeyWidget
 from openpyxl import load_workbook
 
-from .models import Torneo, Categoria, Documento, Equipo, Jugador, Partido, Gol, Tarjeta, AlineacionPartido, SustitucionPartido
+from .models import Torneo, Organizador, Categoria, Documento, Equipo, Jugador, Partido, Gol, Tarjeta, AlineacionPartido, SustitucionPartido
 from django.contrib import admin
 
 admin.site.register(Torneo)
+admin.site.register(Organizador)
 
 def limpiar_texto(valor):
     return '' if valor is None else str(valor).strip()

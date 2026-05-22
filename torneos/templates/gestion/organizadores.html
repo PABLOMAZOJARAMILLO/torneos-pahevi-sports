@@ -1,0 +1,35 @@
+{% extends "gestion/base.html" %}
+
+{% block title %}Organizadores{% endblock %}
+{% block heading %}Organizadores{% endblock %}
+
+{% block content %}
+<p>
+    <a class="btn" href="{% url 'gestion_organizador_nuevo' %}">Crear organizador</a>
+    <a class="btn secondary" href="{% url 'gestion_panel' %}">Volver a gestion</a>
+</p>
+
+{% for organizador in organizadores %}
+    <div class="row">
+        <div>
+            <h2 style="margin:0 0 6px;">{{ organizador.nombre }}</h2>
+            <div class="muted">
+                Estado: {% if organizador.activo %}Activo{% else %}Inactivo{% endif %}
+                · Torneos: {{ organizador.torneos.count }}
+            </div>
+            {% if organizador.descripcion %}
+                <p class="muted">{{ organizador.descripcion }}</p>
+            {% endif %}
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <a class="btn secondary" href="{% url 'gestion_organizador_editar' organizador.id %}">Editar</a>
+            <a class="btn" href="{% url 'gestion_torneo_nuevo' %}">Crear torneo</a>
+        </div>
+    </div>
+{% empty %}
+    <div class="card">
+        <h2>No hay organizadores</h2>
+        <p class="muted">Crea un organizador para agrupar sus torneos debajo de una sola tarjeta en el portal.</p>
+    </div>
+{% endfor %}
+{% endblock %}

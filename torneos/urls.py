@@ -160,6 +160,9 @@ urlpatterns = [
     path('mis-equipos/', views.mis_equipos, name='mis_equipos'),
 
     path('gestion/', views.gestion_panel, name='gestion_panel'),
+    path('gestion/organizadores/', views.gestion_organizadores, name='gestion_organizadores'),
+    path('gestion/organizadores/nuevo/', views.gestion_organizador_nuevo, name='gestion_organizador_nuevo'),
+    path('gestion/organizadores/<int:organizador_id>/editar/', views.gestion_organizador_editar, name='gestion_organizador_editar'),
     path('gestion/torneos/', views.gestion_torneos, name='gestion_torneos'),
     path('gestion/torneos/nuevo/', views.gestion_torneo_nuevo, name='gestion_torneo_nuevo'),
     path('gestion/torneos/<int:torneo_id>/editar/', views.gestion_torneo_editar, name='gestion_torneo_editar'),
