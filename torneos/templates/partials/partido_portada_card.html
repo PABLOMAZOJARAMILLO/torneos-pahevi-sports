@@ -1,8 +1,8 @@
-<a class="partido-portada {{ partido.categoria_clase }}"
+<a class="partido-portada {{ partido.categoria_clase }}{% if partido.estado == 'EN_JUEGO' %} partido-en-vivo{% endif %}"
    href="{% if partido.estado == 'EN_JUEGO' %}{% url 'partido_live' partido.id %}{% else %}{% url 'partido_detalle_publico' partido.id %}{% endif %}">
     <div class="partido-meta">
         <span class="categoria-pill">{{ partido.categoria }}</span>
-        <span>{% if partido.numero_fecha %}Fecha {{ partido.numero_fecha }}{% else %}{{ partido.fase }}{% endif %}</span>
+        <span class="fase-pill">{% if partido.numero_fecha %}Fecha {{ partido.numero_fecha }}{% else %}{{ partido.fase }}{% endif %}</span>
         <span class="estado-chip {{ partido.estado|lower }}">
             {% if partido.estado == "EN_JUEGO" %}
                 🔴 EN VIVO
@@ -12,22 +12,20 @@
         </span>
 
         {% if partido.estado == "EN_JUEGO" %}
-
         <div class="reloj-partido"
-            data-inicio="{{ partido.inicio_en_vivo|date:'c' }}"
-            data-periodo="{{ partido.periodo_en_vivo }}">
-
-                🟢 1T · 00:00
-
+             data-inicio="{{ partido.inicio_en_vivo|date:'c' }}"
+             data-segundos="{{ partido.segundos_vivos|default:0 }}"
+             data-pausado="{% if partido.cronometro_pausado %}1{% else %}0{% endif %}"
+             data-periodo="{{ partido.periodo_en_vivo|default:'PT' }}">
+            ⏱ 1T · 00:00
         </div>
-
         {% endif %}
     </div>
 
     <div class="versus-portada">
         <div class="equipo-portada">
             {% if partido.escudo_local %}
-                <img src="{{ partido.escudo_local }}">
+                <img src="{{ partido.escudo_local }}" alt="{{ partido.local }}">
             {% endif %}
             <span>{% if partido.ganador_local %}<span class="estrella-ganador">★</span>{% endif %}{{ partido.local }}</span>
             {% if partido.ganador_local and partido.fase == "FINAL" %}
@@ -37,6 +35,12 @@
 
         {% if partido.estado == "PROGRAMADO" %}
         <div class="marcador-portada programado">{{ partido.hora }}</div>
+        {% elif partido.estado == "EN_JUEGO" %}
+        <div class="marcador-portada marcador-live">
+            <span>{{ partido.goles_local }}</span>
+            <span>-</span>
+            <span>{{ partido.goles_visitante }}</span>
+        </div>
         {% else %}
         <div class="marcador-portada">
             <span>{{ partido.goles_local }}</span>
@@ -47,7 +51,7 @@
 
         <div class="equipo-portada">
             {% if partido.escudo_visitante %}
-                <img src="{{ partido.escudo_visitante }}">
+                <img src="{{ partido.escudo_visitante }}" alt="{{ partido.visitante }}">
             {% endif %}
             <span>{% if partido.ganador_visitante %}<span class="estrella-ganador">★</span>{% endif %}{{ partido.visitante }}</span>
             {% if partido.ganador_visitante and partido.fase == "FINAL" %}
@@ -58,6 +62,6 @@
 
     <div class="partido-extra">
         <span>{{ partido.fecha }} · {{ partido.cancha }}</span>
-        <span>{% if partido.eventos %}{{ partido.eventos }} eventos{% else %}Ver detalle{% endif %}</span>
+        <span>{% if partido.estado == "EN_JUEGO" %}Seguir en vivo{% elif partido.eventos %}{{ partido.eventos }} eventos{% else %}Ver detalle{% endif %}</span>
     </div>
 </a>

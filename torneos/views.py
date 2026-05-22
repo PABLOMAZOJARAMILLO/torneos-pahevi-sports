@@ -1318,6 +1318,33 @@ def preparar_categoria_para_descarga(request, datos_categoria):
     return datos_categoria
 
 
+def segundos_vivos_partido(partido):
+    segundos = partido.segundos_acumulados or 0
+    if (
+        partido.estado == "EN_JUEGO"
+        and partido.inicio_en_vivo
+        and not partido.cronometro_pausado
+    ):
+        diferencia = timezone.now() - partido.inicio_en_vivo
+        segundos += max(0, int(diferencia.total_seconds()))
+    return segundos
+
+
+def foto_jugador_url(jugador):
+    if jugador and jugador.foto:
+        try:
+            return jugador.foto.url
+        except Exception:
+            return ""
+    return ""
+
+
+def iniciales_jugador(jugador):
+    nombre = (getattr(jugador, "nombres", "") or "").strip()
+    partes = [parte[0] for parte in nombre.split()[:2] if parte]
+    return "".join(partes).upper() or "J"
+
+
 def construir_partidos_portada(torneo=None):
     hoy = date.today()
     partidos = Partido.objects.filter(
@@ -1432,8 +1459,8 @@ def construir_partidos_portada(torneo=None):
             "inicio_en_vivo": partido.inicio_en_vivo,
             "cronometro_pausado": partido.cronometro_pausado,
             "segundos_acumulados": partido.segundos_acumulados,
-            "estado": partido.estado,
-            "inicio_en_vivo": partido.inicio_en_vivo,
+            "segundos_vivos": segundos_vivos_partido(partido),
+            "periodo_en_vivo": partido.periodo_en_vivo,
         })
 
     return sorted(
@@ -3724,12 +3751,88 @@ def partido_live(request, partido_id):
         id=partido_id
     )
 
+    goles = Gol.objects.filter(partido=partido).select_related("jugador", "equipo").order_by("equipo__nombre", "jugador__nombres")
+    tarjetas = Tarjeta.objects.filter(partido=partido).select_related("jugador", "equipo").order_by("equipo__nombre", "jugador__nombres")
+    alineaciones = AlineacionPartido.objects.filter(partido=partido).select_related("jugador", "equipo").order_by("equipo__nombre", "rol", "jugador__nombres")
+    sustituciones = SustitucionPartido.objects.filter(partido=partido).select_related("equipo", "jugador_sale", "jugador_entra").order_by("equipo__nombre", "minuto", "id")
+
+    alineaciones_local = []
+    alineaciones_visitante = []
+    for alineacion in alineaciones:
+        jugador = alineacion.jugador
+        item = SimpleNamespace(
+            jugador=jugador,
+            nombre=jugador.nombres,
+            dorsal=jugador.dorsal,
+            rol=alineacion.rol,
+            foto=foto_jugador_url(jugador),
+            iniciales=iniciales_jugador(jugador),
+        )
+        if alineacion.equipo_id == partido.equipo_local_id:
+            alineaciones_local.append(item)
+        elif alineacion.equipo_id == partido.equipo_visitante_id:
+            alineaciones_visitante.append(item)
+
+    eventos_live = []
+    orden = 0
+    for gol in goles:
+        orden += 1
+        eventos_live.append(SimpleNamespace(
+            tipo="gol",
+            icono="⚽",
+            minuto=None,
+            equipo_id=gol.equipo_id,
+            texto=gol.jugador.nombres,
+            detalle=f"{gol.cantidad} gol(es)" if gol.cantidad > 1 else "Gol",
+            orden=orden,
+        ))
+
+    for tarjeta in tarjetas:
+        orden += 1
+        eventos_live.append(SimpleNamespace(
+            tipo="tarjeta",
+            icono="🟥" if tarjeta.tipo == "ROJA" else "🟨",
+            minuto=None,
+            equipo_id=tarjeta.equipo_id,
+            texto=tarjeta.jugador.nombres,
+            detalle=tarjeta.get_tipo_display(),
+            orden=orden,
+        ))
+
+    for sustitucion in sustituciones:
+        orden += 1
+        eventos_live.append(SimpleNamespace(
+            tipo="sustitucion",
+            icono="🔁",
+            minuto=sustitucion.minuto,
+            equipo_id=sustitucion.equipo_id,
+            texto=sustitucion.jugador_entra.nombres,
+            detalle=f"Sale {sustitucion.jugador_sale.nombres}",
+            orden=orden,
+        ))
+
+    eventos_live = sorted(
+        eventos_live,
+        key=lambda evento: (
+            evento.minuto is None,
+            evento.minuto if evento.minuto is not None else 999,
+            evento.orden,
+        ),
+    )
+
     return render(request, "partido_live.html", {
         "partido": partido,
         "escudo_local": escudo_url(partido.equipo_local),
         "escudo_visitante": escudo_url(partido.equipo_visitante),
         "fecha_inicio_live": partido.fecha.strftime("%Y-%m-%d") if partido.fecha else "",
         "hora_inicio_live": partido.hora.strftime("%H:%M") if partido.hora else "",
+        "goles": goles,
+        "tarjetas": tarjetas,
+        "sustituciones": sustituciones,
+        "alineaciones_local": alineaciones_local,
+        "alineaciones_visitante": alineaciones_visitante,
+        "eventos_live": eventos_live,
+        "segundos_vivos": segundos_vivos_partido(partido),
     })
 def _pausar_cronometro(partido):
     if partido.inicio_en_vivo:

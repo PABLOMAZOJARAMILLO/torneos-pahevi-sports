@@ -3,83 +3,556 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Partido en vivo</title>
+<title>{{ partido.equipo_local.nombre }} vs {{ partido.equipo_visitante.nombre }}</title>
+<style>
+* { box-sizing: border-box; }
+body {
+    margin: 0;
+    background: #eef1f5;
+    color: #101827;
+    font-family: Arial, Helvetica, sans-serif;
+}
+a { color: inherit; text-decoration: none; }
+.live-hero {
+    background:
+        radial-gradient(circle at top left, rgba(31, 41, 55, 0.9), transparent 34%),
+        linear-gradient(145deg, #020617, #09090b 62%, #111827);
+    color: #fff;
+    padding: 14px 16px 0;
+}
+.live-topbar {
+    display: grid;
+    grid-template-columns: 44px 1fr 44px;
+    align-items: center;
+    gap: 8px;
+    min-height: 46px;
+}
+.live-icon {
+    display: grid;
+    place-items: center;
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.08);
+    font-size: 24px;
+    font-weight: 900;
+}
+.live-title {
+    text-align: center;
+    min-width: 0;
+}
+.live-title strong {
+    display: block;
+    font-size: 16px;
+    line-height: 1.15;
+}
+.live-title span {
+    display: block;
+    color: rgba(255,255,255,0.62);
+    font-size: 13px;
+    margin-top: 2px;
+}
+.scoreboard {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 118px minmax(0, 1fr);
+    align-items: center;
+    gap: 14px;
+    padding: 14px 0 18px;
+}
+.score-team {
+    text-align: center;
+    min-width: 0;
+}
+.score-team img {
+    width: 70px;
+    height: 70px;
+    object-fit: contain;
+    padding: 7px;
+    background: rgba(255,255,255,0.08);
+    border-radius: 50%;
+}
+.score-team span {
+    display: block;
+    margin-top: 7px;
+    font-size: 15px;
+    font-weight: 900;
+}
+.score-center {
+    text-align: center;
+}
+.score-main {
+    font-size: 42px;
+    font-weight: 1000;
+    line-height: 1;
+}
+.live-state {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 8px;
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: rgba(239, 68, 68, 0.18);
+    color: #fecaca;
+    font-size: 12px;
+    font-weight: 1000;
+}
+.live-clock {
+    display: block;
+    margin-top: 6px;
+    color: #93c5fd;
+    font-size: 13px;
+    font-weight: 900;
+}
+.primary-tabs {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    margin: 0 -16px;
+}
+.primary-tabs a {
+    padding: 14px 8px;
+    text-align: center;
+    color: rgba(255,255,255,0.55);
+    font-size: 17px;
+    font-weight: 1000;
+    border-bottom: 3px solid transparent;
+}
+.primary-tabs a.activa {
+    color: #fff;
+    border-color: #38bdf8;
+}
+.live-content {
+    padding: 14px;
+}
+.subtabs {
+    display: flex;
+    gap: 12px;
+    overflow-x: auto;
+    padding: 5px 0 16px;
+}
+.subtabs a {
+    flex: 0 0 auto;
+    padding: 9px 18px;
+    border-radius: 999px;
+    background: white;
+    color: #475569;
+    border: 1px solid transparent;
+    font-size: 16px;
+    font-weight: 900;
+}
+.subtabs a.activa {
+    color: #0f172a;
+    border-color: #38bdf8;
+}
+.panel-live {
+    background: white;
+    border-radius: 18px;
+    margin-bottom: 16px;
+    overflow: hidden;
+    box-shadow: 0 8px 22px rgba(15,23,42,0.08);
+}
+.panel-title {
+    padding: 15px;
+    border-bottom: 1px solid #e5e7eb;
+    font-size: 17px;
+    font-weight: 1000;
+}
+.timeline {
+    position: relative;
+    padding: 18px 12px;
+}
+.timeline::before {
+    content: "";
+    position: absolute;
+    top: 18px;
+    bottom: 18px;
+    left: 50%;
+    width: 1px;
+    background: #cbd5e1;
+}
+.timeline-event {
+    position: relative;
+    display: grid;
+    grid-template-columns: 1fr 58px 1fr;
+    align-items: center;
+    gap: 8px;
+    min-height: 56px;
+}
+.timeline-event .event-text {
+    font-weight: 900;
+    line-height: 1.15;
+}
+.timeline-event .event-detail {
+    color: #64748b;
+    font-size: 13px;
+    margin-top: 3px;
+}
+.timeline-event .event-minute {
+    justify-self: center;
+    min-width: 44px;
+    padding: 5px 7px;
+    border-radius: 999px;
+    background: #f8fafc;
+    border: 1px solid #cbd5e1;
+    text-align: center;
+    color: #ef476f;
+    font-weight: 1000;
+}
+.timeline-event.local .event-box { grid-column: 1; text-align: right; }
+.timeline-event.local .event-minute { grid-column: 2; }
+.timeline-event.local .event-empty { grid-column: 3; }
+.timeline-event.visitante .event-empty { grid-column: 1; }
+.timeline-event.visitante .event-minute { grid-column: 2; }
+.timeline-event.visitante .event-box { grid-column: 3; text-align: left; }
+.team-toggle {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+    width: min(520px, 92%);
+    margin: 0 auto 18px;
+    padding: 4px;
+    border-radius: 999px;
+    background: white;
+}
+.team-toggle button {
+    border: 0;
+    padding: 11px 8px;
+    border-radius: 999px;
+    background: transparent;
+    color: #1d8bd1;
+    font-size: 15px;
+    font-weight: 900;
+}
+.team-toggle button.activo {
+    background: #2d9bf0;
+    color: white;
+}
+.cancha {
+    position: relative;
+    width: min(680px, 100%);
+    min-height: 560px;
+    margin: 0 auto;
+    padding: 38px 18px;
+    border-radius: 18px;
+    background:
+        linear-gradient(rgba(255,255,255,0.12) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.12) 1px, transparent 1px),
+        linear-gradient(180deg, #2f9345, #237c39);
+    background-size: 100% 74px, 74px 100%, auto;
+    overflow: hidden;
+}
+.cancha::before {
+    content: "";
+    position: absolute;
+    inset: 28px;
+    border: 2px solid rgba(255,255,255,0.26);
+    border-radius: 4px;
+}
+.alineacion-grid {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    grid-auto-rows: 112px;
+    align-items: center;
+    justify-items: center;
+    gap: 7px;
+}
+.jugador-campo {
+    width: 88px;
+    text-align: center;
+    color: white;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.45);
+}
+.jugador-foto {
+    position: relative;
+    width: 58px;
+    height: 58px;
+    margin: 0 auto 5px;
+    border-radius: 50%;
+    background: #ffffff;
+    color: #0f172a;
+    display: grid;
+    place-items: center;
+    border: 2px solid rgba(255,255,255,0.9);
+    overflow: visible;
+    font-size: 17px;
+    font-weight: 1000;
+}
+.jugador-foto img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+}
+.jugador-dorsal {
+    position: absolute;
+    left: -7px;
+    top: -7px;
+    min-width: 23px;
+    height: 23px;
+    padding: 2px 5px;
+    border-radius: 999px;
+    background: white;
+    color: #111827;
+    display: grid;
+    place-items: center;
+    font-size: 11px;
+}
+.jugador-rating {
+    position: absolute;
+    left: 50%;
+    bottom: -12px;
+    transform: translateX(-50%);
+    padding: 2px 7px;
+    border-radius: 999px;
+    background: #fbbf24;
+    color: white;
+    font-size: 11px;
+    font-weight: 1000;
+}
+.jugador-nombre {
+    display: block;
+    font-size: 12px;
+    font-weight: 900;
+    line-height: 1.05;
+}
+.formacion-chip {
+    position: absolute;
+    left: 18px;
+    bottom: 16px;
+    z-index: 2;
+    padding: 7px 12px;
+    border-radius: 12px;
+    background: rgba(15, 23, 42, 0.45);
+    color: white;
+    font-weight: 1000;
+}
+.subs-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 14px;
+    padding: 16px;
+}
+.sub-card {
+    text-align: center;
+    border-right: 1px solid #e5e7eb;
+}
+.sub-card:last-child { border-right: 0; }
+.sub-minute {
+    font-size: 16px;
+    font-weight: 1000;
+}
+.sub-in { color: #16a34a; font-weight: 900; }
+.sub-out { color: #64748b; margin-top: 3px; }
+.empty-state {
+    padding: 22px;
+    color: #64748b;
+    font-weight: 800;
+    text-align: center;
+}
+@media (max-width: 620px) {
+    .scoreboard {
+        grid-template-columns: minmax(0, 1fr) 96px minmax(0, 1fr);
+        gap: 8px;
+    }
+    .score-team img {
+        width: 58px;
+        height: 58px;
+    }
+    .score-main {
+        font-size: 34px;
+    }
+    .cancha {
+        min-height: 470px;
+        padding: 28px 8px;
+    }
+    .alineacion-grid {
+        grid-auto-rows: 88px;
+        gap: 3px;
+    }
+    .jugador-campo {
+        width: 72px;
+    }
+    .jugador-foto {
+        width: 48px;
+        height: 48px;
+    }
+    .jugador-nombre {
+        font-size: 11px;
+    }
+}
+</style>
 </head>
-
 <body>
+<header class="live-hero">
+    <div class="live-topbar">
+        <a class="live-icon" href="{% url 'panel' %}?torneo={{ partido.categoria.torneo_id }}">←</a>
+        <div class="live-title">
+            <strong>{{ partido.categoria.torneo.nombre|default:"Torneo" }}</strong>
+            <span>{{ partido.categoria.nombre }} · {% if partido.numero_fecha %}Fecha {{ partido.numero_fecha }}{% else %}{{ partido.get_fase_display }}{% endif %}</span>
+        </div>
+        <a class="live-icon" href="javascript:navigator.share ? navigator.share({title: document.title, url: location.href}) : void 0">↗</a>
+    </div>
 
-<h1>🔴 EN VIVO</h1>
+    <section class="scoreboard">
+        <div class="score-team">
+            {% if escudo_local %}<img src="{{ escudo_local }}" alt="{{ partido.equipo_local.nombre }}">{% endif %}
+            <span>{{ partido.equipo_local.nombre }}</span>
+        </div>
+        <div class="score-center">
+            <div class="score-main">{{ partido.goles_local }} - {{ partido.goles_visitante }}</div>
+            <span class="live-state">
+                {% if partido.estado == "EN_JUEGO" %}🔴 EN VIVO{% else %}{{ partido.estado }}{% endif %}
+            </span>
+            {% if partido.estado == "EN_JUEGO" %}
+            <span class="live-clock"
+                  data-inicio="{{ partido.inicio_en_vivo|date:'c' }}"
+                  data-segundos="{{ segundos_vivos|default:0 }}"
+                  data-pausado="{% if partido.cronometro_pausado %}1{% else %}0{% endif %}"
+                  data-periodo="{{ partido.periodo_en_vivo|default:'PT' }}">⏱ 1T · 00:00</span>
+            {% endif %}
+        </div>
+        <div class="score-team">
+            {% if escudo_visitante %}<img src="{{ escudo_visitante }}" alt="{{ partido.equipo_visitante.nombre }}">{% endif %}
+            <span>{{ partido.equipo_visitante.nombre }}</span>
+        </div>
+    </section>
 
-<h2 class="reloj-partido"
-    data-inicio="{{ partido.inicio_en_vivo|date:'c' }}">
-    ⏱ 0'
-</h2>
+    <nav class="primary-tabs">
+        <a href="#resumen" class="activa">PARTIDO</a>
+        <a href="#alineaciones">BUZZ</a>
+        <a href="#eventos">CONSEJOS</a>
+    </nav>
+</header>
 
-<h2>
-    {{ partido.equipo_local.nombre }}
-    {{ partido.goles_local }} - {{ partido.goles_visitante }}
-    {{ partido.equipo_visitante.nombre }}
-</h2>
+<main class="live-content">
+    <nav class="subtabs">
+        <a href="#resumen" class="activa">Resumen</a>
+        <a href="#alineaciones">Alineaciones</a>
+        <a href="#eventos">Estadísticas</a>
+    </nav>
 
-<p>
-    {{ partido.fecha }} · {{ partido.hora }} · {{ partido.cancha }}
-</p>
+    <section id="alineaciones" class="panel-live">
+        <div class="panel-title">Alineaciones</div>
+        <div class="team-toggle">
+            <button type="button" class="activo" data-team="local">{{ partido.equipo_local.nombre }}</button>
+            <button type="button" data-team="visitante">{{ partido.equipo_visitante.nombre }}</button>
+        </div>
 
-<a href="{% url 'panel' %}">Volver al panel</a>
+        <div class="cancha" data-lineup="local">
+            <div class="alineacion-grid">
+                {% for item in alineaciones_local %}
+                    {% if item.rol == "TITULAR" %}
+                    <div class="jugador-campo">
+                        <div class="jugador-foto">
+                            {% if item.foto %}<img src="{{ item.foto }}" alt="{{ item.nombre }}">{% else %}{{ item.iniciales }}{% endif %}
+                            {% if item.dorsal %}<span class="jugador-dorsal">{{ item.dorsal }}</span>{% endif %}
+                            <span class="jugador-rating">6.5</span>
+                        </div>
+                        <span class="jugador-nombre">{{ item.nombre }}</span>
+                    </div>
+                    {% endif %}
+                {% empty %}
+                    <div class="empty-state">Alineación pendiente.</div>
+                {% endfor %}
+            </div>
+            <span class="formacion-chip">Equipo local</span>
+        </div>
+
+        <div class="cancha" data-lineup="visitante" hidden>
+            <div class="alineacion-grid">
+                {% for item in alineaciones_visitante %}
+                    {% if item.rol == "TITULAR" %}
+                    <div class="jugador-campo">
+                        <div class="jugador-foto">
+                            {% if item.foto %}<img src="{{ item.foto }}" alt="{{ item.nombre }}">{% else %}{{ item.iniciales }}{% endif %}
+                            {% if item.dorsal %}<span class="jugador-dorsal">{{ item.dorsal }}</span>{% endif %}
+                            <span class="jugador-rating">6.5</span>
+                        </div>
+                        <span class="jugador-nombre">{{ item.nombre }}</span>
+                    </div>
+                    {% endif %}
+                {% empty %}
+                    <div class="empty-state">Alineación pendiente.</div>
+                {% endfor %}
+            </div>
+            <span class="formacion-chip">Equipo visitante</span>
+        </div>
+    </section>
+
+    <section id="resumen" class="panel-live">
+        <div class="panel-title">Detalle del partido</div>
+        {% if eventos_live %}
+        <div class="timeline">
+            {% for evento in eventos_live %}
+            <div class="timeline-event {% if evento.equipo_id == partido.equipo_local_id %}local{% else %}visitante{% endif %}">
+                <div class="event-box">
+                    <div class="event-text">{{ evento.texto }} {{ evento.icono }}</div>
+                    <div class="event-detail">{{ evento.detalle }}</div>
+                </div>
+                <div class="event-minute">{% if evento.minuto %}{{ evento.minuto }}'{% else %}--{% endif %}</div>
+                <div class="event-empty"></div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state">Aún no hay eventos registrados para este partido.</div>
+        {% endif %}
+    </section>
+
+    <section id="eventos" class="panel-live">
+        <div class="panel-title">Sustituciones</div>
+        {% if sustituciones %}
+        <div class="subs-grid">
+            {% for cambio in sustituciones %}
+            <div class="sub-card">
+                <div class="sub-minute">{% if cambio.minuto %}{{ cambio.minuto }}'{% else %}--{% endif %}</div>
+                <div class="sub-in">↑ {{ cambio.jugador_entra.nombres }}</div>
+                <div class="sub-out">↓ {{ cambio.jugador_sale.nombres }}</div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state">No hay sustituciones registradas.</div>
+        {% endif %}
+    </section>
+</main>
 
 <script>
-function actualizarRelojLive() {
-    const reloj = document.getElementById("reloj-live");
-    if (!reloj) return;
-
-    const fecha = reloj.dataset.fecha;
-    const hora = reloj.dataset.hora;
-
-    if (!fecha || !hora) {
-        reloj.innerHTML = "⏱ Sin hora";
-        return;
-    }
-
-    const inicio = new Date(fecha + "T" + hora + ":00-05:00");
-    const ahora = new Date();
-
-    let minutos = Math.floor((ahora - inicio) / 60000);
-
-    if (minutos < 0) minutos = 0;
-
-    reloj.innerHTML = "⏱ " + minutos + "'";
+function etiquetaPeriodo(periodo) {
+    if (periodo === "ST") return "🔵 2T";
+    if (periodo === "ET") return "🟠 ET";
+    if (periodo === "FIN") return "Final";
+    return "🟢 1T";
 }
 
-actualizarRelojLive();
-setInterval(actualizarRelojLive, 30000);
-</script>
-<script>
-function actualizarRelojesPartido() {
-    document.querySelectorAll(".reloj-partido").forEach(function(el) {
-        const inicioTexto = el.dataset.inicio;
-
-        if (!inicioTexto) {
-            el.innerHTML = "⏱ Sin iniciar";
-            return;
+function actualizarRelojes() {
+    document.querySelectorAll(".live-clock").forEach(function(el) {
+        const base = Number(el.dataset.segundos || 0);
+        let total = base;
+        if (el.dataset.inicio && el.dataset.pausado !== "1") {
+            const inicio = new Date(el.dataset.inicio).getTime();
+            if (!Number.isNaN(inicio)) {
+                total += Math.max(0, Math.floor((Date.now() - inicio) / 1000));
+            }
         }
-
-        const inicio = new Date(inicioTexto);
-        const ahora = new Date();
-
-        let minutos = Math.floor((ahora - inicio) / 60000);
-
-        if (minutos < 0) minutos = 0;
-
-        if (minutos > 90) {
-            el.innerHTML = "⏱ 90+'";
-        } else {
-            el.innerHTML = "⏱ " + minutos + "'";
-        }
+        const minutos = Math.floor(total / 60);
+        const segundos = total % 60;
+        el.textContent = `${etiquetaPeriodo(el.dataset.periodo)} · ${String(minutos).padStart(2, "0")}:${String(segundos).padStart(2, "0")}`;
     });
 }
 
-actualizarRelojesPartido();
-setInterval(actualizarRelojesPartido, 30000);
+document.querySelectorAll(".team-toggle button").forEach(function(btn) {
+    btn.addEventListener("click", function() {
+        const team = btn.dataset.team;
+        document.querySelectorAll(".team-toggle button").forEach(item => item.classList.toggle("activo", item === btn));
+        document.querySelectorAll("[data-lineup]").forEach(item => item.hidden = item.dataset.lineup !== team);
+    });
+});
+
+actualizarRelojes();
+setInterval(actualizarRelojes, 1000);
 </script>
 </body>
 </html>

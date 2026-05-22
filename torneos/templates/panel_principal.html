@@ -346,6 +346,28 @@
         color: #991b1b;
     }
 
+    .reloj-partido {
+        display: inline-flex;
+        align-items: center;
+        min-height: 26px;
+        padding: 5px 10px;
+        border-radius: 999px;
+        background: #07111f;
+        color: #ffffff;
+        font-size: 12px;
+        font-weight: 1000;
+        box-shadow: 0 5px 14px rgba(15, 23, 42, 0.18);
+    }
+
+    .partido-en-vivo {
+        border-color: #ef4444;
+        box-shadow: 0 0 0 1px rgba(239, 68, 68, 0.15), 0 16px 34px rgba(239, 68, 68, 0.18);
+    }
+
+    .marcador-portada.marcador-live {
+        background: linear-gradient(135deg, #111827, #7f1d1d);
+    }
+
     .estado-chip.aplazado,
     .estado-chip.suspendido {
         background: #fef3c7;
@@ -475,6 +497,38 @@
 
         .card-categoria {
             min-width: 245px;
+        }
+
+        .partido-portada {
+            padding: 12px 10px;
+            border-radius: 16px;
+        }
+
+        .partido-meta {
+            gap: 6px;
+        }
+
+        .versus-portada {
+            grid-template-columns: minmax(0, 1fr) 86px minmax(0, 1fr);
+            gap: 8px;
+        }
+
+        .equipo-portada {
+            font-size: 13px;
+        }
+
+        .equipo-portada img {
+            width: 50px;
+            height: 50px;
+        }
+
+        .marcador-portada {
+            min-height: 50px;
+            font-size: 22px;
+        }
+
+        .partido-extra {
+            font-size: 12px;
         }
     }
 
@@ -3932,6 +3986,38 @@ function actualizarRelojesPartido() {
 actualizarRelojesPartido();
 
 setInterval(actualizarRelojesPartido, 1000);
+</script>
+<script>
+function etiquetaPeriodoPartidoLimpio(periodo) {
+    if (periodo === "ST") return "🔵 2T";
+    if (periodo === "ET") return "🟠 ET";
+    if (periodo === "FIN") return "Final";
+    return "🟢 1T";
+}
+
+function pintarRelojPartidoLimpio(el) {
+    const segundosBase = Number(el.dataset.segundos || 0);
+    const inicioTexto = el.dataset.inicio;
+    let totalSegundos = segundosBase;
+
+    if (inicioTexto && el.dataset.pausado !== "1") {
+        const inicio = new Date(inicioTexto).getTime();
+        if (!Number.isNaN(inicio)) {
+            totalSegundos += Math.max(0, Math.floor((Date.now() - inicio) / 1000));
+        }
+    }
+
+    const minutos = Math.floor(totalSegundos / 60);
+    const segundos = totalSegundos % 60;
+    el.textContent = `${etiquetaPeriodoPartidoLimpio(el.dataset.periodo)} · ${String(minutos).padStart(2, "0")}:${String(segundos).padStart(2, "0")}`;
+}
+
+function actualizarRelojesPartidoLimpios() {
+    document.querySelectorAll(".reloj-partido, .live-clock").forEach(pintarRelojPartidoLimpio);
+}
+
+actualizarRelojesPartidoLimpios();
+setInterval(actualizarRelojesPartidoLimpios, 1000);
 </script>
 </body>
 </html>
