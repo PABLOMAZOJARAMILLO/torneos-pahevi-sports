@@ -35,14 +35,24 @@ def es_editor_torneo(user):
 
 
 def torneos_para_usuario(request):
-    return Torneo.objects.select_related("organizador").filter(
-        Q(organizador__activo=True) | Q(organizador__isnull=True)
-    ).order_by("-fecha_inicio", "nombre")
+    # No usamos select_related ni filtros por Organizador aqui porque Render puede
+    # servir el codigo nuevo unos segundos antes de aplicar la migracion.
+    return Torneo.objects.order_by("-fecha_inicio", "nombre")
+
+
+def organizador_seguro(torneo):
+    if torneo.organizador_id:
+        try:
+            return torneo.organizador
+        except Exception:
+            return None
+    return None
 
 
 def nombre_organizador_torneo(torneo):
-    if torneo.organizador_id:
-        return torneo.organizador.nombre.strip() or torneo.nombre
+    organizador = organizador_seguro(torneo)
+    if organizador:
+        return organizador.nombre.strip() or torneo.nombre
     return torneo.nombre
 
 
@@ -51,13 +61,14 @@ def organizadores_para_portal(torneos):
     independientes = []
 
     for torneo in torneos:
-        if torneo.organizador_id:
+        organizador = organizador_seguro(torneo)
+        if organizador:
             grupo = organizadores.get(torneo.organizador_id)
             if not grupo:
                 grupo = SimpleNamespace(
                     id=torneo.organizador_id,
                     nombre=nombre_organizador_torneo(torneo),
-                    logo=torneo.organizador.logo or torneo.logo_portada,
+                    logo=organizador.logo or torneo.logo_portada,
                     torneos=[],
                     es_organizador=True,
                 )
@@ -1440,7 +1451,10 @@ def panel_principal(request):
         torneos_portal = torneos_menu
         if organizador_id and str(organizador_id).isdigit():
             torneos_portal = torneos_menu.filter(organizador_id=organizador_id)
-            organizador = Organizador.objects.filter(id=organizador_id, activo=True).first()
+            try:
+                organizador = Organizador.objects.filter(id=organizador_id, activo=True).first()
+            except Exception:
+                organizador = None
             if organizador:
                 organizador_actual = SimpleNamespace(
                     id=organizador.id,
