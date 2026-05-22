@@ -8,6 +8,7 @@ class TorneoForm(forms.ModelForm):
         model = Torneo
         fields = [
             "nombre",
+            "organizador",
             "descripcion",
             "lema",
             "logo_portada",

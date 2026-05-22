@@ -42,6 +42,45 @@ def torneos_para_usuario(request):
     return torneos
 
 
+def nombre_organizador_torneo(torneo):
+    if torneo.organizador_id:
+        nombre = torneo.organizador.get_full_name() or torneo.organizador.username
+        return nombre.strip() or torneo.nombre
+    return torneo.nombre
+
+
+def organizadores_para_portal(torneos):
+    organizadores = {}
+    independientes = []
+
+    for torneo in torneos:
+        if torneo.organizador_id:
+            grupo = organizadores.get(torneo.organizador_id)
+            if not grupo:
+                grupo = SimpleNamespace(
+                    id=torneo.organizador_id,
+                    nombre=nombre_organizador_torneo(torneo),
+                    logo=torneo.logo_portada,
+                    torneos=[],
+                    es_organizador=True,
+                )
+                organizadores[torneo.organizador_id] = grupo
+            if not grupo.logo and torneo.logo_portada:
+                grupo.logo = torneo.logo_portada
+            grupo.torneos.append(torneo)
+        else:
+            independientes.append(SimpleNamespace(
+                id=None,
+                nombre=torneo.nombre,
+                logo=torneo.logo_portada,
+                torneos=[torneo],
+                es_organizador=False,
+                torneo_id=torneo.id,
+            ))
+
+    return list(organizadores.values()) + independientes
+
+
 def cerrar_sesion(request):
     logout(request)
     return redirect("panel")
@@ -1399,14 +1438,33 @@ def panel_principal(request):
     torneo = torneo_actual(request, auto_seleccionar=False)
     torneos_menu = torneos_para_usuario(request)
     if not torneo:
+        organizador_id = request.GET.get("organizador")
+        organizador_actual = None
+        torneos_portal = torneos_menu
+        if organizador_id and str(organizador_id).isdigit():
+            torneos_portal = torneos_menu.filter(organizador_id=organizador_id)
+            primer_torneo = torneos_portal.first()
+            if primer_torneo:
+                organizador_actual = SimpleNamespace(
+                    id=primer_torneo.organizador_id,
+                    nombre=nombre_organizador_torneo(primer_torneo),
+                )
+
         logos = rutas_logos(request)
         return render(request, "portal_torneos.html", {
-            "torneos_menu": torneos_menu,
+            "torneos_menu": torneos_portal,
+            "organizadores_portal": organizadores_para_portal(torneos_menu),
+            "organizador_actual": organizador_actual,
             "logo_alcaldia": logos["logo_alcaldia"],
             "logo_app": logos["logo_app"],
             "logo_torneo": logos["logo_torneo"],
             "logo_imcred": logos["logo_imcred"],
         })
+
+    if torneo.organizador_id:
+        torneos_menu = torneos_menu.filter(organizador_id=torneo.organizador_id)
+    else:
+        torneos_menu = torneos_menu.filter(id=torneo.id)
 
     categoria_seleccionada = request.GET.get("categoria", "").strip()
     categorias = Categoria.objects.order_by("nombre")
@@ -1473,6 +1531,7 @@ def panel_principal(request):
         "estructura": estructura,
         "torneos_menu": torneos_menu,
         "torneo_seleccionado": torneo,
+        "organizador_portal_id": torneo.organizador_id,
         "categorias_menu": categorias,
         "categoria_seleccionada": categoria_seleccionada,
         "renderizar_categorias_detalle": bool(categoria_seleccionada),
@@ -2718,7 +2777,7 @@ def gestion_torneo_nuevo(request):
 
     if request.method == "POST" and form.is_valid():
         torneo = form.save(commit=False)
-        if request.user.is_authenticated:
+        if request.user.is_authenticated and not torneo.organizador_id:
             torneo.organizador = request.user
         aplicar_imagenes_torneo_cloudinary(torneo, request.FILES)
         torneo.save()

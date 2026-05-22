@@ -66,6 +66,19 @@
             text-decoration: none;
             box-shadow: 0 10px 22px rgba(0, 223, 103, 0.25);
         }
+        .portal-volver {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 40px;
+            padding: 0 16px;
+            border-radius: 999px;
+            background: #071b36;
+            color: #fff;
+            font-weight: 900;
+            text-decoration: none;
+            margin-bottom: 20px;
+        }
         .portal-torneo {
             margin: 0 0 30px;
             color: #0b2a63;
@@ -178,16 +191,22 @@
     <main class="portal-main" id="torneos">
         <div class="portal-superior">
             {% if request.user.is_staff %}
-                <a class="portal-admin" href="{% url 'gestion_panel' %}">Gestión</a>
+                <a class="portal-admin" href="{% url 'gestion_panel' %}">Gestion</a>
             {% else %}
                 <a class="portal-admin" href="/admin/login/?next={% url 'gestion_panel' %}">Ingresar</a>
             {% endif %}
         </div>
 
-        <h2 class="portal-torneo">Torneos disponibles</h2>
-        <h3 class="portal-subtitulo">Organizadores</h3>
+        {% if organizador_actual %}
+            <a class="portal-volver" href="{% url 'panel' %}?portal=1">&larr; Organizadores</a>
+            <h2 class="portal-torneo">Torneos de {{ organizador_actual.nombre }}</h2>
+            <h3 class="portal-subtitulo">Campeonatos</h3>
+        {% else %}
+            <h2 class="portal-torneo">Torneos disponibles</h2>
+            <h3 class="portal-subtitulo">Organizadores</h3>
+        {% endif %}
 
-        {% if torneos_menu %}
+        {% if organizador_actual and torneos_menu %}
             <section class="torneos-grid">
                 {% for torneo in torneos_menu %}
                     <a class="torneo-card" href="{% url 'panel' %}?torneo={{ torneo.id }}">
@@ -205,8 +224,30 @@
                     </a>
                 {% endfor %}
             </section>
+        {% elif not organizador_actual and organizadores_portal %}
+            <section class="torneos-grid">
+                {% for organizador in organizadores_portal %}
+                    {% if organizador.es_organizador %}
+                        <a class="torneo-card" href="{% url 'panel' %}?portal=1&organizador={{ organizador.id }}">
+                    {% else %}
+                        <a class="torneo-card" href="{% url 'panel' %}?torneo={{ organizador.torneo_id }}">
+                    {% endif %}
+                        {% if organizador.logo %}
+                            <img src="{{ organizador.logo.url }}" class="torneo-card-imagen" alt="{{ organizador.nombre }}">
+                        {% else %}
+                            <div class="torneo-card-sin-portada">Sin portada</div>
+                        {% endif %}
+                        <span>
+                            {{ organizador.nombre }}
+                            {% if organizador.es_organizador %}
+                                <small class="torneo-card-lema">{{ organizador.torneos|length }} torneo{{ organizador.torneos|length|pluralize }}</small>
+                            {% endif %}
+                        </span>
+                    </a>
+                {% endfor %}
+            </section>
         {% else %}
-            <div class="portal-vacio">Todavía no hay torneos publicados.</div>
+            <div class="portal-vacio">Todavia no hay torneos publicados.</div>
         {% endif %}
     </main>
 </body>
