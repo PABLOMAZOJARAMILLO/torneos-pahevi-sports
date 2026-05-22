@@ -32,6 +32,23 @@
             font-size: 12px;
             margin-bottom: 6px;
         }
+        .acciones-volver {
+            display: flex;
+            gap: 7px;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 6px;
+        }
+        .acciones-volver .volver {
+            flex: 1 1 0;
+            margin-bottom: 0;
+            text-align: center;
+            white-space: nowrap;
+        }
+        .volver-secundario {
+            background: #e8edf4;
+            color: #07111f;
+        }
         .titulo {
             text-align: center;
             color: #00ff66;
@@ -214,11 +231,18 @@
 <body>
 <div class="app">
     <div class="topbar">
-        <a class="volver"
-           href="{% url 'panel' %}?volver_editor=1&categoria={{ partido.categoria.nombre|urlencode }}&tab={% if partido.fase and partido.fase != 'GRUPOS' %}finales{% else %}fase1{% endif %}"
-           onclick="guardarContextoPanelEditor()">
-            ← Volver al panel
-        </a>
+        <div class="acciones-volver">
+            <a class="volver"
+               href="{% url 'partido_live' partido.id %}"
+               onclick="guardarContextoPanelEditor()">
+                ← En vivo
+            </a>
+            <a class="volver volver-secundario"
+               href="{% url 'panel' %}?volver_editor=1&categoria={{ partido.categoria.nombre|urlencode }}&tab={% if partido.fase and partido.fase != 'GRUPOS' %}finales{% else %}fase1{% endif %}"
+               onclick="guardarContextoPanelEditor()">
+                Panel
+            </a>
+        </div>
         <div class="titulo">Editor móvil del partido</div>
 
         <div class="marcador-card-editor">
