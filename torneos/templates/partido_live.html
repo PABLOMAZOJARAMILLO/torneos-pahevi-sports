@@ -104,6 +104,65 @@ a { color: inherit; text-decoration: none; }
     font-size: 13px;
     font-weight: 900;
 }
+.admin-live-actions {
+    position: relative;
+    display: flex;
+    justify-content: flex-end;
+    margin: 8px 0 0;
+}
+.admin-live-menu {
+    position: relative;
+}
+.admin-live-menu summary {
+    list-style: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 13px;
+    border-radius: 999px;
+    background: linear-gradient(135deg, #00ff66, #00b94f);
+    color: #07111f;
+    font-size: 13px;
+    font-weight: 1000;
+    cursor: pointer;
+    box-shadow: 0 8px 20px rgba(0, 255, 102, 0.18);
+}
+.admin-live-menu summary::-webkit-details-marker {
+    display: none;
+}
+.admin-live-menu[open] summary {
+    border-radius: 16px 16px 6px 6px;
+}
+.admin-live-links {
+    position: absolute;
+    right: 0;
+    top: calc(100% + 6px);
+    z-index: 90;
+    width: min(310px, calc(100vw - 32px));
+    padding: 10px;
+    border-radius: 16px;
+    background: #0f172a;
+    border: 1px solid rgba(56, 189, 248, 0.32);
+    box-shadow: 0 18px 45px rgba(0, 0, 0, 0.36);
+}
+.admin-live-links a {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 11px 12px;
+    border-radius: 12px;
+    color: white;
+    font-size: 13px;
+    font-weight: 900;
+}
+.admin-live-links a + a {
+    margin-top: 4px;
+}
+.admin-live-links a:hover,
+.admin-live-links a:focus {
+    background: rgba(56, 189, 248, 0.16);
+}
 .primary-tabs {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -352,6 +411,22 @@ a { color: inherit; text-decoration: none; }
     text-align: center;
 }
 @media (max-width: 620px) {
+    .live-hero {
+        padding-top: 10px;
+    }
+    .admin-live-actions {
+        justify-content: center;
+        margin-top: 6px;
+    }
+    .admin-live-menu summary {
+        width: min(310px, 100%);
+        justify-content: center;
+    }
+    .admin-live-links {
+        left: 50%;
+        right: auto;
+        transform: translateX(-50%);
+    }
     .scoreboard {
         grid-template-columns: minmax(0, 1fr) 96px minmax(0, 1fr);
         gap: 8px;
@@ -394,6 +469,23 @@ a { color: inherit; text-decoration: none; }
         </div>
         <a class="live-icon" href="javascript:navigator.share ? navigator.share({title: document.title, url: location.href}) : void 0">↗</a>
     </div>
+
+    {% if user.is_authenticated and user.is_staff %}
+    <div class="admin-live-actions">
+        <details class="admin-live-menu">
+            <summary>⚙️ Editar partido</summary>
+            <div class="admin-live-links">
+                <a href="{% url 'editor_partido_movil' partido.id %}#resultado">✅ Resultado y programación <span>›</span></a>
+                <a href="{% url 'editor_partido_movil' partido.id %}#goles">⚽ Goles <span>›</span></a>
+                <a href="{% url 'editor_partido_movil' partido.id %}#tarjetas">🟨🟥 Tarjetas <span>›</span></a>
+                <a href="{% url 'editor_partido_movil' partido.id %}#alineacion">📋 Alineación <span>›</span></a>
+                <a href="{% url 'editor_partido_movil' partido.id %}#sustituciones">🔁 Cambios <span>›</span></a>
+                <a href="{% url 'editor_partido_movil' partido.id %}#penales-comite">🥅 Penales y comité <span>›</span></a>
+                <a href="{% url 'editor_partido_movil' partido.id %}">✏️ Editor completo <span>›</span></a>
+            </div>
+        </details>
+    </div>
+    {% endif %}
 
     <section class="scoreboard">
         <div class="score-team">
