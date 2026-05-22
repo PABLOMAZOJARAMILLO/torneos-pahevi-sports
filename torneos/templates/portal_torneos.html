@@ -28,8 +28,8 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            min-height: 166px;
-            padding: 16px 18px 12px;
+            min-height: 230px;
+            padding: 18px 18px 16px;
         }
         .portal-brand {
             text-align: center;
@@ -37,17 +37,10 @@
         }
         .portal-brand img {
             display: block;
-            width: min(190px, 42vw);
-            height: min(190px, 42vw);
+            width: min(270px, 58vw);
+            height: min(270px, 58vw);
             object-fit: contain;
-            margin: 0 auto 6px;
-        }
-        .portal-brand h1 {
-            margin: 0;
-            color: #00ff66;
-            font-size: clamp(26px, 7vw, 42px);
-            line-height: 1;
-            text-shadow: 0 0 14px rgba(0, 255, 102, 0.5);
+            margin: 0 auto;
         }
         .portal-main {
             max-width: 1120px;
@@ -144,12 +137,12 @@
         }
         @media (max-width: 640px) {
             .portal-top {
-                min-height: 140px;
-                padding: 12px 14px 10px;
+                min-height: 172px;
+                padding: 12px 14px;
             }
             .portal-brand img {
-                width: 118px;
-                height: 118px;
+                width: min(170px, 50vw);
+                height: min(170px, 50vw);
             }
             .portal-main {
                 padding: 24px 18px 46px;
@@ -178,7 +171,6 @@
         <div class="portal-top">
             <div class="portal-brand">
                 <img src="{{ logo_app }}" alt="Imagen principal">
-                <h1>TORNEOS</h1>
             </div>
         </div>
     </header>
