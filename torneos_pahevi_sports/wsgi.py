@@ -1,5 +1,5 @@
 """
-WSGI config for torneos_imcred project.
+WSGI config for torneos_pahevi_sports project.
 
 It exposes the WSGI callable as a module-level variable named ``application``.
 

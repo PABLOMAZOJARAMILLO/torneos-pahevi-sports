@@ -3,7 +3,7 @@
   "appName": "TORNEOS PAHEVI SPORTS",
   "webDir": "www",
   "server": {
-    "url": "https://torneos-imcred.onrender.com",
+    "url": "https://torneos-pahevi-sports.onrender.com",
     "cleartext": false
   },
   "android": {

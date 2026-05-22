@@ -1,1 +1,1 @@
-web: gunicorn torneos_imcred.wsgi
+web: gunicorn torneos_pahevi_sports.wsgi

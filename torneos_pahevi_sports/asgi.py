@@ -1,5 +1,5 @@
 """
-ASGI config for torneos_imcred project.
+ASGI config for torneos_pahevi_sports project.
 
 It exposes the ASGI callable as a module-level variable named ``application``.
 
