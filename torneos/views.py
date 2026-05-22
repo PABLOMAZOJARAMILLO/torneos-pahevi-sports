@@ -225,6 +225,41 @@ def aplicar_imagen_cloudinary(instancia, campo, public_id, archivo_subido):
         setattr(instancia, campo, public_id)
 
 
+def subir_imagen_torneo_cloudinary(archivo, torneo, campo):
+    if not archivo:
+        return ""
+    if not getattr(settings, "USE_CLOUDINARY_STORAGE", False):
+        return ""
+
+    import cloudinary
+    import cloudinary.uploader
+
+    cloudinary_url = getattr(settings, "CLOUDINARY_URL", "").strip()
+    if cloudinary_url:
+        os.environ["CLOUDINARY_URL"] = cloudinary_url
+
+    cloudinary.config(secure=True)
+
+    torneo_nombre = limpiar_ruta_cloudinary(getattr(torneo, "nombre", "SIN_TORNEO"))
+    archivo.seek(0)
+    resultado = cloudinary.uploader.upload(
+        archivo,
+        resource_type="image",
+        folder=f"torneos/{torneo_nombre}",
+        public_id=campo,
+        overwrite=True,
+        invalidate=True,
+    )
+    return resultado.get("public_id") or ""
+
+
+def aplicar_imagenes_torneo_cloudinary(torneo, archivos):
+    for campo in ("logo_portada", "logo_izquierdo", "imagen_central", "logo_derecho"):
+        public_id = subir_imagen_torneo_cloudinary(archivos.get(campo), torneo, campo)
+        if public_id:
+            setattr(torneo, campo, public_id)
+
+
 def documentos_publicos_por_tipo(torneo=None):
     documentos = Documento.objects.filter(activo=True).order_by("tipo", "-creado_en", "titulo")
     if torneo:
@@ -2615,6 +2650,7 @@ def gestion_torneo_nuevo(request):
         torneo = form.save(commit=False)
         if request.user.is_authenticated:
             torneo.organizador = request.user
+        aplicar_imagenes_torneo_cloudinary(torneo, request.FILES)
         torneo.save()
         request.session["torneo_id"] = torneo.id
         messages.success(request, "Torneo creado correctamente.")
@@ -2634,7 +2670,9 @@ def gestion_torneo_editar(request, torneo_id):
     form = TorneoForm(request.POST or None, request.FILES or None, instance=torneo)
 
     if request.method == "POST" and form.is_valid():
-        torneo = form.save()
+        torneo = form.save(commit=False)
+        aplicar_imagenes_torneo_cloudinary(torneo, request.FILES)
+        torneo.save()
         request.session["torneo_id"] = torneo.id
         messages.success(request, "Torneo actualizado correctamente.")
         return redirect("gestion_torneos")
