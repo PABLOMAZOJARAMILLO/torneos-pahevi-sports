@@ -20,6 +20,7 @@ from django.urls import reverse
 from django.contrib.staticfiles import finders
 from django.template.loader import render_to_string
 from django.templatetags.static import static
+from django.utils.html import escape
 from html2image import Html2Image
 import requests
 from django.views.decorators.http import require_POST
@@ -1522,6 +1523,71 @@ def url_retorno_descarga(request):
     )
 
 
+def respuesta_descarga_sin_partidos(request, mensaje):
+    volver_url = escape(url_retorno_descarga(request))
+    mensaje = escape(mensaje)
+    return HttpResponse(f"""
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sin programación</title>
+<style>
+body {{
+    margin: 0;
+    min-height: 100vh;
+    display: grid;
+    place-items: center;
+    background: #eef3f9;
+    color: #061426;
+    font-family: Arial, sans-serif;
+    padding: 24px;
+    box-sizing: border-box;
+}}
+.caja {{
+    width: min(92vw, 520px);
+    background: #ffffff;
+    border: 1px solid #cbd5e1;
+    border-radius: 18px;
+    padding: 24px;
+    box-shadow: 0 18px 40px rgba(15, 23, 42, 0.12);
+    text-align: center;
+}}
+p {{
+    font-size: 20px;
+    font-weight: 800;
+    margin: 0 0 18px;
+}}
+a {{
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    padding: 0 22px;
+    border-radius: 999px;
+    background: #00e676;
+    color: #061426;
+    font-weight: 900;
+    text-decoration: none;
+}}
+</style>
+</head>
+<body>
+<div class="caja">
+    <p>{mensaje}</p>
+    <a href="{volver_url}">Volver al panel</a>
+</div>
+<script>
+setTimeout(function() {{
+    window.location.href = "{volver_url}";
+}}, 3500);
+</script>
+</body>
+</html>
+""")
+
+
 def crear_imagen_desde_html(html, nombre_archivo, ancho=1600, alto=1800, volver_url="/"):
     return render(None, "descargas/auto_descarga.html", {
         "contenido_html": html,
@@ -2057,6 +2123,7 @@ def construir_partidos_programacion(request, categoria_obj=None):
         12: "DICIEMBRE",
     }
 
+    torneo = torneo_actual(request)
     partidos = Partido.objects.filter(
         estado="PROGRAMADO",
         fecha__isnull=False,
@@ -2080,6 +2147,9 @@ def construir_partidos_programacion(request, categoria_obj=None):
         "grupo",
         "fase"
     )
+
+    if torneo:
+        partidos = partidos.filter(categoria__torneo=torneo)
 
     if categoria_obj:
         partidos = partidos.filter(categoria=categoria_obj)
@@ -2213,7 +2283,7 @@ def descargar_programacion_categoria(request, categoria):
     partidos_programacion = construir_partidos_programacion(request, categoria_obj)
 
     if not partidos_programacion:
-        return HttpResponse("No hay partidos programados con fecha, hora y cancha para esta categoría.")
+        return respuesta_descarga_sin_partidos(request, "No hay partidos programados con fecha, hora y cancha para esta categoria.")
 
     logos = logos_torneo(request, torneo)
     cantidad = len(partidos_programacion)
@@ -2245,7 +2315,7 @@ def descargar_programacion_general(request):
     partidos_programacion = construir_partidos_programacion(request)
 
     if not partidos_programacion:
-        return HttpResponse("No hay partidos programados con fecha, hora y cancha asignada.")
+        return respuesta_descarga_sin_partidos(request, "No hay partidos programados con fecha, hora y cancha asignada.")
 
     logos = logos_torneo(request, torneo)
     cantidad = len(partidos_programacion)
