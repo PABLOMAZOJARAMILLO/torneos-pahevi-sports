@@ -188,4 +188,5 @@ LOGIN_URL = "/admin/login/"
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 CSRF_TRUSTED_ORIGINS = [
     "https://torneos-imcred.onrender.com",
+    "https://torneos-pahevi-sports.onrender.com",
 ]

@@ -1,10 +1,10 @@
 @echo off
 setlocal
 
-REM Backup semanal de Torneos IMCRED
-REM Guarda una copia JSON en C:\TorneosIMCRED\backups
+REM Backup semanal de TORNEOS PAHEVI SPORTS
+REM Guarda una copia JSON en C:\TorneosPaheviSports\backups
 
-cd /d C:\TorneosIMCRED
+cd /d C:\TorneosPaheviSports
 
 if not exist backups mkdir backups
 
@@ -27,6 +27,6 @@ if errorlevel 1 (
 
 echo.
 echo Backup creado correctamente:
-echo C:\TorneosIMCRED\%ARCHIVO%
+echo C:\TorneosPaheviSports\%ARCHIVO%
 echo.
 pause
