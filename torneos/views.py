@@ -14,6 +14,7 @@ from django.contrib.auth.decorators import login_required, user_passes_test
 from django.http import FileResponse, HttpResponse
 from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
+from django.db import connection
 from django.db.models import Q
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
@@ -32,6 +33,13 @@ from django.utils import timezone
 
 def es_editor_torneo(user):
     return user.is_authenticated and (user.is_staff or user.is_superuser)
+
+
+def tabla_disponible(nombre_tabla):
+    try:
+        return nombre_tabla in connection.introspection.table_names()
+    except Exception:
+        return False
 
 
 def torneos_para_usuario(request):
@@ -2747,7 +2755,7 @@ def gestion_probar_storage(request):
 @user_passes_test(es_editor_torneo)
 def gestion_panel(request):
     torneo = torneo_actual(request)
-    organizadores = Organizador.objects.all()
+    organizadores = Organizador.objects.all() if tabla_disponible("torneos_organizador") else None
     categorias = Categoria.objects.all()
     equipos = Equipo.objects.all()
     jugadores = Jugador.objects.all()
@@ -2763,7 +2771,7 @@ def gestion_panel(request):
 
     return render(request, "gestion/panel.html", {
         "torneo_seleccionado": torneo,
-        "total_organizadores": organizadores.count(),
+        "total_organizadores": organizadores.count() if organizadores is not None else 0,
         "total_categorias": categorias.count(),
         "total_equipos": equipos.count(),
         "total_jugadores": jugadores.count(),
@@ -2775,6 +2783,10 @@ def gestion_panel(request):
 @login_required
 @user_passes_test(es_editor_torneo)
 def gestion_organizadores(request):
+    if not tabla_disponible("torneos_organizador"):
+        messages.error(request, "La tabla de organizadores todavia no esta creada. Espera que Render termine de aplicar las migraciones.")
+        return redirect("gestion_panel")
+
     organizadores = Organizador.objects.order_by("nombre")
 
     return render(request, "gestion/organizadores.html", {
