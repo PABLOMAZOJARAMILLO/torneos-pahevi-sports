@@ -54,7 +54,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-ROOT_URLCONF = 'torneos_imcred.urls'
+ROOT_URLCONF = 'torneos_pahevi_sports.urls'
 
 TEMPLATES = [
     {
@@ -71,7 +71,7 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'torneos_imcred.wsgi.application'
+WSGI_APPLICATION = 'torneos_pahevi_sports.wsgi.application'
 
 
 # Database
