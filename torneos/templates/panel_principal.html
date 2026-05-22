@@ -2189,28 +2189,32 @@ body.solo-lectura .menu-principal {
 
 /* Encabezado por torneo: solo imagenes arriba, titulo en la barra del menu */
 .encabezado-panel {
-    min-height: 132px !important;
+    min-height: 112px !important;
     justify-content: center !important;
-    gap: 26px !important;
+    gap: clamp(14px, 3vw, 34px) !important;
+    padding: 10px clamp(14px, 3vw, 34px) !important;
 }
 
 .encabezado-panel .titulo-panel {
     display: grid !important;
     place-items: center !important;
-    flex: 0 1 auto !important;
+    flex: 0 1 min(38vw, 360px) !important;
 }
 
 .encabezado-panel .logo-central {
-    width: min(360px, 52vw) !important;
-    height: 118px !important;
-    max-height: 118px !important;
+    width: 100% !important;
+    height: 92px !important;
+    max-height: 92px !important;
     object-fit: contain !important;
 }
 
 .encabezado-panel .logo-torneo {
-    width: 96px !important;
-    height: 78px !important;
+    width: min(20vw, 190px) !important;
+    height: 82px !important;
     object-fit: contain !important;
+    background: #ffffff !important;
+    border-radius: 10px !important;
+    padding: 5px !important;
 }
 
 .barra-torneo-titulo {
@@ -2223,6 +2227,7 @@ body.solo-lectura .menu-principal {
     color: #061426;
     line-height: 1.05;
     padding-right: 190px;
+    overflow: hidden;
 }
 
 .barra-torneo-titulo strong {
@@ -2241,45 +2246,54 @@ body.solo-lectura .menu-principal {
 
 @media (max-width: 760px) {
     .encabezado-panel {
-        min-height: 104px !important;
-        gap: 12px !important;
-        padding: 8px 10px !important;
+        min-height: 86px !important;
+        gap: 8px !important;
+        padding: 7px 8px !important;
+    }
+
+    .encabezado-panel .titulo-panel {
+        flex: 0 1 42vw !important;
     }
 
     .encabezado-panel .logo-central {
-        width: min(220px, 50vw) !important;
-        height: 90px !important;
-        max-height: 90px !important;
+        height: 72px !important;
+        max-height: 72px !important;
     }
 
     .encabezado-panel .logo-torneo {
-        width: 58px !important;
-        height: 52px !important;
-        border-radius: 10px !important;
+        width: 24vw !important;
+        max-width: 110px !important;
+        height: 64px !important;
+        padding: 4px !important;
     }
 
     .menu-principal {
-        top: 104px !important;
-        gap: 10px !important;
-        padding: 8px 12px !important;
+        top: 86px !important;
+        gap: 8px !important;
+        padding: 6px 8px !important;
     }
 
     body.solo-lectura .menu-principal {
-        top: 104px !important;
+        top: 86px !important;
     }
 
     .menu-toggle-principal {
-        min-width: 124px !important;
-        min-height: 38px !important;
-        padding: 8px 12px !important;
+        min-width: 82px !important;
+        min-height: 34px !important;
+        padding: 7px 9px !important;
+        gap: 8px !important;
+        font-size: 13px !important;
     }
 
     .barra-torneo-titulo strong {
-        font-size: 17px;
+        font-size: clamp(13px, 4vw, 17px);
+        line-height: 1.05;
+        white-space: normal;
+        overflow-wrap: anywhere;
     }
 
     .barra-torneo-titulo {
-        padding-right: 124px;
+        padding-right: 82px;
     }
 
     .barra-torneo-titulo small {
