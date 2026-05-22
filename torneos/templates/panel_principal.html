@@ -2313,6 +2313,8 @@ body.categoria-activa{padding-top:146px!important}
 .encabezado-panel .logo-torneo{width:min(18vw,180px)!important;height:86px!important;object-fit:contain!important;background:#fff!important;border-radius:12px!important;padding:5px!important;flex:0 0 auto!important}
 .menu-principal{top:124px!important;min-height:58px!important;display:grid!important;grid-template-columns:max-content minmax(0,1fr)!important;align-items:center!important;gap:12px!important;padding:8px 16px!important;overflow:visible!important}
 body.solo-lectura .menu-principal{top:124px!important}
+.btn-volver-portal{display:inline-flex!important;align-items:center!important;justify-content:center!important;width:42px!important;height:40px!important;border-radius:14px!important;background:#071426!important;color:#fff!important;text-decoration:none!important;font-size:24px!important;font-weight:1000!important;box-shadow:0 8px 20px rgba(15,23,42,.18)!important}
+.menu-principal{grid-template-columns:max-content max-content minmax(0,1fr)!important}
 .menu-desplegable{width:auto!important;max-width:100%!important;min-width:0!important}
 .menu-toggle-principal{width:auto!important;min-width:118px!important;max-width:150px!important;min-height:40px!important;padding:9px 14px!important;gap:10px!important;justify-content:space-between!important}
 .barra-torneo-titulo{min-width:0!important;width:100%!important;display:grid!important;gap:2px!important;justify-items:center!important;align-content:center!important;text-align:center!important;color:#061426!important;line-height:1.05!important;padding:0!important;overflow:hidden!important}
@@ -2329,6 +2331,8 @@ body.categoria-activa{padding-top:104px!important}
 .encabezado-panel .logo-torneo{width:23vw!important;max-width:98px!important;height:68px!important;padding:4px!important;border-radius:10px!important}
 .menu-principal{top:96px!important;min-height:50px!important;grid-template-columns:max-content minmax(0,1fr)!important;gap:8px!important;padding:6px 10px!important}
 body.solo-lectura .menu-principal{top:96px!important}
+.menu-principal{grid-template-columns:max-content max-content minmax(0,1fr)!important}
+.btn-volver-portal{width:38px!important;height:38px!important;border-radius:12px!important;font-size:22px!important}
 .menu-toggle-principal{min-width:94px!important;max-width:112px!important;min-height:38px!important;padding:8px 10px!important;font-size:15px!important}
 .barra-torneo-titulo strong{font-size:clamp(14px,4.2vw,18px)!important;line-height:1.05!important;display:-webkit-box!important;-webkit-line-clamp:2!important;-webkit-box-orient:vertical!important;overflow:hidden!important;white-space:normal!important;overflow-wrap:normal!important;word-break:normal!important}
 .barra-torneo-titulo small{display:none!important}
@@ -2381,6 +2385,8 @@ body.solo-lectura .menu-principal{top:96px!important}
     </div>
 
     <nav class="menu-principal" id="categorias-fijas">
+        <a class="btn-volver-portal" href="{% url 'panel' %}?portal=1" aria-label="Volver al panel de torneos" title="Volver al panel de torneos">←</a>
+
         <div class="menu-desplegable" id="menu-desplegable-principal">
             <button type="button" class="menu-toggle-principal" onclick="toggleMenuPrincipal()">
                 Menú
