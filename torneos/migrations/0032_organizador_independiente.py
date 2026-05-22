@@ -17,7 +17,8 @@ def migrar_organizadores(apps, schema_editor):
         if not usuario:
             continue
 
-        nombre = (usuario.get_full_name() or usuario.username or f"Organizador {usuario_id}").strip()
+        nombre_completo = f"{usuario.first_name or ''} {usuario.last_name or ''}".strip()
+        nombre = (nombre_completo or usuario.username or f"Organizador {usuario_id}").strip()
         organizador, _ = Organizador.objects.get_or_create(
             nombre=nombre,
             defaults={"activo": True},
