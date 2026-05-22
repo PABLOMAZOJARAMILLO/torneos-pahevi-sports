@@ -1,4 +1,4 @@
-package com.imcred.torneos;
+package com.pahevisports.torneos;
 
 import android.content.ContentValues;
 import android.net.Uri;

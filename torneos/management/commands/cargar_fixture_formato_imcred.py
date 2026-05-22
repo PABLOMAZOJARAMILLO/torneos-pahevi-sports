@@ -5,7 +5,7 @@ from datetime import date, time
 
 
 class Command(BaseCommand):
-    help = 'Carga fixture desde el formato IMCRED'
+    help = 'Carga fixture desde el formato de torneo'
 
     def add_arguments(self, parser):
         parser.add_argument('archivo_excel', type=str)

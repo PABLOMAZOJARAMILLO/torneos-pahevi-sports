@@ -5,7 +5,7 @@ from datetime import date
 
 
 class Command(BaseCommand):
-    help = 'Carga jugadores desde la planilla oficial de inscripción IMCRED'
+    help = 'Carga jugadores desde la planilla oficial de inscripción'
 
     def add_arguments(self, parser):
         parser.add_argument('equipo_id', type=int)
