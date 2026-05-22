@@ -36,13 +36,13 @@ public class MainActivity extends BridgeActivity {
             byte[] bytes = Base64.decode(base64, Base64.DEFAULT);
             String nombre = limpiarNombre(nombreArchivo);
             if (nombre.isEmpty()) {
-                nombre = "programacion_imcred_" + System.currentTimeMillis() + ".png";
+                nombre = "programacion_pahevi_sports_" + System.currentTimeMillis() + ".png";
             }
 
             ContentValues values = new ContentValues();
             values.put(MediaStore.Images.Media.DISPLAY_NAME, nombre);
             values.put(MediaStore.Images.Media.MIME_TYPE, "image/png");
-            values.put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/TorneosIMCRED");
+            values.put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/TorneosPaheviSports");
 
             Uri uri = getContentResolver().insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values);
             if (uri == null) {
@@ -56,7 +56,7 @@ public class MainActivity extends BridgeActivity {
                 }
             }
 
-            Toast.makeText(this, "Imagen guardada en Fotos/TorneosIMCRED", Toast.LENGTH_LONG).show();
+            Toast.makeText(this, "Imagen guardada en Fotos/TorneosPaheviSports", Toast.LENGTH_LONG).show();
         } catch (Exception e) {
             Toast.makeText(this, "No se pudo descargar la imagen", Toast.LENGTH_LONG).show();
         }
