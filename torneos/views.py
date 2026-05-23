@@ -3803,6 +3803,7 @@ def partido_live(request, partido_id):
     partido = get_object_or_404(
         Partido.objects.select_related(
             "categoria",
+            "categoria__torneo",
             "equipo_local",
             "equipo_visitante"
         ),
@@ -3896,6 +3897,9 @@ def partido_live(request, partido_id):
         "partido": partido,
         "escudo_local": escudo_url(partido.equipo_local),
         "escudo_visitante": escudo_url(partido.equipo_visitante),
+        "marca_agua_torneo": url_campo_imagen(
+            partido.categoria.torneo.logo_portada or partido.categoria.torneo.imagen_central
+        ) if partido.categoria and partido.categoria.torneo else "",
         "fecha_inicio_live": partido.fecha.strftime("%Y-%m-%d") if partido.fecha else "",
         "hora_inicio_live": partido.hora.strftime("%H:%M") if partido.hora else "",
         "goles": goles,
