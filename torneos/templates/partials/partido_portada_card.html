@@ -1,5 +1,5 @@
 <a class="partido-portada {{ partido.categoria_clase }}{% if partido.estado == 'EN_JUEGO' %} partido-en-vivo{% endif %}"
-   href="{% if partido.estado == 'EN_JUEGO' %}{% url 'partido_live' partido.id %}{% else %}{% url 'partido_detalle_publico' partido.id %}{% endif %}">
+   href="{% url 'partido_live' partido.id %}">
     <div class="partido-meta">
         <span class="categoria-pill">{{ partido.categoria }}</span>
         <span class="fase-pill">{% if partido.numero_fecha %}Fecha {{ partido.numero_fecha }}{% else %}{{ partido.fase }}{% endif %}</span>

@@ -1600,24 +1600,7 @@ def panel_principal(request):
 
 
 def detalle_partido_publico(request, partido_id):
-    partido = get_object_or_404(
-        Partido.objects.select_related("categoria", "equipo_local", "equipo_visitante"),
-        id=partido_id
-    )
-    goles = Gol.objects.filter(partido=partido).select_related("jugador", "equipo").order_by("equipo__nombre", "jugador__nombres")
-    tarjetas = Tarjeta.objects.filter(partido=partido).select_related("jugador", "equipo").order_by("equipo__nombre", "jugador__nombres")
-    alineaciones = AlineacionPartido.objects.filter(partido=partido).select_related("jugador", "equipo").order_by("equipo__nombre", "rol", "jugador__nombres")
-    sustituciones = SustitucionPartido.objects.filter(partido=partido).select_related("equipo", "jugador_sale", "jugador_entra").order_by("equipo__nombre", "minuto", "id")
-
-    return render(request, "partido_detalle_publico.html", {
-        "partido": partido,
-        "goles": goles,
-        "tarjetas": tarjetas,
-        "alineaciones": alineaciones,
-        "sustituciones": sustituciones,
-        "escudo_local": escudo_url(partido.equipo_local),
-        "escudo_visitante": escudo_url(partido.equipo_visitante),
-    })
+    return redirect("partido_live", partido_id=partido_id)
 
 
 def url_retorno_descarga(request):

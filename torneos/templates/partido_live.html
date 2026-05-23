@@ -217,6 +217,33 @@ a { color: inherit; text-decoration: none; }
     font-size: 17px;
     font-weight: 1000;
 }
+.resumen-partido-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 10px;
+    padding: 14px;
+}
+.resumen-stat {
+    min-width: 0;
+    padding: 12px;
+    border-radius: 14px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+}
+.resumen-stat span {
+    display: block;
+    color: #64748b;
+    font-size: 12px;
+    font-weight: 900;
+    text-transform: uppercase;
+}
+.resumen-stat strong {
+    display: block;
+    margin-top: 5px;
+    color: #0f172a;
+    font-size: 14px;
+    line-height: 1.2;
+}
 .timeline {
     position: relative;
     padding: 18px 12px;
@@ -558,6 +585,10 @@ a { color: inherit; text-decoration: none; }
     .score-main {
         font-size: 34px;
     }
+    .resumen-partido-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        padding: 12px;
+    }
     .cancha {
         min-height: 430px;
     }
@@ -582,26 +613,26 @@ a { color: inherit; text-decoration: none; }
 <body>
 <header class="live-hero">
     <div class="live-topbar">
-        <a class="live-icon" href="{% url 'panel' %}?torneo={{ partido.categoria.torneo_id }}">←</a>
+        <a class="live-icon" href="{% url 'panel' %}?torneo={{ partido.categoria.torneo_id }}">&larr;</a>
         <div class="live-title">
             <strong>{{ partido.categoria.torneo.nombre|default:"Torneo" }}</strong>
-            <span>{{ partido.categoria.nombre }} · {% if partido.numero_fecha %}Fecha {{ partido.numero_fecha }}{% else %}{{ partido.get_fase_display }}{% endif %}</span>
+            <span>{{ partido.categoria.nombre }} &middot; {% if partido.numero_fecha %}Fecha {{ partido.numero_fecha }}{% else %}{{ partido.get_fase_display }}{% endif %}</span>
         </div>
-        <a class="live-icon" href="javascript:navigator.share ? navigator.share({title: document.title, url: location.href}) : void 0">↗</a>
+        <a class="live-icon" href="javascript:navigator.share ? navigator.share({title: document.title, url: location.href}) : void 0">&nearr;</a>
     </div>
 
     {% if user.is_authenticated and user.is_staff %}
     <div class="admin-live-actions">
         <details class="admin-live-menu">
-            <summary>⚙️ Editar partido</summary>
+            <summary>&#9881;&#65039; Editar partido</summary>
             <div class="admin-live-links">
-                <a href="{% url 'editor_partido_movil' partido.id %}#resultado">✅ Resultado y programación <span>›</span></a>
-                <a href="{% url 'editor_partido_movil' partido.id %}#goles">⚽ Goles <span>›</span></a>
-                <a href="{% url 'editor_partido_movil' partido.id %}#tarjetas">🟨🟥 Tarjetas <span>›</span></a>
-                <a href="{% url 'editor_partido_movil' partido.id %}#alineacion">📋 Alineación <span>›</span></a>
-                <a href="{% url 'editor_partido_movil' partido.id %}#sustituciones">🔁 Cambios <span>›</span></a>
-                <a href="{% url 'editor_partido_movil' partido.id %}#penales-comite">🥅 Penales y comité <span>›</span></a>
-                <a href="{% url 'editor_partido_movil' partido.id %}">✏️ Editor completo <span>›</span></a>
+                <a href="{% url 'editor_partido_movil' partido.id %}#resultado">&#9989; Resultado y programaci&oacute;n <span>&rsaquo;</span></a>
+                <a href="{% url 'editor_partido_movil' partido.id %}#goles">&#9917; Goles <span>&rsaquo;</span></a>
+                <a href="{% url 'editor_partido_movil' partido.id %}#tarjetas">&#129000;&#128997; Tarjetas <span>&rsaquo;</span></a>
+                <a href="{% url 'editor_partido_movil' partido.id %}#alineacion">&#128203; Alineaci&oacute;n <span>&rsaquo;</span></a>
+                <a href="{% url 'editor_partido_movil' partido.id %}#sustituciones">&#128257; Cambios <span>&rsaquo;</span></a>
+                <a href="{% url 'editor_partido_movil' partido.id %}#penales-comite">&#129349; Penales y comit&eacute; <span>&rsaquo;</span></a>
+                <a href="{% url 'editor_partido_movil' partido.id %}">&#9999;&#65039; Editor completo <span>&rsaquo;</span></a>
             </div>
         </details>
     </div>
@@ -613,16 +644,24 @@ a { color: inherit; text-decoration: none; }
             <span>{{ partido.equipo_local.nombre }}</span>
         </div>
         <div class="score-center">
-            <div class="score-main">{{ partido.goles_local }} - {{ partido.goles_visitante }}</div>
+            <div class="score-main">
+                {% if partido.estado == "PROGRAMADO" %}
+                    {% if partido.hora %}{{ partido.hora|time:"H:i" }}{% else %}VS{% endif %}
+                {% elif partido.estado == "APLAZADO" or partido.estado == "SUSPENDIDO" %}
+                    VS
+                {% else %}
+                    {{ partido.goles_local }} - {{ partido.goles_visitante }}
+                {% endif %}
+            </div>
             <span class="live-state">
-                {% if partido.estado == "EN_JUEGO" %}🔴 EN VIVO{% else %}{{ partido.estado }}{% endif %}
+                {% if partido.estado == "EN_JUEGO" %}&#128308; EN VIVO{% else %}{{ partido.get_estado_display }}{% endif %}
             </span>
             {% if partido.estado == "EN_JUEGO" %}
             <span class="live-clock"
                   data-inicio="{{ partido.inicio_en_vivo|date:'c' }}"
                   data-segundos="{{ segundos_vivos|default:0 }}"
                   data-pausado="{% if partido.cronometro_pausado %}1{% else %}0{% endif %}"
-                  data-periodo="{{ partido.periodo_en_vivo|default:'PT' }}">⏱ 1T · 00:00</span>
+                  data-periodo="{{ partido.periodo_en_vivo|default:'PT' }}">&#9201; 1T &middot; 00:00</span>
             {% endif %}
         </div>
         <div class="score-team">
@@ -633,8 +672,8 @@ a { color: inherit; text-decoration: none; }
 
     <nav class="primary-tabs">
         <a href="#resumen" class="activa">PARTIDO</a>
-        <a href="#alineaciones">BUZZ</a>
-        <a href="#eventos">CONSEJOS</a>
+        <a href="#alineaciones">ALINEACIONES</a>
+        <a href="#eventos">EVENTOS</a>
     </nav>
 </header>
 
@@ -642,8 +681,46 @@ a { color: inherit; text-decoration: none; }
     <nav class="subtabs">
         <a href="#resumen" class="activa">Resumen</a>
         <a href="#alineaciones">Alineaciones</a>
-        <a href="#eventos">Estadísticas</a>
+        <a href="#eventos">Cambios</a>
     </nav>
+
+    <section id="resumen" class="panel-live">
+        <div class="panel-title">Resumen del partido</div>
+        <div class="resumen-partido-grid">
+            <div class="resumen-stat">
+                <span>Estado</span>
+                <strong>{{ partido.get_estado_display }}</strong>
+            </div>
+            <div class="resumen-stat">
+                <span>Fecha</span>
+                <strong>{% if partido.fecha %}{{ partido.fecha|date:"d/m/Y" }}{% else %}Por definir{% endif %}</strong>
+            </div>
+            <div class="resumen-stat">
+                <span>Hora</span>
+                <strong>{% if partido.hora %}{{ partido.hora|time:"H:i" }}{% else %}Por definir{% endif %}</strong>
+            </div>
+            <div class="resumen-stat">
+                <span>Cancha</span>
+                <strong>{{ partido.cancha|default:"Por definir" }}</strong>
+            </div>
+        </div>
+        {% if eventos_live %}
+        <div class="timeline">
+            {% for evento in eventos_live %}
+            <div class="timeline-event {% if evento.equipo_id == partido.equipo_local_id %}local{% else %}visitante{% endif %}">
+                <div class="event-box">
+                    <div class="event-text">{{ evento.texto }} {{ evento.icono }}</div>
+                    <div class="event-detail">{{ evento.detalle }}</div>
+                </div>
+                <div class="event-minute">{% if evento.minuto %}{{ evento.minuto }}'{% else %}--{% endif %}</div>
+                <div class="event-empty"></div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state">Aun no hay eventos registrados para este partido.</div>
+        {% endif %}
+    </section>
 
     <section id="alineaciones" class="panel-live">
         <div class="panel-title">Alineaciones</div>
@@ -666,7 +743,7 @@ a { color: inherit; text-decoration: none; }
                     </div>
                     {% endif %}
                 {% empty %}
-                    <div class="empty-state">Alineación pendiente.</div>
+                    <div class="empty-state">Alineaci&oacute;n pendiente.</div>
                 {% endfor %}
             </div>
             <img class="cancha-watermark" src="{% static 'torneos/img/logo_app.png' %}" alt="Pahevi Sports">
@@ -687,7 +764,7 @@ a { color: inherit; text-decoration: none; }
                     </div>
                     {% endif %}
                 {% empty %}
-                    <div class="empty-state">Alineación pendiente.</div>
+                    <div class="empty-state">Alineaci&oacute;n pendiente.</div>
                 {% endfor %}
             </div>
             <img class="cancha-watermark" src="{% static 'torneos/img/logo_app.png' %}" alt="Pahevi Sports">
@@ -718,7 +795,7 @@ a { color: inherit; text-decoration: none; }
                     <div class="roster-avatar">{% if item.foto %}<img src="{{ item.foto }}" alt="{{ item.nombre }}">{% else %}{{ item.iniciales }}{% endif %}</div>
                     <div>
                         <div class="roster-name">{{ item.nombre }}</div>
-                        <div class="roster-meta">{% if item.dorsal %}#{{ item.dorsal }}{% else %}Sin dorsal{% endif %} · sancionado, lesionado o suspendido</div>
+                        <div class="roster-meta">{% if item.dorsal %}#{{ item.dorsal }}{% else %}Sin dorsal{% endif %} &middot; sancionado, lesionado o suspendido</div>
                     </div>
                     <span class="roster-badge no-disponible">NO</span>
                 </div>
@@ -752,7 +829,7 @@ a { color: inherit; text-decoration: none; }
                     <div class="roster-avatar">{% if item.foto %}<img src="{{ item.foto }}" alt="{{ item.nombre }}">{% else %}{{ item.iniciales }}{% endif %}</div>
                     <div>
                         <div class="roster-name">{{ item.nombre }}</div>
-                        <div class="roster-meta">{% if item.dorsal %}#{{ item.dorsal }}{% else %}Sin dorsal{% endif %} · sancionado, lesionado o suspendido</div>
+                        <div class="roster-meta">{% if item.dorsal %}#{{ item.dorsal }}{% else %}Sin dorsal{% endif %} &middot; sancionado, lesionado o suspendido</div>
                     </div>
                     <span class="roster-badge no-disponible">NO</span>
                 </div>
@@ -763,26 +840,6 @@ a { color: inherit; text-decoration: none; }
         </div>
     </section>
 
-    <section id="resumen" class="panel-live">
-        <div class="panel-title">Detalle del partido</div>
-        {% if eventos_live %}
-        <div class="timeline">
-            {% for evento in eventos_live %}
-            <div class="timeline-event {% if evento.equipo_id == partido.equipo_local_id %}local{% else %}visitante{% endif %}">
-                <div class="event-box">
-                    <div class="event-text">{{ evento.texto }} {{ evento.icono }}</div>
-                    <div class="event-detail">{{ evento.detalle }}</div>
-                </div>
-                <div class="event-minute">{% if evento.minuto %}{{ evento.minuto }}'{% else %}--{% endif %}</div>
-                <div class="event-empty"></div>
-            </div>
-            {% endfor %}
-        </div>
-        {% else %}
-        <div class="empty-state">Aún no hay eventos registrados para este partido.</div>
-        {% endif %}
-    </section>
-
     <section id="eventos" class="panel-live">
         <div class="panel-title">Sustituciones</div>
         {% if sustituciones %}
@@ -790,8 +847,8 @@ a { color: inherit; text-decoration: none; }
             {% for cambio in sustituciones %}
             <div class="sub-card">
                 <div class="sub-minute">{% if cambio.minuto %}{{ cambio.minuto }}'{% else %}--{% endif %}</div>
-                <div class="sub-in">↑ {{ cambio.jugador_entra.nombres }}</div>
-                <div class="sub-out">↓ {{ cambio.jugador_sale.nombres }}</div>
+                <div class="sub-in">&uarr; {{ cambio.jugador_entra.nombres }}</div>
+                <div class="sub-out">&darr; {{ cambio.jugador_sale.nombres }}</div>
             </div>
             {% endfor %}
         </div>
@@ -803,10 +860,10 @@ a { color: inherit; text-decoration: none; }
 
 <script>
 function etiquetaPeriodo(periodo) {
-    if (periodo === "ST") return "🔵 2T";
-    if (periodo === "ET") return "🟠 ET";
+    if (periodo === "ST") return "\uD83D\uDD35 2T";
+    if (periodo === "ET") return "\uD83D\uDFE0 ET";
     if (periodo === "FIN") return "Final";
-    return "🟢 1T";
+    return "\uD83D\uDFE2 1T";
 }
 
 function actualizarRelojes() {
@@ -821,7 +878,7 @@ function actualizarRelojes() {
         }
         const minutos = Math.floor(total / 60);
         const segundos = total % 60;
-        el.textContent = `${etiquetaPeriodo(el.dataset.periodo)} · ${String(minutos).padStart(2, "0")}:${String(segundos).padStart(2, "0")}`;
+        el.textContent = `${etiquetaPeriodo(el.dataset.periodo)} \u00B7 ${String(minutos).padStart(2, "0")}:${String(segundos).padStart(2, "0")}`;
     });
 }
 
