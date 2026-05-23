@@ -112,6 +112,30 @@
         }
         .tab-content { display: none; }
         .tab-content.active { display: block; }
+        .goal-options {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 10px;
+            margin: 12px 0;
+        }
+        .check-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 12px;
+            border: 1px solid rgba(0,255,102,0.45);
+            border-radius: 14px;
+            color: #fff;
+            font-weight: 800;
+        }
+        .check-row input {
+            width: auto;
+            min-height: auto;
+            accent-color: #00e66f;
+        }
+        @media (max-width: 520px) {
+            .goal-options { grid-template-columns: 1fr; }
+        }
         .card {
             background: linear-gradient(180deg, #17263b, #101b2e);
             border-left: 4px solid #00ff66;
@@ -505,7 +529,11 @@
 
                 <label>Cantidad</label>
                 <input type="number" name="cantidad" min="1" value="1">
-                <button class="btn" type="submit">⚽ Agregar gol</button>
+                <div class="goal-options">
+                    <label class="check-row"><input type="checkbox" name="es_penal" value="1"> Gol de penal</label>
+                    <label class="check-row"><input type="checkbox" name="es_autogol" value="1"> Autogol</label>
+                </div>
+                <button class="btn" type="submit">&#9917; Agregar gol</button>
             </form>
         </div>
 
@@ -515,7 +543,7 @@
                 <div class="lista-item">
                     <div>
                         <div class="item-title">{{ gol.jugador.nombres|texto_limpio }}</div>
-                        <div class="item-sub">{{ gol.equipo.nombre }} · {{ gol.cantidad }} gol(es)</div>
+                        <div class="item-sub">{{ gol.equipo.nombre }} &middot; {{ gol.cantidad }} gol(es){% if gol.es_penal %} &middot; Penal{% endif %}{% if gol.es_autogol %} &middot; Autogol{% endif %}</div>
                     </div>
                     <form method="POST" onsubmit="guardarContextoPanelEditor()" action="{% url 'eliminar_gol_movil' gol.id %}">{% csrf_token %}<button class="btn-danger" type="submit">Eliminar</button></form>
                 </div>

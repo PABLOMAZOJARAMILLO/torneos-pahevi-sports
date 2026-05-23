@@ -2477,14 +2477,23 @@ def _ordenar_titulares_cancha(items):
 
 
 def _recalcular_marcador_por_goles(partido):
-    totales = (
-        Gol.objects.filter(partido=partido)
-        .values("equipo_id")
-        .annotate(total=Sum("cantidad"))
-    )
-    goles_por_equipo = {item["equipo_id"]: item["total"] or 0 for item in totales}
-    partido.goles_local = goles_por_equipo.get(partido.equipo_local_id, 0)
-    partido.goles_visitante = goles_por_equipo.get(partido.equipo_visitante_id, 0)
+    goles_local = 0
+    goles_visitante = 0
+
+    for gol in Gol.objects.filter(partido=partido).only("equipo_id", "cantidad", "es_autogol"):
+        cantidad = max(gol.cantidad or 1, 1)
+        if gol.es_autogol:
+            if gol.equipo_id == partido.equipo_local_id:
+                goles_visitante += cantidad
+            elif gol.equipo_id == partido.equipo_visitante_id:
+                goles_local += cantidad
+        elif gol.equipo_id == partido.equipo_local_id:
+            goles_local += cantidad
+        elif gol.equipo_id == partido.equipo_visitante_id:
+            goles_visitante += cantidad
+
+    partido.goles_local = goles_local
+    partido.goles_visitante = goles_visitante
     partido.save(update_fields=["goles_local", "goles_visitante"])
 
 
@@ -2559,6 +2568,8 @@ def agregar_gol_movil(request, partido_id):
     jugador_id = request.POST.get('jugador')
     equipo_id = request.POST.get('equipo')
     cantidad = request.POST.get('cantidad') or 1
+    es_autogol = request.POST.get('es_autogol') == '1'
+    es_penal = request.POST.get('es_penal') == '1'
     try:
         cantidad = max(int(cantidad), 1)
     except (TypeError, ValueError):
@@ -2569,9 +2580,21 @@ def agregar_gol_movil(request, partido_id):
         equipo = get_object_or_404(Equipo, id=equipo_id)
 
         if _validar_jugador_equipo(jugador, equipo, partido):
-            Gol.objects.create(partido=partido, jugador=jugador, equipo=equipo, cantidad=cantidad)
+            Gol.objects.create(
+                partido=partido,
+                jugador=jugador,
+                equipo=equipo,
+                cantidad=cantidad,
+                es_autogol=es_autogol,
+                es_penal=es_penal,
+            )
             _recalcular_marcador_por_goles(partido)
-            messages.success(request, 'Gol agregado correctamente.')
+            if es_autogol:
+                messages.success(request, 'Autogol agregado correctamente.')
+            elif es_penal:
+                messages.success(request, 'Gol de penal agregado correctamente.')
+            else:
+                messages.success(request, 'Gol agregado correctamente.')
         else:
             messages.error(request, 'El jugador no pertenece al equipo seleccionado.')
 
@@ -3859,9 +3882,19 @@ def partido_live(request, partido_id):
             or getattr(gol, "es_autogol", False)
             or getattr(gol, "tipo", "") == "AUTOGOL"
         )
+        es_penal = bool(getattr(gol, "es_penal", False))
+        if es_autogol:
+            tipo_gol = "autogol"
+            titulo_gol = "Autogol"
+        elif es_penal:
+            tipo_gol = "penal"
+            titulo_gol = "Gol de penal"
+        else:
+            tipo_gol = "gol"
+            titulo_gol = "Gol"
         eventos_por_jugador[gol.jugador_id].append(SimpleNamespace(
-            tipo="autogol" if es_autogol else "gol",
-            titulo="Autogol" if es_autogol else "Gol",
+            tipo=tipo_gol,
+            titulo=titulo_gol,
             cantidad=cantidad,
         ))
 
@@ -3928,13 +3961,19 @@ def partido_live(request, partido_id):
     orden = 0
     for gol in goles:
         orden += 1
+        if gol.es_autogol:
+            detalle_gol = "Autogol"
+        elif gol.es_penal:
+            detalle_gol = "Gol de penal"
+        else:
+            detalle_gol = f"{gol.cantidad} gol(es)" if gol.cantidad > 1 else "Gol"
         eventos_live.append(SimpleNamespace(
             tipo="gol",
-            icono="⚽",
+            icono="\u26bd",
             minuto=None,
             equipo_id=gol.equipo_id,
             texto=gol.jugador.nombres,
-            detalle=f"{gol.cantidad} gol(es)" if gol.cantidad > 1 else "Gol",
+            detalle=detalle_gol,
             orden=orden,
         ))
 

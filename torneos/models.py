@@ -275,6 +275,8 @@ class Gol(models.Model):
     jugador = models.ForeignKey(Jugador, on_delete=models.CASCADE, related_name='goles_registrados')
     equipo = models.ForeignKey(Equipo, on_delete=models.CASCADE)
     cantidad = models.PositiveIntegerField(default=1)
+    es_autogol = models.BooleanField(default=False, verbose_name='Autogol')
+    es_penal = models.BooleanField(default=False, verbose_name='Gol de penal')
 
     class Meta:
         verbose_name = 'Gol'

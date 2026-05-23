@@ -258,7 +258,7 @@ class GolResource(resources.ModelResource):
     equipo = fields.Field(column_name='equipo', attribute='equipo', widget=EquipoWidget(Equipo, 'nombre'))
     class Meta:
         model = Gol
-        fields = ('id', 'partido', 'jugador', 'equipo', 'cantidad')
+        fields = ('id', 'partido', 'jugador', 'equipo', 'cantidad', 'es_autogol', 'es_penal')
         skip_unchanged = True
         report_skipped = True
 
@@ -357,8 +357,8 @@ class PartidoAdmin(ImportExportModelAdmin):
 @admin.register(Gol)
 class GolAdmin(ImportExportModelAdmin):
     resource_class = GolResource
-    list_display = ('jugador', 'equipo', 'cantidad', 'partido')
-    list_filter = ('equipo', 'partido__categoria', 'partido__grupo', 'partido__fase')
+    list_display = ('jugador', 'equipo', 'cantidad', 'es_autogol', 'es_penal', 'partido')
+    list_filter = ('es_autogol', 'es_penal', 'equipo', 'partido__categoria', 'partido__grupo', 'partido__fase')
     search_fields = ('jugador__nombres', 'jugador__cedula', 'equipo__nombre')
 
 
