@@ -120,6 +120,9 @@
             margin: 10px 0;
             box-shadow: 0 0 18px rgba(0,0,0,0.35);
         }
+        .card:has(form[action*="agregar-alineacion-movil"]) {
+            display: none;
+        }
         .cronometro-card {
             padding: 9px;
             margin: 6px 0;
@@ -215,6 +218,99 @@
             opacity: .9;
             line-height: 1.4;
         }
+        .alineacion-equipo-tabs {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+        .alineacion-equipo-tabs button {
+            border: 1px solid #1f8f54;
+            background: #0f1b2e;
+            color: #ffffff;
+            padding: 10px 8px;
+            border-radius: 14px;
+            font-weight: 900;
+            cursor: pointer;
+        }
+        .alineacion-equipo-tabs button.active {
+            background: linear-gradient(135deg, #00ff66, #00b94f);
+            color: #07111f;
+        }
+        .alineacion-equipo-panel[hidden] { display: none; }
+        .alineacion-resumen {
+            display: flex;
+            justify-content: space-between;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin: 8px 0 12px;
+            color: #dbeafe;
+            font-size: 11px;
+        }
+        .jugador-lineup-row {
+            background: #0f1b2e;
+            border: 1px solid #2f4d6f;
+            border-radius: 14px;
+            padding: 10px;
+            margin: 8px 0;
+        }
+        .jugador-lineup-head {
+            display: flex;
+            justify-content: space-between;
+            gap: 8px;
+            color: #ffffff;
+            font-size: 13px;
+            line-height: 1.25;
+        }
+        .jugador-lineup-dorsal {
+            color: #00ff66;
+            white-space: nowrap;
+        }
+        .rol-switch {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 6px;
+            margin-top: 8px;
+        }
+        .rol-switch label {
+            margin: 0;
+            cursor: pointer;
+        }
+        .rol-switch input {
+            position: absolute;
+            opacity: 0;
+            pointer-events: none;
+        }
+        .rol-switch span {
+            display: block;
+            text-align: center;
+            border: 1px solid #2f4d6f;
+            border-radius: 12px;
+            padding: 8px 5px;
+            color: #dbeafe;
+            background: #07111f;
+            font-size: 10px;
+            font-weight: 900;
+        }
+        .rol-switch input:checked + span {
+            background: #00ff66;
+            color: #07111f;
+            border-color: #00ff66;
+        }
+        .rol-switch input[value="NO_DISPONIBLE"]:checked + span {
+            background: #f97316;
+            border-color: #f97316;
+        }
+        .alineacion-alerta {
+            display: none;
+            background: rgba(249, 115, 22, 0.16);
+            border: 1px solid rgba(249, 115, 22, 0.55);
+            color: #ffedd5;
+            border-radius: 12px;
+            padding: 8px;
+            margin-bottom: 8px;
+            font-size: 11px;
+        }
         @media (max-width: 430px) {
             .cronometro-card .grid-2 {
                 grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -224,6 +320,9 @@
             }
             .marcador-editor {
                 font-size: 23px;
+            }
+            .rol-switch {
+                grid-template-columns: 1fr 1fr;
             }
         }
     </style>
@@ -460,8 +559,72 @@
 
     <div id="alineacion" class="tab-content">
         <div class="card">
+            <h2>AlineaciÃ³n rÃ¡pida</h2>
+            <p class="nota">Escoge primero el equipo. Solo verÃ¡s los jugadores de ese equipo para marcar titulares, suplentes o no disponibles.</p>
+
+            <div class="alineacion-equipo-tabs">
+                <button type="button" class="active" data-alineacion-equipo="local">{{ partido.equipo_local.nombre }}</button>
+                <button type="button" data-alineacion-equipo="visitante">{{ partido.equipo_visitante.nombre }}</button>
+            </div>
+
+            <div class="alineacion-alerta" data-alineacion-alerta></div>
+
+            <form class="alineacion-equipo-panel" data-alineacion-panel="local" method="POST" onsubmit="guardarContextoPanelEditor()" action="{% url 'guardar_alineacion_masiva_movil' partido.id %}">
+                {% csrf_token %}
+                <input type="hidden" name="equipo" value="{{ partido.equipo_local.id }}">
+                <div class="alineacion-resumen">
+                    <span>{{ partido.equipo_local.nombre }}</span>
+                    <span><strong data-titulares-count>0</strong>/11 titulares</span>
+                </div>
+                {% for j in jugadores_local %}
+                <div class="jugador-lineup-row">
+                    <div class="jugador-lineup-head">
+                        <span>{{ j.nombres|texto_limpio }}</span>
+                        <span class="jugador-lineup-dorsal">{% if j.dorsal %}#{{ j.dorsal }}{% else %}S/D{% endif %}</span>
+                    </div>
+                    <div class="rol-switch">
+                        <label><input type="radio" name="rol_{{ j.id }}" value="" {% if not j.rol_alineacion %}checked{% endif %}><span>Fuera</span></label>
+                        <label><input type="radio" name="rol_{{ j.id }}" value="TITULAR" {% if j.rol_alineacion == "TITULAR" %}checked{% endif %}><span>Titular</span></label>
+                        <label><input type="radio" name="rol_{{ j.id }}" value="SUPLENTE" {% if j.rol_alineacion == "SUPLENTE" %}checked{% endif %}><span>Banco</span></label>
+                        <label><input type="radio" name="rol_{{ j.id }}" value="NO_DISPONIBLE" {% if j.rol_alineacion == "NO_DISPONIBLE" %}checked{% endif %}><span>No disp.</span></label>
+                    </div>
+                </div>
+                {% empty %}
+                    <p class="nota">Este equipo no tiene jugadores activos registrados.</p>
+                {% endfor %}
+                <button class="btn" type="submit">Guardar {{ partido.equipo_local.nombre }}</button>
+            </form>
+
+            <form class="alineacion-equipo-panel" data-alineacion-panel="visitante" method="POST" onsubmit="guardarContextoPanelEditor()" action="{% url 'guardar_alineacion_masiva_movil' partido.id %}" hidden>
+                {% csrf_token %}
+                <input type="hidden" name="equipo" value="{{ partido.equipo_visitante.id }}">
+                <div class="alineacion-resumen">
+                    <span>{{ partido.equipo_visitante.nombre }}</span>
+                    <span><strong data-titulares-count>0</strong>/11 titulares</span>
+                </div>
+                {% for j in jugadores_visitante %}
+                <div class="jugador-lineup-row">
+                    <div class="jugador-lineup-head">
+                        <span>{{ j.nombres|texto_limpio }}</span>
+                        <span class="jugador-lineup-dorsal">{% if j.dorsal %}#{{ j.dorsal }}{% else %}S/D{% endif %}</span>
+                    </div>
+                    <div class="rol-switch">
+                        <label><input type="radio" name="rol_{{ j.id }}" value="" {% if not j.rol_alineacion %}checked{% endif %}><span>Fuera</span></label>
+                        <label><input type="radio" name="rol_{{ j.id }}" value="TITULAR" {% if j.rol_alineacion == "TITULAR" %}checked{% endif %}><span>Titular</span></label>
+                        <label><input type="radio" name="rol_{{ j.id }}" value="SUPLENTE" {% if j.rol_alineacion == "SUPLENTE" %}checked{% endif %}><span>Banco</span></label>
+                        <label><input type="radio" name="rol_{{ j.id }}" value="NO_DISPONIBLE" {% if j.rol_alineacion == "NO_DISPONIBLE" %}checked{% endif %}><span>No disp.</span></label>
+                    </div>
+                </div>
+                {% empty %}
+                    <p class="nota">Este equipo no tiene jugadores activos registrados.</p>
+                {% endfor %}
+                <button class="btn" type="submit">Guardar {{ partido.equipo_visitante.nombre }}</button>
+            </form>
+        </div>
+
+        <div class="card">
             <h2>Alineación</h2>
-            <form method="POST" onsubmit="guardarContextoPanelEditor()" action="{% url 'agregar_alineacion_movil' partido.id %}">
+            <form method="POST" style="display:none" onsubmit="guardarContextoPanelEditor()" action="{% url 'agregar_alineacion_movil' partido.id %}">
                 {% csrf_token %}
                 <label>Equipo</label>
                 <select name="equipo" required>
@@ -619,6 +782,36 @@ function activarTabEditor(tabId) {
     return true;
 }
 
+function actualizarConteoTitulares(panel) {
+    if (!panel) return;
+
+    const contador = panel.querySelector('[data-titulares-count]');
+    const titulares = panel.querySelectorAll('input[value="TITULAR"]:checked').length;
+    if (contador) contador.textContent = titulares;
+
+    const alerta = document.querySelector('[data-alineacion-alerta]');
+    if (alerta && !panel.hidden) {
+        if (titulares > 11) {
+            alerta.textContent = 'Tienes ' + titulares + ' titulares. Deben ser mÃ¡ximo 11 por equipo.';
+            alerta.style.display = 'block';
+        } else {
+            alerta.textContent = '';
+            alerta.style.display = 'none';
+        }
+    }
+}
+
+function activarEquipoAlineacion(equipo) {
+    document.querySelectorAll('[data-alineacion-equipo]').forEach(function(boton) {
+        boton.classList.toggle('active', boton.dataset.alineacionEquipo === equipo);
+    });
+
+    document.querySelectorAll('[data-alineacion-panel]').forEach(function(panel) {
+        panel.hidden = panel.dataset.alineacionPanel !== equipo;
+        actualizarConteoTitulares(panel);
+    });
+}
+
 function activarHashInicial() {
     const hash = window.location.hash.replace('#', '');
     if (activarTabEditor(hash)) return;
@@ -634,6 +827,21 @@ document.querySelectorAll('input, select, textarea').forEach(function(campo) {
 });
 
 document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('[data-alineacion-equipo]').forEach(function(boton) {
+        boton.addEventListener('click', function() {
+            activarEquipoAlineacion(boton.dataset.alineacionEquipo);
+        });
+    });
+
+    document.querySelectorAll('.alineacion-equipo-panel').forEach(function(panel) {
+        panel.addEventListener('change', function(evento) {
+            if (evento.target.matches('input[type="radio"]')) {
+                actualizarConteoTitulares(panel);
+            }
+        });
+        actualizarConteoTitulares(panel);
+    });
+
     activarHashInicial();
     guardarContextoPanelEditor();
 });

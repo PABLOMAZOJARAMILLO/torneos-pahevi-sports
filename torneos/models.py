@@ -315,7 +315,11 @@ class EventoPartido(models.Model):
 
 
 class AlineacionPartido(models.Model):
-    ROLES = [('TITULAR', 'Titular'), ('SUPLENTE', 'Suplente')]
+    ROLES = [
+        ('TITULAR', 'Titular'),
+        ('SUPLENTE', 'Suplente'),
+        ('NO_DISPONIBLE', 'No disponible'),
+    ]
     partido = models.ForeignKey(Partido, on_delete=models.CASCADE, related_name='alineaciones')
     equipo = models.ForeignKey(Equipo, on_delete=models.CASCADE, related_name='alineaciones_partido')
     jugador = models.ForeignKey(Jugador, on_delete=models.CASCADE, related_name='alineaciones_partido')

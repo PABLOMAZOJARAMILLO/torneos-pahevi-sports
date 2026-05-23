@@ -17,6 +17,7 @@ from .views import (
     agregar_gol_movil,
     agregar_tarjeta_movil,
     agregar_alineacion_movil,
+    guardar_alineacion_masiva_movil,
     agregar_sustitucion_movil,
     eliminar_gol_movil,
     eliminar_tarjeta_movil,
@@ -122,6 +123,11 @@ urlpatterns = [
         'partido/<int:partido_id>/agregar-alineacion-movil/',
         agregar_alineacion_movil,
         name='agregar_alineacion_movil'
+    ),
+    path(
+        'partido/<int:partido_id>/guardar-alineacion-movil/',
+        guardar_alineacion_masiva_movil,
+        name='guardar_alineacion_masiva_movil'
     ),
     path(
         'partido/<int:partido_id>/agregar-sustitucion-movil/',

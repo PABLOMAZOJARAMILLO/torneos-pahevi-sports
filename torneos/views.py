@@ -2469,6 +2469,16 @@ def _validar_jugador_equipo(jugador, equipo, partido):
     return jugador.equipo_id == equipo.id and equipo.id in equipos_validos
 
 
+def _url_editor_tab(partido_id, tab):
+    return f"{reverse('editor_partido_movil', args=[partido_id])}#{tab}"
+
+
+def _marcar_roles_alineacion(jugadores, roles_por_jugador):
+    for jugador in jugadores:
+        jugador.rol_alineacion = roles_por_jugador.get(jugador.id, "")
+    return jugadores
+
+
 @login_required
 @user_passes_test(es_editor_torneo)
 def editor_partido_movil(request, partido_id):
@@ -2483,6 +2493,9 @@ def editor_partido_movil(request, partido_id):
     tarjetas = Tarjeta.objects.filter(partido=partido).select_related('jugador', 'equipo').order_by('equipo__nombre', 'tipo', 'jugador__nombres')
     alineaciones = AlineacionPartido.objects.filter(partido=partido).select_related('jugador', 'equipo').order_by('equipo__nombre', 'rol', 'jugador__nombres')
     sustituciones = SustitucionPartido.objects.filter(partido=partido).select_related('equipo', 'jugador_sale', 'jugador_entra').order_by('equipo__nombre', 'minuto', 'id')
+    roles_por_jugador = {alineacion.jugador_id: alineacion.rol for alineacion in alineaciones}
+    jugadores_local = _marcar_roles_alineacion(jugadores_local, roles_por_jugador)
+    jugadores_visitante = _marcar_roles_alineacion(jugadores_visitante, roles_por_jugador)
 
     return render(request, 'editor_partido_movil.html', {
         'partido': partido,
@@ -2596,6 +2609,51 @@ def agregar_alineacion_movil(request, partido_id):
             messages.error(request, 'El jugador no pertenece al equipo seleccionado.')
 
     return redirect('editor_partido_movil', partido_id=partido.id)
+
+
+@login_required
+@user_passes_test(es_editor_torneo)
+@require_POST
+def guardar_alineacion_masiva_movil(request, partido_id):
+    partido = get_object_or_404(Partido, id=partido_id)
+    equipo_id = request.POST.get("equipo")
+    equipo = get_object_or_404(Equipo, id=equipo_id)
+
+    if equipo.id not in [partido.equipo_local_id, partido.equipo_visitante_id]:
+        messages.error(request, "Ese equipo no pertenece al partido.")
+        return redirect(_url_editor_tab(partido.id, "alineacion"))
+
+    jugadores_equipo = Jugador.objects.filter(equipo=equipo).only("id")
+    jugadores_validos = {str(jugador.id) for jugador in jugadores_equipo}
+    roles_validos = {"TITULAR", "SUPLENTE", "NO_DISPONIBLE"}
+    seleccionados = []
+
+    for llave, rol in request.POST.items():
+        if not llave.startswith("rol_") or rol not in roles_validos:
+            continue
+
+        jugador_id = llave.replace("rol_", "", 1)
+        if jugador_id in jugadores_validos:
+            seleccionados.append((jugador_id, rol))
+
+    titulares = [jugador_id for jugador_id, rol in seleccionados if rol == "TITULAR"]
+    if len(titulares) > 11:
+        messages.error(request, "Solo puedes seleccionar 11 titulares por equipo.")
+        return redirect(_url_editor_tab(partido.id, "alineacion"))
+
+    AlineacionPartido.objects.filter(partido=partido, equipo=equipo).delete()
+    nuevas_alineaciones = [
+        AlineacionPartido(partido=partido, equipo=equipo, jugador_id=jugador_id, rol=rol)
+        for jugador_id, rol in seleccionados
+    ]
+    AlineacionPartido.objects.bulk_create(nuevas_alineaciones)
+
+    messages.success(
+        request,
+        f"Alineacion de {equipo.nombre} guardada: {len(titulares)} titulares, "
+        f"{sum(1 for _, rol in seleccionados if rol == 'SUPLENTE')} suplentes."
+    )
+    return redirect(_url_editor_tab(partido.id, "alineacion"))
 
 
 @login_required
@@ -3758,6 +3816,10 @@ def partido_live(request, partido_id):
 
     alineaciones_local = []
     alineaciones_visitante = []
+    suplentes_local = []
+    suplentes_visitante = []
+    no_disponibles_local = []
+    no_disponibles_visitante = []
     for alineacion in alineaciones:
         jugador = alineacion.jugador
         item = SimpleNamespace(
@@ -3769,9 +3831,19 @@ def partido_live(request, partido_id):
             iniciales=iniciales_jugador(jugador),
         )
         if alineacion.equipo_id == partido.equipo_local_id:
-            alineaciones_local.append(item)
+            if alineacion.rol == "SUPLENTE":
+                suplentes_local.append(item)
+            elif alineacion.rol == "NO_DISPONIBLE":
+                no_disponibles_local.append(item)
+            else:
+                alineaciones_local.append(item)
         elif alineacion.equipo_id == partido.equipo_visitante_id:
-            alineaciones_visitante.append(item)
+            if alineacion.rol == "SUPLENTE":
+                suplentes_visitante.append(item)
+            elif alineacion.rol == "NO_DISPONIBLE":
+                no_disponibles_visitante.append(item)
+            else:
+                alineaciones_visitante.append(item)
 
     eventos_live = []
     orden = 0
@@ -3831,6 +3903,10 @@ def partido_live(request, partido_id):
         "sustituciones": sustituciones,
         "alineaciones_local": alineaciones_local,
         "alineaciones_visitante": alineaciones_visitante,
+        "suplentes_local": suplentes_local,
+        "suplentes_visitante": suplentes_visitante,
+        "no_disponibles_local": no_disponibles_local,
+        "no_disponibles_visitante": no_disponibles_visitante,
         "eventos_live": eventos_live,
         "segundos_vivos": segundos_vivos_partido(partido),
     })
