@@ -3849,6 +3849,45 @@ def partido_live(request, partido_id):
     alineaciones = AlineacionPartido.objects.filter(partido=partido).select_related("jugador", "equipo").order_by("equipo__nombre", "rol", "jugador__nombres")
     sustituciones = SustitucionPartido.objects.filter(partido=partido).select_related("equipo", "jugador_sale", "jugador_entra").order_by("equipo__nombre", "minuto", "id")
 
+    eventos_por_jugador = defaultdict(list)
+    for gol in goles:
+        if not gol.jugador_id:
+            continue
+        cantidad = max(gol.cantidad or 1, 1)
+        es_autogol = bool(
+            getattr(gol, "autogol", False)
+            or getattr(gol, "es_autogol", False)
+            or getattr(gol, "tipo", "") == "AUTOGOL"
+        )
+        eventos_por_jugador[gol.jugador_id].append(SimpleNamespace(
+            tipo="autogol" if es_autogol else "gol",
+            titulo="Autogol" if es_autogol else "Gol",
+            cantidad=cantidad,
+        ))
+
+    for tarjeta in tarjetas:
+        if not tarjeta.jugador_id:
+            continue
+        eventos_por_jugador[tarjeta.jugador_id].append(SimpleNamespace(
+            tipo="roja" if tarjeta.tipo == "ROJA" else "amarilla",
+            titulo=tarjeta.get_tipo_display(),
+            cantidad=1,
+        ))
+
+    for sustitucion in sustituciones:
+        if sustitucion.jugador_sale_id:
+            eventos_por_jugador[sustitucion.jugador_sale_id].append(SimpleNamespace(
+                tipo="sale",
+                titulo="Sustituido",
+                cantidad=1,
+            ))
+        if sustitucion.jugador_entra_id:
+            eventos_por_jugador[sustitucion.jugador_entra_id].append(SimpleNamespace(
+                tipo="entra",
+                titulo="Ingreso",
+                cantidad=1,
+            ))
+
     alineaciones_local = []
     alineaciones_visitante = []
     suplentes_local = []
@@ -3865,6 +3904,7 @@ def partido_live(request, partido_id):
             posicion=alineacion.posicion_cancha,
             foto=foto_jugador_url(jugador),
             iniciales=iniciales_jugador(jugador),
+            eventos=eventos_por_jugador.get(jugador.id, []),
         )
         if alineacion.equipo_id == partido.equipo_local_id:
             if alineacion.rol == "SUPLENTE":
