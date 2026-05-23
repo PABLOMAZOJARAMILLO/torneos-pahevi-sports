@@ -301,6 +301,20 @@
             background: #f97316;
             border-color: #f97316;
         }
+        .posicion-cancha-select {
+            width: 100%;
+            margin-top: 8px;
+            border: 1px solid #2f4d6f;
+            border-radius: 12px;
+            background: #07111f;
+            color: #e5f7ff;
+            padding: 9px 10px;
+            font-size: 12px;
+            font-weight: 900;
+        }
+        .posicion-cancha-select:disabled {
+            opacity: 0.42;
+        }
         .alineacion-alerta {
             display: none;
             background: rgba(249, 115, 22, 0.16);
@@ -584,10 +598,16 @@
                     </div>
                     <div class="rol-switch">
                         <label><input type="radio" name="rol_{{ j.id }}" value="" {% if not j.rol_alineacion %}checked{% endif %}><span>Fuera</span></label>
-                        <label><input type="radio" name="rol_{{ j.id }}" value="TITULAR" {% if j.rol_alineacion == "TITULAR" %}checked{% endif %}><span>Titular</span></label>
+                        <label><input type="radio" name="rol_{{ j.id }}" value="TITULAR" data-titular-radio {% if j.rol_alineacion == "TITULAR" %}checked{% endif %}><span>Titular</span></label>
                         <label><input type="radio" name="rol_{{ j.id }}" value="SUPLENTE" {% if j.rol_alineacion == "SUPLENTE" %}checked{% endif %}><span>Banco</span></label>
                         <label><input type="radio" name="rol_{{ j.id }}" value="NO_DISPONIBLE" {% if j.rol_alineacion == "NO_DISPONIBLE" %}checked{% endif %}><span>No disp.</span></label>
                     </div>
+                    <select class="posicion-cancha-select" name="posicion_{{ j.id }}" data-posicion-select {% if j.rol_alineacion != "TITULAR" %}disabled{% endif %}>
+                        <option value="">Posición en cancha</option>
+                        {% for codigo, nombre in posiciones_cancha %}
+                            <option value="{{ codigo }}" {% if j.posicion_alineacion == codigo %}selected{% endif %}>{{ nombre }}</option>
+                        {% endfor %}
+                    </select>
                 </div>
                 {% empty %}
                     <p class="nota">Este equipo no tiene jugadores activos registrados.</p>
@@ -610,10 +630,16 @@
                     </div>
                     <div class="rol-switch">
                         <label><input type="radio" name="rol_{{ j.id }}" value="" {% if not j.rol_alineacion %}checked{% endif %}><span>Fuera</span></label>
-                        <label><input type="radio" name="rol_{{ j.id }}" value="TITULAR" {% if j.rol_alineacion == "TITULAR" %}checked{% endif %}><span>Titular</span></label>
+                        <label><input type="radio" name="rol_{{ j.id }}" value="TITULAR" data-titular-radio {% if j.rol_alineacion == "TITULAR" %}checked{% endif %}><span>Titular</span></label>
                         <label><input type="radio" name="rol_{{ j.id }}" value="SUPLENTE" {% if j.rol_alineacion == "SUPLENTE" %}checked{% endif %}><span>Banco</span></label>
                         <label><input type="radio" name="rol_{{ j.id }}" value="NO_DISPONIBLE" {% if j.rol_alineacion == "NO_DISPONIBLE" %}checked{% endif %}><span>No disp.</span></label>
                     </div>
+                    <select class="posicion-cancha-select" name="posicion_{{ j.id }}" data-posicion-select {% if j.rol_alineacion != "TITULAR" %}disabled{% endif %}>
+                        <option value="">Posición en cancha</option>
+                        {% for codigo, nombre in posiciones_cancha %}
+                            <option value="{{ codigo }}" {% if j.posicion_alineacion == codigo %}selected{% endif %}>{{ nombre }}</option>
+                        {% endfor %}
+                    </select>
                 </div>
                 {% empty %}
                     <p class="nota">Este equipo no tiene jugadores activos registrados.</p>
@@ -801,6 +827,21 @@ function actualizarConteoTitulares(panel) {
     }
 }
 
+function actualizarSelectoresPosicion(panel) {
+    if (!panel) return;
+
+    panel.querySelectorAll('.jugador-lineup-row').forEach(function(fila) {
+        const titular = fila.querySelector('input[value="TITULAR"]');
+        const selector = fila.querySelector('[data-posicion-select]');
+        if (!selector || !titular) return;
+
+        selector.disabled = !titular.checked;
+        if (!titular.checked) {
+            selector.value = '';
+        }
+    });
+}
+
 function activarEquipoAlineacion(equipo) {
     document.querySelectorAll('[data-alineacion-equipo]').forEach(function(boton) {
         boton.classList.toggle('active', boton.dataset.alineacionEquipo === equipo);
@@ -809,6 +850,7 @@ function activarEquipoAlineacion(equipo) {
     document.querySelectorAll('[data-alineacion-panel]').forEach(function(panel) {
         panel.hidden = panel.dataset.alineacionPanel !== equipo;
         actualizarConteoTitulares(panel);
+        actualizarSelectoresPosicion(panel);
     });
 }
 
@@ -837,9 +879,11 @@ document.addEventListener('DOMContentLoaded', function() {
         panel.addEventListener('change', function(evento) {
             if (evento.target.matches('input[type="radio"]')) {
                 actualizarConteoTitulares(panel);
+                actualizarSelectoresPosicion(panel);
             }
         });
         actualizarConteoTitulares(panel);
+        actualizarSelectoresPosicion(panel);
     });
 
     activarHashInicial();

@@ -15,7 +15,7 @@ from django.http import FileResponse, HttpResponse
 from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
 from django.db import connection
-from django.db.models import Q
+from django.db.models import Q, Sum
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
 from django.contrib.staticfiles import finders
@@ -2473,10 +2473,36 @@ def _url_editor_tab(partido_id, tab):
     return f"{reverse('editor_partido_movil', args=[partido_id])}#{tab}"
 
 
-def _marcar_roles_alineacion(jugadores, roles_por_jugador):
+POSICIONES_ALINEACION_DEFAULT = [codigo for codigo, _ in AlineacionPartido.POSICIONES_CANCHA]
+
+
+def _marcar_roles_alineacion(jugadores, alineaciones_por_jugador):
     for jugador in jugadores:
-        jugador.rol_alineacion = roles_por_jugador.get(jugador.id, "")
+        alineacion = alineaciones_por_jugador.get(jugador.id)
+        jugador.rol_alineacion = alineacion.rol if alineacion else ""
+        jugador.posicion_alineacion = alineacion.posicion_cancha if alineacion else ""
     return jugadores
+
+
+def _ordenar_titulares_cancha(items):
+    usadas = {item.posicion for item in items if item.posicion}
+    disponibles = [posicion for posicion in POSICIONES_ALINEACION_DEFAULT if posicion not in usadas]
+    for item in items:
+        if not item.posicion:
+            item.posicion = disponibles.pop(0) if disponibles else ""
+    return sorted(items, key=lambda item: AlineacionPartido.ORDEN_POSICIONES_CANCHA.get(item.posicion, 99))
+
+
+def _recalcular_marcador_por_goles(partido):
+    totales = (
+        Gol.objects.filter(partido=partido)
+        .values("equipo_id")
+        .annotate(total=Sum("cantidad"))
+    )
+    goles_por_equipo = {item["equipo_id"]: item["total"] or 0 for item in totales}
+    partido.goles_local = goles_por_equipo.get(partido.equipo_local_id, 0)
+    partido.goles_visitante = goles_por_equipo.get(partido.equipo_visitante_id, 0)
+    partido.save(update_fields=["goles_local", "goles_visitante"])
 
 
 @login_required
@@ -2493,9 +2519,9 @@ def editor_partido_movil(request, partido_id):
     tarjetas = Tarjeta.objects.filter(partido=partido).select_related('jugador', 'equipo').order_by('equipo__nombre', 'tipo', 'jugador__nombres')
     alineaciones = AlineacionPartido.objects.filter(partido=partido).select_related('jugador', 'equipo').order_by('equipo__nombre', 'rol', 'jugador__nombres')
     sustituciones = SustitucionPartido.objects.filter(partido=partido).select_related('equipo', 'jugador_sale', 'jugador_entra').order_by('equipo__nombre', 'minuto', 'id')
-    roles_por_jugador = {alineacion.jugador_id: alineacion.rol for alineacion in alineaciones}
-    jugadores_local = _marcar_roles_alineacion(jugadores_local, roles_por_jugador)
-    jugadores_visitante = _marcar_roles_alineacion(jugadores_visitante, roles_por_jugador)
+    alineaciones_por_jugador = {alineacion.jugador_id: alineacion for alineacion in alineaciones}
+    jugadores_local = _marcar_roles_alineacion(jugadores_local, alineaciones_por_jugador)
+    jugadores_visitante = _marcar_roles_alineacion(jugadores_visitante, alineaciones_por_jugador)
 
     return render(request, 'editor_partido_movil.html', {
         'partido': partido,
@@ -2507,6 +2533,7 @@ def editor_partido_movil(request, partido_id):
         'sustituciones': sustituciones,
         'estados_partido': Partido.ESTADOS,
         'fases_partido': Partido.FASES,
+        'posiciones_cancha': AlineacionPartido.POSICIONES_CANCHA,
     })
 
 
@@ -2549,6 +2576,10 @@ def agregar_gol_movil(request, partido_id):
     jugador_id = request.POST.get('jugador')
     equipo_id = request.POST.get('equipo')
     cantidad = request.POST.get('cantidad') or 1
+    try:
+        cantidad = max(int(cantidad), 1)
+    except (TypeError, ValueError):
+        cantidad = 1
 
     if jugador_id and equipo_id:
         jugador = get_object_or_404(Jugador, id=jugador_id)
@@ -2556,6 +2587,7 @@ def agregar_gol_movil(request, partido_id):
 
         if _validar_jugador_equipo(jugador, equipo, partido):
             Gol.objects.create(partido=partido, jugador=jugador, equipo=equipo, cantidad=cantidad)
+            _recalcular_marcador_por_goles(partido)
             messages.success(request, 'Gol agregado correctamente.')
         else:
             messages.error(request, 'El jugador no pertenece al equipo seleccionado.')
@@ -2593,6 +2625,10 @@ def agregar_alineacion_movil(request, partido_id):
     jugador_id = request.POST.get('jugador')
     equipo_id = request.POST.get('equipo')
     rol = request.POST.get('rol') or 'TITULAR'
+    posicion_cancha = request.POST.get('posicion_cancha') or ''
+    posiciones_validas = {codigo for codigo, _ in AlineacionPartido.POSICIONES_CANCHA}
+    if posicion_cancha not in posiciones_validas:
+        posicion_cancha = ''
 
     if jugador_id and equipo_id:
         jugador = get_object_or_404(Jugador, id=jugador_id)
@@ -2602,7 +2638,7 @@ def agregar_alineacion_movil(request, partido_id):
             AlineacionPartido.objects.update_or_create(
                 partido=partido,
                 jugador=jugador,
-                defaults={'equipo': equipo, 'rol': rol}
+                defaults={'equipo': equipo, 'rol': rol, 'posicion_cancha': posicion_cancha if rol == 'TITULAR' else ''}
             )
             messages.success(request, 'Jugador agregado a la alineación.')
         else:
@@ -2626,6 +2662,8 @@ def guardar_alineacion_masiva_movil(request, partido_id):
     jugadores_equipo = Jugador.objects.filter(equipo=equipo).only("id")
     jugadores_validos = {str(jugador.id) for jugador in jugadores_equipo}
     roles_validos = {"TITULAR", "SUPLENTE", "NO_DISPONIBLE"}
+    posiciones_validas = {codigo for codigo, _ in AlineacionPartido.POSICIONES_CANCHA}
+    posiciones_usadas = set()
     seleccionados = []
 
     for llave, rol in request.POST.items():
@@ -2634,24 +2672,35 @@ def guardar_alineacion_masiva_movil(request, partido_id):
 
         jugador_id = llave.replace("rol_", "", 1)
         if jugador_id in jugadores_validos:
-            seleccionados.append((jugador_id, rol))
+            posicion = request.POST.get(f"posicion_{jugador_id}") or ""
+            if rol == "TITULAR":
+                if posicion not in posiciones_validas:
+                    posicion = ""
+                if posicion and posicion in posiciones_usadas:
+                    messages.error(request, "No repitas la misma posición en la cancha.")
+                    return redirect(_url_editor_tab(partido.id, "alineacion"))
+                if posicion:
+                    posiciones_usadas.add(posicion)
+            else:
+                posicion = ""
+            seleccionados.append((jugador_id, rol, posicion))
 
-    titulares = [jugador_id for jugador_id, rol in seleccionados if rol == "TITULAR"]
+    titulares = [jugador_id for jugador_id, rol, _ in seleccionados if rol == "TITULAR"]
     if len(titulares) > 11:
         messages.error(request, "Solo puedes seleccionar 11 titulares por equipo.")
         return redirect(_url_editor_tab(partido.id, "alineacion"))
 
     AlineacionPartido.objects.filter(partido=partido, equipo=equipo).delete()
     nuevas_alineaciones = [
-        AlineacionPartido(partido=partido, equipo=equipo, jugador_id=jugador_id, rol=rol)
-        for jugador_id, rol in seleccionados
+        AlineacionPartido(partido=partido, equipo=equipo, jugador_id=jugador_id, rol=rol, posicion_cancha=posicion)
+        for jugador_id, rol, posicion in seleccionados
     ]
     AlineacionPartido.objects.bulk_create(nuevas_alineaciones)
 
     messages.success(
         request,
         f"Alineacion de {equipo.nombre} guardada: {len(titulares)} titulares, "
-        f"{sum(1 for _, rol in seleccionados if rol == 'SUPLENTE')} suplentes."
+        f"{sum(1 for _, rol, _ in seleccionados if rol == 'SUPLENTE')} suplentes."
     )
     return redirect(_url_editor_tab(partido.id, "alineacion"))
 
@@ -2694,7 +2743,9 @@ def agregar_sustitucion_movil(request, partido_id):
 def eliminar_gol_movil(request, gol_id):
     gol = get_object_or_404(Gol, id=gol_id)
     partido_id = gol.partido_id
+    partido = gol.partido
     gol.delete()
+    _recalcular_marcador_por_goles(partido)
     messages.success(request, 'Gol eliminado.')
     return redirect('editor_partido_movil', partido_id=partido_id)
 
@@ -3828,6 +3879,7 @@ def partido_live(request, partido_id):
             nombre=jugador.nombres,
             dorsal=jugador.dorsal,
             rol=alineacion.rol,
+            posicion=alineacion.posicion_cancha,
             foto=foto_jugador_url(jugador),
             iniciales=iniciales_jugador(jugador),
         )
@@ -3845,6 +3897,9 @@ def partido_live(request, partido_id):
                 no_disponibles_visitante.append(item)
             else:
                 alineaciones_visitante.append(item)
+
+    alineaciones_local = _ordenar_titulares_cancha(alineaciones_local)
+    alineaciones_visitante = _ordenar_titulares_cancha(alineaciones_visitante)
 
     eventos_live = []
     orden = 0
@@ -3897,9 +3952,6 @@ def partido_live(request, partido_id):
         "partido": partido,
         "escudo_local": escudo_url(partido.equipo_local),
         "escudo_visitante": escudo_url(partido.equipo_visitante),
-        "marca_agua_torneo": url_campo_imagen(
-            partido.categoria.torneo.logo_portada or partido.categoria.torneo.imagen_central
-        ) if partido.categoria and partido.categoria.torneo else "",
         "fecha_inicio_live": partido.fecha.strftime("%Y-%m-%d") if partido.fecha else "",
         "hora_inicio_live": partido.hora.strftime("%H:%M") if partido.hora else "",
         "goles": goles,

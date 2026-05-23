@@ -320,10 +320,26 @@ class AlineacionPartido(models.Model):
         ('SUPLENTE', 'Suplente'),
         ('NO_DISPONIBLE', 'No disponible'),
     ]
+    POSICIONES_CANCHA = [
+        ('POR', 'Arquero'),
+        ('LI', 'Lateral izquierdo'),
+        ('DFC1', 'Central izquierdo'),
+        ('DFC2', 'Central derecho'),
+        ('LD', 'Lateral derecho'),
+        ('MC1', 'Medio izquierdo'),
+        ('MC2', 'Medio centro'),
+        ('MC3', 'Medio derecho'),
+        ('EI', 'Extremo izquierdo'),
+        ('DC', 'Delantero centro'),
+        ('ED', 'Extremo derecho'),
+    ]
+    ORDEN_POSICIONES_CANCHA = {codigo: indice for indice, (codigo, _) in enumerate(POSICIONES_CANCHA)}
+
     partido = models.ForeignKey(Partido, on_delete=models.CASCADE, related_name='alineaciones')
     equipo = models.ForeignKey(Equipo, on_delete=models.CASCADE, related_name='alineaciones_partido')
     jugador = models.ForeignKey(Jugador, on_delete=models.CASCADE, related_name='alineaciones_partido')
     rol = models.CharField(max_length=20, choices=ROLES, default='TITULAR')
+    posicion_cancha = models.CharField(max_length=10, choices=POSICIONES_CANCHA, blank=True, default='', verbose_name='Posición en cancha')
 
     class Meta:
         verbose_name = 'Alineación del partido'
