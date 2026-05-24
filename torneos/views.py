@@ -22,6 +22,7 @@ from django.contrib.staticfiles import finders
 from django.template.loader import render_to_string
 from django.templatetags.static import static
 from django.utils.html import escape
+from django.utils.http import url_has_allowed_host_and_scheme
 from html2image import Html2Image
 import requests
 from django.views.decorators.http import require_POST
@@ -3874,6 +3875,14 @@ def partido_live(request, partido_id):
         ),
         id=partido_id
     )
+    volver_url = request.GET.get("volver", "").strip()
+    if not volver_url or not url_has_allowed_host_and_scheme(
+        volver_url,
+        allowed_hosts={request.get_host()},
+        require_https=request.is_secure(),
+    ):
+        categoria = quote(partido.categoria.nombre)
+        volver_url = f"{reverse('panel')}?torneo={partido.categoria.torneo_id}&categoria={categoria}#categoria-detalle"
 
     goles = Gol.objects.filter(partido=partido).select_related("jugador", "equipo").order_by("equipo__nombre", "jugador__nombres")
     tarjetas = Tarjeta.objects.filter(partido=partido).select_related("jugador", "equipo").order_by("equipo__nombre", "jugador__nombres")
@@ -4035,6 +4044,7 @@ def partido_live(request, partido_id):
         "no_disponibles_visitante": no_disponibles_visitante,
         "eventos_live": eventos_live,
         "segundos_vivos": segundos_vivos_partido(partido),
+        "volver_url": volver_url,
     })
 def _pausar_cronometro(partido):
     if partido.inicio_en_vivo:

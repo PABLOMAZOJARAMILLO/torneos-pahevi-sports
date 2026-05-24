@@ -3213,7 +3213,7 @@ body.solo-lectura .menu-principal{top:96px!important}
                                     <div>&#128338; {% if item.partido.hora %}{{ item.partido.hora|time:"H:i" }}{% else %}Por definir{% endif %}</div>
                                     <div>&#127967;&#65039; {{ item.partido.cancha|default:"Por definir" }}</div>
                                 </div>
-                                <a class="btn-ver-partido" href="{% url 'partido_live' item.partido.id %}">Ver partido</a>
+                                <a class="btn-ver-partido" href="{% url 'partido_live' item.partido.id %}?volver={{ request.get_full_path|urlencode }}%23categoria-detalle">Ver partido</a>
                                 
                                     {% if request.user.is_staff %}
                                     <a class="btn-editor-movil"
@@ -3338,7 +3338,7 @@ body.solo-lectura .menu-principal{top:96px!important}
                                 </div>
 
                                 {% if p.id %}
-                                <a class="btn-ver-partido" href="{% url 'partido_live' p.id %}">Ver partido</a>
+                                <a class="btn-ver-partido" href="{% url 'partido_live' p.id %}?volver={{ request.get_full_path|urlencode }}%23categoria-detalle">Ver partido</a>
                                 {% endif %}
 
                                 {% if request.user.is_staff and p.id %}
@@ -3419,7 +3419,7 @@ body.solo-lectura .menu-principal{top:96px!important}
                                 </div>
 
                                 {% if p.id %}
-                                <a class="btn-ver-partido" href="{% url 'partido_live' p.id %}">Ver partido</a>
+                                <a class="btn-ver-partido" href="{% url 'partido_live' p.id %}?volver={{ request.get_full_path|urlencode }}%23categoria-detalle">Ver partido</a>
                                 {% endif %}
 
                                 {% if request.user.is_staff and p.id %}
@@ -3500,7 +3500,7 @@ body.solo-lectura .menu-principal{top:96px!important}
                                 </div>
 
                                 {% if p.id %}
-                                <a class="btn-ver-partido" href="{% url 'partido_live' p.id %}">Ver partido</a>
+                                <a class="btn-ver-partido" href="{% url 'partido_live' p.id %}?volver={{ request.get_full_path|urlencode }}%23categoria-detalle">Ver partido</a>
                                 {% endif %}
 
                                 {% if request.user.is_staff and p.id %}
@@ -3579,7 +3579,7 @@ body.solo-lectura .menu-principal{top:96px!important}
                                 </div>
 
                                 {% if p.id %}
-                                <a class="btn-ver-partido" href="{% url 'partido_live' p.id %}">Ver partido</a>
+                                <a class="btn-ver-partido" href="{% url 'partido_live' p.id %}?volver={{ request.get_full_path|urlencode }}%23categoria-detalle">Ver partido</a>
                                 {% endif %}
 
                                 {% if request.user.is_staff and p.id %}
