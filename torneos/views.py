@@ -2464,6 +2464,8 @@ def _marcar_roles_alineacion(jugadores, alineaciones_por_jugador):
         alineacion = alineaciones_por_jugador.get(jugador.id)
         jugador.rol_alineacion = alineacion.rol if alineacion else ""
         jugador.posicion_alineacion = alineacion.posicion_cancha if alineacion else ""
+        jugador.foto_alineacion = foto_jugador_url(jugador)
+        jugador.iniciales_alineacion = iniciales_jugador(jugador)
     return jugadores
 
 

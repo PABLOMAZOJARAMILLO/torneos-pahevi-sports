@@ -1,4 +1,5 @@
 {% load texto_limpio %}
+{% load static %}
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -349,6 +350,113 @@
             margin-bottom: 8px;
             font-size: 11px;
         }
+        .cancha-selector {
+            position: relative;
+            width: min(520px, 100%);
+            aspect-ratio: 1.18 / 1;
+            min-height: 380px;
+            margin: 12px auto 16px;
+            border-radius: 18px;
+            overflow: hidden;
+            background: linear-gradient(180deg, #2f9746 0%, #207c39 55%, #1f7434 100%);
+            clip-path: polygon(12% 0, 88% 0, 100% 32%, 100% 100%, 0 100%, 0 32%);
+            box-shadow: inset 0 0 0 1px rgba(255,255,255,0.16), 0 14px 28px rgba(0,0,0,0.22);
+        }
+        .cancha-selector::before {
+            content: "";
+            position: absolute;
+            inset: 6% 5% 4%;
+            border: 2px solid rgba(255,255,255,0.28);
+            background:
+                repeating-linear-gradient(0deg, rgba(255,255,255,0.025) 0 42px, rgba(0,0,0,0.025) 42px 84px),
+                linear-gradient(90deg, transparent 49.7%, rgba(255,255,255,0.22) 49.7% 50.3%, transparent 50.3%),
+                radial-gradient(circle at 50% 49%, transparent 0 13%, rgba(255,255,255,0.24) 13.4% 14%, transparent 14.4%),
+                linear-gradient(to bottom, transparent 0 15%, rgba(255,255,255,0.2) 15% 15.5%, transparent 15.5% 83%, rgba(255,255,255,0.2) 83% 83.5%, transparent 83.5%);
+            clip-path: polygon(9% 0, 91% 0, 100% 30%, 100% 100%, 0 100%, 0 30%);
+            pointer-events: none;
+        }
+        .cancha-slot {
+            position: absolute;
+            z-index: 2;
+            width: 82px;
+            transform: translate(-50%, -50%);
+            text-align: center;
+        }
+        .cancha-slot.posicion-POR { left: 50%; top: 86%; }
+        .cancha-slot.posicion-LI { left: 18%; top: 66%; }
+        .cancha-slot.posicion-DFC1 { left: 39%; top: 68%; }
+        .cancha-slot.posicion-DFC2 { left: 61%; top: 68%; }
+        .cancha-slot.posicion-LD { left: 82%; top: 66%; }
+        .cancha-slot.posicion-MC1 { left: 30%; top: 46%; }
+        .cancha-slot.posicion-MC2 { left: 50%; top: 45%; }
+        .cancha-slot.posicion-MC3 { left: 70%; top: 46%; }
+        .cancha-slot.posicion-EI { left: 27%; top: 23%; }
+        .cancha-slot.posicion-DC { left: 50%; top: 20%; }
+        .cancha-slot.posicion-ED { left: 73%; top: 23%; }
+        .slot-avatar {
+            width: 46px;
+            height: 46px;
+            margin: 0 auto 3px;
+            border-radius: 50%;
+            border: 2px solid white;
+            background: #ffffff;
+            color: #0b1d31;
+            display: grid;
+            place-items: center;
+            font-size: 12px;
+            font-weight: 1000;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.28);
+            overflow: hidden;
+        }
+        .slot-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .slot-posicion {
+            display: inline-block;
+            min-width: 25px;
+            padding: 2px 5px;
+            border-radius: 999px;
+            background: #facc15;
+            color: #07111f;
+            font-size: 9px;
+            font-weight: 1000;
+            line-height: 1;
+        }
+        .slot-nombre {
+            margin-top: 2px;
+            color: white;
+            font-size: 9px;
+            font-weight: 1000;
+            line-height: 1.05;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.58);
+            min-height: 18px;
+            text-transform: uppercase;
+        }
+        .slot-select {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            cursor: pointer;
+        }
+        .cancha-ayuda {
+            color: #dbeafe;
+            font-size: 11px;
+            line-height: 1.35;
+            margin: 6px 0 0;
+        }
+        .cancha-watermark-editor {
+            position: absolute;
+            right: 11px;
+            bottom: 8px;
+            width: 56px;
+            opacity: .28;
+            z-index: 1;
+            pointer-events: none;
+        }
         @media (max-width: 430px) {
             .cronometro-card .grid-2 {
                 grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -618,8 +726,27 @@
                     <span>{{ partido.equipo_local.nombre }}</span>
                     <span><strong data-titulares-count>0</strong>/11 titulares</span>
                 </div>
+                <p class="cancha-ayuda">Toca una cara de la cancha y escoge el jugador. Queda como titular y con esa posicion automaticamente.</p>
+                <div class="cancha-selector" data-cancha-selector>
+                    {% for codigo, nombre in posiciones_cancha %}
+                    <div class="cancha-slot posicion-{{ codigo }}" data-slot="{{ codigo }}">
+                        <div class="slot-avatar" data-slot-avatar>{{ codigo }}</div>
+                        <span class="slot-posicion">{{ codigo }}</span>
+                        <div class="slot-nombre" data-slot-nombre>{{ nombre }}</div>
+                        <select class="slot-select" data-slot-select data-posicion-slot="{{ codigo }}" aria-label="Asignar {{ nombre }}">
+                        <option value="">{{ codigo }}</option>
+                        {% for j in jugadores_local %}
+                            <option value="{{ j.id }}" data-nombre="{{ j.nombres|texto_limpio }}" data-dorsal="{% if j.dorsal %}{{ j.dorsal }}{% endif %}" data-foto="{{ j.foto_alineacion }}" data-iniciales="{{ j.iniciales_alineacion }}" {% if j.posicion_alineacion == codigo and j.rol_alineacion == "TITULAR" %}selected{% endif %}>
+                                {% if j.dorsal %}#{{ j.dorsal }} - {% endif %}{{ j.nombres|texto_limpio }}
+                            </option>
+                        {% endfor %}
+                        </select>
+                    </div>
+                    {% endfor %}
+                    <img class="cancha-watermark-editor" src="{% static 'torneos/img/logo_app.png' %}" alt="Pahevi Sports">
+                </div>
                 {% for j in jugadores_local %}
-                <div class="jugador-lineup-row">
+                <div class="jugador-lineup-row" data-jugador-id="{{ j.id }}" data-nombre="{{ j.nombres|texto_limpio }}" data-dorsal="{% if j.dorsal %}{{ j.dorsal }}{% endif %}" data-foto="{{ j.foto_alineacion }}" data-iniciales="{{ j.iniciales_alineacion }}">
                     <div class="jugador-lineup-head">
                         <span>{{ j.nombres|texto_limpio }}</span>
                         <span class="jugador-lineup-dorsal">{% if j.dorsal %}#{{ j.dorsal }}{% else %}S/D{% endif %}</span>
@@ -650,8 +777,27 @@
                     <span>{{ partido.equipo_visitante.nombre }}</span>
                     <span><strong data-titulares-count>0</strong>/11 titulares</span>
                 </div>
+                <p class="cancha-ayuda">Toca una cara de la cancha y escoge el jugador. Queda como titular y con esa posicion automaticamente.</p>
+                <div class="cancha-selector" data-cancha-selector>
+                    {% for codigo, nombre in posiciones_cancha %}
+                    <div class="cancha-slot posicion-{{ codigo }}" data-slot="{{ codigo }}">
+                        <div class="slot-avatar" data-slot-avatar>{{ codigo }}</div>
+                        <span class="slot-posicion">{{ codigo }}</span>
+                        <div class="slot-nombre" data-slot-nombre>{{ nombre }}</div>
+                        <select class="slot-select" data-slot-select data-posicion-slot="{{ codigo }}" aria-label="Asignar {{ nombre }}">
+                        <option value="">{{ codigo }}</option>
+                        {% for j in jugadores_visitante %}
+                            <option value="{{ j.id }}" data-nombre="{{ j.nombres|texto_limpio }}" data-dorsal="{% if j.dorsal %}{{ j.dorsal }}{% endif %}" data-foto="{{ j.foto_alineacion }}" data-iniciales="{{ j.iniciales_alineacion }}" {% if j.posicion_alineacion == codigo and j.rol_alineacion == "TITULAR" %}selected{% endif %}>
+                                {% if j.dorsal %}#{{ j.dorsal }} - {% endif %}{{ j.nombres|texto_limpio }}
+                            </option>
+                        {% endfor %}
+                        </select>
+                    </div>
+                    {% endfor %}
+                    <img class="cancha-watermark-editor" src="{% static 'torneos/img/logo_app.png' %}" alt="Pahevi Sports">
+                </div>
                 {% for j in jugadores_visitante %}
-                <div class="jugador-lineup-row">
+                <div class="jugador-lineup-row" data-jugador-id="{{ j.id }}" data-nombre="{{ j.nombres|texto_limpio }}" data-dorsal="{% if j.dorsal %}{{ j.dorsal }}{% endif %}" data-foto="{{ j.foto_alineacion }}" data-iniciales="{{ j.iniciales_alineacion }}">
                     <div class="jugador-lineup-head">
                         <span>{{ j.nombres|texto_limpio }}</span>
                         <span class="jugador-lineup-dorsal">{% if j.dorsal %}#{{ j.dorsal }}{% else %}S/D{% endif %}</span>
@@ -870,6 +1016,89 @@ function actualizarSelectoresPosicion(panel) {
     });
 }
 
+function nombreCorto(nombre) {
+    if (!nombre) return '';
+    const partes = nombre.trim().split(/\s+/).filter(Boolean);
+    if (partes.length <= 2) return partes.join(' ');
+    return (partes[0] + ' ' + partes[1]).toUpperCase();
+}
+
+function pintarSlot(slot, option) {
+    const avatar = slot.querySelector('[data-slot-avatar]');
+    const nombre = slot.querySelector('[data-slot-nombre]');
+    const codigo = slot.dataset.slot || '';
+    if (!avatar || !nombre) return;
+
+    if (!option || !option.value) {
+        avatar.innerHTML = codigo;
+        nombre.textContent = slot.querySelector('[data-slot-select]')?.getAttribute('aria-label')?.replace('Asignar ', '') || codigo;
+        return;
+    }
+
+    const foto = option.dataset.foto || '';
+    const iniciales = option.dataset.iniciales || 'J';
+    const dorsal = option.dataset.dorsal ? '#' + option.dataset.dorsal : '';
+    avatar.innerHTML = foto ? '<img src="' + foto + '" alt="">' : iniciales;
+    nombre.textContent = [dorsal, nombreCorto(option.dataset.nombre || option.textContent)].filter(Boolean).join(' ');
+}
+
+function sincronizarCanchaDesdeFilas(panel) {
+    if (!panel) return;
+    panel.querySelectorAll('[data-slot-select]').forEach(function(selector) {
+        selector.value = '';
+        pintarSlot(selector.closest('[data-slot]'), selector.selectedOptions[0]);
+    });
+
+    panel.querySelectorAll('.jugador-lineup-row').forEach(function(fila) {
+        const titular = fila.querySelector('input[value="TITULAR"]');
+        const posicion = fila.querySelector('[data-posicion-select]');
+        if (!titular || !posicion || !titular.checked || !posicion.value) return;
+
+        const slotSelector = panel.querySelector('[data-slot-select][data-posicion-slot="' + posicion.value + '"]');
+        if (slotSelector) {
+            slotSelector.value = fila.dataset.jugadorId || '';
+            pintarSlot(slotSelector.closest('[data-slot]'), slotSelector.selectedOptions[0]);
+        }
+    });
+}
+
+function asignarJugadorASlot(panel, selectorSlot) {
+    if (!panel || !selectorSlot) return;
+    const jugadorId = selectorSlot.value;
+    const posicion = selectorSlot.dataset.posicionSlot || '';
+
+    panel.querySelectorAll('[data-slot-select]').forEach(function(otro) {
+        if (otro !== selectorSlot && jugadorId && otro.value === jugadorId) {
+            otro.value = '';
+            pintarSlot(otro.closest('[data-slot]'), otro.selectedOptions[0]);
+        }
+    });
+
+    panel.querySelectorAll('.jugador-lineup-row').forEach(function(fila) {
+        const posicionSelect = fila.querySelector('[data-posicion-select]');
+        if (posicionSelect && posicionSelect.value === posicion) {
+            posicionSelect.value = '';
+        }
+    });
+
+    if (jugadorId) {
+        const fila = panel.querySelector('.jugador-lineup-row[data-jugador-id="' + jugadorId + '"]');
+        if (fila) {
+            const titular = fila.querySelector('input[value="TITULAR"]');
+            const posicionSelect = fila.querySelector('[data-posicion-select]');
+            if (titular) titular.checked = true;
+            if (posicionSelect) {
+                posicionSelect.disabled = false;
+                posicionSelect.value = posicion;
+            }
+        }
+    }
+
+    pintarSlot(selectorSlot.closest('[data-slot]'), selectorSlot.selectedOptions[0]);
+    actualizarConteoTitulares(panel);
+    actualizarSelectoresPosicion(panel);
+}
+
 function activarEquipoAlineacion(equipo) {
     document.querySelectorAll('[data-alineacion-equipo]').forEach(function(boton) {
         boton.classList.toggle('active', boton.dataset.alineacionEquipo === equipo);
@@ -905,13 +1134,21 @@ document.addEventListener('DOMContentLoaded', function() {
 
     document.querySelectorAll('.alineacion-equipo-panel').forEach(function(panel) {
         panel.addEventListener('change', function(evento) {
+            if (evento.target.matches('[data-slot-select]')) {
+                asignarJugadorASlot(panel, evento.target);
+            }
             if (evento.target.matches('input[type="radio"]')) {
                 actualizarConteoTitulares(panel);
                 actualizarSelectoresPosicion(panel);
+                sincronizarCanchaDesdeFilas(panel);
+            }
+            if (evento.target.matches('[data-posicion-select]')) {
+                sincronizarCanchaDesdeFilas(panel);
             }
         });
         actualizarConteoTitulares(panel);
         actualizarSelectoresPosicion(panel);
+        sincronizarCanchaDesdeFilas(panel);
     });
 
     activarHashInicial();
