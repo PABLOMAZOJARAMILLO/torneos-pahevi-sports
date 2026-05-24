@@ -1351,6 +1351,16 @@ def iniciales_jugador(jugador):
     return "".join(partes).upper() or "J"
 
 
+def nombre_corto_jugador(jugador):
+    nombre = (getattr(jugador, "nombres", "") or "").strip()
+    partes = [parte for parte in nombre.split() if parte]
+    if len(partes) >= 3:
+        return f"{partes[0]} {partes[2]}"
+    if len(partes) >= 2:
+        return f"{partes[0]} {partes[1]}"
+    return nombre or "Jugador"
+
+
 def construir_partidos_portada(torneo=None):
     hoy = date.today()
     partidos = Partido.objects.filter(
@@ -3952,6 +3962,7 @@ def partido_live(request, partido_id):
         item = SimpleNamespace(
             jugador=jugador,
             nombre=jugador.nombres,
+            nombre_corto=nombre_corto_jugador(jugador),
             dorsal=jugador.dorsal,
             rol=alineacion.rol,
             posicion=alineacion.posicion_cancha,

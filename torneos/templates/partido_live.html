@@ -286,12 +286,24 @@ a { color: inherit; text-decoration: none; }
     font-weight: 900;
     line-height: 1.15;
 }
+.event-main {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.timeline-event.local .event-main {
+    justify-content: flex-end;
+}
+.timeline-event.visitante .event-main {
+    flex-direction: row-reverse;
+    justify-content: flex-end;
+}
 .event-icon {
     display: inline-grid;
     place-items: center;
     width: 24px;
     height: 24px;
-    margin-left: 6px;
+    flex: 0 0 24px;
     border-radius: 50%;
     background: #ffffff;
     border: 2px solid #e5e7eb;
@@ -316,6 +328,10 @@ a { color: inherit; text-decoration: none; }
     font-weight: 1000;
 }
 .timeline-event.local .event-sub-line {
+    justify-content: flex-end;
+}
+.timeline-event.visitante .event-sub-line {
+    flex-direction: row-reverse;
     justify-content: flex-end;
 }
 .event-sub-line + .event-sub-line {
@@ -674,6 +690,12 @@ a { color: inherit; text-decoration: none; }
     font-weight: 1000;
     line-height: 1;
 }
+.sub-in,
+.sub-out {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
 .lineup-extra {
     margin-top: 14px;
     display: grid;
@@ -909,7 +931,10 @@ a { color: inherit; text-decoration: none; }
                         <span class="event-arrow">&darr;</span>
                     </div>
                     {% else %}
-                    <div class="event-text">{{ evento.texto }} <span class="event-icon">{{ evento.icono }}</span></div>
+                    <div class="event-main">
+                        <div class="event-text">{{ evento.texto }}</div>
+                        <span class="event-icon">{{ evento.icono }}</span>
+                    </div>
                     <div class="event-detail">{{ evento.detalle }}</div>
                     {% endif %}
                 </div>
@@ -954,7 +979,7 @@ a { color: inherit; text-decoration: none; }
                             </span>
                             {% endif %}
                         </div>
-                        <span class="jugador-nombre">{{ item.nombre }}</span>
+                        <span class="jugador-nombre">{{ item.nombre_corto }}</span>
                     </div>
                     {% endif %}
                 {% empty %}
@@ -989,7 +1014,7 @@ a { color: inherit; text-decoration: none; }
                             </span>
                             {% endif %}
                         </div>
-                        <span class="jugador-nombre">{{ item.nombre }}</span>
+                        <span class="jugador-nombre">{{ item.nombre_corto }}</span>
                     </div>
                     {% endif %}
                 {% empty %}
@@ -1026,7 +1051,7 @@ a { color: inherit; text-decoration: none; }
                 <div class="roster-row">
                     <div class="roster-avatar">{% if item.foto %}<img src="{{ item.foto }}" alt="{{ item.nombre }}">{% else %}{{ item.iniciales }}{% endif %}{% if item.dorsal %}<span class="roster-dorsal">{{ item.dorsal }}</span>{% endif %}</div>
                     <div>
-                        <div class="roster-name">{{ item.nombre }}</div>
+                        <div class="roster-name">{{ item.nombre_corto }}</div>
                         <div class="roster-meta">{% if item.dorsal %}#{{ item.dorsal }}{% else %}Sin dorsal{% endif %}</div>
                     </div>
                     <div class="roster-events">
@@ -1050,7 +1075,7 @@ a { color: inherit; text-decoration: none; }
                 <div class="roster-row">
                     <div class="roster-avatar">{% if item.foto %}<img src="{{ item.foto }}" alt="{{ item.nombre }}">{% else %}{{ item.iniciales }}{% endif %}{% if item.dorsal %}<span class="roster-dorsal">{{ item.dorsal }}</span>{% endif %}</div>
                     <div>
-                        <div class="roster-name">{{ item.nombre }}</div>
+                        <div class="roster-name">{{ item.nombre_corto }}</div>
                         <div class="roster-meta">{% if item.dorsal %}#{{ item.dorsal }}{% else %}Sin dorsal{% endif %} &middot; sancionado, lesionado o suspendido</div>
                     </div>
                     <div class="roster-events">
@@ -1095,7 +1120,7 @@ a { color: inherit; text-decoration: none; }
                 <div class="roster-row">
                     <div class="roster-avatar">{% if item.foto %}<img src="{{ item.foto }}" alt="{{ item.nombre }}">{% else %}{{ item.iniciales }}{% endif %}{% if item.dorsal %}<span class="roster-dorsal">{{ item.dorsal }}</span>{% endif %}</div>
                     <div>
-                        <div class="roster-name">{{ item.nombre }}</div>
+                        <div class="roster-name">{{ item.nombre_corto }}</div>
                         <div class="roster-meta">{% if item.dorsal %}#{{ item.dorsal }}{% else %}Sin dorsal{% endif %}</div>
                     </div>
                     <div class="roster-events">
@@ -1119,7 +1144,7 @@ a { color: inherit; text-decoration: none; }
                 <div class="roster-row">
                     <div class="roster-avatar">{% if item.foto %}<img src="{{ item.foto }}" alt="{{ item.nombre }}">{% else %}{{ item.iniciales }}{% endif %}{% if item.dorsal %}<span class="roster-dorsal">{{ item.dorsal }}</span>{% endif %}</div>
                     <div>
-                        <div class="roster-name">{{ item.nombre }}</div>
+                        <div class="roster-name">{{ item.nombre_corto }}</div>
                         <div class="roster-meta">{% if item.dorsal %}#{{ item.dorsal }}{% else %}Sin dorsal{% endif %} &middot; sancionado, lesionado o suspendido</div>
                     </div>
                     <div class="roster-events">
