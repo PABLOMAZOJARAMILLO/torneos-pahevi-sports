@@ -1354,7 +1354,7 @@ def iniciales_jugador(jugador):
 def nombre_corto_jugador(jugador):
     nombre = (getattr(jugador, "nombres", "") or "").strip()
     partes = [parte for parte in nombre.split() if parte]
-    if len(partes) >= 3:
+    if len(partes) >= 4:
         return f"{partes[0]} {partes[2]}"
     if len(partes) >= 2:
         return f"{partes[0]} {partes[1]}"
