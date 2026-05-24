@@ -4006,7 +4006,7 @@ def partido_live(request, partido_id):
             icono="\u26bd",
             minuto=None,
             equipo_id=gol.equipo_id,
-            texto=gol.jugador.nombres,
+            texto=nombre_corto_jugador(gol.jugador),
             detalle=detalle_gol,
             orden=orden,
         ))
@@ -4018,7 +4018,7 @@ def partido_live(request, partido_id):
             icono="🟥" if tarjeta.tipo == "ROJA" else "🟨",
             minuto=None,
             equipo_id=tarjeta.equipo_id,
-            texto=tarjeta.jugador.nombres,
+            texto=nombre_corto_jugador(tarjeta.jugador),
             detalle=tarjeta.get_tipo_display(),
             orden=orden,
         ))
@@ -4030,10 +4030,10 @@ def partido_live(request, partido_id):
             icono="🔁",
             minuto=sustitucion.minuto,
             equipo_id=sustitucion.equipo_id,
-            texto=sustitucion.jugador_entra.nombres,
-            detalle=f"Sale {sustitucion.jugador_sale.nombres}",
-            jugador_entra=sustitucion.jugador_entra.nombres,
-            jugador_sale=sustitucion.jugador_sale.nombres,
+            texto=nombre_corto_jugador(sustitucion.jugador_entra),
+            detalle=f"Sale {nombre_corto_jugador(sustitucion.jugador_sale)}",
+            jugador_entra=nombre_corto_jugador(sustitucion.jugador_entra),
+            jugador_sale=nombre_corto_jugador(sustitucion.jugador_sale),
             orden=orden,
         ))
 
