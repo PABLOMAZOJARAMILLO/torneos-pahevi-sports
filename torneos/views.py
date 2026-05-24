@@ -3889,6 +3889,8 @@ def partido_live(request, partido_id):
     tarjetas = Tarjeta.objects.filter(partido=partido).select_related("jugador", "equipo").order_by("equipo__nombre", "jugador__nombres")
     alineaciones = AlineacionPartido.objects.filter(partido=partido).select_related("jugador", "equipo").order_by("equipo__nombre", "rol", "jugador__nombres")
     sustituciones = SustitucionPartido.objects.filter(partido=partido).select_related("equipo", "jugador_sale", "jugador_entra").order_by("equipo__nombre", "minuto", "id")
+    sustituciones_local = [cambio for cambio in sustituciones if cambio.equipo_id == partido.equipo_local_id]
+    sustituciones_visitante = [cambio for cambio in sustituciones if cambio.equipo_id == partido.equipo_visitante_id]
 
     eventos_por_jugador = defaultdict(list)
     for gol in goles:
@@ -4037,6 +4039,8 @@ def partido_live(request, partido_id):
         "goles": goles,
         "tarjetas": tarjetas,
         "sustituciones": sustituciones,
+        "sustituciones_local": sustituciones_local,
+        "sustituciones_visitante": sustituciones_visitante,
         "alineaciones_local": alineaciones_local,
         "alineaciones_visitante": alineaciones_visitante,
         "suplentes_local": suplentes_local,
