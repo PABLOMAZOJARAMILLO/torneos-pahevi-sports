@@ -3892,7 +3892,21 @@ def partido_live(request, partido_id):
     sustituciones_local = [cambio for cambio in sustituciones if cambio.equipo_id == partido.equipo_local_id]
     sustituciones_visitante = [cambio for cambio in sustituciones if cambio.equipo_id == partido.equipo_visitante_id]
 
-    eventos_por_jugador = defaultdict(list)
+    eventos_por_jugador = defaultdict(dict)
+
+    def agregar_evento_jugador(jugador_id, tipo, titulo, cantidad=1):
+        if not jugador_id:
+            return
+        eventos = eventos_por_jugador[jugador_id]
+        if tipo in eventos:
+            eventos[tipo].cantidad += cantidad
+        else:
+            eventos[tipo] = SimpleNamespace(
+                tipo=tipo,
+                titulo=titulo,
+                cantidad=cantidad,
+            )
+
     for gol in goles:
         if not gol.jugador_id:
             continue
@@ -3912,34 +3926,20 @@ def partido_live(request, partido_id):
         else:
             tipo_gol = "gol"
             titulo_gol = "Gol"
-        eventos_por_jugador[gol.jugador_id].append(SimpleNamespace(
-            tipo=tipo_gol,
-            titulo=titulo_gol,
-            cantidad=cantidad,
-        ))
+        agregar_evento_jugador(gol.jugador_id, tipo_gol, titulo_gol, cantidad)
 
     for tarjeta in tarjetas:
         if not tarjeta.jugador_id:
             continue
-        eventos_por_jugador[tarjeta.jugador_id].append(SimpleNamespace(
-            tipo="roja" if tarjeta.tipo == "ROJA" else "amarilla",
-            titulo=tarjeta.get_tipo_display(),
-            cantidad=1,
-        ))
+        agregar_evento_jugador(
+            tarjeta.jugador_id,
+            "roja" if tarjeta.tipo == "ROJA" else "amarilla",
+            tarjeta.get_tipo_display(),
+        )
 
     for sustitucion in sustituciones:
-        if sustitucion.jugador_sale_id:
-            eventos_por_jugador[sustitucion.jugador_sale_id].append(SimpleNamespace(
-                tipo="sale",
-                titulo="Sustituido",
-                cantidad=1,
-            ))
-        if sustitucion.jugador_entra_id:
-            eventos_por_jugador[sustitucion.jugador_entra_id].append(SimpleNamespace(
-                tipo="entra",
-                titulo="Ingreso",
-                cantidad=1,
-            ))
+        agregar_evento_jugador(sustitucion.jugador_sale_id, "sale", "Sustituido")
+        agregar_evento_jugador(sustitucion.jugador_entra_id, "entra", "Ingreso")
 
     alineaciones_local = []
     alineaciones_visitante = []
@@ -3957,7 +3957,7 @@ def partido_live(request, partido_id):
             posicion=alineacion.posicion_cancha,
             foto=foto_jugador_url(jugador),
             iniciales=iniciales_jugador(jugador),
-            eventos=eventos_por_jugador.get(jugador.id, []),
+            eventos=list(eventos_por_jugador.get(jugador.id, {}).values()),
         )
         if alineacion.equipo_id == partido.equipo_local_id:
             if alineacion.rol == "SUPLENTE":
