@@ -3982,13 +3982,16 @@ def partido_live(request, partido_id):
     for gol in goles:
         orden += 1
         if gol.es_autogol:
+            tipo_evento = "autogol"
             detalle_gol = "Autogol"
         elif gol.es_penal:
+            tipo_evento = "gol"
             detalle_gol = "Gol de penal"
         else:
+            tipo_evento = "gol"
             detalle_gol = f"{gol.cantidad} gol(es)" if gol.cantidad > 1 else "Gol"
         eventos_live.append(SimpleNamespace(
-            tipo="gol",
+            tipo=tipo_evento,
             icono="\u26bd",
             minuto=None,
             equipo_id=gol.equipo_id,
@@ -4018,6 +4021,8 @@ def partido_live(request, partido_id):
             equipo_id=sustitucion.equipo_id,
             texto=sustitucion.jugador_entra.nombres,
             detalle=f"Sale {sustitucion.jugador_sale.nombres}",
+            jugador_entra=sustitucion.jugador_entra.nombres,
+            jugador_sale=sustitucion.jugador_sale.nombres,
             orden=orden,
         ))
 

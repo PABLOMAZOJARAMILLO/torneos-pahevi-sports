@@ -286,10 +286,55 @@ a { color: inherit; text-decoration: none; }
     font-weight: 900;
     line-height: 1.15;
 }
+.event-icon {
+    display: inline-grid;
+    place-items: center;
+    width: 24px;
+    height: 24px;
+    margin-left: 6px;
+    border-radius: 50%;
+    background: #ffffff;
+    border: 2px solid #e5e7eb;
+    color: #111827;
+    font-size: 14px;
+    vertical-align: middle;
+}
+.timeline-event.autogol .event-icon {
+    background: #ef4444;
+    border-color: #ef4444;
+    color: #ffffff;
+}
 .timeline-event .event-detail {
     color: #64748b;
     font-size: 13px;
     margin-top: 3px;
+}
+.event-sub-line {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 1000;
+}
+.timeline-event.local .event-sub-line {
+    justify-content: flex-end;
+}
+.event-sub-line + .event-sub-line {
+    margin-top: 2px;
+}
+.event-arrow {
+    display: inline-grid;
+    place-items: center;
+    width: 20px;
+    height: 20px;
+    font-size: 19px;
+    font-weight: 1000;
+    line-height: 1;
+}
+.event-sub-in {
+    color: #16a34a;
+}
+.event-sub-out {
+    color: #ef4444;
 }
 .timeline-event .event-minute {
     justify-self: center;
@@ -620,7 +665,15 @@ a { color: inherit; text-decoration: none; }
     font-weight: 1000;
 }
 .sub-in { color: #16a34a; font-weight: 900; }
-.sub-out { color: #64748b; margin-top: 3px; }
+.sub-out { color: #ef4444; margin-top: 3px; font-weight: 900; }
+.sub-arrow {
+    display: inline-grid;
+    place-items: center;
+    width: 20px;
+    font-size: 22px;
+    font-weight: 1000;
+    line-height: 1;
+}
 .lineup-extra {
     margin-top: 14px;
     display: grid;
@@ -642,8 +695,8 @@ a { color: inherit; text-decoration: none; }
 }
 .roster-row {
     display: grid;
-    grid-template-columns: 44px 1fr auto;
-    gap: 10px;
+    grid-template-columns: 50px 1fr auto;
+    gap: 12px;
     align-items: center;
     padding: 10px 15px;
     color: #111827;
@@ -651,20 +704,39 @@ a { color: inherit; text-decoration: none; }
 }
 .roster-row:last-child { border-bottom: 0; }
 .roster-avatar {
-    width: 38px;
-    height: 38px;
+    position: relative;
+    width: 44px;
+    height: 44px;
     border-radius: 50%;
     background: #f8fafc;
     display: grid;
     place-items: center;
-    overflow: hidden;
+    overflow: visible;
     font-size: 12px;
+    font-weight: 1000;
+}
+.roster-dorsal {
+    position: absolute;
+    left: -7px;
+    top: -7px;
+    z-index: 2;
+    min-width: 19px;
+    height: 19px;
+    padding: 1px 4px;
+    border-radius: 999px;
+    background: #ffffff;
+    color: #111827;
+    border: 1px solid #cbd5e1;
+    display: grid;
+    place-items: center;
+    font-size: 9px;
     font-weight: 1000;
 }
 .roster-avatar img {
     width: 100%;
     height: 100%;
     object-fit: cover;
+    border-radius: 50%;
 }
 .roster-name {
     font-weight: 900;
@@ -825,10 +897,21 @@ a { color: inherit; text-decoration: none; }
         {% if eventos_live %}
         <div class="timeline">
             {% for evento in eventos_live %}
-            <div class="timeline-event {% if evento.equipo_id == partido.equipo_local_id %}local{% else %}visitante{% endif %}">
+            <div class="timeline-event {{ evento.tipo }} {% if evento.equipo_id == partido.equipo_local_id %}local{% else %}visitante{% endif %}">
                 <div class="event-box">
-                    <div class="event-text">{{ evento.texto }} {{ evento.icono }}</div>
+                    {% if evento.tipo == "sustitucion" %}
+                    <div class="event-sub-line event-sub-in">
+                        <span>{{ evento.jugador_entra }}</span>
+                        <span class="event-arrow">&uarr;</span>
+                    </div>
+                    <div class="event-sub-line event-sub-out">
+                        <span>{{ evento.jugador_sale }}</span>
+                        <span class="event-arrow">&darr;</span>
+                    </div>
+                    {% else %}
+                    <div class="event-text">{{ evento.texto }} <span class="event-icon">{{ evento.icono }}</span></div>
                     <div class="event-detail">{{ evento.detalle }}</div>
+                    {% endif %}
                 </div>
                 <div class="event-minute">{% if evento.minuto %}{{ evento.minuto }}'{% else %}--{% endif %}</div>
                 <div class="event-empty"></div>
@@ -926,8 +1009,8 @@ a { color: inherit; text-decoration: none; }
                         <div class="sub-card">
                             <div class="sub-minute">{% if cambio.minuto %}{{ cambio.minuto }}'{% else %}--{% endif %}</div>
                             <div>
-                                <div class="sub-in">&uarr; {{ cambio.jugador_entra.nombres }}</div>
-                                <div class="sub-out">&darr; {{ cambio.jugador_sale.nombres }}</div>
+                                <div class="sub-in"><span class="sub-arrow">&uarr;</span> {{ cambio.jugador_entra.nombres }}</div>
+                                <div class="sub-out"><span class="sub-arrow">&darr;</span> {{ cambio.jugador_sale.nombres }}</div>
                             </div>
                         </div>
                     {% endfor %}
@@ -941,7 +1024,7 @@ a { color: inherit; text-decoration: none; }
                 <div class="roster-title">Banco</div>
                 {% for item in suplentes_local %}
                 <div class="roster-row">
-                    <div class="roster-avatar">{% if item.foto %}<img src="{{ item.foto }}" alt="{{ item.nombre }}">{% else %}{{ item.iniciales }}{% endif %}</div>
+                    <div class="roster-avatar">{% if item.foto %}<img src="{{ item.foto }}" alt="{{ item.nombre }}">{% else %}{{ item.iniciales }}{% endif %}{% if item.dorsal %}<span class="roster-dorsal">{{ item.dorsal }}</span>{% endif %}</div>
                     <div>
                         <div class="roster-name">{{ item.nombre }}</div>
                         <div class="roster-meta">{% if item.dorsal %}#{{ item.dorsal }}{% else %}Sin dorsal{% endif %}</div>
@@ -965,7 +1048,7 @@ a { color: inherit; text-decoration: none; }
                 <div class="roster-title">Jugadores no disponibles</div>
                 {% for item in no_disponibles_local %}
                 <div class="roster-row">
-                    <div class="roster-avatar">{% if item.foto %}<img src="{{ item.foto }}" alt="{{ item.nombre }}">{% else %}{{ item.iniciales }}{% endif %}</div>
+                    <div class="roster-avatar">{% if item.foto %}<img src="{{ item.foto }}" alt="{{ item.nombre }}">{% else %}{{ item.iniciales }}{% endif %}{% if item.dorsal %}<span class="roster-dorsal">{{ item.dorsal }}</span>{% endif %}</div>
                     <div>
                         <div class="roster-name">{{ item.nombre }}</div>
                         <div class="roster-meta">{% if item.dorsal %}#{{ item.dorsal }}{% else %}Sin dorsal{% endif %} &middot; sancionado, lesionado o suspendido</div>
@@ -995,8 +1078,8 @@ a { color: inherit; text-decoration: none; }
                         <div class="sub-card">
                             <div class="sub-minute">{% if cambio.minuto %}{{ cambio.minuto }}'{% else %}--{% endif %}</div>
                             <div>
-                                <div class="sub-in">&uarr; {{ cambio.jugador_entra.nombres }}</div>
-                                <div class="sub-out">&darr; {{ cambio.jugador_sale.nombres }}</div>
+                                <div class="sub-in"><span class="sub-arrow">&uarr;</span> {{ cambio.jugador_entra.nombres }}</div>
+                                <div class="sub-out"><span class="sub-arrow">&darr;</span> {{ cambio.jugador_sale.nombres }}</div>
                             </div>
                         </div>
                     {% endfor %}
@@ -1010,7 +1093,7 @@ a { color: inherit; text-decoration: none; }
                 <div class="roster-title">Banco</div>
                 {% for item in suplentes_visitante %}
                 <div class="roster-row">
-                    <div class="roster-avatar">{% if item.foto %}<img src="{{ item.foto }}" alt="{{ item.nombre }}">{% else %}{{ item.iniciales }}{% endif %}</div>
+                    <div class="roster-avatar">{% if item.foto %}<img src="{{ item.foto }}" alt="{{ item.nombre }}">{% else %}{{ item.iniciales }}{% endif %}{% if item.dorsal %}<span class="roster-dorsal">{{ item.dorsal }}</span>{% endif %}</div>
                     <div>
                         <div class="roster-name">{{ item.nombre }}</div>
                         <div class="roster-meta">{% if item.dorsal %}#{{ item.dorsal }}{% else %}Sin dorsal{% endif %}</div>
@@ -1034,7 +1117,7 @@ a { color: inherit; text-decoration: none; }
                 <div class="roster-title">Jugadores no disponibles</div>
                 {% for item in no_disponibles_visitante %}
                 <div class="roster-row">
-                    <div class="roster-avatar">{% if item.foto %}<img src="{{ item.foto }}" alt="{{ item.nombre }}">{% else %}{{ item.iniciales }}{% endif %}</div>
+                    <div class="roster-avatar">{% if item.foto %}<img src="{{ item.foto }}" alt="{{ item.nombre }}">{% else %}{{ item.iniciales }}{% endif %}{% if item.dorsal %}<span class="roster-dorsal">{{ item.dorsal }}</span>{% endif %}</div>
                     <div>
                         <div class="roster-name">{{ item.nombre }}</div>
                         <div class="roster-meta">{% if item.dorsal %}#{{ item.dorsal }}{% else %}Sin dorsal{% endif %} &middot; sancionado, lesionado o suspendido</div>
