@@ -1229,10 +1229,15 @@ def construir_estructura(torneo=None):
                 "ganador_local": ganador_local,
                 "ganador_visitante": ganador_visitante,
                 "estado": p.estado,
+                "estado_display": p.get_estado_display(),
                 "numero_fecha": p.numero_fecha,
                 "fecha": p.fecha,
                 "hora": p.hora,
                 "cancha": p.cancha,
+                "inicio_en_vivo": p.inicio_en_vivo,
+                "cronometro_pausado": p.cronometro_pausado,
+                "periodo_en_vivo": p.periodo_en_vivo,
+                "segundos_vivos": segundos_vivos_partido(p),
             }
 
             if p.fase == "CUARTOS":
@@ -1440,6 +1445,7 @@ def construir_partidos_portada(torneo=None):
             "fase": fase,
             "numero_fecha": partido.numero_fecha or "",
             "estado": partido.estado,
+            "estado_display": partido.get_estado_display(),
             "fecha": partido.fecha,
             "hora": partido.hora.strftime("%H:%M") if partido.hora else "Por definir",
             "hora_orden": partido.hora or time(0, 0),

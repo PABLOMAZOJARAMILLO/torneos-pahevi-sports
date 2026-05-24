@@ -5,9 +5,9 @@
         <span class="fase-pill">{% if partido.numero_fecha %}Fecha {{ partido.numero_fecha }}{% else %}{{ partido.fase }}{% endif %}</span>
         <span class="estado-chip {{ partido.estado|lower }}">
             {% if partido.estado == "EN_JUEGO" %}
-                🔴 EN VIVO
+                &#128308; EN VIVO
             {% else %}
-                {{ partido.estado }}
+                {{ partido.estado_display|default:partido.estado }}
             {% endif %}
         </span>
 
@@ -17,7 +17,7 @@
              data-segundos="{{ partido.segundos_vivos|default:0 }}"
              data-pausado="{% if partido.cronometro_pausado %}1{% else %}0{% endif %}"
              data-periodo="{{ partido.periodo_en_vivo|default:'PT' }}">
-            ⏱ 1T · 00:00
+            &#9201; 1T &middot; 00:00
         </div>
         {% endif %}
     </div>
@@ -27,7 +27,7 @@
             {% if partido.escudo_local %}
                 <img src="{{ partido.escudo_local }}" alt="{{ partido.local }}">
             {% endif %}
-            <span>{% if partido.ganador_local %}<span class="estrella-ganador">★</span>{% endif %}{{ partido.local }}</span>
+            <span>{% if partido.ganador_local %}<span class="estrella-ganador">&#11088;</span>{% endif %}{{ partido.local }}</span>
             {% if partido.ganador_local and partido.fase == "FINAL" %}
                 <strong class="campeon-badge">CAMPEON</strong>
             {% endif %}
@@ -53,7 +53,7 @@
             {% if partido.escudo_visitante %}
                 <img src="{{ partido.escudo_visitante }}" alt="{{ partido.visitante }}">
             {% endif %}
-            <span>{% if partido.ganador_visitante %}<span class="estrella-ganador">★</span>{% endif %}{{ partido.visitante }}</span>
+            <span>{% if partido.ganador_visitante %}<span class="estrella-ganador">&#11088;</span>{% endif %}{{ partido.visitante }}</span>
             {% if partido.ganador_visitante and partido.fase == "FINAL" %}
                 <strong class="campeon-badge">CAMPEON</strong>
             {% endif %}
@@ -61,7 +61,7 @@
     </div>
 
     <div class="partido-extra">
-        <span>{{ partido.fecha }} · {{ partido.cancha }}</span>
+        <span>{{ partido.fecha }} &middot; {{ partido.cancha }}</span>
         <span>{% if partido.estado == "EN_JUEGO" %}Seguir en vivo{% elif partido.eventos %}{{ partido.eventos }} eventos{% else %}Ver detalle{% endif %}</span>
     </div>
 </a>
