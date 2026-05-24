@@ -2901,6 +2901,185 @@ body.solo-lectura .menu-principal{top:96px!important}
             font-size: 22px !important;
         }
     }
+
+    /* Ajuste final: bracket vertical alineado */
+    .tab-content[data-tab="finales"] .llaves-container {
+        max-width: 760px !important;
+        padding: 22px 12px 34px !important;
+        background: #f3f4f6 !important;
+    }
+
+    .tab-content[data-tab="finales"] .llaves {
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 0 !important;
+        overflow-x: visible !important;
+        padding: 0 !important;
+    }
+
+    .tab-content[data-tab="finales"] .columna-llave {
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+        display: grid !important;
+        grid-template-columns: repeat(2, minmax(128px, 1fr)) !important;
+        justify-items: center !important;
+        align-items: start !important;
+        gap: 16px clamp(24px, 8vw, 120px) !important;
+        padding: 0 10px 46px !important;
+    }
+
+    .tab-content[data-tab="finales"] .columna-llave::after {
+        content: "" !important;
+        position: absolute !important;
+        left: 50% !important;
+        right: auto !important;
+        top: auto !important;
+        bottom: 8px !important;
+        width: 0 !important;
+        height: 34px !important;
+        border: 0 !important;
+        border-left: 4px solid #a3a3a3 !important;
+        opacity: .8 !important;
+        transform: translateX(-50%) !important;
+    }
+
+    .tab-content[data-tab="finales"] .columna-llave:last-child::after {
+        display: none !important;
+    }
+
+    .tab-content[data-tab="finales"] .columna-llave h3 {
+        grid-column: 1 / -1 !important;
+        position: relative !important;
+        z-index: 2 !important;
+        margin: 0 auto !important;
+        padding: 0 8px !important;
+        background: #f3f4f6 !important;
+    }
+
+    .tab-content[data-tab="finales"] .columna-llave:first-child::before {
+        content: "" !important;
+        position: absolute !important;
+        left: 25% !important;
+        right: 25% !important;
+        top: 82px !important;
+        height: 82px !important;
+        border-left: 4px solid #a3a3a3 !important;
+        border-right: 4px solid #a3a3a3 !important;
+        border-bottom: 4px solid #a3a3a3 !important;
+        opacity: .75 !important;
+        pointer-events: none !important;
+    }
+
+    .tab-content[data-tab="finales"] .columna-llave:nth-child(2)::before {
+        content: "" !important;
+        position: absolute !important;
+        left: 25% !important;
+        right: 25% !important;
+        top: 82px !important;
+        height: 70px !important;
+        border-left: 4px solid #a3a3a3 !important;
+        border-right: 4px solid #a3a3a3 !important;
+        border-bottom: 4px solid #a3a3a3 !important;
+        opacity: .75 !important;
+        pointer-events: none !important;
+    }
+
+    .tab-content[data-tab="finales"] .columna-llave:nth-child(2)::after {
+        bottom: 8px !important;
+        height: 34px !important;
+        border: 0 !important;
+        border-left: 4px solid #a3a3a3 !important;
+        transform: translateX(-50%) !important;
+    }
+
+    .tab-content[data-tab="finales"] .columna-llave:nth-child(3) {
+        grid-template-columns: repeat(2, minmax(128px, 1fr)) !important;
+        padding-bottom: 0 !important;
+    }
+
+    .tab-content[data-tab="finales"] .columna-llave:nth-child(3)::before {
+        content: "" !important;
+        position: absolute !important;
+        left: 50% !important;
+        top: 0 !important;
+        height: 34px !important;
+        border-left: 4px solid #a3a3a3 !important;
+        transform: translateX(-50%) !important;
+        opacity: .8 !important;
+    }
+
+    .tab-content[data-tab="finales"] .partido-llave {
+        position: relative !important;
+        z-index: 2 !important;
+        width: min(100%, 156px) !important;
+        padding: 10px 8px !important;
+        border-radius: 14px !important;
+    }
+
+    .tab-content[data-tab="finales"] .partido-llave.final,
+    .tab-content[data-tab="finales"] .partido-llave.tercer-puesto {
+        grid-column: auto !important;
+        width: min(100%, 176px) !important;
+    }
+
+    .tab-content[data-tab="finales"] .titulo-tercer-puesto {
+        grid-column: 1 / -1 !important;
+        margin-top: 6px !important;
+    }
+
+    .tab-content[data-tab="finales"] .partido-llave-contenido {
+        grid-template-columns: minmax(0, 1fr) 46px minmax(0, 1fr) !important;
+        gap: 5px !important;
+    }
+
+    .tab-content[data-tab="finales"] .equipo-llave img {
+        width: 42px !important;
+        height: 42px !important;
+    }
+
+    .tab-content[data-tab="finales"] .nombre-equipo-llave {
+        max-width: 58px !important;
+        font-size: 11px !important;
+        line-height: 1.05 !important;
+    }
+
+    .tab-content[data-tab="finales"] .marcador-llave {
+        font-size: 20px !important;
+    }
+
+    .tab-content[data-tab="finales"] .estado-llave,
+    .tab-content[data-tab="finales"] .detalle-llave,
+    .tab-content[data-tab="finales"] .penales-llave {
+        font-size: 8px !important;
+        line-height: 1.15 !important;
+    }
+
+    .tab-content[data-tab="finales"] .btn-ver-partido,
+    .tab-content[data-tab="finales"] .btn-editor-movil {
+        padding: 4px 7px !important;
+        font-size: 8px !important;
+    }
+
+    @media (max-width: 520px) {
+        .tab-content[data-tab="finales"] .columna-llave {
+            gap: 14px 26px !important;
+            padding-left: 4px !important;
+            padding-right: 4px !important;
+        }
+
+        .tab-content[data-tab="finales"] .columna-llave:first-child::before,
+        .tab-content[data-tab="finales"] .columna-llave:nth-child(2)::before {
+            left: 26% !important;
+            right: 26% !important;
+            top: 78px !important;
+        }
+
+        .tab-content[data-tab="finales"] .partido-llave {
+            width: min(100%, 138px) !important;
+        }
+    }
 </style>
 </head>
 
