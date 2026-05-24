@@ -616,10 +616,14 @@ a { color: inherit; text-decoration: none; }
     font-weight: 1000;
 }
 .jugador-foto img {
+    position: absolute;
+    inset: 0;
     width: 100%;
     height: 100%;
     object-fit: cover;
     border-radius: 50%;
+    overflow: hidden;
+    clip-path: circle(50% at 50% 50%);
 }
 .jugador-dorsal {
     position: absolute;
