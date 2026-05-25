@@ -4229,6 +4229,171 @@ body.solo-lectura .menu-principal{top:96px!important}
             font-size: 9px !important;
         }
     }
+
+    /* Fase final: rescate estable en tres columnas */
+    .tab-content[data-tab="finales"] .llaves-container {
+        max-width: 1180px !important;
+        padding: 22px 24px 32px !important;
+        overflow-x: auto !important;
+    }
+
+    .tab-content[data-tab="finales"] .llaves {
+        display: grid !important;
+        grid-template-columns: 300px 300px 330px !important;
+        grid-template-rows: none !important;
+        gap: 42px !important;
+        align-items: start !important;
+        min-width: 1014px !important;
+        overflow: visible !important;
+        padding: 0 !important;
+    }
+
+    .tab-content[data-tab="finales"] .bracket-lines {
+        display: none !important;
+    }
+
+    .tab-content[data-tab="finales"] .columna-llave,
+    .tab-content[data-tab="finales"] .columna-cuartos,
+    .tab-content[data-tab="finales"] .columna-semifinal,
+    .tab-content[data-tab="finales"] .columna-finales {
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        justify-content: flex-start !important;
+        width: 100% !important;
+        min-width: 0 !important;
+        padding: 0 !important;
+        background: none !important;
+        grid-column: auto !important;
+        grid-row: auto !important;
+    }
+
+    .tab-content[data-tab="finales"] .columna-cuartos {
+        gap: 26px !important;
+    }
+
+    .tab-content[data-tab="finales"] .columna-semifinal {
+        gap: 86px !important;
+        padding-top: 88px !important;
+    }
+
+    .tab-content[data-tab="finales"] .columna-finales {
+        gap: 28px !important;
+        padding-top: 80px !important;
+    }
+
+    .tab-content[data-tab="finales"] .columna-llave::before,
+    .tab-content[data-tab="finales"] .columna-llave::after,
+    .tab-content[data-tab="finales"] .partido-llave::before,
+    .tab-content[data-tab="finales"] .partido-llave::after {
+        content: none !important;
+        display: none !important;
+        background: none !important;
+        border: 0 !important;
+    }
+
+    .tab-content[data-tab="finales"] .columna-llave h3,
+    .tab-content[data-tab="finales"] .titulo-tercer-puesto {
+        position: static !important;
+        width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        color: #020617 !important;
+        font-size: 18px !important;
+        line-height: 1.1 !important;
+        text-align: center !important;
+        text-transform: uppercase !important;
+        background: transparent !important;
+        grid-column: auto !important;
+        grid-row: auto !important;
+        align-self: center !important;
+    }
+
+    .tab-content[data-tab="finales"] .partido-llave,
+    .tab-content[data-tab="finales"] .partido-llave.final,
+    .tab-content[data-tab="finales"] .partido-llave.tercer-puesto {
+        position: relative !important;
+        z-index: 1 !important;
+        width: 280px !important;
+        min-height: 120px !important;
+        margin: 0 !important;
+        padding: 10px 12px !important;
+        border-radius: 14px !important;
+        background: #ffffff !important;
+        overflow: hidden !important;
+        box-shadow: 0 12px 24px rgba(15, 23, 42, .11) !important;
+        grid-column: auto !important;
+        grid-row: auto !important;
+        align-self: center !important;
+    }
+
+    .tab-content[data-tab="finales"] .partido-llave.final,
+    .tab-content[data-tab="finales"] .partido-llave.tercer-puesto {
+        width: 312px !important;
+    }
+
+    .tab-content[data-tab="finales"] .partido-llave-contenido {
+        grid-template-columns: minmax(98px, 1fr) 58px minmax(98px, 1fr) !important;
+        gap: 8px !important;
+    }
+
+    .tab-content[data-tab="finales"] .nombre-equipo-llave {
+        max-width: 108px !important;
+        min-height: 24px !important;
+        font-size: 10px !important;
+        line-height: 1.08 !important;
+        overflow-wrap: anywhere !important;
+    }
+
+    .tab-content[data-tab="finales"] .equipo-llave img {
+        width: 44px !important;
+        height: 44px !important;
+    }
+
+    @media (max-width: 760px) {
+        .tab-content[data-tab="finales"] .llaves {
+            grid-template-columns: 250px 250px 278px !important;
+            gap: 28px !important;
+            min-width: 834px !important;
+        }
+
+        .tab-content[data-tab="finales"] .columna-cuartos {
+            gap: 20px !important;
+        }
+
+        .tab-content[data-tab="finales"] .columna-semifinal {
+            gap: 72px !important;
+            padding-top: 74px !important;
+        }
+
+        .tab-content[data-tab="finales"] .columna-finales {
+            gap: 22px !important;
+            padding-top: 70px !important;
+        }
+
+        .tab-content[data-tab="finales"] .partido-llave,
+        .tab-content[data-tab="finales"] .partido-llave.final,
+        .tab-content[data-tab="finales"] .partido-llave.tercer-puesto {
+            width: 232px !important;
+            min-height: 108px !important;
+            padding: 9px 8px !important;
+        }
+
+        .tab-content[data-tab="finales"] .partido-llave.final,
+        .tab-content[data-tab="finales"] .partido-llave.tercer-puesto {
+            width: 260px !important;
+        }
+
+        .tab-content[data-tab="finales"] .partido-llave-contenido {
+            grid-template-columns: minmax(76px, 1fr) 52px minmax(76px, 1fr) !important;
+            gap: 6px !important;
+        }
+
+        .tab-content[data-tab="finales"] .nombre-equipo-llave {
+            max-width: 84px !important;
+            font-size: 9px !important;
+        }
+    }
 </style>
 </head>
 
