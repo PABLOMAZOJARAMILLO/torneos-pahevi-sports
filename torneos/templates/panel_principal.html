@@ -4503,6 +4503,79 @@ body.solo-lectura .menu-principal{top:96px!important}
             max-width: 92px !important;
         }
     }
+
+    /* Fase final: evitar recortes y compactar detalles */
+    .tab-content[data-tab="finales"] .partido-llave,
+    .tab-content[data-tab="finales"] .partido-llave.final,
+    .tab-content[data-tab="finales"] .partido-llave.tercer-puesto {
+        height: 164px !important;
+        min-height: 164px !important;
+        max-height: 164px !important;
+        padding: 9px 12px !important;
+    }
+
+    .tab-content[data-tab="finales"] .partido-llave-contenido {
+        align-items: center !important;
+    }
+
+    .tab-content[data-tab="finales"] .centro-llave {
+        gap: 2px !important;
+    }
+
+    .tab-content[data-tab="finales"] .estado-llave,
+    .tab-content[data-tab="finales"] .penales-llave {
+        margin-top: 2px !important;
+        font-size: 8px !important;
+        line-height: 1.05 !important;
+    }
+
+    .tab-content[data-tab="finales"] .detalle-llave {
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        gap: 0 !important;
+        max-height: none !important;
+        margin-top: 2px !important;
+        overflow: visible !important;
+        font-size: 8px !important;
+        line-height: 1.05 !important;
+    }
+
+    .tab-content[data-tab="finales"] .detalle-llave div {
+        max-width: 72px !important;
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+        line-height: 1.05 !important;
+    }
+
+    .tab-content[data-tab="finales"] .btn-ver-partido,
+    .tab-content[data-tab="finales"] .btn-editor-movil {
+        white-space: nowrap !important;
+        min-width: 54px !important;
+        margin-top: 4px !important;
+        padding: 4px 8px !important;
+        font-size: 8px !important;
+        line-height: 1 !important;
+    }
+
+    .tab-content[data-tab="finales"] .equipo-llave {
+        gap: 4px !important;
+    }
+
+    @media (max-width: 760px) {
+        .tab-content[data-tab="finales"] .partido-llave,
+        .tab-content[data-tab="finales"] .partido-llave.final,
+        .tab-content[data-tab="finales"] .partido-llave.tercer-puesto {
+            height: 150px !important;
+            min-height: 150px !important;
+            max-height: 150px !important;
+        }
+
+        .tab-content[data-tab="finales"] .detalle-llave div {
+            max-width: 62px !important;
+        }
+    }
 </style>
 </head>
 
