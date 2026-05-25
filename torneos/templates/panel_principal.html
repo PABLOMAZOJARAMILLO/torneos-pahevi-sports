@@ -4808,6 +4808,72 @@ body.solo-lectura .menu-principal{top:96px!important}
             padding: 7px 13px !important;
         }
     }
+
+    /* Fase final APK: compacta como fase 1 */
+    .tab-content[data-tab="finales"] .partido-llave.final .centro-llave::before {
+        content: none !important;
+        display: none !important;
+    }
+
+    .tab-content[data-tab="finales"] .penales-llave {
+        white-space: nowrap !important;
+        text-align: center !important;
+    }
+
+    @media (max-width: 900px) {
+        .tab-content[data-tab="finales"] .columna-llave h3,
+        .tab-content[data-tab="finales"] .titulo-tercer-puesto {
+            font-size: clamp(22px, 6vw, 30px) !important;
+            margin-bottom: 6px !important;
+        }
+
+        .tab-content[data-tab="finales"] .partido-llave,
+        .tab-content[data-tab="finales"] .partido-llave.final,
+        .tab-content[data-tab="finales"] .partido-llave.tercer-puesto {
+            width: min(88vw, 360px) !important;
+            min-height: 154px !important;
+            padding: 10px 12px !important;
+            border-radius: 18px !important;
+        }
+
+        .tab-content[data-tab="finales"] .partido-llave-contenido {
+            grid-template-columns: minmax(98px, 1fr) 68px minmax(98px, 1fr) !important;
+            gap: 8px !important;
+        }
+
+        .tab-content[data-tab="finales"] .equipo-llave img {
+            width: 48px !important;
+            height: 48px !important;
+        }
+
+        .tab-content[data-tab="finales"] .nombre-equipo-llave {
+            max-width: 104px !important;
+            font-size: 12px !important;
+            line-height: 1.1 !important;
+        }
+
+        .tab-content[data-tab="finales"] .marcador-llave {
+            font-size: 25px !important;
+        }
+
+        .tab-content[data-tab="finales"] .estado-llave,
+        .tab-content[data-tab="finales"] .penales-llave,
+        .tab-content[data-tab="finales"] .detalle-llave {
+            font-size: 11px !important;
+            line-height: 1.15 !important;
+        }
+
+        .tab-content[data-tab="finales"] .detalle-llave div {
+            max-width: 86px !important;
+        }
+
+        .tab-content[data-tab="finales"] .btn-ver-partido,
+        .tab-content[data-tab="finales"] .btn-editor-movil {
+            font-size: 11px !important;
+            min-width: 82px !important;
+            padding: 6px 10px !important;
+        }
+    }
 </style>
 </head>
 

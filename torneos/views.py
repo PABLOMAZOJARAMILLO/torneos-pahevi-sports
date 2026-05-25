@@ -3924,6 +3924,9 @@ def partido_live(request, partido_id):
     sustituciones = SustitucionPartido.objects.filter(partido=partido).select_related("equipo", "jugador_sale", "jugador_entra").order_by("equipo__nombre", "minuto", "id")
     sustituciones_local = [cambio for cambio in sustituciones if cambio.equipo_id == partido.equipo_local_id]
     sustituciones_visitante = [cambio for cambio in sustituciones if cambio.equipo_id == partido.equipo_visitante_id]
+    for cambio in sustituciones:
+        cambio.jugador_entra_corto = nombre_corto_jugador(cambio.jugador_entra)
+        cambio.jugador_sale_corto = nombre_corto_jugador(cambio.jugador_sale)
 
     eventos_por_jugador = defaultdict(dict)
 
