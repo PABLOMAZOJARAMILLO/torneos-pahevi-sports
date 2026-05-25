@@ -4394,6 +4394,48 @@ body.solo-lectura .menu-principal{top:96px!important}
             font-size: 9px !important;
         }
     }
+
+    /* Apagado definitivo de conectores antiguos de fase final */
+    .tab-content[data-tab="finales"] .columna-llave.columna-cuartos,
+    .tab-content[data-tab="finales"] .columna-llave.columna-semifinal,
+    .tab-content[data-tab="finales"] .columna-llave.columna-finales,
+    .tab-content[data-tab="finales"] .columna-llave:first-child,
+    .tab-content[data-tab="finales"] .columna-llave:nth-child(2),
+    .tab-content[data-tab="finales"] .columna-llave:nth-child(3),
+    .tab-content[data-tab="finales"] .columna-llave:nth-child(4) {
+        background: none !important;
+    }
+
+    .tab-content[data-tab="finales"] .columna-llave::before,
+    .tab-content[data-tab="finales"] .columna-llave::after,
+    .tab-content[data-tab="finales"] .columna-llave:first-child::before,
+    .tab-content[data-tab="finales"] .columna-llave:first-child::after,
+    .tab-content[data-tab="finales"] .columna-llave:nth-child(2)::before,
+    .tab-content[data-tab="finales"] .columna-llave:nth-child(2)::after,
+    .tab-content[data-tab="finales"] .columna-llave:nth-child(3)::before,
+    .tab-content[data-tab="finales"] .columna-llave:nth-child(3)::after,
+    .tab-content[data-tab="finales"] .columna-llave:nth-child(4)::before,
+    .tab-content[data-tab="finales"] .columna-llave:nth-child(4)::after,
+    .tab-content[data-tab="finales"] .partido-llave::before,
+    .tab-content[data-tab="finales"] .partido-llave::after,
+    .tab-content[data-tab="finales"] .columna-llave:first-child .partido-llave::before,
+    .tab-content[data-tab="finales"] .columna-llave:first-child .partido-llave::after,
+    .tab-content[data-tab="finales"] .columna-llave:nth-child(2) .partido-llave::before,
+    .tab-content[data-tab="finales"] .columna-llave:nth-child(2) .partido-llave::after,
+    .tab-content[data-tab="finales"] .columna-llave:first-child .partido-llave:nth-of-type(2)::before,
+    .tab-content[data-tab="finales"] .columna-llave:first-child .partido-llave:nth-of-type(2)::after,
+    .tab-content[data-tab="finales"] .columna-llave:first-child .partido-llave:nth-of-type(4)::before,
+    .tab-content[data-tab="finales"] .columna-llave:first-child .partido-llave:nth-of-type(4)::after,
+    .tab-content[data-tab="finales"] .columna-llave:nth-child(2) .partido-llave:nth-of-type(2)::before,
+    .tab-content[data-tab="finales"] .columna-llave:nth-child(2) .partido-llave:nth-of-type(2)::after {
+        content: none !important;
+        display: none !important;
+        width: 0 !important;
+        height: 0 !important;
+        background: none !important;
+        border: 0 !important;
+        clip-path: none !important;
+    }
 </style>
 </head>
 
