@@ -1356,6 +1356,8 @@ def nombre_corto_jugador(jugador):
     partes = [parte for parte in nombre.split() if parte]
     if len(partes) >= 4:
         return f"{partes[0]} {partes[2]}"
+    if len(partes) == 3:
+        return " ".join(partes)
     if len(partes) >= 2:
         return f"{partes[0]} {partes[1]}"
     return nombre or "Jugador"
