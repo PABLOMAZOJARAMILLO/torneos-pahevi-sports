@@ -1379,6 +1379,20 @@ def nombre_corto_jugador(jugador):
     return nombre or "Jugador"
 
 
+def nombre_resumen_jugador(jugador):
+    nombre = (getattr(jugador, "nombres", "") or "").strip()
+    partes = [parte for parte in nombre.split() if parte]
+    conectores_apellido = {"de", "del", "la", "las", "los", "da", "das", "do", "dos", "van", "von", "y"}
+    if len(partes) >= 2:
+        apellido = [partes[1]]
+        idx = 2
+        while apellido[-1].lower() in conectores_apellido and idx < len(partes):
+            apellido.append(partes[idx])
+            idx += 1
+        return f"{partes[0]} {' '.join(apellido)}"
+    return nombre or "Jugador"
+
+
 def construir_partidos_portada(torneo=None):
     hoy = date.today()
     partidos = Partido.objects.filter(
@@ -4024,7 +4038,7 @@ def partido_live(request, partido_id):
             icono="\u26bd",
             minuto=None,
             equipo_id=gol.equipo_id,
-            texto=nombre_corto_jugador(gol.jugador),
+            texto=nombre_resumen_jugador(gol.jugador),
             detalle=detalle_gol,
             orden=orden,
         ))
@@ -4036,7 +4050,7 @@ def partido_live(request, partido_id):
             icono="🟥" if tarjeta.tipo == "ROJA" else "🟨",
             minuto=None,
             equipo_id=tarjeta.equipo_id,
-            texto=nombre_corto_jugador(tarjeta.jugador),
+            texto=nombre_resumen_jugador(tarjeta.jugador),
             detalle=tarjeta.get_tipo_display(),
             orden=orden,
         ))
@@ -4048,10 +4062,10 @@ def partido_live(request, partido_id):
             icono="🔁",
             minuto=sustitucion.minuto,
             equipo_id=sustitucion.equipo_id,
-            texto=nombre_corto_jugador(sustitucion.jugador_entra),
-            detalle=f"Sale {nombre_corto_jugador(sustitucion.jugador_sale)}",
-            jugador_entra=nombre_corto_jugador(sustitucion.jugador_entra),
-            jugador_sale=nombre_corto_jugador(sustitucion.jugador_sale),
+            texto=nombre_resumen_jugador(sustitucion.jugador_entra),
+            detalle=f"Sale {nombre_resumen_jugador(sustitucion.jugador_sale)}",
+            jugador_entra=nombre_resumen_jugador(sustitucion.jugador_entra),
+            jugador_sale=nombre_resumen_jugador(sustitucion.jugador_sale),
             orden=orden,
         ))
 
