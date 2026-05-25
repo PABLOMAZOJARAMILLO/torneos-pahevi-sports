@@ -3081,6 +3081,197 @@ body.solo-lectura .menu-principal{top:96px!important}
         }
     }
 
+    /* Fechas fase 1: fichas compactas de calendario */
+    .tab-content[data-tab="fase1"] .fecha-bloque {
+        width: 100% !important;
+        align-items: stretch !important;
+    }
+
+    .tab-content[data-tab="fase1"] .fecha-bloque h3 {
+        align-self: flex-start !important;
+        margin: 8px 0 12px !important;
+        color: #00ff66 !important;
+        font-size: 18px !important;
+        font-weight: 1000 !important;
+    }
+
+    .tab-content[data-tab="fase1"] .scroll-horizontal {
+        width: 100% !important;
+        overflow: visible !important;
+    }
+
+    .tab-content[data-tab="fase1"] .fecha-bloque {
+        display: none;
+    }
+
+    .tab-content[data-tab="fase1"] .fecha-bloque.activa,
+    .tab-content[data-tab="fase1"] .fecha-bloque[style*="flex"] {
+        display: grid !important;
+        grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)) !important;
+        gap: 12px !important;
+        align-items: stretch !important;
+    }
+
+    .tab-content[data-tab="fase1"] .fecha-bloque > h3 {
+        grid-column: 1 / -1 !important;
+    }
+
+    .tab-content[data-tab="fase1"] .card-partido.partido-panel-unificado {
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: none !important;
+        margin: 0 !important;
+        padding: 10px 12px !important;
+        border-left-width: 5px !important;
+        border-radius: 16px !important;
+        box-shadow: 0 8px 18px rgba(15, 23, 42, 0.11) !important;
+    }
+
+    .tab-content[data-tab="fase1"] .partido-contenido {
+        display: grid !important;
+        grid-template-columns: minmax(120px, 1fr) auto minmax(120px, 1fr) !important;
+        align-items: center !important;
+        gap: 12px !important;
+        padding: 0 !important;
+    }
+
+    .tab-content[data-tab="fase1"] .equipo-card {
+        width: auto !important;
+        min-width: 0 !important;
+        gap: 6px !important;
+        font-size: 11px !important;
+        line-height: 1.08 !important;
+    }
+
+    .tab-content[data-tab="fase1"] .equipo-card span {
+        width: 100% !important;
+        max-width: 150px !important;
+        display: -webkit-box !important;
+        -webkit-line-clamp: 2 !important;
+        -webkit-box-orient: vertical !important;
+        overflow: hidden !important;
+        white-space: normal !important;
+    }
+
+    .tab-content[data-tab="fase1"] .equipo-card img {
+        width: 46px !important;
+        height: 46px !important;
+        padding: 4px !important;
+        border-radius: 12px !important;
+    }
+
+    .tab-content[data-tab="fase1"] .partido-centro {
+        min-width: 136px !important;
+    }
+
+    .tab-content[data-tab="fase1"] .grupo-card {
+        margin-bottom: 4px !important;
+        color: #0f172a !important;
+        font-size: 10px !important;
+        line-height: 1.15 !important;
+        max-width: 180px !important;
+    }
+
+    .tab-content[data-tab="fase1"] .estado-card {
+        margin: 0 auto 5px !important;
+        padding: 3px 10px !important;
+        font-size: 10px !important;
+    }
+
+    .tab-content[data-tab="fase1"] .marcador-card {
+        min-width: 74px !important;
+        min-height: 42px !important;
+        padding: 5px 12px !important;
+        border-radius: 13px !important;
+        font-size: 24px !important;
+    }
+
+    .tab-content[data-tab="fase1"] .marcador-card b {
+        font-size: 13px !important;
+    }
+
+    .tab-content[data-tab="fase1"] .detalle-partido-card {
+        margin-top: 6px !important;
+        display: flex !important;
+        flex-wrap: wrap !important;
+        justify-content: center !important;
+        gap: 4px 8px !important;
+        font-size: 10px !important;
+        line-height: 1.2 !important;
+    }
+
+    .tab-content[data-tab="fase1"] .detalle-partido-card div {
+        gap: 3px !important;
+    }
+
+    .tab-content[data-tab="fase1"] .btn-ver-partido,
+    .tab-content[data-tab="fase1"] .btn-editor-movil {
+        margin-top: 7px !important;
+        min-height: 28px !important;
+        padding: 6px 11px !important;
+        font-size: 10px !important;
+    }
+
+    .tab-content[data-tab="fase1"] .btn-editor-movil {
+        background: #00d65f !important;
+        color: #06111f !important;
+        box-shadow: none !important;
+    }
+
+    .tab-content[data-tab="fase1"] .acciones-partido {
+        right: 8px !important;
+        bottom: 8px !important;
+    }
+
+    .tab-content[data-tab="fase1"] .btn-menu-partido {
+        width: 30px !important;
+        height: 30px !important;
+        font-size: 22px !important;
+    }
+
+    @media (max-width: 760px) {
+        .tab-content[data-tab="fase1"] .fecha-bloque.activa,
+        .tab-content[data-tab="fase1"] .fecha-bloque[style*="flex"] {
+            grid-template-columns: 1fr !important;
+            gap: 10px !important;
+        }
+
+        .tab-content[data-tab="fase1"] .card-partido.partido-panel-unificado {
+            padding: 9px 10px !important;
+        }
+
+        .tab-content[data-tab="fase1"] .partido-contenido {
+            grid-template-columns: minmax(82px, 1fr) minmax(118px, auto) minmax(82px, 1fr) !important;
+            gap: 7px !important;
+        }
+
+        .tab-content[data-tab="fase1"] .equipo-card img {
+            width: 40px !important;
+            height: 40px !important;
+        }
+
+        .tab-content[data-tab="fase1"] .equipo-card span {
+            max-width: 104px !important;
+            font-size: 10px !important;
+        }
+
+        .tab-content[data-tab="fase1"] .grupo-card {
+            max-width: 134px !important;
+            font-size: 9px !important;
+        }
+
+        .tab-content[data-tab="fase1"] .marcador-card {
+            min-width: 64px !important;
+            min-height: 38px !important;
+            font-size: 21px !important;
+        }
+
+        .tab-content[data-tab="fase1"] .detalle-partido-card {
+            font-size: 9px !important;
+            gap: 3px 6px !important;
+        }
+    }
+
     /* Correccion: fase final nuevamente por columnas */
     .tab-content[data-tab="finales"] .llaves-container {
         max-width: 1320px !important;
@@ -4685,6 +4876,7 @@ function mostrarFechaCategoria(idCategoria, idFecha, boton) {
 
     categoria.querySelectorAll('.fecha-bloque').forEach(function(bloque) {
         bloque.style.display = 'none';
+        bloque.classList.remove('activa');
     });
 
     categoria.querySelectorAll('.btn-fecha').forEach(function(btn) {
@@ -4693,6 +4885,7 @@ function mostrarFechaCategoria(idCategoria, idFecha, boton) {
 
     if (!yaActivo && bloqueSeleccionado) {
         bloqueSeleccionado.style.display = 'flex';
+        bloqueSeleccionado.classList.add('activa');
         boton.classList.add('activa');
     }
 }
