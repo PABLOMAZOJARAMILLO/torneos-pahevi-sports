@@ -3838,6 +3838,212 @@ body.solo-lectura .menu-principal{top:96px!important}
                 linear-gradient(#050505, #050505) right 38px top 485px / 34px 7px no-repeat !important;
         }
     }
+
+    /* Fase final: version limpia con SVG de llaves */
+    .tab-content[data-tab="finales"] .llaves-container {
+        max-width: 1220px !important;
+        padding: 18px 24px 28px !important;
+        overflow-x: auto !important;
+    }
+
+    .tab-content[data-tab="finales"] .llaves {
+        position: relative !important;
+        display: grid !important;
+        grid-template-columns: 280px 280px 320px !important;
+        grid-template-rows: 34px 128px 128px 42px 128px 128px !important;
+        column-gap: 80px !important;
+        row-gap: 10px !important;
+        align-items: center !important;
+        justify-items: center !important;
+        min-width: 1080px !important;
+        overflow: visible !important;
+        padding: 0 !important;
+    }
+
+    .tab-content[data-tab="finales"] .bracket-lines {
+        position: absolute !important;
+        inset: 34px 0 0 0 !important;
+        width: 100% !important;
+        height: calc(100% - 34px) !important;
+        z-index: 1 !important;
+        pointer-events: none !important;
+        overflow: visible !important;
+    }
+
+    .tab-content[data-tab="finales"] .bracket-lines path {
+        fill: none !important;
+        stroke: #050505 !important;
+        stroke-width: 8 !important;
+        stroke-linecap: square !important;
+        stroke-linejoin: round !important;
+    }
+
+    .tab-content[data-tab="finales"] .columna-llave {
+        display: contents !important;
+        background: none !important;
+    }
+
+    .tab-content[data-tab="finales"] .columna-llave::before,
+    .tab-content[data-tab="finales"] .columna-llave::after,
+    .tab-content[data-tab="finales"] .partido-llave::before,
+    .tab-content[data-tab="finales"] .partido-llave::after {
+        content: none !important;
+        display: none !important;
+        background: none !important;
+        border: 0 !important;
+    }
+
+    .tab-content[data-tab="finales"] .columna-llave:nth-child(2) > h3 {
+        grid-column: 1 !important;
+        grid-row: 1 !important;
+    }
+
+    .tab-content[data-tab="finales"] .columna-llave:nth-child(3) > h3 {
+        grid-column: 2 !important;
+        grid-row: 1 !important;
+    }
+
+    .tab-content[data-tab="finales"] .columna-llave:nth-child(4) > h3:not(.titulo-tercer-puesto) {
+        grid-column: 3 !important;
+        grid-row: 2 !important;
+        align-self: end !important;
+    }
+
+    .tab-content[data-tab="finales"] .columna-llave h3,
+    .tab-content[data-tab="finales"] .titulo-tercer-puesto {
+        z-index: 3 !important;
+        width: 100% !important;
+        margin: 0 !important;
+        color: #020617 !important;
+        font-size: 17px !important;
+        line-height: 1.05 !important;
+        text-align: center !important;
+        text-transform: uppercase !important;
+        background: transparent !important;
+    }
+
+    .tab-content[data-tab="finales"] .columna-llave:nth-child(2) .partido-llave:nth-of-type(1) {
+        grid-column: 1 !important;
+        grid-row: 2 !important;
+    }
+
+    .tab-content[data-tab="finales"] .columna-llave:nth-child(2) .partido-llave:nth-of-type(2) {
+        grid-column: 1 !important;
+        grid-row: 3 !important;
+    }
+
+    .tab-content[data-tab="finales"] .columna-llave:nth-child(2) .partido-llave:nth-of-type(3) {
+        grid-column: 1 !important;
+        grid-row: 5 !important;
+    }
+
+    .tab-content[data-tab="finales"] .columna-llave:nth-child(2) .partido-llave:nth-of-type(4) {
+        grid-column: 1 !important;
+        grid-row: 6 !important;
+    }
+
+    .tab-content[data-tab="finales"] .columna-llave:nth-child(3) .partido-llave:nth-of-type(1) {
+        grid-column: 2 !important;
+        grid-row: 2 / span 2 !important;
+        align-self: center !important;
+    }
+
+    .tab-content[data-tab="finales"] .columna-llave:nth-child(3) .partido-llave:nth-of-type(2) {
+        grid-column: 2 !important;
+        grid-row: 5 / span 2 !important;
+        align-self: center !important;
+    }
+
+    .tab-content[data-tab="finales"] .columna-llave:nth-child(4) .partido-llave.final {
+        grid-column: 3 !important;
+        grid-row: 3 / span 2 !important;
+        align-self: center !important;
+    }
+
+    .tab-content[data-tab="finales"] .titulo-tercer-puesto {
+        grid-column: 3 !important;
+        grid-row: 5 !important;
+        align-self: end !important;
+    }
+
+    .tab-content[data-tab="finales"] .columna-llave:nth-child(4) .partido-llave.tercer-puesto {
+        grid-column: 3 !important;
+        grid-row: 6 !important;
+    }
+
+    .tab-content[data-tab="finales"] .partido-llave {
+        z-index: 2 !important;
+        width: 260px !important;
+        min-height: 116px !important;
+        margin: 0 !important;
+        padding: 10px 12px !important;
+        border-radius: 13px !important;
+        background: #ffffff !important;
+        box-shadow: 0 12px 24px rgba(15, 23, 42, .12) !important;
+        overflow: hidden !important;
+    }
+
+    .tab-content[data-tab="finales"] .partido-llave.final,
+    .tab-content[data-tab="finales"] .partido-llave.tercer-puesto {
+        width: 300px !important;
+    }
+
+    .tab-content[data-tab="finales"] .partido-llave-contenido {
+        grid-template-columns: minmax(90px, 1fr) 58px minmax(90px, 1fr) !important;
+        gap: 8px !important;
+    }
+
+    .tab-content[data-tab="finales"] .equipo-llave img {
+        width: 44px !important;
+        height: 44px !important;
+    }
+
+    .tab-content[data-tab="finales"] .nombre-equipo-llave {
+        max-width: 100px !important;
+        min-height: 24px !important;
+        font-size: 10px !important;
+        line-height: 1.08 !important;
+        overflow-wrap: anywhere !important;
+    }
+
+    .tab-content[data-tab="finales"] .marcador-llave {
+        font-size: 22px !important;
+    }
+
+    @media (max-width: 760px) {
+        .tab-content[data-tab="finales"] .llaves {
+            grid-template-columns: 238px 238px 270px !important;
+            grid-template-rows: 32px 116px 116px 36px 116px 116px !important;
+            column-gap: 62px !important;
+            row-gap: 9px !important;
+            min-width: 870px !important;
+        }
+
+        .tab-content[data-tab="finales"] .bracket-lines path {
+            stroke-width: 7 !important;
+        }
+
+        .tab-content[data-tab="finales"] .partido-llave {
+            width: 218px !important;
+            min-height: 106px !important;
+            padding: 9px 8px !important;
+        }
+
+        .tab-content[data-tab="finales"] .partido-llave.final,
+        .tab-content[data-tab="finales"] .partido-llave.tercer-puesto {
+            width: 252px !important;
+        }
+
+        .tab-content[data-tab="finales"] .partido-llave-contenido {
+            grid-template-columns: minmax(70px, 1fr) 52px minmax(70px, 1fr) !important;
+            gap: 6px !important;
+        }
+
+        .tab-content[data-tab="finales"] .nombre-equipo-llave {
+            max-width: 78px !important;
+            font-size: 9px !important;
+        }
+    }
 </style>
 </head>
 
@@ -4550,6 +4756,14 @@ body.solo-lectura .menu-principal{top:96px!important}
             <h2>Fase final - llaves</h2>
 
             <div class="llaves">
+                <svg class="bracket-lines" viewBox="0 0 1080 690" preserveAspectRatio="none" aria-hidden="true">
+                    <path d="M270 116 H314 V198 H360" />
+                    <path d="M270 280 H314 V198" />
+                    <path d="M270 444 H314 V526 H360" />
+                    <path d="M270 608 H314 V526" />
+                    <path d="M630 198 H680 V362 H730" />
+                    <path d="M630 526 H680 V362" />
+                </svg>
                 <div class="columna-llave">
                     <h3>Cuartos de final</h3>
 
