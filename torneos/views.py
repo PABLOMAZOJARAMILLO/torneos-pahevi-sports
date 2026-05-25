@@ -1232,6 +1232,7 @@ def construir_estructura(torneo=None):
                 "estado": p.estado,
                 "estado_display": p.get_estado_display(),
                 "numero_fecha": p.numero_fecha,
+                "numero_llave": int(re.search(r"\d+", p.numero_fecha or "0").group()) if re.search(r"\d+", p.numero_fecha or "") else 0,
                 "fecha": p.fecha,
                 "hora": p.hora,
                 "cancha": p.cancha,
@@ -1249,6 +1250,16 @@ def construir_estructura(torneo=None):
                 llaves["final"].append(item)
             elif p.fase == "TERCER_PUESTO":
                 llaves["tercer_puesto"].append(item)
+
+        orden_cuartos = {1: 1, 4: 2, 2: 3, 3: 4}
+        llaves["cuartos"] = sorted(
+            llaves["cuartos"],
+            key=lambda item: (orden_cuartos.get(item["numero_llave"], item["numero_llave"] or 99), item["id"] or 0)
+        )
+        llaves["semifinal"] = sorted(
+            llaves["semifinal"],
+            key=lambda item: (item["numero_llave"] or 99, item["id"] or 0)
+        )
 
         datos_categoria["llaves"] = llaves
 
