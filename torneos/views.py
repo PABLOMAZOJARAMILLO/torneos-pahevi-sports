@@ -1362,24 +1362,7 @@ def iniciales_jugador(jugador):
     return "".join(partes).upper() or "J"
 
 
-def nombre_corto_jugador(jugador):
-    nombre = (getattr(jugador, "nombres", "") or "").strip()
-    partes = [parte for parte in nombre.split() if parte]
-    conectores_apellido = {"de", "del", "la", "las", "los", "da", "das", "do", "dos", "van", "von", "y"}
-    if len(partes) >= 4:
-        if partes[1].lower() in conectores_apellido:
-            return " ".join(partes)
-        if partes[2].lower() in conectores_apellido:
-            return f"{partes[0]} {' '.join(partes[2:])}"
-        return f"{partes[0]} {partes[2]}"
-    if len(partes) == 3:
-        return " ".join(partes)
-    if len(partes) >= 2:
-        return f"{partes[0]} {partes[1]}"
-    return nombre or "Jugador"
-
-
-def nombre_resumen_jugador(jugador):
+def _nombre_primer_apellido(jugador):
     nombre = (getattr(jugador, "nombres", "") or "").strip()
     partes = [parte for parte in nombre.split() if parte]
     conectores_apellido = {"de", "del", "la", "las", "los", "da", "das", "do", "dos", "van", "von", "y"}
@@ -1391,6 +1374,14 @@ def nombre_resumen_jugador(jugador):
             idx += 1
         return f"{partes[0]} {' '.join(apellido)}"
     return nombre or "Jugador"
+
+
+def nombre_corto_jugador(jugador):
+    return _nombre_primer_apellido(jugador)
+
+
+def nombre_resumen_jugador(jugador):
+    return _nombre_primer_apellido(jugador)
 
 
 def construir_partidos_portada(torneo=None):
