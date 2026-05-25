@@ -4436,6 +4436,73 @@ body.solo-lectura .menu-principal{top:96px!important}
         border: 0 !important;
         clip-path: none !important;
     }
+
+    /* Fase final: tarjetas con altura uniforme */
+    .tab-content[data-tab="finales"] .llaves {
+        grid-template-columns: 320px 320px 350px !important;
+        min-width: 1074px !important;
+    }
+
+    .tab-content[data-tab="finales"] .partido-llave,
+    .tab-content[data-tab="finales"] .partido-llave.final,
+    .tab-content[data-tab="finales"] .partido-llave.tercer-puesto {
+        width: 304px !important;
+        height: 146px !important;
+        min-height: 146px !important;
+        max-height: 146px !important;
+        box-sizing: border-box !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+    }
+
+    .tab-content[data-tab="finales"] .partido-llave.final,
+    .tab-content[data-tab="finales"] .partido-llave.tercer-puesto {
+        width: 330px !important;
+    }
+
+    .tab-content[data-tab="finales"] .partido-llave-contenido {
+        width: 100% !important;
+        grid-template-columns: minmax(108px, 1fr) 62px minmax(108px, 1fr) !important;
+    }
+
+    .tab-content[data-tab="finales"] .nombre-equipo-llave {
+        max-width: 116px !important;
+    }
+
+    .tab-content[data-tab="finales"] .detalle-llave {
+        max-height: 38px !important;
+        overflow: hidden !important;
+    }
+
+    @media (max-width: 760px) {
+        .tab-content[data-tab="finales"] .llaves {
+            grid-template-columns: 268px 268px 294px !important;
+            min-width: 886px !important;
+        }
+
+        .tab-content[data-tab="finales"] .partido-llave,
+        .tab-content[data-tab="finales"] .partido-llave.final,
+        .tab-content[data-tab="finales"] .partido-llave.tercer-puesto {
+            width: 250px !important;
+            height: 132px !important;
+            min-height: 132px !important;
+            max-height: 132px !important;
+        }
+
+        .tab-content[data-tab="finales"] .partido-llave.final,
+        .tab-content[data-tab="finales"] .partido-llave.tercer-puesto {
+            width: 276px !important;
+        }
+
+        .tab-content[data-tab="finales"] .partido-llave-contenido {
+            grid-template-columns: minmax(84px, 1fr) 52px minmax(84px, 1fr) !important;
+        }
+
+        .tab-content[data-tab="finales"] .nombre-equipo-llave {
+            max-width: 92px !important;
+        }
+    }
 </style>
 </head>
 
