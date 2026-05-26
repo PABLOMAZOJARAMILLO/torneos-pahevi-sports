@@ -4239,6 +4239,10 @@ def partido_live(request, partido_id):
         agregar_evento_jugador(sustitucion.jugador_sale_id, "sale", "Sustituido")
         agregar_evento_jugador(sustitucion.jugador_entra_id, "entra", "Ingreso")
 
+    orden_ingreso_suplente = {}
+    for indice, sustitucion in enumerate(sustituciones, start=1):
+        orden_ingreso_suplente.setdefault(sustitucion.jugador_entra_id, indice)
+
     alineaciones_local = []
     alineaciones_visitante = []
     suplentes_local = []
@@ -4258,6 +4262,7 @@ def partido_live(request, partido_id):
             iniciales=iniciales_jugador(jugador),
             etiqueta_edad=etiqueta_edad_jugador(jugador, partido.categoria, partido.fecha),
             eventos=list(eventos_por_jugador.get(jugador.id, {}).values()),
+            orden_ingreso=orden_ingreso_suplente.get(jugador.id, 9999),
         )
         if alineacion.equipo_id == partido.equipo_local_id:
             if alineacion.rol == "SUPLENTE":
@@ -4276,6 +4281,8 @@ def partido_live(request, partido_id):
 
     alineaciones_local = _ordenar_titulares_cancha(alineaciones_local)
     alineaciones_visitante = _ordenar_titulares_cancha(alineaciones_visitante)
+    suplentes_local = sorted(suplentes_local, key=lambda item: (item.orden_ingreso, item.nombre_corto))
+    suplentes_visitante = sorted(suplentes_visitante, key=lambda item: (item.orden_ingreso, item.nombre_corto))
 
     eventos_live = []
     orden = 0
