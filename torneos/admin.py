@@ -144,8 +144,9 @@ def importar_planilla_inscripcion(request):
                     errores.append(f'Fila {fila}: fecha de nacimiento inválida para {nombre}.')
                     continue
                 _, creado = Jugador.objects.update_or_create(
+                    equipo=equipo,
                     cedula=cedula,
-                    defaults={'equipo': equipo, 'dorsal': dorsal, 'nombres': nombre.upper(), 'fecha_nacimiento': fecha_nacimiento, 'estado': 'ACTIVO'},
+                    defaults={'dorsal': dorsal, 'nombres': nombre.upper(), 'fecha_nacimiento': fecha_nacimiento, 'estado': 'ACTIVO'},
                 )
                 if creado:
                     creados += 1
@@ -208,7 +209,14 @@ class JugadorWidget(ForeignKeyWidget):
         if not value:
             return None
         valor = str(value).strip()
-        jugador = Jugador.objects.filter(cedula=valor).first() or Jugador.objects.filter(nombres__iexact=valor).first()
+        jugadores = Jugador.objects.all()
+        equipo_nombre = row.get('equipo') or row.get('Equipo') or row.get('EQUIPO') if row else None
+        categoria_nombre = row.get('categoria') or row.get('Categoría') or row.get('CategorÃ­a') or row.get('CATEGORIA') if row else None
+        if equipo_nombre:
+            jugadores = jugadores.filter(equipo__nombre__iexact=str(equipo_nombre).strip())
+        if categoria_nombre:
+            jugadores = jugadores.filter(equipo__categoria__nombre__iexact=str(categoria_nombre).strip())
+        jugador = jugadores.filter(cedula=valor).first() or jugadores.filter(nombres__iexact=valor).first()
         if not jugador:
             raise ValueError(f'No existe el jugador: {valor}')
         return jugador
@@ -235,7 +243,7 @@ class JugadorResource(resources.ModelResource):
     equipo = fields.Field(column_name='equipo', attribute='equipo', widget=EquipoWidget(Equipo, 'nombre'))
     class Meta:
         model = Jugador
-        import_id_fields = ('cedula',)
+        import_id_fields = ('equipo', 'cedula')
         fields = ('id', 'equipo', 'dorsal', 'nombres', 'cedula', 'fecha_nacimiento', 'telefono', 'estado')
         skip_unchanged = True
         report_skipped = True

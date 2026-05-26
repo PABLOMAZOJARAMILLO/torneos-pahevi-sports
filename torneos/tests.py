@@ -2,7 +2,8 @@ from datetime import date, time, timedelta
 
 from types import SimpleNamespace
 
-from django.test import TestCase
+from django.db import IntegrityError
+from django.test import TestCase, TransactionTestCase
 from django.utils import timezone
 
 from .models import AlineacionPartido, Categoria, Equipo, Jugador, Partido, Tarjeta, Torneo
@@ -148,3 +149,72 @@ class TablaPosicionesWoTests(TestCase):
         self.assertEqual(fila_ganador["dg"], 6)
         self.assertEqual(fila_perdedor["pp"], 1)
         self.assertEqual(fila_perdedor["pts"], 0)
+
+
+class JugadorCedulaPorEquipoTests(TransactionTestCase):
+    def test_permite_misma_cedula_en_equipos_distintos(self):
+        torneo = Torneo.objects.create(
+            nombre="Veranero",
+            fecha_inicio=date(2026, 1, 1),
+        )
+        senior = Categoria.objects.create(
+            nombre="Senior Master",
+            edad_minima=18,
+            edad_maxima=60,
+            torneo=torneo,
+        )
+        plus = Categoria.objects.create(
+            nombre="Plus 50",
+            edad_minima=50,
+            edad_maxima=80,
+            torneo=torneo,
+        )
+        equipo_senior = Equipo.objects.create(nombre="Niqueleros", categoria=senior)
+        equipo_plus = Equipo.objects.create(nombre="Niqueleros", categoria=plus)
+
+        Jugador.objects.create(
+            equipo=equipo_senior,
+            dorsal=7,
+            nombres="Jugador Compartido",
+            cedula="12345",
+            fecha_nacimiento=date(1970, 1, 1),
+        )
+        Jugador.objects.create(
+            equipo=equipo_plus,
+            dorsal=7,
+            nombres="Jugador Compartido",
+            cedula="12345",
+            fecha_nacimiento=date(1970, 1, 1),
+        )
+
+        self.assertEqual(Jugador.objects.filter(cedula="12345").count(), 2)
+
+    def test_no_permite_misma_cedula_dos_veces_en_el_mismo_equipo(self):
+        torneo = Torneo.objects.create(
+            nombre="Veranero",
+            fecha_inicio=date(2026, 1, 1),
+        )
+        categoria = Categoria.objects.create(
+            nombre="Senior Master",
+            edad_minima=18,
+            edad_maxima=60,
+            torneo=torneo,
+        )
+        equipo = Equipo.objects.create(nombre="Niqueleros", categoria=categoria)
+
+        Jugador.objects.create(
+            equipo=equipo,
+            dorsal=7,
+            nombres="Jugador Uno",
+            cedula="12345",
+            fecha_nacimiento=date(1970, 1, 1),
+        )
+
+        with self.assertRaises(IntegrityError):
+            Jugador.objects.create(
+                equipo=equipo,
+                dorsal=8,
+                nombres="Jugador Dos",
+                cedula="12345",
+                fecha_nacimiento=date(1975, 1, 1),
+            )

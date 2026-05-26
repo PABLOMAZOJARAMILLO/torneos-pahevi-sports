@@ -3829,9 +3829,9 @@ def gestion_importar_planilla(request):
                     continue
 
                 _, creado = Jugador.objects.update_or_create(
+                    equipo=equipo,
                     cedula=cedula,
                     defaults={
-                        "equipo": equipo,
                         "dorsal": dorsal,
                         "nombres": nombre.upper(),
                         "fecha_nacimiento": fecha_nacimiento,
