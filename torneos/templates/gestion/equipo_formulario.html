@@ -1,0 +1,155 @@
+{% extends "gestion/formulario.html" %}
+{% load texto_limpio %}
+
+{% block content %}
+{{ block.super }}
+
+<style>
+    .plantilla-equipo {
+        margin-top: 18px;
+        display: grid;
+        gap: 12px;
+    }
+    .plantilla-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+    .jugador-editor-card {
+        display: grid;
+        grid-template-columns: 82px minmax(0, 1.2fr) minmax(0, 1fr) 142px 120px 92px;
+        gap: 8px;
+        align-items: end;
+        padding: 12px;
+        border: 1px solid rgba(148, 163, 184, 0.32);
+        border-radius: 14px;
+        background: #0b1526;
+    }
+    .jugador-editor-card label {
+        margin: 0 0 4px;
+        font-size: 11px;
+    }
+    .jugador-editor-card input,
+    .jugador-editor-card select {
+        min-height: 38px;
+        padding: 8px;
+        font-size: 13px;
+    }
+    .jugador-editor-check {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        min-height: 38px;
+        color: #bbf7d0;
+        font-size: 12px;
+    }
+    .jugador-editor-check input {
+        width: auto;
+    }
+    .jugador-editor-title {
+        grid-column: 1 / -1;
+        color: #e5e7eb;
+        font-size: 12px;
+        text-transform: uppercase;
+    }
+    @media (max-width: 760px) {
+        .jugador-editor-card {
+            grid-template-columns: 72px minmax(0, 1fr);
+        }
+        .jugador-editor-card .span-mobile {
+            grid-column: 1 / -1;
+        }
+        .plantilla-head .btn {
+            width: 100%;
+        }
+    }
+</style>
+
+<section class="plantilla-equipo">
+    <div class="plantilla-head">
+        <div>
+            <h2 style="margin:0;color:#00ff66;">Jugadores</h2>
+            <p class="muted" style="margin:4px 0 0;">Edita la plantilla de {{ equipo.nombre }} sin salir de esta pantalla.</p>
+        </div>
+    </div>
+
+    <form method="post" action="{% url 'gestion_equipo_jugadores_guardar' equipo.id %}">
+        {% csrf_token %}
+
+        {% for jugador in jugadores %}
+        <div class="jugador-editor-card">
+            <div class="jugador-editor-title">
+                {% if jugador.dorsal %}#{{ jugador.dorsal }} · {% endif %}{{ jugador.nombres|texto_limpio }}
+            </div>
+            <div>
+                <label for="jugador-{{ jugador.id }}-dorsal">Dorsal</label>
+                <input id="jugador-{{ jugador.id }}-dorsal" type="number" name="jugador_{{ jugador.id }}_dorsal" value="{{ jugador.dorsal|default_if_none:'' }}">
+            </div>
+            <div class="span-mobile">
+                <label for="jugador-{{ jugador.id }}-nombres">Nombres y apellidos</label>
+                <input id="jugador-{{ jugador.id }}-nombres" type="text" name="jugador_{{ jugador.id }}_nombres" value="{{ jugador.nombres|texto_limpio }}" required>
+            </div>
+            <div class="span-mobile">
+                <label for="jugador-{{ jugador.id }}-cedula">Cédula</label>
+                <input id="jugador-{{ jugador.id }}-cedula" type="text" name="jugador_{{ jugador.id }}_cedula" value="{{ jugador.cedula }}" required>
+            </div>
+            <div class="span-mobile">
+                <label for="jugador-{{ jugador.id }}-fecha">Fecha nacimiento</label>
+                <input id="jugador-{{ jugador.id }}-fecha" type="date" name="jugador_{{ jugador.id }}_fecha_nacimiento" value="{{ jugador.fecha_nacimiento|date:'Y-m-d' }}" required>
+            </div>
+            <div>
+                <label for="jugador-{{ jugador.id }}-estado">Estado</label>
+                <select id="jugador-{{ jugador.id }}-estado" name="jugador_{{ jugador.id }}_estado">
+                    {% for valor, etiqueta in estados_jugador %}
+                        <option value="{{ valor }}" {% if jugador.estado == valor %}selected{% endif %}>{{ etiqueta }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <label class="jugador-editor-check">
+                <input type="checkbox" name="jugador_{{ jugador.id }}_es_foraneo" {% if jugador.es_foraneo %}checked{% endif %}>
+                Foráneo
+            </label>
+        </div>
+        {% empty %}
+        <div class="card">Este equipo todavía no tiene jugadores.</div>
+        {% endfor %}
+
+        <div class="jugador-editor-card">
+            <div class="jugador-editor-title">Agregar jugador nuevo</div>
+            <div>
+                <label for="nuevo-dorsal">Dorsal</label>
+                <input id="nuevo-dorsal" type="number" name="nuevo_dorsal">
+            </div>
+            <div class="span-mobile">
+                <label for="nuevo-nombres">Nombres y apellidos</label>
+                <input id="nuevo-nombres" type="text" name="nuevo_nombres">
+            </div>
+            <div class="span-mobile">
+                <label for="nuevo-cedula">Cédula</label>
+                <input id="nuevo-cedula" type="text" name="nuevo_cedula">
+            </div>
+            <div class="span-mobile">
+                <label for="nuevo-fecha">Fecha nacimiento</label>
+                <input id="nuevo-fecha" type="date" name="nuevo_fecha_nacimiento">
+            </div>
+            <div>
+                <label for="nuevo-estado">Estado</label>
+                <select id="nuevo-estado" name="nuevo_estado">
+                    {% for valor, etiqueta in estados_jugador %}
+                        <option value="{{ valor }}">{{ etiqueta }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <label class="jugador-editor-check">
+                <input type="checkbox" name="nuevo_es_foraneo">
+                Foráneo
+            </label>
+        </div>
+
+        <p><button class="btn" type="submit">Guardar plantilla</button></p>
+    </form>
+</section>
+{% endblock %}

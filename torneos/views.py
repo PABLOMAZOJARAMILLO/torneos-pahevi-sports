@@ -3787,6 +3787,7 @@ def gestion_equipo_editar(request, equipo_id):
         equipos = equipos.filter(categoria__torneo=torneo)
     equipo = get_object_or_404(equipos, id=equipo_id)
     form = EquipoForm(request.POST or None, request.FILES or None, instance=equipo, torneo=torneo)
+    jugadores = equipo.jugadores.order_by("dorsal", "nombres")
 
     if request.method == "POST" and form.is_valid():
         equipo = form.save(commit=False)
@@ -3799,15 +3800,88 @@ def gestion_equipo_editar(request, equipo_id):
         equipo.save()
         form.save_m2m()
         messages.success(request, "Equipo actualizado correctamente.")
-        return redirect("gestion_equipos")
+        return redirect("gestion_equipo_editar", equipo_id=equipo.id)
 
-    return render(request, "gestion/formulario.html", {
+    return render(request, "gestion/equipo_formulario.html", {
         "titulo": f"Editar equipo: {equipo.nombre}",
         "form": form,
+        "equipo": equipo,
+        "jugadores": jugadores,
+        "estados_jugador": Jugador.ESTADOS,
         "volver_url": "gestion_equipos",
         "cloudinary_images": listar_imagenes_cloudinary(),
         "cloudinary_label": "Seleccionar escudo existente de Cloudinary",
     })
+
+
+@login_required
+@user_passes_test(es_editor_torneo)
+@require_POST
+def gestion_equipo_jugadores_guardar(request, equipo_id):
+    torneo = torneo_actual(request)
+    equipos = Equipo.objects.select_related("categoria")
+    if torneo:
+        equipos = equipos.filter(categoria__torneo=torneo)
+    equipo = get_object_or_404(equipos, id=equipo_id)
+
+    jugadores = list(equipo.jugadores.all())
+    errores = []
+    actualizados = 0
+
+    for jugador in jugadores:
+        prefijo = f"jugador_{jugador.id}_"
+        nombres = (request.POST.get(prefijo + "nombres") or "").strip()
+        cedula = (request.POST.get(prefijo + "cedula") or "").strip()
+        fecha_nacimiento = (request.POST.get(prefijo + "fecha_nacimiento") or "").strip()
+        estado = request.POST.get(prefijo + "estado") or "ACTIVO"
+
+        if not nombres or not cedula or not fecha_nacimiento:
+            errores.append(f"{jugador.nombres}: nombre, cedula y fecha son obligatorios.")
+            continue
+
+        jugador.dorsal = request.POST.get(prefijo + "dorsal") or None
+        jugador.nombres = nombres.upper()
+        jugador.cedula = cedula
+        jugador.fecha_nacimiento = fecha_nacimiento
+        jugador.estado = estado
+        jugador.es_foraneo = request.POST.get(prefijo + "es_foraneo") == "on"
+
+        try:
+            jugador.save()
+            actualizados += 1
+        except Exception as exc:
+            errores.append(f"{nombres}: {exc}")
+
+    nuevo_nombre = (request.POST.get("nuevo_nombres") or "").strip()
+    nuevo_cedula = (request.POST.get("nuevo_cedula") or "").strip()
+    nuevo_fecha = (request.POST.get("nuevo_fecha_nacimiento") or "").strip()
+    if nuevo_nombre or nuevo_cedula or nuevo_fecha:
+        if not nuevo_nombre or not nuevo_cedula or not nuevo_fecha:
+            errores.append("Para agregar jugador nuevo debes llenar nombre, cedula y fecha de nacimiento.")
+        else:
+            nuevo = Jugador(
+                equipo=equipo,
+                dorsal=request.POST.get("nuevo_dorsal") or None,
+                nombres=nuevo_nombre.upper(),
+                cedula=nuevo_cedula,
+                fecha_nacimiento=nuevo_fecha,
+                estado=request.POST.get("nuevo_estado") or "ACTIVO",
+                es_foraneo=request.POST.get("nuevo_es_foraneo") == "on",
+            )
+            try:
+                nuevo.save()
+                messages.success(request, f"Jugador agregado: {nuevo.nombres}.")
+            except Exception as exc:
+                errores.append(f"No se pudo agregar {nuevo_nombre}: {exc}")
+
+    if actualizados:
+        messages.success(request, f"Plantilla actualizada: {actualizados} jugador(es).")
+    for error in errores[:8]:
+        messages.error(request, error)
+    if len(errores) > 8:
+        messages.error(request, f"Hay {len(errores) - 8} errores adicionales.")
+
+    return redirect("gestion_equipo_editar", equipo_id=equipo.id)
 
 
 @login_required

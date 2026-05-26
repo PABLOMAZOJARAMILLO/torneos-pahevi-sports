@@ -188,6 +188,7 @@ urlpatterns = [
     path('gestion/equipos/', views.gestion_equipos, name='gestion_equipos'),
     path('gestion/equipos/nuevo/', views.gestion_equipo_nuevo, name='gestion_equipo_nuevo'),
     path('gestion/equipos/<int:equipo_id>/editar/', views.gestion_equipo_editar, name='gestion_equipo_editar'),
+    path('gestion/equipos/<int:equipo_id>/jugadores/guardar/', views.gestion_equipo_jugadores_guardar, name='gestion_equipo_jugadores_guardar'),
     path('gestion/equipos/<int:equipo_id>/eliminar/', views.gestion_equipo_eliminar, name='gestion_equipo_eliminar'),
     path('gestion/jugadores/', views.gestion_jugadores, name='gestion_jugadores'),
     path('gestion/jugadores/importar-planilla/', views.gestion_importar_planilla, name='gestion_importar_planilla'),
