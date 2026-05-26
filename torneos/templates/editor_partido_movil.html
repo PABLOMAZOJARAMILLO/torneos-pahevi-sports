@@ -291,6 +291,21 @@
             color: #00ff66;
             white-space: nowrap;
         }
+        .edad-badge {
+            display: inline-grid;
+            place-items: center;
+            min-width: 30px;
+            height: 18px;
+            padding: 0 7px;
+            margin-left: 6px;
+            border-radius: 999px;
+            background: #38bdf8;
+            color: #07111f;
+            font-size: 10px;
+            font-weight: 1000;
+            line-height: 1;
+            white-space: nowrap;
+        }
         .rol-switch {
             display: grid;
             grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -748,7 +763,7 @@
                 {% for j in jugadores_local %}
                 <div class="jugador-lineup-row" data-jugador-id="{{ j.id }}" data-nombre="{{ j.nombres|texto_limpio }}" data-dorsal="{% if j.dorsal %}{{ j.dorsal }}{% endif %}" data-foto="{{ j.foto_alineacion }}" data-iniciales="{{ j.iniciales_alineacion }}">
                     <div class="jugador-lineup-head">
-                        <span>{{ j.nombres|texto_limpio }}</span>
+                        <span>{{ j.nombres|texto_limpio }}{% if j.etiqueta_edad %}<span class="edad-badge">{{ j.etiqueta_edad }}</span>{% endif %}</span>
                         <span class="jugador-lineup-dorsal">{% if j.dorsal %}#{{ j.dorsal }}{% else %}S/D{% endif %}</span>
                     </div>
                     <div class="rol-switch">
@@ -799,7 +814,7 @@
                 {% for j in jugadores_visitante %}
                 <div class="jugador-lineup-row" data-jugador-id="{{ j.id }}" data-nombre="{{ j.nombres|texto_limpio }}" data-dorsal="{% if j.dorsal %}{{ j.dorsal }}{% endif %}" data-foto="{{ j.foto_alineacion }}" data-iniciales="{{ j.iniciales_alineacion }}">
                     <div class="jugador-lineup-head">
-                        <span>{{ j.nombres|texto_limpio }}</span>
+                        <span>{{ j.nombres|texto_limpio }}{% if j.etiqueta_edad %}<span class="edad-badge">{{ j.etiqueta_edad }}</span>{% endif %}</span>
                         <span class="jugador-lineup-dorsal">{% if j.dorsal %}#{{ j.dorsal }}{% else %}S/D{% endif %}</span>
                     </div>
                     <div class="rol-switch">

@@ -131,6 +131,35 @@ class Categoria(models.Model):
         return self.nombre
 
 
+class ReglaEdadCategoria(models.Model):
+    categoria = models.ForeignKey(Categoria, on_delete=models.CASCADE, related_name='reglas_edad')
+    etiqueta = models.CharField(max_length=20, verbose_name='Etiqueta')
+    edad_minima = models.PositiveIntegerField(verbose_name='Edad minima')
+    edad_maxima = models.PositiveIntegerField(blank=True, null=True, verbose_name='Edad maxima')
+    minimo_titulares = models.PositiveIntegerField(default=0, verbose_name='Minimo en cancha')
+    orden = models.PositiveIntegerField(default=0)
+    activa = models.BooleanField(default=True)
+
+    class Meta:
+        verbose_name = 'Regla de edad'
+        verbose_name_plural = 'Reglas de edad'
+        ordering = ['categoria__nombre', 'orden', 'edad_minima']
+
+    def __str__(self):
+        maximo = self.edad_maxima if self.edad_maxima is not None else '+'
+        return f"{self.categoria.nombre} - {self.etiqueta} ({self.edad_minima}-{maximo})"
+
+    def clean(self):
+        super().clean()
+        if self.edad_maxima is not None and self.edad_maxima < self.edad_minima:
+            raise ValidationError({"edad_maxima": "La edad maxima no puede ser menor que la edad minima."})
+
+    def coincide_con_edad(self, edad):
+        if edad is None or edad < self.edad_minima:
+            return False
+        return self.edad_maxima is None or edad <= self.edad_maxima
+
+
 class Documento(models.Model):
     TIPOS = [
         ("REGLAMENTO", "Reglamento"),

@@ -6,8 +6,8 @@ from django.core.exceptions import ValidationError
 from django.test import TestCase, TransactionTestCase
 from django.utils import timezone
 
-from .models import AlineacionPartido, Categoria, Equipo, Jugador, Partido, Tarjeta, Torneo
-from .views import construir_estructura, _clave_orden_evento_resumen, _sincronizar_no_disponibles_por_tarjetas
+from .models import AlineacionPartido, Categoria, Equipo, Jugador, Partido, ReglaEdadCategoria, Tarjeta, Torneo
+from .views import construir_estructura, _clave_orden_evento_resumen, _sincronizar_no_disponibles_por_tarjetas, etiqueta_edad_jugador, validar_reglas_edad_titulares
 
 
 class SancionesTarjetasTests(TestCase):
@@ -149,6 +149,99 @@ class TablaPosicionesWoTests(TestCase):
         self.assertEqual(fila_ganador["dg"], 6)
         self.assertEqual(fila_perdedor["pp"], 1)
         self.assertEqual(fila_perdedor["pts"], 0)
+
+
+class ReglasEdadCategoriaTests(TestCase):
+    def setUp(self):
+        self.torneo = Torneo.objects.create(
+            nombre="Veranero",
+            fecha_inicio=date(2026, 1, 1),
+        )
+        self.categoria = Categoria.objects.create(
+            nombre="Senior Master",
+            edad_minima=40,
+            edad_maxima=80,
+            torneo=self.torneo,
+        )
+        self.equipo = Equipo.objects.create(nombre="Paraiso", categoria=self.categoria)
+        self.rival = Equipo.objects.create(nombre="Integracion", categoria=self.categoria)
+        self.partido = Partido.objects.create(
+            categoria=self.categoria,
+            equipo_local=self.equipo,
+            equipo_visitante=self.rival,
+            fecha=date(2026, 5, 1),
+            hora=time(15, 0),
+            estado="PROGRAMADO",
+        )
+        ReglaEdadCategoria.objects.create(
+            categoria=self.categoria,
+            etiqueta="+40",
+            edad_minima=40,
+            edad_maxima=44,
+            minimo_titulares=4,
+            orden=1,
+        )
+        ReglaEdadCategoria.objects.create(
+            categoria=self.categoria,
+            etiqueta="+45",
+            edad_minima=45,
+            edad_maxima=49,
+            minimo_titulares=4,
+            orden=2,
+        )
+        ReglaEdadCategoria.objects.create(
+            categoria=self.categoria,
+            etiqueta="+50",
+            edad_minima=50,
+            minimo_titulares=3,
+            orden=3,
+        )
+
+    def crear_jugador(self, indice, nacimiento):
+        return Jugador.objects.create(
+            equipo=self.equipo,
+            dorsal=indice,
+            nombres=f"Jugador {indice}",
+            cedula=f"EDAD{indice}",
+            fecha_nacimiento=nacimiento,
+        )
+
+    def test_etiqueta_edad_se_calcula_con_fecha_del_partido(self):
+        jugador = self.crear_jugador(1, date(1981, 5, 2))
+
+        self.assertEqual(etiqueta_edad_jugador(jugador, self.categoria, self.partido.fecha), "+40")
+
+    def test_valida_minimos_de_titulares_por_regla(self):
+        jugadores = []
+        for indice in range(1, 5):
+            jugadores.append(self.crear_jugador(indice, date(1983, 1, 1)))
+        for indice in range(5, 9):
+            jugadores.append(self.crear_jugador(indice, date(1978, 1, 1)))
+        for indice in range(9, 12):
+            jugadores.append(self.crear_jugador(indice, date(1970, 1, 1)))
+
+        errores = validar_reglas_edad_titulares(
+            self.partido,
+            self.equipo,
+            [str(jugador.id) for jugador in jugadores],
+        )
+
+        self.assertEqual(errores, [])
+
+    def test_reporta_regla_incompleta_con_once_titulares(self):
+        jugadores = []
+        for indice in range(1, 5):
+            jugadores.append(self.crear_jugador(indice, date(1983, 1, 1)))
+        for indice in range(5, 12):
+            jugadores.append(self.crear_jugador(indice, date(1970, 1, 1)))
+
+        errores = validar_reglas_edad_titulares(
+            self.partido,
+            self.equipo,
+            [str(jugador.id) for jugador in jugadores],
+        )
+
+        self.assertTrue(any("+45" in error for error in errores))
 
 
 class JugadorCedulaPorEquipoTests(TransactionTestCase):

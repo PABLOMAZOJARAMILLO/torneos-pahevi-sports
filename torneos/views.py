@@ -29,7 +29,7 @@ from django.views.decorators.http import require_POST
 from openpyxl import load_workbook
 
 from .forms import TorneoForm, OrganizadorForm, CategoriaForm, DocumentoForm, EquipoForm, JugadorForm, PartidoForm
-from .models import Torneo, Organizador, Categoria, Documento, Equipo, Partido, Gol, Tarjeta, Jugador, AlineacionPartido, SustitucionPartido, limpiar_ruta_cloudinary
+from .models import Torneo, Organizador, Categoria, Documento, Equipo, Partido, Gol, Tarjeta, Jugador, AlineacionPartido, SustitucionPartido, ReglaEdadCategoria, limpiar_ruta_cloudinary
 from django.utils import timezone
 
 def es_editor_torneo(user):
@@ -1396,6 +1396,63 @@ def nombre_resumen_jugador(jugador):
     return _nombre_primer_apellido(jugador)
 
 
+def edad_jugador_en_fecha(jugador, fecha_referencia=None):
+    if not jugador or not jugador.fecha_nacimiento:
+        return None
+    fecha = fecha_referencia or date.today()
+    return fecha.year - jugador.fecha_nacimiento.year - (
+        (fecha.month, fecha.day) < (jugador.fecha_nacimiento.month, jugador.fecha_nacimiento.day)
+    )
+
+
+def reglas_edad_categoria(categoria):
+    if not categoria:
+        return []
+    reglas_cache = getattr(categoria, "_reglas_edad_cache", None)
+    if reglas_cache is None:
+        reglas_cache = list(
+            categoria.reglas_edad.filter(activa=True).order_by("orden", "edad_minima", "id")
+        )
+        categoria._reglas_edad_cache = reglas_cache
+    return reglas_cache
+
+
+def regla_edad_jugador(jugador, categoria=None, fecha_referencia=None):
+    categoria = categoria or getattr(getattr(jugador, "equipo", None), "categoria", None)
+    edad = edad_jugador_en_fecha(jugador, fecha_referencia)
+    for regla in reglas_edad_categoria(categoria):
+        if regla.coincide_con_edad(edad):
+            return regla
+    return None
+
+
+def etiqueta_edad_jugador(jugador, categoria=None, fecha_referencia=None):
+    regla = regla_edad_jugador(jugador, categoria, fecha_referencia)
+    return regla.etiqueta if regla else ""
+
+
+def validar_reglas_edad_titulares(partido, equipo, titulares_ids):
+    reglas = [regla for regla in reglas_edad_categoria(partido.categoria) if regla.minimo_titulares]
+    if not reglas or len(titulares_ids) < 11:
+        return []
+
+    jugadores = Jugador.objects.filter(id__in=titulares_ids, equipo=equipo)
+    conteos = {regla.id: 0 for regla in reglas}
+    for jugador in jugadores:
+        regla = regla_edad_jugador(jugador, partido.categoria, partido.fecha)
+        if regla and regla.id in conteos:
+            conteos[regla.id] += 1
+
+    errores = []
+    for regla in reglas:
+        cantidad = conteos.get(regla.id, 0)
+        if cantidad < regla.minimo_titulares:
+            errores.append(
+                f"{regla.etiqueta}: minimo {regla.minimo_titulares} en cancha, tienes {cantidad}."
+            )
+    return errores
+
+
 def construir_partidos_portada(torneo=None):
     hoy = date.today()
     partidos = Partido.objects.filter(
@@ -2626,13 +2683,18 @@ def _sincronizar_no_disponibles_por_tarjetas(partido):
     return sancionados
 
 
-def _marcar_roles_alineacion(jugadores, alineaciones_por_jugador):
+def _marcar_roles_alineacion(jugadores, alineaciones_por_jugador, partido=None):
     for jugador in jugadores:
         alineacion = alineaciones_por_jugador.get(jugador.id)
         jugador.rol_alineacion = alineacion.rol if alineacion else ""
         jugador.posicion_alineacion = alineacion.posicion_cancha if alineacion else ""
         jugador.foto_alineacion = foto_jugador_url(jugador)
         jugador.iniciales_alineacion = iniciales_jugador(jugador)
+        jugador.etiqueta_edad = etiqueta_edad_jugador(
+            jugador,
+            partido.categoria if partido else None,
+            partido.fecha if partido else None,
+        )
     return jugadores
 
 
@@ -2704,8 +2766,8 @@ def editor_partido_movil(request, partido_id):
     alineaciones = AlineacionPartido.objects.filter(partido=partido).select_related('jugador', 'equipo').order_by('equipo__nombre', 'rol', 'jugador__nombres')
     sustituciones = SustitucionPartido.objects.filter(partido=partido).select_related('equipo', 'jugador_sale', 'jugador_entra').order_by('equipo__nombre', 'minuto', 'id')
     alineaciones_por_jugador = {alineacion.jugador_id: alineacion for alineacion in alineaciones}
-    jugadores_local = _marcar_roles_alineacion(jugadores_local, alineaciones_por_jugador)
-    jugadores_visitante = _marcar_roles_alineacion(jugadores_visitante, alineaciones_por_jugador)
+    jugadores_local = _marcar_roles_alineacion(jugadores_local, alineaciones_por_jugador, partido)
+    jugadores_visitante = _marcar_roles_alineacion(jugadores_visitante, alineaciones_por_jugador, partido)
 
     return render(request, 'editor_partido_movil.html', {
         'partido': partido,
@@ -2911,6 +2973,10 @@ def guardar_alineacion_masiva_movil(request, partido_id):
     titulares = [jugador_id for jugador_id, rol, _ in seleccionados if rol == "TITULAR"]
     if len(titulares) > 11:
         messages.error(request, "Solo puedes seleccionar 11 titulares por equipo.")
+        return redirect(_url_editor_tab(partido.id, "alineacion"))
+    errores_edad = validar_reglas_edad_titulares(partido, equipo, titulares)
+    if errores_edad:
+        messages.error(request, "La alineacion no cumple las reglas de edad: " + " ".join(errores_edad))
         return redirect(_url_editor_tab(partido.id, "alineacion"))
 
     AlineacionPartido.objects.filter(partido=partido, equipo=equipo).delete()
@@ -4119,6 +4185,8 @@ def partido_live(request, partido_id):
     for cambio in sustituciones:
         cambio.jugador_entra_corto = nombre_corto_jugador(cambio.jugador_entra)
         cambio.jugador_sale_corto = nombre_corto_jugador(cambio.jugador_sale)
+        cambio.jugador_entra_edad = etiqueta_edad_jugador(cambio.jugador_entra, partido.categoria, partido.fecha)
+        cambio.jugador_sale_edad = etiqueta_edad_jugador(cambio.jugador_sale, partido.categoria, partido.fecha)
 
     eventos_por_jugador = defaultdict(dict)
 
@@ -4186,6 +4254,7 @@ def partido_live(request, partido_id):
             posicion=alineacion.posicion_cancha,
             foto=foto_jugador_url(jugador),
             iniciales=iniciales_jugador(jugador),
+            etiqueta_edad=etiqueta_edad_jugador(jugador, partido.categoria, partido.fecha),
             eventos=list(eventos_por_jugador.get(jugador.id, {}).values()),
         )
         if alineacion.equipo_id == partido.equipo_local_id:

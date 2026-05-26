@@ -653,6 +653,24 @@ a { color: inherit; text-decoration: none; }
     place-items: center;
     font-size: 11px;
 }
+.edad-badge {
+    display: inline-grid;
+    place-items: center;
+    min-width: 28px;
+    height: 18px;
+    padding: 0 6px;
+    border-radius: 999px;
+    background: #0ea5e9;
+    color: #ffffff;
+    font-size: 10px;
+    font-weight: 1000;
+    line-height: 1;
+    text-shadow: none;
+    box-shadow: 0 2px 7px rgba(15, 23, 42, 0.25);
+}
+.jugador-edad {
+    margin-top: 3px;
+}
 .jugador-nombre {
     display: block;
     font-size: 12px;
@@ -784,6 +802,12 @@ a { color: inherit; text-decoration: none; }
 .roster-name {
     font-weight: 900;
     line-height: 1.15;
+}
+.roster-name .edad-badge,
+.sub-in .edad-badge,
+.sub-out .edad-badge {
+    margin-left: 6px;
+    vertical-align: middle;
 }
 .roster-meta {
     color: #64748b;
@@ -1058,6 +1082,7 @@ a { color: inherit; text-decoration: none; }
                             {% endif %}
                         </div>
                         <span class="jugador-nombre">{{ item.nombre_corto }}</span>
+                        {% if item.etiqueta_edad %}<span class="edad-badge jugador-edad">{{ item.etiqueta_edad }}</span>{% endif %}
                     </div>
                     {% endif %}
                 {% empty %}
@@ -1093,6 +1118,7 @@ a { color: inherit; text-decoration: none; }
                             {% endif %}
                         </div>
                         <span class="jugador-nombre">{{ item.nombre_corto }}</span>
+                        {% if item.etiqueta_edad %}<span class="edad-badge jugador-edad">{{ item.etiqueta_edad }}</span>{% endif %}
                     </div>
                     {% endif %}
                 {% empty %}
@@ -1112,8 +1138,8 @@ a { color: inherit; text-decoration: none; }
                         <div class="sub-card">
                             <div class="sub-minute">{% if cambio.minuto %}{{ cambio.minuto }}'{% else %}--{% endif %}</div>
                             <div>
-                                <div class="sub-in"><span class="sub-arrow">&uarr;</span> <span>{{ cambio.jugador_entra_corto }}</span></div>
-                                <div class="sub-out"><span class="sub-arrow">&darr;</span> <span>{{ cambio.jugador_sale_corto }}</span></div>
+                                <div class="sub-in"><span class="sub-arrow">&uarr;</span> <span>{{ cambio.jugador_entra_corto }}{% if cambio.jugador_entra_edad %}<span class="edad-badge">{{ cambio.jugador_entra_edad }}</span>{% endif %}</span></div>
+                                <div class="sub-out"><span class="sub-arrow">&darr;</span> <span>{{ cambio.jugador_sale_corto }}{% if cambio.jugador_sale_edad %}<span class="edad-badge">{{ cambio.jugador_sale_edad }}</span>{% endif %}</span></div>
                             </div>
                         </div>
                     {% endfor %}
@@ -1129,7 +1155,7 @@ a { color: inherit; text-decoration: none; }
                 <div class="roster-row">
                     <div class="roster-avatar">{% if item.foto %}<img src="{{ item.foto }}" alt="{{ item.nombre }}">{% else %}{{ item.iniciales }}{% endif %}{% if item.dorsal %}<span class="roster-dorsal">{{ item.dorsal }}</span>{% endif %}</div>
                     <div>
-                        <div class="roster-name">{{ item.nombre_corto }}</div>
+                        <div class="roster-name">{{ item.nombre_corto }}{% if item.etiqueta_edad %}<span class="edad-badge">{{ item.etiqueta_edad }}</span>{% endif %}</div>
                         <div class="roster-meta">{% if item.dorsal %}#{{ item.dorsal }}{% else %}Sin dorsal{% endif %}</div>
                     </div>
                     <div class="roster-events">
@@ -1153,7 +1179,7 @@ a { color: inherit; text-decoration: none; }
                 <div class="roster-row">
                     <div class="roster-avatar">{% if item.foto %}<img src="{{ item.foto }}" alt="{{ item.nombre }}">{% else %}{{ item.iniciales }}{% endif %}{% if item.dorsal %}<span class="roster-dorsal">{{ item.dorsal }}</span>{% endif %}</div>
                     <div>
-                        <div class="roster-name">{{ item.nombre_corto }}</div>
+                        <div class="roster-name">{{ item.nombre_corto }}{% if item.etiqueta_edad %}<span class="edad-badge">{{ item.etiqueta_edad }}</span>{% endif %}</div>
                         <div class="roster-meta">{% if item.dorsal %}#{{ item.dorsal }}{% else %}Sin dorsal{% endif %} &middot; sancionado, lesionado o suspendido</div>
                     </div>
                     <div class="roster-events">
@@ -1181,8 +1207,8 @@ a { color: inherit; text-decoration: none; }
                         <div class="sub-card">
                             <div class="sub-minute">{% if cambio.minuto %}{{ cambio.minuto }}'{% else %}--{% endif %}</div>
                             <div>
-                                <div class="sub-in"><span class="sub-arrow">&uarr;</span> <span>{{ cambio.jugador_entra_corto }}</span></div>
-                                <div class="sub-out"><span class="sub-arrow">&darr;</span> <span>{{ cambio.jugador_sale_corto }}</span></div>
+                                <div class="sub-in"><span class="sub-arrow">&uarr;</span> <span>{{ cambio.jugador_entra_corto }}{% if cambio.jugador_entra_edad %}<span class="edad-badge">{{ cambio.jugador_entra_edad }}</span>{% endif %}</span></div>
+                                <div class="sub-out"><span class="sub-arrow">&darr;</span> <span>{{ cambio.jugador_sale_corto }}{% if cambio.jugador_sale_edad %}<span class="edad-badge">{{ cambio.jugador_sale_edad }}</span>{% endif %}</span></div>
                             </div>
                         </div>
                     {% endfor %}
@@ -1198,7 +1224,7 @@ a { color: inherit; text-decoration: none; }
                 <div class="roster-row">
                     <div class="roster-avatar">{% if item.foto %}<img src="{{ item.foto }}" alt="{{ item.nombre }}">{% else %}{{ item.iniciales }}{% endif %}{% if item.dorsal %}<span class="roster-dorsal">{{ item.dorsal }}</span>{% endif %}</div>
                     <div>
-                        <div class="roster-name">{{ item.nombre_corto }}</div>
+                        <div class="roster-name">{{ item.nombre_corto }}{% if item.etiqueta_edad %}<span class="edad-badge">{{ item.etiqueta_edad }}</span>{% endif %}</div>
                         <div class="roster-meta">{% if item.dorsal %}#{{ item.dorsal }}{% else %}Sin dorsal{% endif %}</div>
                     </div>
                     <div class="roster-events">
@@ -1222,7 +1248,7 @@ a { color: inherit; text-decoration: none; }
                 <div class="roster-row">
                     <div class="roster-avatar">{% if item.foto %}<img src="{{ item.foto }}" alt="{{ item.nombre }}">{% else %}{{ item.iniciales }}{% endif %}{% if item.dorsal %}<span class="roster-dorsal">{{ item.dorsal }}</span>{% endif %}</div>
                     <div>
-                        <div class="roster-name">{{ item.nombre_corto }}</div>
+                        <div class="roster-name">{{ item.nombre_corto }}{% if item.etiqueta_edad %}<span class="edad-badge">{{ item.etiqueta_edad }}</span>{% endif %}</div>
                         <div class="roster-meta">{% if item.dorsal %}#{{ item.dorsal }}{% else %}Sin dorsal{% endif %} &middot; sancionado, lesionado o suspendido</div>
                     </div>
                     <div class="roster-events">

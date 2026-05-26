@@ -7,7 +7,7 @@ from import_export.admin import ImportExportModelAdmin
 from import_export.widgets import ForeignKeyWidget
 from openpyxl import load_workbook
 
-from .models import Torneo, Organizador, Categoria, Documento, Equipo, Jugador, Partido, Gol, Tarjeta, AlineacionPartido, SustitucionPartido
+from .models import Torneo, Organizador, Categoria, Documento, Equipo, Jugador, Partido, Gol, Tarjeta, AlineacionPartido, SustitucionPartido, ReglaEdadCategoria
 from django.contrib import admin
 
 admin.site.register(Torneo)
@@ -292,12 +292,20 @@ class TarjetaResource(resources.ModelResource):
         report_skipped = True
 
 
+class ReglaEdadCategoriaInline(admin.TabularInline):
+    model = ReglaEdadCategoria
+    extra = 1
+    fields = ('etiqueta', 'edad_minima', 'edad_maxima', 'minimo_titulares', 'orden', 'activa')
+    ordering = ('orden', 'edad_minima')
+
+
 @admin.register(Categoria)
 class CategoriaAdmin(ImportExportModelAdmin):
     resource_class = CategoriaResource
     list_display = ('nombre', 'torneo', 'edad_minima', 'edad_maxima')
     list_filter = ('torneo',)
     search_fields = ('nombre', 'torneo__nombre')
+    inlines = [ReglaEdadCategoriaInline]
 
 
 @admin.register(Documento)
@@ -394,6 +402,14 @@ class AlineacionPartidoAdmin(admin.ModelAdmin):
     list_display = ('partido', 'equipo', 'jugador', 'rol')
     list_filter = ('equipo', 'rol', 'partido__categoria', 'partido__fase')
     search_fields = ('jugador__nombres', 'jugador__cedula', 'equipo__nombre')
+
+
+@admin.register(ReglaEdadCategoria)
+class ReglaEdadCategoriaAdmin(admin.ModelAdmin):
+    list_display = ('categoria', 'etiqueta', 'edad_minima', 'edad_maxima', 'minimo_titulares', 'orden', 'activa')
+    list_filter = ('categoria__torneo', 'categoria', 'activa')
+    search_fields = ('categoria__nombre', 'etiqueta')
+    ordering = ('categoria__nombre', 'orden', 'edad_minima')
 
 
 @admin.register(SustitucionPartido)
