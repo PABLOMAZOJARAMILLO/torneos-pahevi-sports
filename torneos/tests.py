@@ -6,6 +6,7 @@ from django.core.exceptions import ValidationError
 from django.test import TestCase, TransactionTestCase
 from django.utils import timezone
 
+from .forms import JugadorForm
 from .models import AlineacionPartido, Categoria, Equipo, Jugador, Partido, ReglaEdadCategoria, SustitucionPartido, Tarjeta, Torneo
 from .views import construir_estructura, construir_estadisticas_foraneos, _clave_orden_evento_resumen, _sincronizar_no_disponibles_por_tarjetas, etiqueta_edad_jugador, validar_reglas_edad_titulares
 
@@ -317,6 +318,32 @@ class ForaneosTests(TestCase):
 
         self.assertEqual(fila["jugados"], 2)
         self.assertTrue(fila["cumple"])
+
+
+class JugadorFormTests(TestCase):
+    def test_fecha_nacimiento_se_renderiza_en_formato_html_date(self):
+        torneo = Torneo.objects.create(
+            nombre="Veranero",
+            fecha_inicio=date(2026, 1, 1),
+        )
+        categoria = Categoria.objects.create(
+            nombre="Senior",
+            edad_minima=18,
+            edad_maxima=60,
+            torneo=torneo,
+        )
+        equipo = Equipo.objects.create(nombre="Paraiso", categoria=categoria)
+        jugador = Jugador.objects.create(
+            equipo=equipo,
+            dorsal=31,
+            nombres="Ilario Rodriguez",
+            cedula="15679719",
+            fecha_nacimiento=date(1980, 5, 7),
+        )
+
+        html = str(JugadorForm(instance=jugador))
+
+        self.assertIn('value="1980-05-07"', html)
 
 
 class JugadorCedulaPorEquipoTests(TransactionTestCase):

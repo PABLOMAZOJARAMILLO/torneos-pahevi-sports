@@ -126,12 +126,13 @@ class JugadorForm(forms.ModelForm):
             "es_foraneo",
         ]
         widgets = {
-            "fecha_nacimiento": forms.DateInput(attrs={"type": "date"}),
+            "fecha_nacimiento": forms.DateInput(format="%Y-%m-%d", attrs={"type": "date"}),
         }
 
     def __init__(self, *args, **kwargs):
         torneo = kwargs.pop("torneo", None)
         super().__init__(*args, **kwargs)
+        self.fields["fecha_nacimiento"].input_formats = ["%Y-%m-%d"]
         equipos = Equipo.objects.select_related("categoria").order_by("categoria__nombre", "nombre")
         if torneo:
             equipos = equipos.filter(categoria__torneo=torneo)
