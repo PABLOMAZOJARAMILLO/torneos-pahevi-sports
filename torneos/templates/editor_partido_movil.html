@@ -620,7 +620,7 @@
             <form method="POST" onsubmit="guardarContextoPanelEditor()" action="{% url 'agregar_gol_movil' partido.id %}">
                 {% csrf_token %}
                 <label>Equipo</label>
-                <select name="equipo" required>
+                <select name="equipo" required data-equipo-filtro>
                     <option value="{{ partido.equipo_local.id }}">{{ partido.equipo_local.nombre }}</option>
                     <option value="{{ partido.equipo_visitante.id }}">{{ partido.equipo_visitante.nombre }}</option>
                 </select>
@@ -628,10 +628,10 @@
                 <label>Jugador</label>
                 <select name="jugador" required>
                     <optgroup label="{{ partido.equipo_local.nombre }}">
-                        {% for j in jugadores_local %}<option value="{{ j.id }}">{% if j.dorsal %}#{{ j.dorsal }} - {% endif %}{{ j.nombres|texto_limpio }}</option>{% endfor %}
+                        {% for j in jugadores_local %}<option value="{{ j.id }}" data-equipo-id="{{ partido.equipo_local.id }}">{% if j.dorsal %}#{{ j.dorsal }} - {% endif %}{{ j.nombres|texto_limpio }}</option>{% endfor %}
                     </optgroup>
                     <optgroup label="{{ partido.equipo_visitante.nombre }}">
-                        {% for j in jugadores_visitante %}<option value="{{ j.id }}">{% if j.dorsal %}#{{ j.dorsal }} - {% endif %}{{ j.nombres|texto_limpio }}</option>{% endfor %}
+                        {% for j in jugadores_visitante %}<option value="{{ j.id }}" data-equipo-id="{{ partido.equipo_visitante.id }}">{% if j.dorsal %}#{{ j.dorsal }} - {% endif %}{{ j.nombres|texto_limpio }}</option>{% endfor %}
                     </optgroup>
                 </select>
 
@@ -667,7 +667,7 @@
             <form method="POST" onsubmit="guardarContextoPanelEditor()" action="{% url 'agregar_tarjeta_movil' partido.id %}">
                 {% csrf_token %}
                 <label>Equipo</label>
-                <select name="equipo" required>
+                <select name="equipo" required data-equipo-filtro>
                     <option value="{{ partido.equipo_local.id }}">{{ partido.equipo_local.nombre }}</option>
                     <option value="{{ partido.equipo_visitante.id }}">{{ partido.equipo_visitante.nombre }}</option>
                 </select>
@@ -675,10 +675,10 @@
                 <label>Jugador</label>
                 <select name="jugador" required>
                     <optgroup label="{{ partido.equipo_local.nombre }}">
-                        {% for j in jugadores_local %}<option value="{{ j.id }}">{% if j.dorsal %}#{{ j.dorsal }} - {% endif %}{{ j.nombres|texto_limpio }}</option>{% endfor %}
+                        {% for j in jugadores_local %}<option value="{{ j.id }}" data-equipo-id="{{ partido.equipo_local.id }}">{% if j.dorsal %}#{{ j.dorsal }} - {% endif %}{{ j.nombres|texto_limpio }}</option>{% endfor %}
                     </optgroup>
                     <optgroup label="{{ partido.equipo_visitante.nombre }}">
-                        {% for j in jugadores_visitante %}<option value="{{ j.id }}">{% if j.dorsal %}#{{ j.dorsal }} - {% endif %}{{ j.nombres|texto_limpio }}</option>{% endfor %}
+                        {% for j in jugadores_visitante %}<option value="{{ j.id }}" data-equipo-id="{{ partido.equipo_visitante.id }}">{% if j.dorsal %}#{{ j.dorsal }} - {% endif %}{{ j.nombres|texto_limpio }}</option>{% endfor %}
                     </optgroup>
                 </select>
 
@@ -827,7 +827,7 @@
             <form method="POST" style="display:none" onsubmit="guardarContextoPanelEditor()" action="{% url 'agregar_alineacion_movil' partido.id %}">
                 {% csrf_token %}
                 <label>Equipo</label>
-                <select name="equipo" required>
+                <select name="equipo" required data-equipo-filtro>
                     <option value="{{ partido.equipo_local.id }}">{{ partido.equipo_local.nombre }}</option>
                     <option value="{{ partido.equipo_visitante.id }}">{{ partido.equipo_visitante.nombre }}</option>
                 </select>
@@ -835,10 +835,10 @@
                 <label>Jugador</label>
                 <select name="jugador" required>
                     <optgroup label="{{ partido.equipo_local.nombre }}">
-                        {% for j in jugadores_local %}<option value="{{ j.id }}">{% if j.dorsal %}#{{ j.dorsal }} - {% endif %}{{ j.nombres|texto_limpio }}</option>{% endfor %}
+                        {% for j in jugadores_local %}<option value="{{ j.id }}" data-equipo-id="{{ partido.equipo_local.id }}">{% if j.dorsal %}#{{ j.dorsal }} - {% endif %}{{ j.nombres|texto_limpio }}</option>{% endfor %}
                     </optgroup>
                     <optgroup label="{{ partido.equipo_visitante.nombre }}">
-                        {% for j in jugadores_visitante %}<option value="{{ j.id }}">{% if j.dorsal %}#{{ j.dorsal }} - {% endif %}{{ j.nombres|texto_limpio }}</option>{% endfor %}
+                        {% for j in jugadores_visitante %}<option value="{{ j.id }}" data-equipo-id="{{ partido.equipo_visitante.id }}">{% if j.dorsal %}#{{ j.dorsal }} - {% endif %}{{ j.nombres|texto_limpio }}</option>{% endfor %}
                     </optgroup>
                 </select>
 
@@ -873,7 +873,7 @@
             <form method="POST" onsubmit="guardarContextoPanelEditor()" action="{% url 'agregar_sustitucion_movil' partido.id %}">
                 {% csrf_token %}
                 <label>Equipo</label>
-                <select name="equipo" required>
+                <select name="equipo" required data-equipo-filtro>
                     <option value="{{ partido.equipo_local.id }}">{{ partido.equipo_local.nombre }}</option>
                     <option value="{{ partido.equipo_visitante.id }}">{{ partido.equipo_visitante.nombre }}</option>
                 </select>
@@ -881,20 +881,20 @@
                 <label>Jugador que sale</label>
                 <select name="jugador_sale" required>
                     <optgroup label="{{ partido.equipo_local.nombre }}">
-                        {% for j in jugadores_local %}<option value="{{ j.id }}">{% if j.dorsal %}#{{ j.dorsal }} - {% endif %}{{ j.nombres|texto_limpio }}</option>{% endfor %}
+                        {% for j in jugadores_local %}<option value="{{ j.id }}" data-equipo-id="{{ partido.equipo_local.id }}">{% if j.dorsal %}#{{ j.dorsal }} - {% endif %}{{ j.nombres|texto_limpio }}</option>{% endfor %}
                     </optgroup>
                     <optgroup label="{{ partido.equipo_visitante.nombre }}">
-                        {% for j in jugadores_visitante %}<option value="{{ j.id }}">{% if j.dorsal %}#{{ j.dorsal }} - {% endif %}{{ j.nombres|texto_limpio }}</option>{% endfor %}
+                        {% for j in jugadores_visitante %}<option value="{{ j.id }}" data-equipo-id="{{ partido.equipo_visitante.id }}">{% if j.dorsal %}#{{ j.dorsal }} - {% endif %}{{ j.nombres|texto_limpio }}</option>{% endfor %}
                     </optgroup>
                 </select>
 
                 <label>Jugador que entra</label>
                 <select name="jugador_entra" required>
                     <optgroup label="{{ partido.equipo_local.nombre }}">
-                        {% for j in jugadores_local %}<option value="{{ j.id }}">{% if j.dorsal %}#{{ j.dorsal }} - {% endif %}{{ j.nombres|texto_limpio }}</option>{% endfor %}
+                        {% for j in jugadores_local %}<option value="{{ j.id }}" data-equipo-id="{{ partido.equipo_local.id }}">{% if j.dorsal %}#{{ j.dorsal }} - {% endif %}{{ j.nombres|texto_limpio }}</option>{% endfor %}
                     </optgroup>
                     <optgroup label="{{ partido.equipo_visitante.nombre }}">
-                        {% for j in jugadores_visitante %}<option value="{{ j.id }}">{% if j.dorsal %}#{{ j.dorsal }} - {% endif %}{{ j.nombres|texto_limpio }}</option>{% endfor %}
+                        {% for j in jugadores_visitante %}<option value="{{ j.id }}" data-equipo-id="{{ partido.equipo_visitante.id }}">{% if j.dorsal %}#{{ j.dorsal }} - {% endif %}{{ j.nombres|texto_limpio }}</option>{% endfor %}
                     </optgroup>
                 </select>
 
@@ -1111,6 +1111,39 @@ function activarEquipoAlineacion(equipo) {
     });
 }
 
+function filtrarJugadoresPorEquipo(form) {
+    if (!form) return;
+    const equipo = form.querySelector('[data-equipo-filtro]');
+    if (!equipo) return;
+    const equipoId = equipo.value;
+
+    form.querySelectorAll('select[name="jugador"], select[name="jugador_sale"], select[name="jugador_entra"]').forEach(function(selector) {
+        let primeraVisible = '';
+
+        selector.querySelectorAll('option').forEach(function(option) {
+            const pertenece = !option.dataset.equipoId || option.dataset.equipoId === equipoId;
+            option.hidden = !pertenece;
+            option.disabled = !pertenece;
+            if (pertenece && !primeraVisible) {
+                primeraVisible = option.value;
+            }
+        });
+
+        selector.querySelectorAll('optgroup').forEach(function(grupo) {
+            const tieneOpciones = Array.from(grupo.querySelectorAll('option')).some(function(option) {
+                return !option.hidden;
+            });
+            grupo.hidden = !tieneOpciones;
+            grupo.disabled = !tieneOpciones;
+        });
+
+        const seleccionada = selector.selectedOptions[0];
+        if (!seleccionada || seleccionada.hidden || seleccionada.disabled) {
+            selector.value = primeraVisible;
+        }
+    });
+}
+
 function activarHashInicial() {
     const hash = window.location.hash.replace('#', '');
     if (activarTabEditor(hash)) return;
@@ -1126,6 +1159,14 @@ document.querySelectorAll('input, select, textarea').forEach(function(campo) {
 });
 
 document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('[data-equipo-filtro]').forEach(function(selectorEquipo) {
+        const form = selectorEquipo.closest('form');
+        filtrarJugadoresPorEquipo(form);
+        selectorEquipo.addEventListener('change', function() {
+            filtrarJugadoresPorEquipo(form);
+        });
+    });
+
     document.querySelectorAll('[data-alineacion-equipo]').forEach(function(boton) {
         boton.addEventListener('click', function() {
             activarEquipoAlineacion(boton.dataset.alineacionEquipo);
