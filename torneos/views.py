@@ -2508,6 +2508,121 @@ def _url_editor_tab(partido_id, tab):
 POSICIONES_ALINEACION_DEFAULT = [codigo for codigo, _ in AlineacionPartido.POSICIONES_CANCHA]
 
 
+def _orden_partido(partido):
+    return (
+        partido.fecha or date.min,
+        partido.hora or time.min,
+        partido.id or 0,
+    )
+
+
+def _partidos_equipo_antes(partido, equipo):
+    fecha_partido, hora_partido, _ = _orden_partido(partido)
+    return Partido.objects.filter(
+        categoria=partido.categoria,
+        estado__in=["FINALIZADO", "DECIDIDO_COMITE"],
+    ).filter(
+        Q(equipo_local=equipo) | Q(equipo_visitante=equipo)
+    ).filter(
+        Q(fecha__lt=fecha_partido) |
+        Q(fecha=fecha_partido, hora__lt=hora_partido) |
+        Q(fecha=fecha_partido, hora=hora_partido, id__lt=partido.id)
+    ).order_by("fecha", "hora", "id")
+
+
+def _jugadores_sancionados_por_tarjetas(partido):
+    sancionados = {}
+
+    for equipo in [partido.equipo_local, partido.equipo_visitante]:
+        partidos_previos = list(_partidos_equipo_antes(partido, equipo))
+        if not partidos_previos:
+            continue
+
+        ultimo_partido = partidos_previos[-1]
+        tarjetas_previas = Tarjeta.objects.filter(
+            partido__in=partidos_previos,
+            equipo=equipo,
+        ).select_related("partido", "jugador", "equipo")
+
+        tarjetas_por_jugador_partido = defaultdict(lambda: {"A": 0, "R": 0})
+        amarillas_grupos_por_jugador = defaultdict(set)
+
+        for tarjeta in tarjetas_previas:
+            resumen = tarjetas_por_jugador_partido[(tarjeta.jugador_id, tarjeta.partido_id)]
+            if tarjeta.tipo == "AMARILLA":
+                resumen["A"] += 1
+                if (tarjeta.partido.fase or "GRUPOS") == "GRUPOS":
+                    amarillas_grupos_por_jugador[tarjeta.jugador_id].add(tarjeta.partido_id)
+            elif tarjeta.tipo == "ROJA":
+                resumen["R"] += 1
+
+        jugadores_con_tarjeta = {
+            jugador_id
+            for jugador_id, _ in tarjetas_por_jugador_partido.keys()
+        }
+
+        for jugador_id in jugadores_con_tarjeta:
+            tarjetas_ultimo = tarjetas_por_jugador_partido.get((jugador_id, ultimo_partido.id), {"A": 0, "R": 0})
+            motivo = ""
+
+            if tarjetas_ultimo["R"] > 0:
+                motivo = "roja directa"
+            elif tarjetas_ultimo["A"] >= 2:
+                motivo = "doble amarilla"
+            elif (ultimo_partido.fase or "GRUPOS") == "GRUPOS" and tarjetas_ultimo["A"] > 0:
+                amarillas_hasta_ultimo = len(amarillas_grupos_por_jugador[jugador_id])
+                amarillas_antes_ultimo = amarillas_hasta_ultimo - 1
+                if amarillas_antes_ultimo < 3 <= amarillas_hasta_ultimo:
+                    motivo = "3 amarillas en fase 1"
+
+            if motivo:
+                sancionados[jugador_id] = {
+                    "equipo_id": equipo.id,
+                    "motivo": motivo,
+                    "partido_origen": ultimo_partido,
+                }
+
+    return sancionados
+
+
+def _sincronizar_no_disponibles_por_tarjetas(partido):
+    if partido.estado in ["FINALIZADO", "DECIDIDO_COMITE"]:
+        return {}
+
+    sancionados = _jugadores_sancionados_por_tarjetas(partido)
+    if not sancionados:
+        return {}
+
+    alineaciones = AlineacionPartido.objects.filter(
+        partido=partido,
+        jugador_id__in=sancionados.keys(),
+    )
+    alineaciones_por_jugador = {alineacion.jugador_id: alineacion for alineacion in alineaciones}
+    nuevas = []
+
+    for jugador_id, data in sancionados.items():
+        alineacion = alineaciones_por_jugador.get(jugador_id)
+        if alineacion:
+            if alineacion.rol != "NO_DISPONIBLE" or alineacion.posicion_cancha:
+                alineacion.rol = "NO_DISPONIBLE"
+                alineacion.posicion_cancha = ""
+                alineacion.equipo_id = data["equipo_id"]
+                alineacion.save(update_fields=["rol", "posicion_cancha", "equipo"])
+        else:
+            nuevas.append(AlineacionPartido(
+                partido=partido,
+                equipo_id=data["equipo_id"],
+                jugador_id=jugador_id,
+                rol="NO_DISPONIBLE",
+                posicion_cancha="",
+            ))
+
+    if nuevas:
+        AlineacionPartido.objects.bulk_create(nuevas, ignore_conflicts=True)
+
+    return sancionados
+
+
 def _marcar_roles_alineacion(jugadores, alineaciones_por_jugador):
     for jugador in jugadores:
         alineacion = alineaciones_por_jugador.get(jugador.id)
@@ -2555,6 +2670,7 @@ def editor_partido_movil(request, partido_id):
         Partido.objects.select_related('categoria', 'equipo_local', 'equipo_visitante'),
         id=partido_id
     )
+    sancionados_tarjetas = _sincronizar_no_disponibles_por_tarjetas(partido)
 
     jugadores_local, jugadores_visitante = _jugadores_del_partido(partido)
 
@@ -2577,6 +2693,7 @@ def editor_partido_movil(request, partido_id):
         'estados_partido': Partido.ESTADOS,
         'fases_partido': Partido.FASES,
         'posiciones_cancha': AlineacionPartido.POSICIONES_CANCHA,
+        'sancionados_tarjetas': sancionados_tarjetas,
     })
 
 
@@ -2679,6 +2796,7 @@ def agregar_tarjeta_movil(request, partido_id):
 @require_POST
 def agregar_alineacion_movil(request, partido_id):
     partido = get_object_or_404(Partido, id=partido_id)
+    sancionados_tarjetas = _sincronizar_no_disponibles_por_tarjetas(partido)
     jugador_id = request.POST.get('jugador')
     equipo_id = request.POST.get('equipo')
     rol = request.POST.get('rol') or 'TITULAR'
@@ -2692,6 +2810,9 @@ def agregar_alineacion_movil(request, partido_id):
         equipo = get_object_or_404(Equipo, id=equipo_id)
 
         if _validar_jugador_equipo(jugador, equipo, partido):
+            if jugador.id in sancionados_tarjetas and rol != "NO_DISPONIBLE":
+                messages.error(request, 'Este jugador esta sancionado por tarjetas y queda como no disponible.')
+                return redirect(_url_editor_tab(partido.id, "alineacion"))
             AlineacionPartido.objects.update_or_create(
                 partido=partido,
                 jugador=jugador,
@@ -2709,6 +2830,7 @@ def agregar_alineacion_movil(request, partido_id):
 @require_POST
 def guardar_alineacion_masiva_movil(request, partido_id):
     partido = get_object_or_404(Partido, id=partido_id)
+    sancionados_tarjetas = _sincronizar_no_disponibles_por_tarjetas(partido)
     equipo_id = request.POST.get("equipo")
     equipo = get_object_or_404(Equipo, id=equipo_id)
 
@@ -2720,6 +2842,11 @@ def guardar_alineacion_masiva_movil(request, partido_id):
     jugadores_validos = {str(jugador.id) for jugador in jugadores_equipo}
     roles_validos = {"TITULAR", "SUPLENTE", "NO_DISPONIBLE"}
     posiciones_validas = {codigo for codigo, _ in AlineacionPartido.POSICIONES_CANCHA}
+    sancionados_equipo = {
+        str(jugador_id)
+        for jugador_id, data in sancionados_tarjetas.items()
+        if data["equipo_id"] == equipo.id
+    }
     posiciones_usadas = set()
     seleccionados = []
 
@@ -2730,6 +2857,8 @@ def guardar_alineacion_masiva_movil(request, partido_id):
         jugador_id = llave.replace("rol_", "", 1)
         if jugador_id in jugadores_validos:
             posicion = request.POST.get(f"posicion_{jugador_id}") or ""
+            if jugador_id in sancionados_equipo:
+                rol = "NO_DISPONIBLE"
             if rol == "TITULAR":
                 if posicion not in posiciones_validas:
                     posicion = ""
@@ -2741,6 +2870,11 @@ def guardar_alineacion_masiva_movil(request, partido_id):
             else:
                 posicion = ""
             seleccionados.append((jugador_id, rol, posicion))
+
+    seleccionados_ids = {jugador_id for jugador_id, _, _ in seleccionados}
+    for jugador_id in sancionados_equipo - seleccionados_ids:
+        if jugador_id in jugadores_validos:
+            seleccionados.append((jugador_id, "NO_DISPONIBLE", ""))
 
     titulares = [jugador_id for jugador_id, rol, _ in seleccionados if rol == "TITULAR"]
     if len(titulares) > 11:
@@ -2754,6 +2888,11 @@ def guardar_alineacion_masiva_movil(request, partido_id):
     ]
     AlineacionPartido.objects.bulk_create(nuevas_alineaciones)
 
+    if sancionados_equipo:
+        messages.warning(
+            request,
+            "Los jugadores sancionados por tarjetas quedaron como no disponibles."
+        )
     messages.success(
         request,
         f"Alineacion de {equipo.nombre} guardada: {len(titulares)} titulares, "
