@@ -6,7 +6,7 @@ from django.test import TestCase
 from django.utils import timezone
 
 from .models import AlineacionPartido, Categoria, Equipo, Jugador, Partido, Tarjeta, Torneo
-from .views import _clave_orden_evento_resumen, _sincronizar_no_disponibles_por_tarjetas
+from .views import construir_estructura, _clave_orden_evento_resumen, _sincronizar_no_disponibles_por_tarjetas
 
 
 class SancionesTarjetasTests(TestCase):
@@ -106,3 +106,45 @@ class ResumenPartidoOrdenTests(TestCase):
         ordenados = sorted(eventos, key=_clave_orden_evento_resumen)
 
         self.assertEqual([evento.orden for evento in ordenados], [3, 2, 1, 4])
+
+
+class TablaPosicionesWoTests(TestCase):
+    def test_partido_wo_suma_en_tabla(self):
+        torneo = Torneo.objects.create(
+            nombre="Veranero",
+            fecha_inicio=date(2026, 1, 1),
+        )
+        categoria = Categoria.objects.create(
+            nombre="Senior",
+            edad_minima=18,
+            edad_maxima=60,
+            torneo=torneo,
+        )
+        ganador = Equipo.objects.create(nombre="Ganador WO", categoria=categoria)
+        perdedor = Equipo.objects.create(nombre="No Presentado", categoria=categoria)
+        Partido.objects.create(
+            categoria=categoria,
+            equipo_local=ganador,
+            equipo_visitante=perdedor,
+            fecha=date(2026, 5, 1),
+            hora=time(15, 0),
+            estado="WO",
+            fase="GRUPOS",
+            grupo="A",
+            numero_fecha="1",
+            goles_local=3,
+            goles_visitante=-3,
+        )
+
+        tabla = construir_estructura(torneo)["Senior"]["grupos"]["A"]["tabla"]
+        fila_ganador = next(fila for fila in tabla if fila["id"] == ganador.id)
+        fila_perdedor = next(fila for fila in tabla if fila["id"] == perdedor.id)
+
+        self.assertEqual(fila_ganador["pj"], 1)
+        self.assertEqual(fila_ganador["pg"], 1)
+        self.assertEqual(fila_ganador["pts"], 3)
+        self.assertEqual(fila_ganador["gf"], 3)
+        self.assertEqual(fila_ganador["gc"], -3)
+        self.assertEqual(fila_ganador["dg"], 6)
+        self.assertEqual(fila_perdedor["pp"], 1)
+        self.assertEqual(fila_perdedor["pts"], 0)

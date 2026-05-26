@@ -749,6 +749,9 @@ def etiqueta_columna_planilla(columna):
     return etiquetas.get(columna, columna)
 
 
+ESTADOS_PARTIDO_CERRADO = ["FINALIZADO", "DECIDIDO_COMITE", "WO"]
+
+
 def construir_estructura(torneo=None):
     estructura = {}
 
@@ -822,7 +825,7 @@ def construir_estructura(torneo=None):
                     "pts": 0,
                 })
 
-        if partido.estado in ["FINALIZADO", "DECIDIDO_COMITE"]:
+        if partido.estado in ESTADOS_PARTIDO_CERRADO:
             gl = partido.goles_local or 0
             gv = partido.goles_visitante or 0
 
@@ -886,7 +889,7 @@ def construir_estructura(torneo=None):
         goles_qs = goles_qs.filter(partido__categoria__torneo=torneo)
 
     for gol in goles_qs:
-        if gol.partido.estado not in ["FINALIZADO", "DECIDIDO_COMITE"]:
+        if gol.partido.estado not in ESTADOS_PARTIDO_CERRADO:
             continue
 
         categoria = gol.partido.categoria.nombre
@@ -924,7 +927,7 @@ def construir_estructura(torneo=None):
         tarjetas_qs = tarjetas_qs.filter(partido__categoria__torneo=torneo)
 
     for tarjeta in tarjetas_qs:
-        if tarjeta.partido.estado not in ["FINALIZADO", "DECIDIDO_COMITE"]:
+        if tarjeta.partido.estado not in ESTADOS_PARTIDO_CERRADO:
             continue
 
         categoria = tarjeta.partido.categoria.nombre
@@ -961,7 +964,7 @@ def construir_estructura(torneo=None):
     }))
 
     for partido in partidos:
-        if partido.estado not in ["FINALIZADO", "DECIDIDO_COMITE"]:
+        if partido.estado not in ESTADOS_PARTIDO_CERRADO:
             continue
 
         categoria = partido.categoria.nombre
@@ -1006,7 +1009,7 @@ def construir_estructura(torneo=None):
         alertas_tarjetas_qs = alertas_tarjetas_qs.filter(partido__categoria__torneo=torneo)
 
     for tarjeta in alertas_tarjetas_qs:
-        if tarjeta.partido.estado not in ["FINALIZADO", "DECIDIDO_COMITE"]:
+        if tarjeta.partido.estado not in ESTADOS_PARTIDO_CERRADO:
             continue
 
         categoria = tarjeta.partido.categoria.nombre
@@ -1205,7 +1208,7 @@ def construir_estructura(torneo=None):
             ganador_local = False
             ganador_visitante = False
 
-            if p.estado in ["FINALIZADO", "DECIDIDO_COMITE"]:
+            if p.estado in ESTADOS_PARTIDO_CERRADO:
                 if gl > gv:
                     ganador_local = True
                 elif gv > gl:
@@ -1435,7 +1438,7 @@ def construir_partidos_portada(torneo=None):
         if partido.estado not in estados_visibles:
             continue
 
-        if partido.estado in ["FINALIZADO", "DECIDIDO_COMITE", "WO"]:
+        if partido.estado in ESTADOS_PARTIDO_CERRADO:
             bloque = "RESULTADOS RECIENTES"
             orden_bloque = 0
             orden_fecha = partido.fecha.toordinal()
@@ -1456,7 +1459,7 @@ def construir_partidos_portada(torneo=None):
         ganador_local = False
         ganador_visitante = False
 
-        if fase != "GRUPOS" and partido.estado in ["FINALIZADO", "DECIDIDO_COMITE", "WO"]:
+        if fase != "GRUPOS" and partido.estado in ESTADOS_PARTIDO_CERRADO:
             if gl > gv:
                 ganador_local = True
             elif gv > gl:
@@ -1902,7 +1905,7 @@ def grupo_completo(categoria, grupo):
         return False
 
     for partido in partidos:
-        if partido.estado not in ["FINALIZADO", "DECIDIDO_COMITE"]:
+        if partido.estado not in ESTADOS_PARTIDO_CERRADO:
             return False
 
     return True
@@ -1941,7 +1944,7 @@ def crear_o_actualizar_cuarto(categoria, numero, local, visitante):
         }
     )
 
-    if partido.estado in ["FINALIZADO", "DECIDIDO_COMITE"]:
+    if partido.estado in ESTADOS_PARTIDO_CERRADO:
         return partido
 
     partido.grupo = "FINAL"
@@ -2030,7 +2033,7 @@ def generar_llaves_cuartos(request, categoria):
     return redirect("panel")
 
 def ganador_partido(partido):
-    if partido.estado not in ["FINALIZADO", "DECIDIDO_COMITE"]:
+    if partido.estado not in ESTADOS_PARTIDO_CERRADO:
         return None
 
     gl = partido.goles_local or 0
@@ -2073,7 +2076,7 @@ def crear_o_actualizar_partido_final(categoria, fase, numero_fecha, local, visit
         }
     )
 
-    if partido.estado in ["FINALIZADO", "DECIDIDO_COMITE"]:
+    if partido.estado in ESTADOS_PARTIDO_CERRADO:
         return partido
 
     partido.grupo = "FINAL"
@@ -2165,7 +2168,7 @@ def generar_final(request, categoria):
     return redirect("panel")
 
 def perdedor_partido(partido):
-    if partido.estado not in ["FINALIZADO", "DECIDIDO_COMITE"]:
+    if partido.estado not in ESTADOS_PARTIDO_CERRADO:
         return None
 
     gl = partido.goles_local or 0
@@ -2520,7 +2523,7 @@ def _partidos_equipo_antes(partido, equipo):
     fecha_partido, hora_partido, _ = _orden_partido(partido)
     return Partido.objects.filter(
         categoria=partido.categoria,
-        estado__in=["FINALIZADO", "DECIDIDO_COMITE"],
+        estado__in=ESTADOS_PARTIDO_CERRADO,
     ).filter(
         Q(equipo_local=equipo) | Q(equipo_visitante=equipo)
     ).filter(
@@ -2586,7 +2589,7 @@ def _jugadores_sancionados_por_tarjetas(partido):
 
 
 def _sincronizar_no_disponibles_por_tarjetas(partido):
-    if partido.estado in ["FINALIZADO", "DECIDIDO_COMITE"]:
+    if partido.estado in ESTADOS_PARTIDO_CERRADO:
         return {}
 
     sancionados = _jugadores_sancionados_por_tarjetas(partido)
