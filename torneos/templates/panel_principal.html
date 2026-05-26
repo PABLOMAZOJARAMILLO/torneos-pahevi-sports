@@ -4992,6 +4992,50 @@ body.solo-lectura .menu-principal{top:96px!important}
             font-size: 12px !important;
         }
     }
+
+    /* Fase final: leer cancha completa en PC, movil y APK */
+    .tab-content[data-tab="finales"] .detalle-llave .detalle-cancha-llave {
+        width: max-content !important;
+        max-width: 136px !important;
+        white-space: normal !important;
+        overflow: visible !important;
+        text-overflow: clip !important;
+        overflow-wrap: anywhere !important;
+        line-height: 1.15 !important;
+    }
+
+    @media (min-width: 901px) {
+        .tab-content[data-tab="finales"] .partido-llave,
+        .tab-content[data-tab="finales"] .partido-llave.final,
+        .tab-content[data-tab="finales"] .partido-llave.tercer-puesto {
+            min-height: 184px !important;
+        }
+
+        .tab-content[data-tab="finales"] .partido-llave-contenido {
+            grid-template-columns: minmax(108px, 1fr) 88px minmax(108px, 1fr) !important;
+        }
+
+        .tab-content[data-tab="finales"] .detalle-llave .detalle-cancha-llave {
+            max-width: 146px !important;
+        }
+    }
+
+    @media (max-width: 900px) {
+        .tab-content[data-tab="finales"] .partido-llave,
+        .tab-content[data-tab="finales"] .partido-llave.final,
+        .tab-content[data-tab="finales"] .partido-llave.tercer-puesto {
+            min-height: 174px !important;
+        }
+
+        .tab-content[data-tab="finales"] .partido-llave-contenido {
+            grid-template-columns: minmax(104px, 1fr) 88px minmax(104px, 1fr) !important;
+        }
+
+        .tab-content[data-tab="finales"] .detalle-llave .detalle-cancha-llave {
+            max-width: 132px !important;
+            font-size: 11px !important;
+        }
+    }
 </style>
 </head>
 
@@ -5754,7 +5798,7 @@ body.solo-lectura .menu-principal{top:96px!important}
                                 <div class="detalle-llave">
                                     {% if p.fecha %}<div>&#128197; {{ p.fecha|date:"d/m/Y" }}</div>{% endif %}
                                     {% if p.hora %}<div>&#128338; {{ p.hora|time:"H:i" }}</div>{% endif %}
-                                    {% if p.cancha %}<div>&#127967;&#65039; {{ p.cancha }}</div>{% endif %}
+                                    {% if p.cancha %}<div class="detalle-cancha-llave">&#127967;&#65039; {{ p.cancha }}</div>{% endif %}
                                 </div>
 
                                 {% if p.id %}
@@ -5835,7 +5879,7 @@ body.solo-lectura .menu-principal{top:96px!important}
                                 <div class="detalle-llave">
                                     {% if p.fecha %}<div>&#128197; {{ p.fecha|date:"d/m/Y" }}</div>{% endif %}
                                     {% if p.hora %}<div>&#128338; {{ p.hora|time:"H:i" }}</div>{% endif %}
-                                    {% if p.cancha %}<div>&#127967;&#65039; {{ p.cancha }}</div>{% endif %}
+                                    {% if p.cancha %}<div class="detalle-cancha-llave">&#127967;&#65039; {{ p.cancha }}</div>{% endif %}
                                 </div>
 
                                 {% if p.id %}
@@ -5916,7 +5960,7 @@ body.solo-lectura .menu-principal{top:96px!important}
                                 <div class="detalle-llave">
                                     {% if p.fecha %}<div>&#128197; {{ p.fecha|date:"d/m/Y" }}</div>{% endif %}
                                     {% if p.hora %}<div>&#128338; {{ p.hora|time:"H:i" }}</div>{% endif %}
-                                    {% if p.cancha %}<div>&#127967;&#65039; {{ p.cancha }}</div>{% endif %}
+                                    {% if p.cancha %}<div class="detalle-cancha-llave">&#127967;&#65039; {{ p.cancha }}</div>{% endif %}
                                 </div>
 
                                 {% if p.id %}
@@ -5995,7 +6039,7 @@ body.solo-lectura .menu-principal{top:96px!important}
                                 <div class="detalle-llave">
                                     {% if p.fecha %}<div>&#128197; {{ p.fecha|date:"d/m/Y" }}</div>{% endif %}
                                     {% if p.hora %}<div>&#128338; {{ p.hora|time:"H:i" }}</div>{% endif %}
-                                    {% if p.cancha %}<div>&#127967;&#65039; {{ p.cancha }}</div>{% endif %}
+                                    {% if p.cancha %}<div class="detalle-cancha-llave">&#127967;&#65039; {{ p.cancha }}</div>{% endif %}
                                 </div>
 
                                 {% if p.id %}
