@@ -2002,6 +2002,31 @@ def descargar_valla_categoria(request, categoria):
 
 @login_required
 @user_passes_test(es_editor_torneo)
+def descargar_foraneos_categoria(request, categoria):
+    torneo = torneo_actual(request)
+    estructura = construir_estructura(torneo)
+    datos_categoria = estructura.get(categoria)
+
+    if not datos_categoria:
+        return HttpResponse("Categoria no encontrada")
+
+    datos_categoria = preparar_categoria_para_descarga(request, datos_categoria)
+    logos = logos_torneo(request, torneo)
+
+    html = render_to_string("descargas/foraneos_categoria.html", {
+        "categoria": categoria,
+        "datos_categoria": datos_categoria,
+        "logo_alcaldia": logos["logo_alcaldia"],
+        "logo_torneo": logos["logo_torneo"],
+        "logo_imcred": logos["logo_imcred"],
+    })
+
+    nombre = limpiar_nombre(f"FORANEOS_{categoria}.png")
+    return crear_imagen_desde_html(html, nombre, 1800, 2000, url_retorno_descarga(request))
+
+
+@login_required
+@user_passes_test(es_editor_torneo)
 def descargar_imagen(request, categoria):
     torneo = torneo_actual(request)
     estructura_total = construir_estructura(torneo)

@@ -6,6 +6,7 @@ from .views import (
     descargar_goleadores_categoria,
     descargar_tarjetas_categoria,
     descargar_valla_categoria,
+    descargar_foraneos_categoria,
     generar_llaves_cuartos,
     generar_semifinales,
     generar_final,
@@ -60,6 +61,12 @@ urlpatterns = [
         'descargar/valla/<str:categoria>/',
         descargar_valla_categoria,
         name='descargar_valla_categoria'
+    ),
+
+    path(
+        'descargar/foraneos/<str:categoria>/',
+        descargar_foraneos_categoria,
+        name='descargar_foraneos_categoria'
     ),
 
     path(
