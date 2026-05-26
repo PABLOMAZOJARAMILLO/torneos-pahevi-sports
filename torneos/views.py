@@ -2975,9 +2975,6 @@ def guardar_alineacion_masiva_movil(request, partido_id):
         messages.error(request, "Solo puedes seleccionar 11 titulares por equipo.")
         return redirect(_url_editor_tab(partido.id, "alineacion"))
     errores_edad = validar_reglas_edad_titulares(partido, equipo, titulares)
-    if errores_edad:
-        messages.error(request, "La alineacion no cumple las reglas de edad: " + " ".join(errores_edad))
-        return redirect(_url_editor_tab(partido.id, "alineacion"))
 
     AlineacionPartido.objects.filter(partido=partido, equipo=equipo).delete()
     nuevas_alineaciones = [
@@ -2990,6 +2987,11 @@ def guardar_alineacion_masiva_movil(request, partido_id):
         messages.warning(
             request,
             "Los jugadores sancionados por tarjetas quedaron como no disponibles."
+        )
+    if errores_edad:
+        messages.warning(
+            request,
+            "Advertencia de reglas de edad: " + " ".join(errores_edad)
         )
     messages.success(
         request,
