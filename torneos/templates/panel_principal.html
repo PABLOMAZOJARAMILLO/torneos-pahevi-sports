@@ -4874,6 +4874,107 @@ body.solo-lectura .menu-principal{top:96px!important}
             padding: 6px 10px !important;
         }
     }
+
+    /* Ajuste final: fase final grande en PC y con forma de llave en APK */
+    @media (min-width: 901px) {
+        .tab-content[data-tab="finales"] .llaves-container {
+            overflow-x: visible !important;
+            padding: 18px 14px 24px !important;
+        }
+
+        .tab-content[data-tab="finales"] .llaves {
+            width: 100% !important;
+            min-width: 0 !important;
+            display: grid !important;
+            grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+            gap: 14px !important;
+        }
+
+        .tab-content[data-tab="finales"] .partido-llave,
+        .tab-content[data-tab="finales"] .partido-llave.final,
+        .tab-content[data-tab="finales"] .partido-llave.tercer-puesto {
+            width: min(100%, 370px) !important;
+            min-height: 172px !important;
+            padding: 12px 14px !important;
+        }
+
+        .tab-content[data-tab="finales"] .partido-llave-contenido {
+            grid-template-columns: minmax(118px, 1fr) 70px minmax(118px, 1fr) !important;
+            gap: 9px !important;
+        }
+
+        .tab-content[data-tab="finales"] .nombre-equipo-llave {
+            max-width: 128px !important;
+            font-size: 12px !important;
+        }
+
+        .tab-content[data-tab="finales"] .equipo-llave img {
+            width: 52px !important;
+            height: 52px !important;
+        }
+    }
+
+    @media (max-width: 900px) {
+        .tab-content[data-tab="finales"] .llaves-container {
+            overflow-x: auto !important;
+            padding: 18px 14px 28px !important;
+            border-radius: 0 !important;
+        }
+
+        .tab-content[data-tab="finales"] .llaves {
+            display: grid !important;
+            grid-template-columns: 360px 360px 380px !important;
+            gap: 22px !important;
+            min-width: 1144px !important;
+            align-items: start !important;
+            overflow: visible !important;
+        }
+
+        .tab-content[data-tab="finales"] .columna-llave,
+        .tab-content[data-tab="finales"] .columna-cuartos,
+        .tab-content[data-tab="finales"] .columna-semifinal,
+        .tab-content[data-tab="finales"] .columna-finales {
+            max-width: none !important;
+            width: 100% !important;
+        }
+
+        .tab-content[data-tab="finales"] .columna-cuartos {
+            gap: 16px !important;
+        }
+
+        .tab-content[data-tab="finales"] .columna-semifinal {
+            gap: 58px !important;
+            padding-top: 76px !important;
+        }
+
+        .tab-content[data-tab="finales"] .columna-finales {
+            gap: 20px !important;
+            padding-top: 68px !important;
+        }
+
+        .tab-content[data-tab="finales"] .partido-llave,
+        .tab-content[data-tab="finales"] .partido-llave.final,
+        .tab-content[data-tab="finales"] .partido-llave.tercer-puesto {
+            width: 340px !important;
+            min-height: 160px !important;
+            padding: 11px 13px !important;
+        }
+
+        .tab-content[data-tab="finales"] .partido-llave.final,
+        .tab-content[data-tab="finales"] .partido-llave.tercer-puesto {
+            width: 360px !important;
+        }
+
+        .tab-content[data-tab="finales"] .partido-llave-contenido {
+            grid-template-columns: minmax(112px, 1fr) 70px minmax(112px, 1fr) !important;
+            gap: 8px !important;
+        }
+
+        .tab-content[data-tab="finales"] .nombre-equipo-llave {
+            max-width: 122px !important;
+            font-size: 12px !important;
+        }
+    }
 </style>
 </head>
 
