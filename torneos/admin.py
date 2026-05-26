@@ -237,7 +237,7 @@ class CategoriaResource(resources.ModelResource):
     class Meta:
         model = Categoria
         import_id_fields = ('nombre',)
-        fields = ('id', 'nombre', 'descripcion', 'edad_minima', 'edad_maxima', 'torneo')
+        fields = ('id', 'nombre', 'descripcion', 'edad_minima', 'edad_maxima', 'torneo', 'controlar_foraneos', 'porcentaje_minimo_foraneos')
 
 
 class EquipoResource(resources.ModelResource):
@@ -255,7 +255,7 @@ class JugadorResource(resources.ModelResource):
     class Meta:
         model = Jugador
         import_id_fields = ('equipo', 'cedula')
-        fields = ('id', 'equipo', 'dorsal', 'nombres', 'cedula', 'fecha_nacimiento', 'telefono', 'estado')
+        fields = ('id', 'equipo', 'dorsal', 'nombres', 'cedula', 'fecha_nacimiento', 'telefono', 'es_foraneo', 'municipio', 'estado')
         skip_unchanged = True
         report_skipped = True
 
@@ -302,7 +302,7 @@ class ReglaEdadCategoriaInline(admin.TabularInline):
 @admin.register(Categoria)
 class CategoriaAdmin(ImportExportModelAdmin):
     resource_class = CategoriaResource
-    list_display = ('nombre', 'torneo', 'edad_minima', 'edad_maxima')
+    list_display = ('nombre', 'torneo', 'edad_minima', 'edad_maxima', 'controlar_foraneos', 'porcentaje_minimo_foraneos')
     list_filter = ('torneo',)
     search_fields = ('nombre', 'torneo__nombre')
     inlines = [ReglaEdadCategoriaInline]
@@ -319,7 +319,7 @@ class DocumentoAdmin(admin.ModelAdmin):
 class JugadorInline(admin.TabularInline):
     model = Jugador
     extra = 0
-    fields = ('dorsal', 'nombres', 'cedula', 'fecha_nacimiento', 'estado')
+    fields = ('dorsal', 'nombres', 'cedula', 'fecha_nacimiento', 'es_foraneo', 'municipio', 'estado')
     ordering = ('dorsal', 'nombres')
 
 
@@ -336,8 +336,8 @@ class EquipoAdmin(ImportExportModelAdmin):
 class JugadorAdmin(ImportExportModelAdmin):
     resource_class = JugadorResource
     change_list_template = "admin/jugador_changelist.html"
-    list_display = ('dorsal', 'nombres', 'equipo', 'cedula', 'fecha_nacimiento', 'edad_actual', 'rango', 'estado')
-    list_filter = ('equipo', 'equipo__categoria', 'estado')
+    list_display = ('dorsal', 'nombres', 'equipo', 'cedula', 'fecha_nacimiento', 'edad_actual', 'rango', 'es_foraneo', 'municipio', 'estado')
+    list_filter = ('equipo', 'equipo__categoria', 'es_foraneo', 'estado')
     search_fields = ('nombres', 'cedula', 'equipo__nombre')
     ordering = ('equipo__nombre', 'dorsal', 'nombres')
 

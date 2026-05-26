@@ -720,6 +720,9 @@ def estructura_base_categoria():
         "tarjetas_planilla": [],
         "valla_planilla": [],
         "alertas_tarjetas": [],
+        "foraneos": [],
+        "controlar_foraneos": False,
+        "porcentaje_foraneos": 50,
         "equipos": [],
         "llaves": {
             "cuartos": [],
@@ -752,6 +755,69 @@ def etiqueta_columna_planilla(columna):
 ESTADOS_PARTIDO_CERRADO = ["FINALIZADO", "DECIDIDO_COMITE", "WO"]
 
 
+def construir_estadisticas_foraneos(categoria):
+    if not categoria or not categoria.controlar_foraneos:
+        return []
+
+    partidos_fase1 = Partido.objects.filter(
+        categoria=categoria,
+        fase="GRUPOS",
+        estado__in=ESTADOS_PARTIDO_CERRADO,
+    )
+    total_partidos_por_equipo = defaultdict(int)
+    partidos_por_equipo = defaultdict(set)
+    for partido in partidos_fase1.only("id", "equipo_local_id", "equipo_visitante_id"):
+        partidos_por_equipo[partido.equipo_local_id].add(partido.id)
+        partidos_por_equipo[partido.equipo_visitante_id].add(partido.id)
+    for equipo_id, partidos_ids in partidos_por_equipo.items():
+        total_partidos_por_equipo[equipo_id] = len(partidos_ids)
+
+    partidos_jugados_por_jugador = defaultdict(set)
+    alineaciones = AlineacionPartido.objects.filter(
+        partido__categoria=categoria,
+        partido__fase="GRUPOS",
+        partido__estado__in=ESTADOS_PARTIDO_CERRADO,
+        rol="TITULAR",
+        jugador__es_foraneo=True,
+    ).values_list("jugador_id", "partido_id")
+    for jugador_id, partido_id in alineaciones:
+        partidos_jugados_por_jugador[jugador_id].add(partido_id)
+
+    sustituciones = SustitucionPartido.objects.filter(
+        partido__categoria=categoria,
+        partido__fase="GRUPOS",
+        partido__estado__in=ESTADOS_PARTIDO_CERRADO,
+        jugador_entra__es_foraneo=True,
+    ).values_list("jugador_entra_id", "partido_id")
+    for jugador_id, partido_id in sustituciones:
+        partidos_jugados_por_jugador[jugador_id].add(partido_id)
+
+    porcentaje = categoria.porcentaje_minimo_foraneos or 0
+    filas = []
+    jugadores = Jugador.objects.filter(
+        equipo__categoria=categoria,
+        es_foraneo=True,
+    ).select_related("equipo", "equipo__categoria").order_by("equipo__nombre", "nombres")
+    for jugador in jugadores:
+        total_fase1 = total_partidos_por_equipo.get(jugador.equipo_id, 0)
+        minimo = int((total_fase1 * porcentaje) / 100)
+        jugados = len(partidos_jugados_por_jugador.get(jugador.id, set()))
+        filas.append({
+            "jugador": jugador.nombres,
+            "equipo": jugador.equipo.nombre,
+            "escudo": escudo_url(jugador.equipo),
+            "municipio": jugador.municipio or "Sin municipio",
+            "partidos_fase1": total_fase1,
+            "jugados": jugados,
+            "minimo": minimo,
+            "porcentaje": porcentaje,
+            "cumple": jugados >= minimo,
+            "estado": "Habilitado" if jugados >= minimo else "Pendiente",
+        })
+
+    return sorted(filas, key=lambda fila: (fila["cumple"], fila["equipo"], fila["jugador"]))
+
+
 def construir_estructura(torneo=None):
     estructura = {}
 
@@ -761,6 +827,9 @@ def construir_estructura(torneo=None):
 
     for categoria in categorias:
         estructura[categoria.nombre] = estructura_base_categoria()
+        estructura[categoria.nombre]["controlar_foraneos"] = categoria.controlar_foraneos
+        estructura[categoria.nombre]["porcentaje_foraneos"] = categoria.porcentaje_minimo_foraneos
+        estructura[categoria.nombre]["foraneos"] = construir_estadisticas_foraneos(categoria)
 
     partidos = Partido.objects.select_related(
         "categoria",

@@ -45,7 +45,10 @@
         {% endif %}
         <div>
             <div>{% if jugador.dorsal %}#{{ jugador.dorsal }} · {% endif %}{{ jugador.nombres|texto_limpio }}</div>
-            <div class="muted">{{ jugador.equipo.nombre }} · {{ jugador.equipo.categoria.nombre }} · {{ jugador.estado }}</div>
+            <div class="muted">
+                {{ jugador.equipo.nombre }} · {{ jugador.equipo.categoria.nombre }} · {{ jugador.estado }}
+                {% if jugador.es_foraneo %} · Foráneo{% if jugador.municipio %}: {{ jugador.municipio }}{% endif %}{% endif %}
+            </div>
         </div>
     </div>
     <a class="btn" href="{% url 'gestion_jugador_editar' jugador.id %}">Editar</a>

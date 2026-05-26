@@ -120,6 +120,8 @@ class Categoria(models.Model):
     edad_minima = models.IntegerField(verbose_name='Edad mínima')
     edad_maxima = models.IntegerField(verbose_name='Edad máxima')
     torneo = models.ForeignKey(Torneo, on_delete=models.CASCADE, related_name='categorias', blank=True, null=True)
+    controlar_foraneos = models.BooleanField(default=False, verbose_name='Controlar foráneos')
+    porcentaje_minimo_foraneos = models.PositiveIntegerField(default=50, verbose_name='Porcentaje mínimo fase 1 foráneos')
 
     class Meta:
         verbose_name = 'Categoría'
@@ -222,6 +224,8 @@ class Jugador(models.Model):
     telefono = models.CharField(max_length=30, blank=True, null=True, verbose_name='Teléfono')
     estado = models.CharField(max_length=20, choices=ESTADOS, default='ACTIVO', verbose_name='Estado')
     foto = models.ImageField(upload_to=ruta_foto_jugador, blank=True, null=True, verbose_name='Foto')
+    es_foraneo = models.BooleanField(default=False, verbose_name='Foráneo')
+    municipio = models.CharField(max_length=120, blank=True, null=True, verbose_name='Municipio')
 
     class Meta:
         verbose_name = 'Jugador'

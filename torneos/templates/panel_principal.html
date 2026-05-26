@@ -5335,6 +5335,7 @@ body.solo-lectura .menu-principal{top:96px!important}
         <button type="button" class="tab-btn" onclick="mostrarTabCategoria('categoria-{{ forloop.counter }}', 'goleadores', this)">Goleadores</button>
         <button type="button" class="tab-btn" onclick="mostrarTabCategoria('categoria-{{ forloop.counter }}', 'valla', this)">Valla menos vencida</button>
         <button type="button" class="tab-btn" onclick="mostrarTabCategoria('categoria-{{ forloop.counter }}', 'tarjetas', this)">Tarjetas</button>
+        <button type="button" class="tab-btn" onclick="mostrarTabCategoria('categoria-{{ forloop.counter }}', 'foraneos', this)">Foráneos</button>
         <button type="button" class="tab-btn" onclick="mostrarTabCategoria('categoria-{{ forloop.counter }}', 'fase1', this)">Fechas fase 1</button>
         <button type="button" class="tab-btn" onclick="mostrarTabCategoria('categoria-{{ forloop.counter }}', 'finales', this)">Fechas fase finales</button>
         <button type="button" class="tab-btn" onclick="mostrarTabCategoria('categoria-{{ forloop.counter }}', 'equipos', this)">Equipos</button>
@@ -5607,6 +5608,57 @@ body.solo-lectura .menu-principal{top:96px!important}
                     {% empty %}
                     <tr>
                         <td colspan="7">No hay jugadores en alerta o sanción.</td>
+                    </tr>
+                    {% endfor %}
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===================== FORÁNEOS ===================== -->
+    <div class="tab-content" data-tab="foraneos">
+        <div class="bloque">
+            <h2>Control de jugadores foráneos</h2>
+            {% if datos_categoria.controlar_foraneos %}
+                <p class="aviso-deslizar">Regla activa: mínimo {{ datos_categoria.porcentaje_foraneos }}% de partidos jugados en fase 1. Si el resultado da decimal, se toma el número por debajo.</p>
+            {% else %}
+                <p class="aviso-deslizar">Esta categoría no tiene activo el control automático de foráneos.</p>
+            {% endif %}
+
+            <div class="tabla-responsive tabla-posiciones">
+                <table>
+                    <tr>
+                        <th>#</th>
+                        <th class="col-jugador">Jugador</th>
+                        <th class="col-equipo">Equipo</th>
+                        <th>Municipio</th>
+                        <th>Jugados</th>
+                        <th>Mínimo</th>
+                        <th>Fase 1</th>
+                        <th>Estado</th>
+                    </tr>
+
+                    {% for f in datos_categoria.foraneos %}
+                    <tr>
+                        <td>{{ forloop.counter }}</td>
+                        <td class="col-jugador">{{ f.jugador|texto_limpio }}</td>
+                        <td class="col-equipo">
+                            <div class="equipo-logo">
+                                {% if f.escudo %}
+                                    <img src="{{ f.escudo }}" class="logo-equipo">
+                                {% endif %}
+                                <span>{{ f.equipo }}</span>
+                            </div>
+                        </td>
+                        <td>{{ f.municipio }}</td>
+                        <td class="celda-total">{{ f.jugados }}</td>
+                        <td>{{ f.minimo }}</td>
+                        <td>{{ f.partidos_fase1 }}</td>
+                        <td class="celda-total">{% if f.cumple %}Habilitado{% else %}Pendiente{% endif %}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8">No hay jugadores foráneos registrados en esta categoría.</td>
                     </tr>
                     {% endfor %}
                 </table>

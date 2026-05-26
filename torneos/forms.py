@@ -76,6 +76,8 @@ class CategoriaForm(forms.ModelForm):
             "descripcion",
             "edad_minima",
             "edad_maxima",
+            "controlar_foraneos",
+            "porcentaje_minimo_foraneos",
         ]
         widgets = {
             "descripcion": forms.Textarea(attrs={"rows": 3}),
@@ -121,6 +123,8 @@ class JugadorForm(forms.ModelForm):
             "telefono",
             "estado",
             "foto",
+            "es_foraneo",
+            "municipio",
         ]
         widgets = {
             "fecha_nacimiento": forms.DateInput(attrs={"type": "date"}),

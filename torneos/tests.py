@@ -6,8 +6,8 @@ from django.core.exceptions import ValidationError
 from django.test import TestCase, TransactionTestCase
 from django.utils import timezone
 
-from .models import AlineacionPartido, Categoria, Equipo, Jugador, Partido, ReglaEdadCategoria, Tarjeta, Torneo
-from .views import construir_estructura, _clave_orden_evento_resumen, _sincronizar_no_disponibles_por_tarjetas, etiqueta_edad_jugador, validar_reglas_edad_titulares
+from .models import AlineacionPartido, Categoria, Equipo, Jugador, Partido, ReglaEdadCategoria, SustitucionPartido, Tarjeta, Torneo
+from .views import construir_estructura, construir_estadisticas_foraneos, _clave_orden_evento_resumen, _sincronizar_no_disponibles_por_tarjetas, etiqueta_edad_jugador, validar_reglas_edad_titulares
 
 
 class SancionesTarjetasTests(TestCase):
@@ -242,6 +242,82 @@ class ReglasEdadCategoriaTests(TestCase):
         )
 
         self.assertTrue(any("+45" in error for error in errores))
+
+
+class ForaneosTests(TestCase):
+    def setUp(self):
+        self.torneo = Torneo.objects.create(
+            nombre="IMCRED",
+            fecha_inicio=date(2026, 1, 1),
+        )
+        self.categoria = Categoria.objects.create(
+            nombre="Senior Master",
+            edad_minima=40,
+            edad_maxima=80,
+            torneo=self.torneo,
+            controlar_foraneos=True,
+            porcentaje_minimo_foraneos=50,
+        )
+        self.equipo = Equipo.objects.create(nombre="Paraiso", categoria=self.categoria)
+        self.rival = Equipo.objects.create(nombre="Integracion", categoria=self.categoria)
+        self.foraneo = Jugador.objects.create(
+            equipo=self.equipo,
+            dorsal=9,
+            nombres="Jugador Foraneo",
+            cedula="F1",
+            fecha_nacimiento=date(1970, 1, 1),
+            es_foraneo=True,
+            municipio="Puerto Libertador",
+        )
+        self.titular = Jugador.objects.create(
+            equipo=self.equipo,
+            dorsal=10,
+            nombres="Jugador Titular",
+            cedula="T1",
+            fecha_nacimiento=date(1970, 1, 1),
+        )
+
+    def crear_partido(self, dia):
+        return Partido.objects.create(
+            categoria=self.categoria,
+            equipo_local=self.equipo,
+            equipo_visitante=self.rival,
+            fecha=date(2026, 5, dia),
+            hora=time(15, 0),
+            estado="FINALIZADO",
+            fase="GRUPOS",
+            numero_fecha=str(dia),
+        )
+
+    def test_minimo_foraneo_redondea_hacia_abajo(self):
+        for dia in [1, 8, 15, 22, 29, 30, 31]:
+            self.crear_partido(dia)
+
+        fila = construir_estadisticas_foraneos(self.categoria)[0]
+
+        self.assertEqual(fila["partidos_fase1"], 7)
+        self.assertEqual(fila["minimo"], 3)
+
+    def test_cuenta_titular_y_suplente_que_entra(self):
+        partido_uno = self.crear_partido(1)
+        partido_dos = self.crear_partido(8)
+        AlineacionPartido.objects.create(
+            partido=partido_uno,
+            equipo=self.equipo,
+            jugador=self.foraneo,
+            rol="TITULAR",
+        )
+        SustitucionPartido.objects.create(
+            partido=partido_dos,
+            equipo=self.equipo,
+            jugador_sale=self.titular,
+            jugador_entra=self.foraneo,
+        )
+
+        fila = construir_estadisticas_foraneos(self.categoria)[0]
+
+        self.assertEqual(fila["jugados"], 2)
+        self.assertTrue(fila["cumple"])
 
 
 class JugadorCedulaPorEquipoTests(TransactionTestCase):
