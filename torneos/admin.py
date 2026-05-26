@@ -143,6 +143,17 @@ def importar_planilla_inscripcion(request):
                     omitidos += 1
                     errores.append(f'Fila {fila}: fecha de nacimiento inválida para {nombre}.')
                     continue
+                jugador_misma_categoria = Jugador.objects.filter(
+                    cedula=cedula,
+                    equipo__categoria=categoria,
+                ).exclude(equipo=equipo).select_related('equipo').first()
+                if jugador_misma_categoria:
+                    omitidos += 1
+                    errores.append(
+                        f'Fila {fila}: {nombre} ya esta inscrito en {jugador_misma_categoria.equipo.nombre} '
+                        f'para {categoria.nombre}.'
+                    )
+                    continue
                 _, creado = Jugador.objects.update_or_create(
                     equipo=equipo,
                     cedula=cedula,

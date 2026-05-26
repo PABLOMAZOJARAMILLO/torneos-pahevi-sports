@@ -2,7 +2,7 @@ from datetime import date, time, timedelta
 
 from types import SimpleNamespace
 
-from django.db import IntegrityError
+from django.core.exceptions import ValidationError
 from django.test import TestCase, TransactionTestCase
 from django.utils import timezone
 
@@ -152,7 +152,7 @@ class TablaPosicionesWoTests(TestCase):
 
 
 class JugadorCedulaPorEquipoTests(TransactionTestCase):
-    def test_permite_misma_cedula_en_equipos_distintos(self):
+    def test_permite_misma_cedula_en_categorias_distintas(self):
         torneo = Torneo.objects.create(
             nombre="Veranero",
             fecha_inicio=date(2026, 1, 1),
@@ -210,9 +210,40 @@ class JugadorCedulaPorEquipoTests(TransactionTestCase):
             fecha_nacimiento=date(1970, 1, 1),
         )
 
-        with self.assertRaises(IntegrityError):
+        with self.assertRaises(ValidationError):
             Jugador.objects.create(
                 equipo=equipo,
+                dorsal=8,
+                nombres="Jugador Dos",
+                cedula="12345",
+                fecha_nacimiento=date(1975, 1, 1),
+            )
+
+    def test_no_permite_misma_cedula_en_otro_equipo_de_la_misma_categoria(self):
+        torneo = Torneo.objects.create(
+            nombre="Veranero",
+            fecha_inicio=date(2026, 1, 1),
+        )
+        categoria = Categoria.objects.create(
+            nombre="Senior Master",
+            edad_minima=18,
+            edad_maxima=60,
+            torneo=torneo,
+        )
+        niqueleros = Equipo.objects.create(nombre="Niqueleros", categoria=categoria)
+        otro_equipo = Equipo.objects.create(nombre="Otro Equipo", categoria=categoria)
+
+        Jugador.objects.create(
+            equipo=niqueleros,
+            dorsal=7,
+            nombres="Jugador Uno",
+            cedula="12345",
+            fecha_nacimiento=date(1970, 1, 1),
+        )
+
+        with self.assertRaises(ValidationError):
+            Jugador.objects.create(
+                equipo=otro_equipo,
                 dorsal=8,
                 nombres="Jugador Dos",
                 cedula="12345",

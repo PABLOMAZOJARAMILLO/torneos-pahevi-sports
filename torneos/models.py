@@ -3,6 +3,7 @@ import re
 
 from django.db import models
 from django.contrib.auth.models import User
+from django.core.exceptions import ValidationError
 
 
 def limpiar_ruta_cloudinary(valor):
@@ -200,6 +201,32 @@ class Jugador(models.Model):
         constraints = [
             models.UniqueConstraint(fields=['equipo', 'cedula'], name='jugador_unico_por_equipo_cedula')
         ]
+
+    def clean(self):
+        super().clean()
+        if not self.cedula or not self.equipo_id:
+            return
+
+        categoria_id = getattr(self.equipo, "categoria_id", None)
+        if not categoria_id:
+            return
+
+        duplicado = Jugador.objects.filter(
+            cedula=self.cedula,
+            equipo__categoria_id=categoria_id,
+        ).exclude(pk=self.pk).first()
+
+        if duplicado:
+            raise ValidationError({
+                "cedula": (
+                    f"Esta cedula ya esta registrada en {duplicado.equipo.nombre} "
+                    f"para la categoria {duplicado.equipo.categoria.nombre}."
+                )
+            })
+
+    def save(self, *args, **kwargs):
+        self.clean()
+        return super().save(*args, **kwargs)
 
     def __str__(self):
         return self.nombres
