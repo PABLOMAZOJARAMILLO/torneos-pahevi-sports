@@ -797,7 +797,14 @@ def construir_estadisticas_foraneos(categoria):
     jugadores = Jugador.objects.filter(
         equipo__categoria=categoria,
         es_foraneo=True,
-    ).select_related("equipo", "equipo__categoria").order_by("equipo__nombre", "nombres")
+    ).select_related("equipo").only(
+        "id",
+        "nombres",
+        "equipo_id",
+        "equipo__id",
+        "equipo__nombre",
+        "equipo__escudo",
+    ).order_by("equipo__nombre", "nombres")
     for jugador in jugadores:
         total_fase1 = total_partidos_por_equipo.get(jugador.equipo_id, 0)
         minimo = int((total_fase1 * porcentaje) / 100)
