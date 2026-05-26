@@ -255,7 +255,7 @@ class JugadorResource(resources.ModelResource):
     class Meta:
         model = Jugador
         import_id_fields = ('equipo', 'cedula')
-        fields = ('id', 'equipo', 'dorsal', 'nombres', 'cedula', 'fecha_nacimiento', 'telefono', 'es_foraneo', 'municipio', 'estado')
+        fields = ('id', 'equipo', 'dorsal', 'nombres', 'cedula', 'fecha_nacimiento', 'telefono', 'es_foraneo', 'estado')
         skip_unchanged = True
         report_skipped = True
 
@@ -319,7 +319,7 @@ class DocumentoAdmin(admin.ModelAdmin):
 class JugadorInline(admin.TabularInline):
     model = Jugador
     extra = 0
-    fields = ('dorsal', 'nombres', 'cedula', 'fecha_nacimiento', 'es_foraneo', 'municipio', 'estado')
+    fields = ('dorsal', 'nombres', 'cedula', 'fecha_nacimiento', 'es_foraneo', 'estado')
     ordering = ('dorsal', 'nombres')
 
 
@@ -336,7 +336,7 @@ class EquipoAdmin(ImportExportModelAdmin):
 class JugadorAdmin(ImportExportModelAdmin):
     resource_class = JugadorResource
     change_list_template = "admin/jugador_changelist.html"
-    list_display = ('dorsal', 'nombres', 'equipo', 'cedula', 'fecha_nacimiento', 'edad_actual', 'rango', 'es_foraneo', 'municipio', 'estado')
+    list_display = ('dorsal', 'nombres', 'equipo', 'cedula', 'fecha_nacimiento', 'edad_actual', 'rango', 'es_foraneo', 'estado')
     list_filter = ('equipo', 'equipo__categoria', 'es_foraneo', 'estado')
     search_fields = ('nombres', 'cedula', 'equipo__nombre')
     ordering = ('equipo__nombre', 'dorsal', 'nombres')

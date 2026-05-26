@@ -30,6 +30,10 @@
                 {% csrf_token %}
                 <button class="btn" type="submit">Gestionar</button>
             </form>
+            <form class="inline-form" method="post" action="{% url 'gestion_torneo_eliminar' torneo.id %}" onsubmit="return confirm('Eliminar este torneo borrara tambien sus categorias, equipos, jugadores y partidos. ¿Continuar?');">
+                {% csrf_token %}
+                <button class="btn danger" type="submit">Eliminar</button>
+            </form>
         </div>
     </div>
 {% empty %}

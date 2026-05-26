@@ -124,7 +124,6 @@ class JugadorForm(forms.ModelForm):
             "estado",
             "foto",
             "es_foraneo",
-            "municipio",
         ]
         widgets = {
             "fecha_nacimiento": forms.DateInput(attrs={"type": "date"}),

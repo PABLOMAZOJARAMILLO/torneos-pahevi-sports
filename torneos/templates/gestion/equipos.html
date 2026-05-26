@@ -38,7 +38,13 @@
             <div class="muted">{{ equipo.categoria.nombre }}{% if not equipo.activo %} · Inactivo{% endif %}</div>
         </div>
     </div>
-    <a class="btn" href="{% url 'gestion_equipo_editar' equipo.id %}">Editar</a>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <a class="btn" href="{% url 'gestion_equipo_editar' equipo.id %}">Editar</a>
+        <form class="inline-form" method="post" action="{% url 'gestion_equipo_eliminar' equipo.id %}" onsubmit="return confirm('Eliminar este equipo borrara sus jugadores y partidos relacionados. ¿Continuar?');">
+            {% csrf_token %}
+            <button class="btn danger" type="submit">Eliminar</button>
+        </form>
+    </div>
 </div>
 {% empty %}
 <div class="card">No hay equipos registrados.</div>

@@ -225,7 +225,6 @@ class Jugador(models.Model):
     estado = models.CharField(max_length=20, choices=ESTADOS, default='ACTIVO', verbose_name='Estado')
     foto = models.ImageField(upload_to=ruta_foto_jugador, blank=True, null=True, verbose_name='Foto')
     es_foraneo = models.BooleanField(default=False, verbose_name='Foráneo')
-    municipio = models.CharField(max_length=120, blank=True, null=True, verbose_name='Municipio')
 
     class Meta:
         verbose_name = 'Jugador'

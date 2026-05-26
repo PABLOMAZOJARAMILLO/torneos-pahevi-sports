@@ -47,11 +47,17 @@
             <div>{% if jugador.dorsal %}#{{ jugador.dorsal }} · {% endif %}{{ jugador.nombres|texto_limpio }}</div>
             <div class="muted">
                 {{ jugador.equipo.nombre }} · {{ jugador.equipo.categoria.nombre }} · {{ jugador.estado }}
-                {% if jugador.es_foraneo %} · Foráneo{% if jugador.municipio %}: {{ jugador.municipio }}{% endif %}{% endif %}
+                {% if jugador.es_foraneo %} · Foráneo{% endif %}
             </div>
         </div>
     </div>
-    <a class="btn" href="{% url 'gestion_jugador_editar' jugador.id %}">Editar</a>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <a class="btn" href="{% url 'gestion_jugador_editar' jugador.id %}">Editar</a>
+        <form class="inline-form" method="post" action="{% url 'gestion_jugador_eliminar' jugador.id %}" onsubmit="return confirm('Eliminar este jugador y sus registros asociados. ¿Continuar?');">
+            {% csrf_token %}
+            <button class="btn danger" type="submit">Eliminar</button>
+        </form>
+    </div>
 </div>
 {% empty %}
 <div class="card">No hay jugadores registrados.</div>

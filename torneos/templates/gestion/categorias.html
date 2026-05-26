@@ -25,7 +25,13 @@
             {% if categoria.descripcion %} · {{ categoria.descripcion }}{% endif %}
         </div>
     </div>
-    <a class="btn" href="{% url 'gestion_categoria_editar' categoria.id %}">Editar</a>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <a class="btn" href="{% url 'gestion_categoria_editar' categoria.id %}">Editar</a>
+        <form class="inline-form" method="post" action="{% url 'gestion_categoria_eliminar' categoria.id %}" onsubmit="return confirm('Eliminar esta categoria borrara sus equipos, jugadores y partidos. ¿Continuar?');">
+            {% csrf_token %}
+            <button class="btn danger" type="submit">Eliminar</button>
+        </form>
+    </div>
 </div>
 {% empty %}
 <div class="card">

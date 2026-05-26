@@ -5631,7 +5631,6 @@ body.solo-lectura .menu-principal{top:96px!important}
                         <th>#</th>
                         <th class="col-jugador">Jugador</th>
                         <th class="col-equipo">Equipo</th>
-                        <th>Municipio</th>
                         <th>Jugados</th>
                         <th>Mínimo</th>
                         <th>Fase 1</th>
@@ -5650,7 +5649,6 @@ body.solo-lectura .menu-principal{top:96px!important}
                                 <span>{{ f.equipo }}</span>
                             </div>
                         </td>
-                        <td>{{ f.municipio }}</td>
                         <td class="celda-total">{{ f.jugados }}</td>
                         <td>{{ f.minimo }}</td>
                         <td>{{ f.partidos_fase1 }}</td>
@@ -5658,7 +5656,7 @@ body.solo-lectura .menu-principal{top:96px!important}
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="8">No hay jugadores foráneos registrados en esta categoría.</td>
+                        <td colspan="7">No hay jugadores foráneos registrados en esta categoría.</td>
                     </tr>
                     {% endfor %}
                 </table>

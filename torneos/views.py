@@ -806,7 +806,6 @@ def construir_estadisticas_foraneos(categoria):
             "jugador": jugador.nombres,
             "equipo": jugador.equipo.nombre,
             "escudo": escudo_url(jugador.equipo),
-            "municipio": jugador.municipio or "Sin municipio",
             "partidos_fase1": total_fase1,
             "jugados": jugados,
             "minimo": minimo,
@@ -3394,6 +3393,19 @@ def gestion_torneo_activar(request, torneo_id):
 
 @login_required
 @user_passes_test(es_editor_torneo)
+@require_POST
+def gestion_torneo_eliminar(request, torneo_id):
+    torneo = get_object_or_404(torneos_para_usuario(request), id=torneo_id)
+    nombre = torneo.nombre
+    if request.session.get("torneo_id") == torneo.id:
+        request.session.pop("torneo_id", None)
+    torneo.delete()
+    messages.success(request, f"Torneo eliminado: {nombre}.")
+    return redirect("gestion_torneos")
+
+
+@login_required
+@user_passes_test(es_editor_torneo)
 def gestion_categorias(request):
     torneo = torneo_actual(request)
     categorias = Categoria.objects.select_related("torneo").order_by("nombre")
@@ -3449,6 +3461,21 @@ def gestion_categoria_editar(request, categoria_id):
         "form": form,
         "volver_url": "gestion_categorias",
     })
+
+
+@login_required
+@user_passes_test(es_editor_torneo)
+@require_POST
+def gestion_categoria_eliminar(request, categoria_id):
+    torneo = torneo_actual(request)
+    categorias = Categoria.objects.select_related("torneo")
+    if torneo:
+        categorias = categorias.filter(torneo=torneo)
+    categoria = get_object_or_404(categorias, id=categoria_id)
+    nombre = categoria.nombre
+    categoria.delete()
+    messages.success(request, f"Categoria eliminada: {nombre}.")
+    return redirect("gestion_categorias")
 
 
 @login_required
@@ -3778,6 +3805,21 @@ def gestion_equipo_editar(request, equipo_id):
 
 @login_required
 @user_passes_test(es_editor_torneo)
+@require_POST
+def gestion_equipo_eliminar(request, equipo_id):
+    torneo = torneo_actual(request)
+    equipos = Equipo.objects.select_related("categoria")
+    if torneo:
+        equipos = equipos.filter(categoria__torneo=torneo)
+    equipo = get_object_or_404(equipos, id=equipo_id)
+    nombre = equipo.nombre
+    equipo.delete()
+    messages.success(request, f"Equipo eliminado: {nombre}.")
+    return redirect("gestion_equipos")
+
+
+@login_required
+@user_passes_test(es_editor_torneo)
 def gestion_jugadores(request):
     torneo = torneo_actual(request)
     categorias = Categoria.objects.order_by("nombre")
@@ -3873,6 +3915,21 @@ def gestion_jugador_editar(request, jugador_id):
         "cloudinary_images": listar_imagenes_cloudinary(),
         "cloudinary_label": "Seleccionar foto existente de Cloudinary",
     })
+
+
+@login_required
+@user_passes_test(es_editor_torneo)
+@require_POST
+def gestion_jugador_eliminar(request, jugador_id):
+    torneo = torneo_actual(request)
+    jugadores = Jugador.objects.select_related("equipo", "equipo__categoria")
+    if torneo:
+        jugadores = jugadores.filter(equipo__categoria__torneo=torneo)
+    jugador = get_object_or_404(jugadores, id=jugador_id)
+    nombre = jugador.nombres
+    jugador.delete()
+    messages.success(request, f"Jugador eliminado: {nombre}.")
+    return redirect("gestion_jugadores")
 
 
 @login_required

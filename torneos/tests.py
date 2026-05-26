@@ -267,7 +267,6 @@ class ForaneosTests(TestCase):
             cedula="F1",
             fecha_nacimiento=date(1970, 1, 1),
             es_foraneo=True,
-            municipio="Puerto Libertador",
         )
         self.titular = Jugador.objects.create(
             equipo=self.equipo,
