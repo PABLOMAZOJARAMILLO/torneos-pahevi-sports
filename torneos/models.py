@@ -277,6 +277,8 @@ class Gol(models.Model):
     cantidad = models.PositiveIntegerField(default=1)
     es_autogol = models.BooleanField(default=False, verbose_name='Autogol')
     es_penal = models.BooleanField(default=False, verbose_name='Gol de penal')
+    minuto = models.PositiveIntegerField(blank=True, null=True, verbose_name='Minuto')
+    creado_en = models.DateTimeField(auto_now_add=True, blank=True, null=True, verbose_name='Creado en')
 
     class Meta:
         verbose_name = 'Gol'
@@ -292,6 +294,8 @@ class Tarjeta(models.Model):
     jugador = models.ForeignKey(Jugador, on_delete=models.CASCADE, related_name='tarjetas_recibidas')
     equipo = models.ForeignKey(Equipo, on_delete=models.CASCADE)
     tipo = models.CharField(max_length=20, choices=TIPOS)
+    minuto = models.PositiveIntegerField(blank=True, null=True, verbose_name='Minuto')
+    creado_en = models.DateTimeField(auto_now_add=True, blank=True, null=True, verbose_name='Creado en')
 
     class Meta:
         verbose_name = 'Tarjeta'
@@ -360,6 +364,7 @@ class SustitucionPartido(models.Model):
     jugador_entra = models.ForeignKey(Jugador, on_delete=models.CASCADE, related_name='sustituciones_entra')
     minuto = models.PositiveIntegerField(blank=True, null=True)
     observacion = models.CharField(max_length=150, blank=True, null=True)
+    creado_en = models.DateTimeField(auto_now_add=True, blank=True, null=True, verbose_name='Creado en')
 
     class Meta:
         verbose_name = 'Sustitución del partido'

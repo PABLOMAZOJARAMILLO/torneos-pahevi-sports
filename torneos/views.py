@@ -2663,6 +2663,28 @@ def _recalcular_marcador_por_goles(partido):
     partido.save(update_fields=["goles_local", "goles_visitante"])
 
 
+def _minuto_evento_en_vivo(partido):
+    if partido.estado != "EN_JUEGO":
+        return None
+
+    segundos = partido.segundos_acumulados or 0
+    if partido.inicio_en_vivo and not partido.cronometro_pausado:
+        segundos += max(int((timezone.now() - partido.inicio_en_vivo).total_seconds()), 0)
+
+    return max((segundos // 60) + 1, 1)
+
+
+def _clave_orden_evento_resumen(evento):
+    creado_en = getattr(evento, "creado_en", None)
+    return (
+        evento.minuto is None,
+        evento.minuto if evento.minuto is not None else 999,
+        creado_en is None,
+        creado_en.timestamp() if creado_en else 0,
+        evento.orden or 0,
+    )
+
+
 @login_required
 @user_passes_test(es_editor_torneo)
 def editor_partido_movil(request, partido_id):
@@ -2755,6 +2777,7 @@ def agregar_gol_movil(request, partido_id):
                 cantidad=cantidad,
                 es_autogol=es_autogol,
                 es_penal=es_penal,
+                minuto=_minuto_evento_en_vivo(partido),
             )
             _recalcular_marcador_por_goles(partido)
             if es_autogol:
@@ -2783,7 +2806,13 @@ def agregar_tarjeta_movil(request, partido_id):
         equipo = get_object_or_404(Equipo, id=equipo_id)
 
         if _validar_jugador_equipo(jugador, equipo, partido):
-            Tarjeta.objects.create(partido=partido, jugador=jugador, equipo=equipo, tipo=tipo)
+            Tarjeta.objects.create(
+                partido=partido,
+                jugador=jugador,
+                equipo=equipo,
+                tipo=tipo,
+                minuto=_minuto_evento_en_vivo(partido),
+            )
             messages.success(request, 'Tarjeta agregada correctamente.')
         else:
             messages.error(request, 'El jugador no pertenece al equipo seleccionado.')
@@ -4066,10 +4095,10 @@ def partido_live(request, partido_id):
     if not volver_url:
         volver_url = f"{reverse('panel')}?torneo={partido.categoria.torneo_id}"
 
-    goles = Gol.objects.filter(partido=partido).select_related("jugador", "equipo").order_by("equipo__nombre", "jugador__nombres")
-    tarjetas = Tarjeta.objects.filter(partido=partido).select_related("jugador", "equipo").order_by("equipo__nombre", "jugador__nombres")
+    goles = Gol.objects.filter(partido=partido).select_related("jugador", "equipo").order_by("minuto", "creado_en", "id")
+    tarjetas = Tarjeta.objects.filter(partido=partido).select_related("jugador", "equipo").order_by("minuto", "creado_en", "id")
     alineaciones = AlineacionPartido.objects.filter(partido=partido).select_related("jugador", "equipo").order_by("equipo__nombre", "rol", "jugador__nombres")
-    sustituciones = SustitucionPartido.objects.filter(partido=partido).select_related("equipo", "jugador_sale", "jugador_entra").order_by("equipo__nombre", "minuto", "id")
+    sustituciones = SustitucionPartido.objects.filter(partido=partido).select_related("equipo", "jugador_sale", "jugador_entra").order_by("minuto", "creado_en", "id")
     sustituciones_local = [cambio for cambio in sustituciones if cambio.equipo_id == partido.equipo_local_id]
     sustituciones_visitante = [cambio for cambio in sustituciones if cambio.equipo_id == partido.equipo_visitante_id]
     for cambio in sustituciones:
@@ -4178,11 +4207,12 @@ def partido_live(request, partido_id):
         eventos_live.append(SimpleNamespace(
             tipo=tipo_evento,
             icono="\u26bd",
-            minuto=None,
+            minuto=gol.minuto,
             equipo_id=gol.equipo_id,
             texto=nombre_resumen_jugador(gol.jugador),
             detalle=detalle_gol,
-            orden=orden,
+            creado_en=gol.creado_en,
+            orden=gol.id,
         ))
 
     for tarjeta in tarjetas:
@@ -4190,11 +4220,12 @@ def partido_live(request, partido_id):
         eventos_live.append(SimpleNamespace(
             tipo="tarjeta",
             icono="🟥" if tarjeta.tipo == "ROJA" else "🟨",
-            minuto=None,
+            minuto=tarjeta.minuto,
             equipo_id=tarjeta.equipo_id,
             texto=nombre_resumen_jugador(tarjeta.jugador),
             detalle=tarjeta.get_tipo_display(),
-            orden=orden,
+            creado_en=tarjeta.creado_en,
+            orden=tarjeta.id,
         ))
 
     for sustitucion in sustituciones:
@@ -4208,16 +4239,13 @@ def partido_live(request, partido_id):
             detalle=f"Sale {nombre_resumen_jugador(sustitucion.jugador_sale)}",
             jugador_entra=nombre_resumen_jugador(sustitucion.jugador_entra),
             jugador_sale=nombre_resumen_jugador(sustitucion.jugador_sale),
-            orden=orden,
+            creado_en=sustitucion.creado_en,
+            orden=sustitucion.id,
         ))
 
     eventos_live = sorted(
         eventos_live,
-        key=lambda evento: (
-            evento.minuto is None,
-            evento.minuto if evento.minuto is not None else 999,
-            evento.orden,
-        ),
+        key=_clave_orden_evento_resumen,
     )
 
     return render(request, "partido_live.html", {

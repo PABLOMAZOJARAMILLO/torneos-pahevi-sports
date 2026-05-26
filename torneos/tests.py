@@ -1,9 +1,12 @@
-from datetime import date, time
+from datetime import date, time, timedelta
+
+from types import SimpleNamespace
 
 from django.test import TestCase
+from django.utils import timezone
 
 from .models import AlineacionPartido, Categoria, Equipo, Jugador, Partido, Tarjeta, Torneo
-from .views import _sincronizar_no_disponibles_por_tarjetas
+from .views import _clave_orden_evento_resumen, _sincronizar_no_disponibles_por_tarjetas
 
 
 class SancionesTarjetasTests(TestCase):
@@ -88,3 +91,18 @@ class SancionesTarjetasTests(TestCase):
         siguiente = self.crear_partido(22, fase="CUARTOS", estado="PROGRAMADO")
 
         self.assert_no_disponible_en(siguiente)
+
+
+class ResumenPartidoOrdenTests(TestCase):
+    def test_ordena_por_minuto_y_luego_por_edicion(self):
+        base = timezone.now()
+        eventos = [
+            SimpleNamespace(minuto=None, creado_en=base, orden=1),
+            SimpleNamespace(minuto=15, creado_en=base, orden=3),
+            SimpleNamespace(minuto=15, creado_en=base + timedelta(seconds=5), orden=2),
+            SimpleNamespace(minuto=None, creado_en=base + timedelta(seconds=10), orden=4),
+        ]
+
+        ordenados = sorted(eventos, key=_clave_orden_evento_resumen)
+
+        self.assertEqual([evento.orden for evento in ordenados], [3, 2, 1, 4])
