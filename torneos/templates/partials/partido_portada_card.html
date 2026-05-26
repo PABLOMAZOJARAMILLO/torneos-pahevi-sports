@@ -61,7 +61,13 @@
     </div>
 
     <div class="partido-extra">
-        <span>{{ partido.fecha }} &middot; {{ partido.cancha }}</span>
+        <span class="partido-programacion">
+            <span>{{ partido.fecha }}</span>
+            <span class="separador-programacion">&middot;</span>
+            <span>{{ partido.hora }}</span>
+            <span class="separador-programacion">&middot;</span>
+            <span>{{ partido.cancha }}</span>
+        </span>
         <span>{% if partido.estado == "EN_JUEGO" %}Seguir en vivo{% elif partido.eventos %}{{ partido.eventos }} eventos{% else %}Ver detalle{% endif %}</span>
     </div>
 </a>

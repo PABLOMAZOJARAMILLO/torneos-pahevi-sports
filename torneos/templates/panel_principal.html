@@ -447,6 +447,18 @@
         font-weight: 700;
     }
 
+    .partido-programacion {
+        display: inline-flex;
+        align-items: center;
+        min-width: 0;
+        gap: 5px;
+        flex-wrap: wrap;
+    }
+
+    .separador-programacion {
+        color: #94a3b8;
+    }
+
     @media (max-width: 760px) {
         body {
             padding: 238px 10px 10px;
@@ -528,7 +540,12 @@
         }
 
         .partido-extra {
+            align-items: center;
             font-size: 12px;
+        }
+
+        .partido-programacion {
+            gap: 4px;
         }
     }
 
