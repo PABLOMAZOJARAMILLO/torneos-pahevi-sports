@@ -193,7 +193,7 @@
             {% if request.user.is_staff %}
                 <a class="portal-admin" href="{% url 'gestion_panel' %}">Gestion</a>
             {% else %}
-                <a class="portal-admin" href="/admin/login/?next={% url 'gestion_panel' %}">Ingresar</a>
+                <a class="portal-admin" href="{% url 'login' %}?next={% url 'gestion_panel' %}">Ingresar</a>
             {% endif %}
         </div>
 

@@ -1,4 +1,5 @@
 from django.urls import path
+from django.contrib.auth.views import LoginView
 from . import views
 from .views import (
     panel_principal,
@@ -29,6 +30,7 @@ from .views import (
 
 urlpatterns = [
     path('', panel_principal, name='panel'),
+    path('ingresar/', LoginView.as_view(template_name='registration/login.html'), name='login'),
     path('sw.js', views.service_worker, name='service_worker'),
     path('salir/', views.cerrar_sesion, name='cerrar_sesion'),
     path('partido/<int:partido_id>/', views.detalle_partido_publico, name='partido_detalle_publico'),

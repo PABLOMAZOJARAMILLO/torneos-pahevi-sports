@@ -5077,7 +5077,7 @@ body.solo-lectura .menu-principal{top:96px!important}
         Admin activo
     </span>
     {% else %}
-    <a class="boton secundario" href="/admin/login/?next={% url 'gestion_panel' %}">
+    <a class="boton secundario" href="{% url 'login' %}?next={% url 'gestion_panel' %}">
         Ingresar admin
     </a>
     {% endif %}
@@ -6282,7 +6282,7 @@ function accionAdmin(accion) {
     if (!accion) return;
 
     const urls = {
-        login: "/admin/login/?next={% url 'gestion_panel' %}",
+        login: "{% url 'login' %}?next={% url 'gestion_panel' %}",
         descargar: "{% url 'descargar_programacion_general' %}?volver={{ request.get_full_path|urlencode }}",
         gestion: "{% url 'gestion_panel' %}",
         salir: "{% url 'cerrar_sesion' %}"

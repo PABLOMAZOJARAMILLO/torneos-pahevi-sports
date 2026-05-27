@@ -183,7 +183,8 @@ elif USE_SUPABASE_STORAGE:
     STORAGES["default"] = {
         "BACKEND": "torneos.storage_backends.SupabaseMediaStorage",
     }
-LOGIN_URL = "/admin/login/"
+LOGIN_URL = "/ingresar/"
+LOGIN_REDIRECT_URL = "/"
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 CSRF_TRUSTED_ORIGINS = [
