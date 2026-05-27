@@ -3,11 +3,12 @@ from datetime import date, time, timedelta
 from types import SimpleNamespace
 
 from django.core.exceptions import ValidationError
-from django.test import TestCase, TransactionTestCase
+from django.contrib.auth.models import User
+from django.test import TestCase, TransactionTestCase, override_settings
 from django.utils import timezone
 
 from .forms import JugadorForm
-from .models import AlineacionPartido, Categoria, Equipo, Jugador, Partido, ReglaEdadCategoria, SustitucionPartido, Tarjeta, Torneo
+from .models import AlineacionPartido, Categoria, Equipo, Gol, Jugador, Partido, ReglaEdadCategoria, SustitucionPartido, Tarjeta, Torneo
 from .views import construir_estructura, construir_estadisticas_foraneos, _clave_orden_evento_resumen, _sincronizar_no_disponibles_por_tarjetas, etiqueta_edad_jugador, validar_reglas_edad_titulares
 
 
@@ -344,6 +345,91 @@ class JugadorFormTests(TestCase):
         html = str(JugadorForm(instance=jugador))
 
         self.assertIn('value="1980-05-07"', html)
+
+
+class PlanilleroPartidoTests(TestCase):
+    def setUp(self):
+        self.torneo = Torneo.objects.create(
+            nombre="Veranero",
+            fecha_inicio=date(2026, 1, 1),
+        )
+        self.categoria = Categoria.objects.create(
+            nombre="Senior",
+            edad_minima=18,
+            edad_maxima=60,
+            torneo=self.torneo,
+        )
+        self.local = Equipo.objects.create(nombre="Local", categoria=self.categoria)
+        self.visitante = Equipo.objects.create(nombre="Visitante", categoria=self.categoria)
+        self.jugador = Jugador.objects.create(
+            equipo=self.local,
+            dorsal=9,
+            nombres="Planillero Gol",
+            cedula="PG1",
+            fecha_nacimiento=date(1990, 1, 1),
+        )
+        self.partido = Partido.objects.create(
+            categoria=self.categoria,
+            equipo_local=self.local,
+            equipo_visitante=self.visitante,
+            fecha=date(2026, 5, 1),
+            hora=time(15, 0),
+            estado="PROGRAMADO",
+        )
+        self.planillero = User.objects.create_user("planillero", password="test")
+        self.otro_usuario = User.objects.create_user("otro", password="test")
+        self.partido.planilleros.add(self.planillero)
+
+    @override_settings(STORAGES={
+        "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+        "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
+    })
+    def test_planillero_asignado_puede_abrir_editor(self):
+        self.client.force_login(self.planillero)
+
+        respuesta = self.client.get(f"/partido/{self.partido.id}/editor-movil/")
+
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertContains(respuesta, "Resultado del partido")
+        self.assertNotContains(respuesta, 'name="cancha"')
+
+    def test_usuario_no_asignado_no_puede_abrir_editor(self):
+        self.client.force_login(self.otro_usuario)
+
+        respuesta = self.client.get(f"/partido/{self.partido.id}/editor-movil/")
+
+        self.assertEqual(respuesta.status_code, 403)
+
+    def test_planillero_asignado_puede_registrar_gol(self):
+        self.client.force_login(self.planillero)
+
+        respuesta = self.client.post(
+            f"/partido/{self.partido.id}/agregar-gol-movil/",
+            {
+                "equipo": self.local.id,
+                "jugador": self.jugador.id,
+                "cantidad": 1,
+            },
+        )
+
+        self.assertEqual(respuesta.status_code, 302)
+        self.assertTrue(Gol.objects.filter(partido=self.partido, jugador=self.jugador).exists())
+
+    def test_planillero_no_puede_marcar_wo(self):
+        self.client.force_login(self.planillero)
+
+        self.client.post(
+            f"/partido/{self.partido.id}/guardar-info-movil/",
+            {
+                "goles_local": 3,
+                "goles_visitante": -3,
+                "estado": "WO",
+            },
+        )
+
+        self.partido.refresh_from_db()
+        self.assertEqual(self.partido.estado, "PROGRAMADO")
+        self.assertEqual(self.partido.goles_visitante, 0)
 
 
 class JugadorCedulaPorEquipoTests(TransactionTestCase):

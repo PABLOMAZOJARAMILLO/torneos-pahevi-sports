@@ -377,6 +377,7 @@ class PartidoAdmin(ImportExportModelAdmin):
     list_display = ('categoria', 'grupo', 'numero_fecha', 'fase', 'equipo_local', 'equipo_visitante', 'goles_local', 'goles_visitante', 'estado', 'fecha', 'hora', 'cancha', 'ajuste_puntos_local', 'ajuste_puntos_visitante', 'goles_local_penales', 'goles_visitante_penales')
     list_filter = ('categoria__torneo', 'categoria', 'grupo', 'numero_fecha', 'fase', 'estado')
     search_fields = ('equipo_local__nombre', 'equipo_visitante__nombre', 'cancha')
+    filter_horizontal = ('planilleros',)
     inlines = [GolInline, TarjetaInline, AlineacionInline, SustitucionInline]
     ordering = ('categoria__nombre', 'grupo', 'numero_fecha', 'fase', 'fecha', 'hora')
 

@@ -959,17 +959,17 @@ a { color: inherit; text-decoration: none; }
         <a class="live-icon" href="javascript:navigator.share ? navigator.share({title: document.title, url: location.href}) : void 0">&nearr;</a>
     </div>
 
-    {% if user.is_authenticated and user.is_staff %}
+    {% if puede_diligenciar_partido %}
     <div class="admin-live-actions">
         <details class="admin-live-menu">
             <summary>&#9881;&#65039; Editar partido</summary>
             <div class="admin-live-links">
-                <a href="{% url 'editor_partido_movil' partido.id %}#resultado">&#9989; Resultado y programaci&oacute;n <span>&rsaquo;</span></a>
+                <a href="{% url 'editor_partido_movil' partido.id %}#resultado">&#9989; Resultado <span>&rsaquo;</span></a>
                 <a href="{% url 'editor_partido_movil' partido.id %}#goles">&#9917; Goles <span>&rsaquo;</span></a>
                 <a href="{% url 'editor_partido_movil' partido.id %}#tarjetas">&#129000;&#128997; Tarjetas <span>&rsaquo;</span></a>
                 <a href="{% url 'editor_partido_movil' partido.id %}#alineacion">&#128203; Alineaci&oacute;n <span>&rsaquo;</span></a>
                 <a href="{% url 'editor_partido_movil' partido.id %}#sustituciones">&#128257; Cambios <span>&rsaquo;</span></a>
-                <a href="{% url 'editor_partido_movil' partido.id %}#penales-comite">&#129349; Penales y comit&eacute; <span>&rsaquo;</span></a>
+                <a href="{% url 'editor_partido_movil' partido.id %}#penales-comite">&#129349; Penales <span>&rsaquo;</span></a>
                 <a href="{% url 'editor_partido_movil' partido.id %}">&#9999;&#65039; Editor completo <span>&rsaquo;</span></a>
             </div>
         </details>

@@ -147,6 +147,7 @@ class PartidoForm(forms.ModelForm):
             "categoria",
             "equipo_local",
             "equipo_visitante",
+            "planilleros",
             "fecha",
             "hora",
             "estado",

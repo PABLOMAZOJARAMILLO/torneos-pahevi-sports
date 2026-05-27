@@ -533,7 +533,7 @@
             <button type="button" class="tab-btn" data-tab="tarjetas" onclick="mostrarEditorTab('tarjetas', this)">Tarjetas</button>
             <button type="button" class="tab-btn" data-tab="alineacion" onclick="mostrarEditorTab('alineacion', this)">Alineación</button>
             <button type="button" class="tab-btn" data-tab="sustituciones" onclick="mostrarEditorTab('sustituciones', this)">Cambios</button>
-            <button type="button" class="tab-btn" data-tab="penales-comite" onclick="mostrarEditorTab('penales-comite', this)">Penales/Comité</button>
+            <button type="button" class="tab-btn" data-tab="penales-comite" onclick="mostrarEditorTab('penales-comite', this)">Penales{% if puede_editar_programacion %}/Comité{% endif %}</button>
         </div>
     </div>
 
@@ -550,7 +550,7 @@
 
         <div id="resultado" class="tab-content active">
             <div class="card">
-                <h2>Resultado y programación</h2>
+                <h2>{% if puede_editar_programacion %}Resultado y programación{% else %}Resultado del partido{% endif %}</h2>
 
                 <label>Marcador</label>
                 <div class="grid-3">
@@ -566,6 +566,7 @@
                     {% endfor %}
                 </select>
 
+                {% if puede_editar_programacion %}
                 <div class="grid-2">
                     <div>
                         <label>Fecha</label>
@@ -597,6 +598,7 @@
                         <option value="{{ value }}" {% if partido.fase == value %}selected{% endif %}>{{ label }}</option>
                     {% endfor %}
                 </select>
+                {% endif %}
 
                 <button class="btn" type="submit">💾 Guardar resultado</button>
             </div>
@@ -604,7 +606,7 @@
 
         <div id="penales-comite" class="tab-content">
             <div class="card">
-                <h2>Penales y comité</h2>
+                <h2>Penales{% if puede_editar_programacion %} y comité{% endif %}</h2>
 
                 <label>Tanda de penales</label>
                 <div class="grid-2">
@@ -612,6 +614,7 @@
                     <input type="number" name="goles_visitante_penales" min="0" value="{{ partido.goles_visitante_penales|default:0 }}" placeholder="Penales visitante">
                 </div>
 
+                {% if puede_editar_programacion %}
                 <label>Ajuste de puntos</label>
                 <div class="grid-2">
                     <input type="number" name="ajuste_puntos_local" value="{{ partido.ajuste_puntos_local|default:0 }}" placeholder="Ajuste local">
@@ -620,11 +623,12 @@
 
                 <label>Observación del comité</label>
                 <textarea name="observacion_comite">{{ partido.observacion_comite|default:'' }}</textarea>
+                {% endif %}
 
                 <label>Observaciones generales</label>
                 <textarea name="observaciones">{{ partido.observaciones|default:'' }}</textarea>
 
-                <button class="btn" type="submit">💾 Guardar penales/comité</button>
+                <button class="btn" type="submit">💾 Guardar penales{% if puede_editar_programacion %}/comité{% endif %}</button>
             </div>
         </div>
     </form>

@@ -11,7 +11,7 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import logout
 from django.contrib.auth.decorators import login_required, user_passes_test
-from django.http import FileResponse, HttpResponse
+from django.http import FileResponse, HttpResponse, HttpResponseForbidden
 from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
 from django.db import connection
@@ -34,6 +34,31 @@ from django.utils import timezone
 
 def es_editor_torneo(user):
     return user.is_authenticated and (user.is_staff or user.is_superuser)
+
+
+def puede_diligenciar_partido(user, partido):
+    if es_editor_torneo(user):
+        return True
+    if not user.is_authenticated or not partido:
+        return False
+    return partido.planilleros.filter(id=user.id).exists()
+
+
+def denegar_partido_no_autorizado():
+    return HttpResponseForbidden("No tienes permiso para editar este partido.")
+
+
+ESTADOS_PLANILLERO_PARTIDO = {"PROGRAMADO", "EN_JUEGO", "FINALIZADO", "SUSPENDIDO"}
+
+
+def entero_post(request, campo, predeterminado=0, minimo=None):
+    try:
+        valor = int(request.POST.get(campo, predeterminado) or predeterminado)
+    except (TypeError, ValueError):
+        valor = predeterminado
+    if minimo is not None:
+        valor = max(valor, minimo)
+    return valor
 
 
 def tabla_disponible(nombre_tabla):
@@ -2851,12 +2876,13 @@ def _clave_orden_evento_resumen(evento):
 
 
 @login_required
-@user_passes_test(es_editor_torneo)
 def editor_partido_movil(request, partido_id):
     partido = get_object_or_404(
         Partido.objects.select_related('categoria', 'equipo_local', 'equipo_visitante'),
         id=partido_id
     )
+    if not puede_diligenciar_partido(request.user, partido):
+        return denegar_partido_no_autorizado()
     sancionados_tarjetas = _sincronizar_no_disponibles_por_tarjetas(partido)
 
     jugadores_local, jugadores_visitante = _jugadores_del_partido(partido)
@@ -2877,38 +2903,49 @@ def editor_partido_movil(request, partido_id):
         'tarjetas': tarjetas,
         'alineaciones': alineaciones,
         'sustituciones': sustituciones,
-        'estados_partido': Partido.ESTADOS,
+        'estados_partido': (
+            Partido.ESTADOS
+            if es_editor_torneo(request.user)
+            else [(valor, etiqueta) for valor, etiqueta in Partido.ESTADOS if valor in ESTADOS_PLANILLERO_PARTIDO]
+        ),
         'fases_partido': Partido.FASES,
         'posiciones_cancha': AlineacionPartido.POSICIONES_CANCHA,
         'sancionados_tarjetas': sancionados_tarjetas,
+        'puede_editar_programacion': es_editor_torneo(request.user),
     })
 
 
 @login_required
-@user_passes_test(es_editor_torneo)
 @require_POST
 def guardar_info_partido_movil(request, partido_id):
     partido = get_object_or_404(Partido, id=partido_id)
+    if not puede_diligenciar_partido(request.user, partido):
+        return denegar_partido_no_autorizado()
 
-    partido.goles_local = request.POST.get('goles_local') or 0
-    partido.goles_visitante = request.POST.get('goles_visitante') or 0
-    partido.estado = request.POST.get('estado') or partido.estado
+    minimo_goles = None if es_editor_torneo(request.user) else 0
+    partido.goles_local = entero_post(request, 'goles_local', 0, minimo_goles)
+    partido.goles_visitante = entero_post(request, 'goles_visitante', 0, minimo_goles)
+    estado_solicitado = request.POST.get('estado') or partido.estado
+    if es_editor_torneo(request.user) or estado_solicitado in ESTADOS_PLANILLERO_PARTIDO:
+        partido.estado = estado_solicitado
 
     if partido.estado == "EN_JUEGO" and not partido.inicio_en_vivo:
         partido.inicio_en_vivo = timezone.now()
 
-    partido.fecha = request.POST.get('fecha') or partido.fecha
-    partido.hora = request.POST.get('hora') or partido.hora
-    partido.cancha = request.POST.get('cancha') or ''
-    partido.numero_fecha = request.POST.get('numero_fecha') or ''
-    partido.grupo = request.POST.get('grupo') or ''
-    partido.fase = request.POST.get('fase') or partido.fase
-    partido.goles_local_penales = request.POST.get('goles_local_penales') or 0
-    partido.goles_visitante_penales = request.POST.get('goles_visitante_penales') or 0
-    partido.ajuste_puntos_local = request.POST.get('ajuste_puntos_local') or 0
-    partido.ajuste_puntos_visitante = request.POST.get('ajuste_puntos_visitante') or 0
+    partido.goles_local_penales = entero_post(request, 'goles_local_penales', 0, 0)
+    partido.goles_visitante_penales = entero_post(request, 'goles_visitante_penales', 0, 0)
     partido.observaciones = request.POST.get('observaciones') or ''
-    partido.observacion_comite = request.POST.get('observacion_comite') or ''
+
+    if es_editor_torneo(request.user):
+        partido.fecha = request.POST.get('fecha') or partido.fecha
+        partido.hora = request.POST.get('hora') or partido.hora
+        partido.cancha = request.POST.get('cancha') or ''
+        partido.numero_fecha = request.POST.get('numero_fecha') or ''
+        partido.grupo = request.POST.get('grupo') or ''
+        partido.fase = request.POST.get('fase') or partido.fase
+        partido.ajuste_puntos_local = entero_post(request, 'ajuste_puntos_local', 0)
+        partido.ajuste_puntos_visitante = entero_post(request, 'ajuste_puntos_visitante', 0)
+        partido.observacion_comite = request.POST.get('observacion_comite') or ''
     partido.save()
 
     messages.success(request, 'Partido actualizado correctamente.')
@@ -2916,10 +2953,11 @@ def guardar_info_partido_movil(request, partido_id):
 
 
 @login_required
-@user_passes_test(es_editor_torneo)
 @require_POST
 def agregar_gol_movil(request, partido_id):
     partido = get_object_or_404(Partido, id=partido_id)
+    if not puede_diligenciar_partido(request.user, partido):
+        return denegar_partido_no_autorizado()
     jugador_id = request.POST.get('jugador')
     equipo_id = request.POST.get('equipo')
     cantidad = request.POST.get('cantidad') or 1
@@ -2958,10 +2996,11 @@ def agregar_gol_movil(request, partido_id):
 
 
 @login_required
-@user_passes_test(es_editor_torneo)
 @require_POST
 def agregar_tarjeta_movil(request, partido_id):
     partido = get_object_or_404(Partido, id=partido_id)
+    if not puede_diligenciar_partido(request.user, partido):
+        return denegar_partido_no_autorizado()
     jugador_id = request.POST.get('jugador')
     equipo_id = request.POST.get('equipo')
     tipo = request.POST.get('tipo')
@@ -2986,10 +3025,11 @@ def agregar_tarjeta_movil(request, partido_id):
 
 
 @login_required
-@user_passes_test(es_editor_torneo)
 @require_POST
 def agregar_alineacion_movil(request, partido_id):
     partido = get_object_or_404(Partido, id=partido_id)
+    if not puede_diligenciar_partido(request.user, partido):
+        return denegar_partido_no_autorizado()
     sancionados_tarjetas = _sincronizar_no_disponibles_por_tarjetas(partido)
     jugador_id = request.POST.get('jugador')
     equipo_id = request.POST.get('equipo')
@@ -3020,10 +3060,11 @@ def agregar_alineacion_movil(request, partido_id):
 
 
 @login_required
-@user_passes_test(es_editor_torneo)
 @require_POST
 def guardar_alineacion_masiva_movil(request, partido_id):
     partido = get_object_or_404(Partido, id=partido_id)
+    if not puede_diligenciar_partido(request.user, partido):
+        return denegar_partido_no_autorizado()
     sancionados_tarjetas = _sincronizar_no_disponibles_por_tarjetas(partido)
     equipo_id = request.POST.get("equipo")
     equipo = get_object_or_404(Equipo, id=equipo_id)
@@ -3102,10 +3143,11 @@ def guardar_alineacion_masiva_movil(request, partido_id):
 
 
 @login_required
-@user_passes_test(es_editor_torneo)
 @require_POST
 def agregar_sustitucion_movil(request, partido_id):
     partido = get_object_or_404(Partido, id=partido_id)
+    if not puede_diligenciar_partido(request.user, partido):
+        return denegar_partido_no_autorizado()
     equipo_id = request.POST.get('equipo')
     jugador_sale_id = request.POST.get('jugador_sale')
     jugador_entra_id = request.POST.get('jugador_entra')
@@ -3134,12 +3176,13 @@ def agregar_sustitucion_movil(request, partido_id):
 
 
 @login_required
-@user_passes_test(es_editor_torneo)
 @require_POST
 def eliminar_gol_movil(request, gol_id):
     gol = get_object_or_404(Gol, id=gol_id)
     partido_id = gol.partido_id
     partido = gol.partido
+    if not puede_diligenciar_partido(request.user, partido):
+        return denegar_partido_no_autorizado()
     gol.delete()
     _recalcular_marcador_por_goles(partido)
     messages.success(request, 'Gol eliminado.')
@@ -3147,33 +3190,36 @@ def eliminar_gol_movil(request, gol_id):
 
 
 @login_required
-@user_passes_test(es_editor_torneo)
 @require_POST
 def eliminar_tarjeta_movil(request, tarjeta_id):
     tarjeta = get_object_or_404(Tarjeta, id=tarjeta_id)
     partido_id = tarjeta.partido_id
+    if not puede_diligenciar_partido(request.user, tarjeta.partido):
+        return denegar_partido_no_autorizado()
     tarjeta.delete()
     messages.success(request, 'Tarjeta eliminada.')
     return redirect('editor_partido_movil', partido_id=partido_id)
 
 
 @login_required
-@user_passes_test(es_editor_torneo)
 @require_POST
 def eliminar_alineacion_movil(request, alineacion_id):
     alineacion = get_object_or_404(AlineacionPartido, id=alineacion_id)
     partido_id = alineacion.partido_id
+    if not puede_diligenciar_partido(request.user, alineacion.partido):
+        return denegar_partido_no_autorizado()
     alineacion.delete()
     messages.success(request, 'Jugador eliminado de la alineación.')
     return redirect('editor_partido_movil', partido_id=partido_id)
 
 
 @login_required
-@user_passes_test(es_editor_torneo)
 @require_POST
 def eliminar_sustitucion_movil(request, sustitucion_id):
     sustitucion = get_object_or_404(SustitucionPartido, id=sustitucion_id)
     partido_id = sustitucion.partido_id
+    if not puede_diligenciar_partido(request.user, sustitucion.partido):
+        return denegar_partido_no_autorizado()
     sustitucion.delete()
     messages.success(request, 'Sustitución eliminada.')
     return redirect('editor_partido_movil', partido_id=partido_id)
@@ -4593,6 +4639,7 @@ def partido_live(request, partido_id):
         "eventos_live": eventos_live,
         "segundos_vivos": segundos_vivos_partido(partido),
         "volver_url": volver_url,
+        "puede_diligenciar_partido": puede_diligenciar_partido(request.user, partido),
     })
 def _pausar_cronometro(partido):
     if partido.inicio_en_vivo:
@@ -4605,9 +4652,10 @@ def _pausar_cronometro(partido):
 
 
 @login_required
-@user_passes_test(es_editor_torneo)
 def cronometro_primer_tiempo(request, partido_id):
     partido = get_object_or_404(Partido, id=partido_id)
+    if not puede_diligenciar_partido(request.user, partido):
+        return denegar_partido_no_autorizado()
     partido.estado = "EN_JUEGO"
     partido.periodo_en_vivo = "PT"
     partido.cronometro_pausado = False
@@ -4620,9 +4668,10 @@ def cronometro_primer_tiempo(request, partido_id):
 
 
 @login_required
-@user_passes_test(es_editor_torneo)
 def cronometro_entretiempo(request, partido_id):
     partido = get_object_or_404(Partido, id=partido_id)
+    if not puede_diligenciar_partido(request.user, partido):
+        return denegar_partido_no_autorizado()
     _pausar_cronometro(partido)
     partido.periodo_en_vivo = "ET"
     partido.save()
@@ -4630,9 +4679,10 @@ def cronometro_entretiempo(request, partido_id):
 
 
 @login_required
-@user_passes_test(es_editor_torneo)
 def cronometro_segundo_tiempo(request, partido_id):
     partido = get_object_or_404(Partido, id=partido_id)
+    if not puede_diligenciar_partido(request.user, partido):
+        return denegar_partido_no_autorizado()
     partido.estado = "EN_JUEGO"
     partido.periodo_en_vivo = "ST"
     partido.cronometro_pausado = False
@@ -4642,17 +4692,19 @@ def cronometro_segundo_tiempo(request, partido_id):
 
 
 @login_required
-@user_passes_test(es_editor_torneo)
 def cronometro_pausar(request, partido_id):
     partido = get_object_or_404(Partido, id=partido_id)
+    if not puede_diligenciar_partido(request.user, partido):
+        return denegar_partido_no_autorizado()
     _pausar_cronometro(partido)
     return redirect("editor_partido_movil", partido_id=partido.id)
 
 
 @login_required
-@user_passes_test(es_editor_torneo)
 def cronometro_reanudar(request, partido_id):
     partido = get_object_or_404(Partido, id=partido_id)
+    if not puede_diligenciar_partido(request.user, partido):
+        return denegar_partido_no_autorizado()
     partido.estado = "EN_JUEGO"
     partido.cronometro_pausado = False
     partido.inicio_en_vivo = timezone.now()
@@ -4661,9 +4713,10 @@ def cronometro_reanudar(request, partido_id):
 
 
 @login_required
-@user_passes_test(es_editor_torneo)
 def cronometro_suspender(request, partido_id):
     partido = get_object_or_404(Partido, id=partido_id)
+    if not puede_diligenciar_partido(request.user, partido):
+        return denegar_partido_no_autorizado()
     _pausar_cronometro(partido)
     partido.estado = "SUSPENDIDO"
     partido.save()
@@ -4671,9 +4724,10 @@ def cronometro_suspender(request, partido_id):
 
 
 @login_required
-@user_passes_test(es_editor_torneo)
 def cronometro_finalizar(request, partido_id):
     partido = get_object_or_404(Partido, id=partido_id)
+    if not puede_diligenciar_partido(request.user, partido):
+        return denegar_partido_no_autorizado()
     _pausar_cronometro(partido)
     partido.estado = "FINALIZADO"
     partido.periodo_en_vivo = "FIN"

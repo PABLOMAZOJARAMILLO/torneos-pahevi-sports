@@ -286,6 +286,7 @@ class Partido(models.Model):
     categoria = models.ForeignKey(Categoria, on_delete=models.CASCADE)
     equipo_local = models.ForeignKey(Equipo, on_delete=models.CASCADE, related_name='partidos_local')
     equipo_visitante = models.ForeignKey(Equipo, on_delete=models.CASCADE, related_name='partidos_visitante')
+    planilleros = models.ManyToManyField(User, blank=True, related_name='partidos_planillero', verbose_name='Planilleros autorizados')
     fecha = models.DateField()
     hora = models.TimeField()
     goles_local = models.IntegerField(default=0)
