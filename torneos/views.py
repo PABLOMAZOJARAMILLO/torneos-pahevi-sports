@@ -41,6 +41,8 @@ def puede_diligenciar_partido(user, partido):
         return True
     if not user.is_authenticated or not partido:
         return False
+    if partido.estado == "FINALIZADO":
+        return False
     return partido.planilleros.filter(id=user.id).exists()
 
 
@@ -2949,6 +2951,8 @@ def guardar_info_partido_movil(request, partido_id):
     partido.save()
 
     messages.success(request, 'Partido actualizado correctamente.')
+    if not es_editor_torneo(request.user) and partido.estado == "FINALIZADO":
+        return redirect('partido_live', partido_id=partido.id)
     return redirect('editor_partido_movil', partido_id=partido.id)
 
 
@@ -4732,5 +4736,7 @@ def cronometro_finalizar(request, partido_id):
     partido.estado = "FINALIZADO"
     partido.periodo_en_vivo = "FIN"
     partido.save()
+    if not es_editor_torneo(request.user):
+        return redirect("partido_live", partido_id=partido.id)
     return redirect("editor_partido_movil", partido_id=partido.id)
 

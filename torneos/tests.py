@@ -431,6 +431,25 @@ class PlanilleroPartidoTests(TestCase):
         self.assertEqual(self.partido.estado, "PROGRAMADO")
         self.assertEqual(self.partido.goles_visitante, 0)
 
+    def test_planillero_pierde_acceso_cuando_finaliza_partido(self):
+        self.client.force_login(self.planillero)
+
+        respuesta = self.client.post(
+            f"/partido/{self.partido.id}/guardar-info-movil/",
+            {
+                "goles_local": 2,
+                "goles_visitante": 1,
+                "estado": "FINALIZADO",
+            },
+        )
+
+        self.partido.refresh_from_db()
+        self.assertEqual(self.partido.estado, "FINALIZADO")
+        self.assertRedirects(respuesta, f"/partido/{self.partido.id}/live/", fetch_redirect_response=False)
+
+        respuesta_editor = self.client.get(f"/partido/{self.partido.id}/editor-movil/")
+        self.assertEqual(respuesta_editor.status_code, 403)
+
 
 class JugadorCedulaPorEquipoTests(TransactionTestCase):
     def test_permite_misma_cedula_en_categorias_distintas(self):
