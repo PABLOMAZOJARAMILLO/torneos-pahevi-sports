@@ -642,6 +642,69 @@ class AdminTorneoPermisosTests(TestCase):
         self.assertContains(respuesta, "Equipo Futuro")
 
 
+class FixtureProgramacionBalanceadaTests(TestCase):
+    def setUp(self):
+        self.torneo = Torneo.objects.create(nombre="Programacion", fecha_inicio=date(2026, 1, 1))
+        self.categoria = Categoria.objects.create(
+            nombre="Senior",
+            edad_minima=18,
+            edad_maxima=60,
+            torneo=self.torneo,
+        )
+        self.equipos = [
+            Equipo.objects.create(nombre=f"Equipo {indice}", categoria=self.categoria)
+            for indice in range(1, 5)
+        ]
+        self.admin = User.objects.create_user("super", password="test", is_staff=True, is_superuser=True)
+
+    def datos_fixture(self, programacion=False):
+        datos = {
+            "categoria": self.categoria.id,
+            "grupos": 1,
+            "reemplazar": "on",
+        }
+        for equipo in self.equipos:
+            datos.setdefault("equipos_grupo_0", []).append(str(equipo.id))
+        if programacion:
+            datos.update({
+                "generar_programacion": "on",
+                "fecha_inicio_programacion": "2026-06-06",
+                "canchas_programacion": "Principal\r\nPorvenir",
+                "cancha_obligatoria": "Porvenir",
+                "franjas_programacion": ["SAB_16", "SAB_18", "DOM_08", "DOM_10", "DOM_14", "DOM_16"],
+            })
+        return datos
+
+    def test_fixture_sin_programacion_mantiene_comportamiento_actual(self):
+        self.client.force_login(self.admin)
+
+        respuesta = self.client.post("/gestion/generar-fixture/", self.datos_fixture())
+
+        self.assertEqual(respuesta.status_code, 200)
+        partidos = Partido.objects.filter(categoria=self.categoria)
+        self.assertEqual(partidos.count(), 6)
+        self.assertTrue(all(partido.cancha == "" for partido in partidos))
+        self.assertTrue(all(partido.hora == time(0, 0) for partido in partidos))
+
+    def test_fixture_con_programacion_balancea_cancha_obligatoria(self):
+        self.client.force_login(self.admin)
+
+        respuesta = self.client.post("/gestion/generar-fixture/", self.datos_fixture(programacion=True))
+
+        self.assertContains(respuesta, "Resumen de equidad")
+        partidos = Partido.objects.filter(categoria=self.categoria)
+        self.assertEqual(partidos.count(), 6)
+        self.assertTrue(all(partido.cancha in ["Principal", "Porvenir"] for partido in partidos))
+        self.assertTrue(all(partido.hora != time(0, 0) for partido in partidos))
+
+        apariciones_porvenir = {equipo.id: 0 for equipo in self.equipos}
+        for partido in partidos.filter(cancha__iexact="Porvenir"):
+            apariciones_porvenir[partido.equipo_local_id] += 1
+            apariciones_porvenir[partido.equipo_visitante_id] += 1
+
+        self.assertTrue(all(cantidad >= 1 for cantidad in apariciones_porvenir.values()))
+
+
 class DelegadoEquipoTests(TestCase):
     def setUp(self):
         self.torneo = Torneo.objects.create(

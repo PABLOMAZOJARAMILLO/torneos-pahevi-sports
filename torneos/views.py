@@ -4516,6 +4516,118 @@ def armar_grupos_desde_formulario(equipos, cabezas, request_post, cantidad_grupo
     return grupos, sin_asignar
 
 
+FRANJAS_PROGRAMACION_FIXTURE = [
+    ("SAB_16", "Sabado 4:00 pm", 5, time(16, 0)),
+    ("SAB_18", "Sabado 6:00 pm", 5, time(18, 0)),
+    ("DOM_08", "Domingo 8:00 am", 6, time(8, 0)),
+    ("DOM_10", "Domingo 10:00 am", 6, time(10, 0)),
+    ("DOM_14", "Domingo 2:00 pm", 6, time(14, 0)),
+    ("DOM_16", "Domingo 4:00 pm", 6, time(16, 0)),
+]
+
+
+def fecha_desde_texto(valor):
+    try:
+        return datetime.strptime((valor or "").strip(), "%Y-%m-%d").date()
+    except ValueError:
+        return None
+
+
+def canchas_desde_texto(valor):
+    canchas = []
+    for linea in (valor or "").splitlines():
+        cancha = linea.strip()
+        if cancha and cancha not in canchas:
+            canchas.append(cancha)
+    return canchas
+
+
+def siguiente_dia_semana(fecha_base, dia_semana):
+    diferencia = (dia_semana - fecha_base.weekday()) % 7
+    return fecha_base + timedelta(days=diferencia)
+
+
+def cupos_programacion_fixture(fecha_inicio, canchas, franjas, cantidad_partidos):
+    if not fecha_inicio or not canchas or not franjas:
+        return []
+
+    cupos = []
+    sabado_base = siguiente_dia_semana(fecha_inicio, 5)
+    semanas = 0
+
+    while len(cupos) < cantidad_partidos and semanas < 30:
+        inicio_semana = sabado_base + timedelta(days=semanas * 7)
+        for codigo, etiqueta, dia_semana, hora in franjas:
+            fecha_cupo = siguiente_dia_semana(inicio_semana, dia_semana)
+            for cancha in canchas:
+                cupos.append({
+                    "fecha": fecha_cupo,
+                    "hora": hora,
+                    "cancha": cancha,
+                    "franja": codigo,
+                    "etiqueta": etiqueta,
+                })
+        semanas += 1
+
+    return cupos[:cantidad_partidos]
+
+
+def elegir_cupo_balanceado(local, visitante, cupos, usados, conteos, equipos_ids, cancha_obligatoria):
+    mejor_indice = None
+    mejor_puntaje = None
+
+    for indice, cupo in enumerate(cupos):
+        if indice in usados:
+            continue
+
+        local_id = local.id
+        visitante_id = visitante.id
+        cancha = cupo["cancha"]
+        franja = cupo["franja"]
+        es_obligatoria = cancha_obligatoria and cancha.lower() == cancha_obligatoria.lower()
+
+        conteo_cancha_local = conteos["cancha"].get(local_id, 0)
+        conteo_cancha_visitante = conteos["cancha"].get(visitante_id, 0)
+        conteo_franja_local = conteos["franjas"].setdefault(local_id, {}).get(franja, 0)
+        conteo_franja_visitante = conteos["franjas"].setdefault(visitante_id, {}).get(franja, 0)
+        conteo_fecha_local = conteos["fechas"].setdefault(local_id, {}).get(cupo["fecha"], 0)
+        conteo_fecha_visitante = conteos["fechas"].setdefault(visitante_id, {}).get(cupo["fecha"], 0)
+
+        puntaje = 0
+        if es_obligatoria:
+            puntaje += (conteo_cancha_local + conteo_cancha_visitante) * 40
+        else:
+            pendientes = sum(1 for equipo_id in equipos_ids if conteos["cancha"].get(equipo_id, 0) == 0)
+            if pendientes:
+                if conteo_cancha_local == 0:
+                    puntaje += 12
+                if conteo_cancha_visitante == 0:
+                    puntaje += 12
+
+        puntaje += (conteo_franja_local + conteo_franja_visitante) * 12
+        puntaje += (conteo_fecha_local + conteo_fecha_visitante) * 25
+
+        if mejor_puntaje is None or puntaje < mejor_puntaje:
+            mejor_puntaje = puntaje
+            mejor_indice = indice
+
+    return mejor_indice
+
+
+def resumen_equidad_programacion(conteos, equipos_por_id, franjas):
+    resumen = []
+    for equipo_id, equipo in sorted(equipos_por_id.items(), key=lambda item: item[1].nombre):
+        resumen.append({
+            "equipo": equipo,
+            "cancha_obligatoria": conteos["cancha"].get(equipo_id, 0),
+            "franjas": [
+                (etiqueta, conteos["franjas"].setdefault(equipo_id, {}).get(codigo, 0))
+                for codigo, etiqueta, _, _ in franjas
+            ],
+        })
+    return resumen
+
+
 @login_required
 @user_passes_test(es_editor_torneo)
 def gestion_generar_fixture(request):
@@ -4529,6 +4641,8 @@ def gestion_generar_fixture(request):
     equipos = Equipo.objects.none()
     cantidad_grupos = 2
     grupos_generados = None
+    resumen_programacion = None
+    advertencias_programacion = []
 
     categoria_id = request.GET.get("categoria") or request.POST.get("categoria")
 
@@ -4550,6 +4664,15 @@ def gestion_generar_fixture(request):
 
     if request.method == "POST" and categoria:
         reemplazar = request.POST.get("reemplazar") == "on"
+        generar_programacion = request.POST.get("generar_programacion") == "on"
+        fecha_inicio_programacion = fecha_desde_texto(request.POST.get("fecha_inicio_programacion"))
+        canchas_programacion = canchas_desde_texto(request.POST.get("canchas_programacion")) or ["Principal", "Porvenir"]
+        cancha_obligatoria = (request.POST.get("cancha_obligatoria") or "Porvenir").strip()
+        franjas_seleccionadas = request.POST.getlist("franjas_programacion")
+        franjas_programacion = [
+            franja for franja in FRANJAS_PROGRAMACION_FIXTURE
+            if not franjas_seleccionadas or franja[0] in franjas_seleccionadas
+        ]
         existentes = Partido.objects.filter(categoria=categoria, fase="GRUPOS").exists()
 
         if existentes and not reemplazar:
@@ -4580,29 +4703,102 @@ def gestion_generar_fixture(request):
             Partido.objects.filter(categoria=categoria, fase="GRUPOS").delete()
 
         creados = 0
+        partidos_a_crear = []
 
         for grupo_nombre, equipos_grupo in grupos_generados.items():
             calendario = generar_fixture_grupo(equipos_grupo)
 
             for indice_fecha, partidos_fecha in enumerate(calendario, start=1):
                 for local, visitante in partidos_fecha:
-                    _, creado = Partido.objects.get_or_create(
-                        categoria=categoria,
-                        fase="GRUPOS",
-                        grupo=grupo_nombre,
-                        numero_fecha=str(indice_fecha),
-                        equipo_local=local,
-                        equipo_visitante=visitante,
-                        defaults={
-                            "fecha": date.today(),
-                            "hora": time(0, 0),
-                            "estado": "PROGRAMADO",
-                            "cancha": "",
-                        },
-                    )
+                    partidos_a_crear.append((grupo_nombre, indice_fecha, local, visitante))
 
-                    if creado:
-                        creados += 1
+        cupos = []
+        conteos = {"cancha": {}, "franjas": {}, "fechas": {}}
+        usados = set()
+        equipos_por_id = {equipo.id: equipo for equipo in equipos}
+        if generar_programacion:
+            if not fecha_inicio_programacion:
+                messages.error(request, "Para generar programacion automatica debes indicar la fecha de inicio.")
+                return redirect(f"{request.path}?categoria={categoria.id}&grupos={cantidad_grupos}")
+
+            cupos = cupos_programacion_fixture(
+                fecha_inicio_programacion,
+                canchas_programacion,
+                franjas_programacion,
+                len(partidos_a_crear),
+            )
+
+            if len(cupos) < len(partidos_a_crear):
+                advertencias_programacion.append(
+                    "No hay suficientes cupos configurados; algunos partidos quedaran sin fecha/hora/cancha balanceada."
+                )
+
+        for grupo_nombre, indice_fecha, local, visitante in partidos_a_crear:
+            defaults = {
+                "fecha": date.today(),
+                "hora": time(0, 0),
+                "estado": "PROGRAMADO",
+                "cancha": "",
+            }
+
+            if generar_programacion and cupos:
+                indice_cupo = elegir_cupo_balanceado(
+                    local,
+                    visitante,
+                    cupos,
+                    usados,
+                    conteos,
+                    equipos_por_id.keys(),
+                    cancha_obligatoria,
+                )
+
+                if indice_cupo is not None:
+                    usados.add(indice_cupo)
+                    cupo = cupos[indice_cupo]
+                    defaults.update({
+                        "fecha": cupo["fecha"],
+                        "hora": cupo["hora"],
+                        "cancha": cupo["cancha"],
+                    })
+
+                    for equipo_id in [local.id, visitante.id]:
+                        conteos["franjas"].setdefault(equipo_id, {})
+                        conteos["fechas"].setdefault(equipo_id, {})
+                        conteos["franjas"][equipo_id][cupo["franja"]] = conteos["franjas"][equipo_id].get(cupo["franja"], 0) + 1
+                        conteos["fechas"][equipo_id][cupo["fecha"]] = conteos["fechas"][equipo_id].get(cupo["fecha"], 0) + 1
+                        if cancha_obligatoria and cupo["cancha"].lower() == cancha_obligatoria.lower():
+                            conteos["cancha"][equipo_id] = conteos["cancha"].get(equipo_id, 0) + 1
+
+            _, creado = Partido.objects.get_or_create(
+                categoria=categoria,
+                fase="GRUPOS",
+                grupo=grupo_nombre,
+                numero_fecha=str(indice_fecha),
+                equipo_local=local,
+                equipo_visitante=visitante,
+                defaults=defaults,
+            )
+
+            if creado:
+                creados += 1
+
+        if generar_programacion:
+            resumen_programacion = resumen_equidad_programacion(conteos, equipos_por_id, franjas_programacion)
+            sin_cancha_obligatoria = [
+                item["equipo"].nombre
+                for item in resumen_programacion
+                if item["cancha_obligatoria"] == 0
+            ]
+            if sin_cancha_obligatoria:
+                advertencias_programacion.append(
+                    f"Equipos pendientes por jugar en {cancha_obligatoria}: {', '.join(sin_cancha_obligatoria)}."
+                )
+
+            if advertencias_programacion:
+                for advertencia in advertencias_programacion:
+                    messages.warning(request, advertencia)
+            else:
+                messages.success(request, "Programacion automatica balanceada sin alertas de equidad.")
 
         messages.success(request, f"Fixture generado para {categoria.nombre}. Partidos creados: {creados}.")
         registrar_actividad(
@@ -4610,7 +4806,12 @@ def gestion_generar_fixture(request):
             "GENERAR_FIXTURE",
             categoria,
             descripcion=f"Genero fixture para {categoria.nombre}. Partidos creados: {creados}.",
-            datos={"partidos_creados": creados, "grupos": cantidad_grupos},
+            datos={
+                "partidos_creados": creados,
+                "grupos": cantidad_grupos,
+                "programacion_automatica": generar_programacion,
+                "cancha_obligatoria": cancha_obligatoria if generar_programacion else "",
+            },
         )
 
     return render(request, "gestion/generar_fixture.html", {
@@ -4620,6 +4821,8 @@ def gestion_generar_fixture(request):
         "cantidad_grupos": cantidad_grupos,
         "letras_grupos": letras_grupos,
         "grupos_generados": grupos_generados,
+        "franjas_programacion": FRANJAS_PROGRAMACION_FIXTURE,
+        "resumen_programacion": resumen_programacion,
     })
 
 

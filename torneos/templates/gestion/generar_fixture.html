@@ -64,6 +64,35 @@
         Reemplazar fixture de grupos existente para esta categoría
     </label>
 
+    <div class="card" style="margin-top:16px;">
+        <h2 style="margin-top:0;">Programacion automatica</h2>
+        <label style="display:flex;align-items:center;gap:8px;color:white;">
+            <input type="checkbox" name="generar_programacion">
+            Generar fecha, hora y cancha al crear el fixture
+        </label>
+
+        <label for="fecha_inicio_programacion">Fecha de inicio</label>
+        <input id="fecha_inicio_programacion" type="date" name="fecha_inicio_programacion">
+
+        <label for="canchas_programacion">Canchas disponibles, una por linea</label>
+        <textarea id="canchas_programacion" name="canchas_programacion" rows="3">Principal
+Porvenir</textarea>
+
+        <label for="cancha_obligatoria">Cancha de reparto obligatorio</label>
+        <input id="cancha_obligatoria" type="text" name="cancha_obligatoria" value="Porvenir">
+
+        <label>Franjas disponibles</label>
+        <div class="grid">
+            {% for codigo, etiqueta, dia_semana, hora in franjas_programacion %}
+                <label style="display:flex;align-items:center;gap:8px;margin:8px 0;color:white;">
+                    <input type="checkbox" name="franjas_programacion" value="{{ codigo }}" checked>
+                    {{ etiqueta }}
+                </label>
+            {% endfor %}
+        </div>
+        <p class="muted">Si no activas esta opcion, el fixture se genera como antes: partidos programados sin cancha definida y sin horario real.</p>
+    </div>
+
     <p><button class="btn" type="submit">Generar partidos</button></p>
 </form>
 {% endif %}
@@ -77,6 +106,25 @@
             <p>{{ equipo.nombre }}</p>
         {% endfor %}
     </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+{% if resumen_programacion %}
+<div class="card" style="margin-top:16px;">
+    <h2 style="margin-top:0;">Resumen de equidad</h2>
+    {% for item in resumen_programacion %}
+        <div class="row">
+            <div>
+                <h3 style="margin:0 0 6px;">{{ item.equipo.nombre }}</h3>
+                <p class="muted" style="margin:0;">Porvenir: {{ item.cancha_obligatoria }}</p>
+                <p class="muted" style="margin:6px 0 0;">
+                    {% for etiqueta, cantidad in item.franjas %}
+                        {{ etiqueta }}: {{ cantidad }}{% if not forloop.last %} - {% endif %}
+                    {% endfor %}
+                </p>
+            </div>
+        </div>
     {% endfor %}
 </div>
 {% endif %}
