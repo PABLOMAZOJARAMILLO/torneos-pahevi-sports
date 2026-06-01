@@ -586,6 +586,24 @@ class DelegadoEquipoTests(TestCase):
 
         self.assertRedirects(respuesta, "/delegado/equipos/", fetch_redirect_response=False)
 
+    def test_delegado_sin_acceso_vigente_tambien_entra_a_mis_equipos(self):
+        self.equipo.acceso_delegado_hasta = None
+        self.equipo.save(update_fields=["acceso_delegado_hasta"])
+
+        respuesta = self.client.post(
+            "/ingresar/?next=/gestion/",
+            {
+                "username": "delegado",
+                "password": "test",
+                "next": "/gestion/",
+            },
+            follow=True,
+        )
+
+        self.assertContains(respuesta, "Niqueleros")
+        self.assertContains(respuesta, "Sin fecha de acceso asignada.")
+        self.assertContains(respuesta, "Acceso bloqueado")
+
     def test_delegado_puede_agregar_jugador_a_su_equipo(self):
         self.client.force_login(self.delegado)
 

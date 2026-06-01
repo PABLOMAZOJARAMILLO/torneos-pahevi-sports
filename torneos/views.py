@@ -60,6 +60,12 @@ def equipos_delegado_vigentes(user):
     )
 
 
+def equipos_delegado_asignados(user):
+    if not user.is_authenticated:
+        return Equipo.objects.none()
+    return Equipo.objects.select_related("categoria").filter(responsable=user)
+
+
 def puede_editar_equipo_delegado(user, equipo):
     if es_editor_torneo(user):
         return True
@@ -145,7 +151,7 @@ class IngresoTorneosView(LoginView):
         if (
             self.request.user.is_authenticated
             and not es_editor_torneo(self.request.user)
-            and equipos_delegado_vigentes(self.request.user).exists()
+            and equipos_delegado_asignados(self.request.user).exists()
         ):
             return reverse("delegado_mis_equipos")
         return super().get_success_url()
@@ -155,7 +161,7 @@ class IngresoTorneosView(LoginView):
         user = self.request.user
         if es_editor_torneo(user):
             messages.success(self.request, "Acceso exitoso. Bienvenido al panel de gestion.")
-        elif equipos_delegado_vigentes(user).exists():
+        elif equipos_delegado_asignados(user).exists():
             messages.success(self.request, "Acceso exitoso. Bienvenido al portal de delegados.")
         elif user.partidos_planillero.exclude(estado="FINALIZADO").exists():
             messages.success(self.request, "Acceso exitoso. Ya puedes diligenciar tus partidos asignados.")
@@ -167,7 +173,7 @@ class IngresoTorneosView(LoginView):
         if (
             self.request.user.is_authenticated
             and not es_editor_torneo(self.request.user)
-            and equipos_delegado_vigentes(self.request.user).exists()
+            and equipos_delegado_asignados(self.request.user).exists()
         ):
             return reverse("delegado_mis_equipos")
         return super().get_default_redirect_url()
@@ -2199,6 +2205,7 @@ def descargar_foraneos_categoria(request, categoria):
         "logo_alcaldia": logos["logo_alcaldia"],
         "logo_torneo": logos["logo_torneo"],
         "logo_imcred": logos["logo_imcred"],
+        "tiene_equipos_delegado": equipos_delegado_asignados(request.user).exists(),
     })
 
     nombre = limpiar_nombre(f"FORANEOS_{categoria}.png")
@@ -3431,7 +3438,16 @@ def detalle_equipo(request, equipo_id):
 
 @login_required
 def mis_equipos(request):
-    equipos = equipos_delegado_vigentes(request.user).order_by('categoria__nombre', 'nombre')
+    equipos = list(equipos_delegado_asignados(request.user).order_by('categoria__nombre', 'nombre'))
+    ahora = timezone.now()
+    for equipo in equipos:
+        equipo.acceso_vigente_delegado = equipo.acceso_delegado_vigente()
+        if not equipo.acceso_delegado_hasta:
+            equipo.estado_acceso_delegado = "Sin fecha de acceso asignada."
+        elif equipo.acceso_delegado_hasta < ahora:
+            equipo.estado_acceso_delegado = f"Acceso vencido el {timezone.localtime(equipo.acceso_delegado_hasta).strftime('%d/%m/%Y %H:%M')}."
+        else:
+            equipo.estado_acceso_delegado = f"Disponible hasta {timezone.localtime(equipo.acceso_delegado_hasta).strftime('%d/%m/%Y %H:%M')}."
 
     return render(request, 'equipos/mis_equipos.html', {
         'equipos': equipos

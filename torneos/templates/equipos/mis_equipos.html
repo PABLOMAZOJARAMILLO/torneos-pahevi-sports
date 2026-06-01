@@ -4,7 +4,7 @@
 {% block heading %}Mis equipos{% endblock %}
 
 {% block content %}
-<p class="muted">Solo aparecen los equipos con acceso vigente para tu usuario.</p>
+<p class="muted">Estos son los equipos asignados a tu usuario. Si el acceso esta vencido o sin fecha, pide al administrador actualizarlo.</p>
 
 {% for equipo in equipos %}
 <div class="row">
@@ -16,13 +16,17 @@
             <div>{{ equipo.nombre }}</div>
             <div class="muted">
                 {{ equipo.categoria.nombre }}
-                {% if equipo.acceso_delegado_hasta %} - Disponible hasta {{ equipo.acceso_delegado_hasta|date:"d/m/Y H:i" }}{% endif %}
+                - {{ equipo.estado_acceso_delegado }}
             </div>
         </div>
     </div>
-    <a class="btn" href="{% url 'delegado_equipo_editar' equipo.id %}">Editar equipo</a>
+    {% if equipo.acceso_vigente_delegado %}
+        <a class="btn" href="{% url 'delegado_equipo_editar' equipo.id %}">Editar equipo</a>
+    {% else %}
+        <span class="btn secondary" style="opacity:.65;cursor:not-allowed;">Acceso bloqueado</span>
+    {% endif %}
 </div>
 {% empty %}
-<div class="card">No tienes equipos asignados con acceso vigente.</div>
+<div class="card">No tienes equipos asignados a este usuario.</div>
 {% endfor %}
 {% endblock %}
