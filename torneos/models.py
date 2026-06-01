@@ -134,6 +134,25 @@ class AdminTorneo(models.Model):
         return f"{self.usuario} - {self.torneo}"
 
 
+class AdminOrganizador(models.Model):
+    usuario = models.ForeignKey(User, on_delete=models.CASCADE, related_name="organizadores_administrados")
+    organizador = models.ForeignKey(Organizador, on_delete=models.CASCADE, related_name="admins_asignados")
+    puede_editar = models.BooleanField(default=True)
+    puede_validar = models.BooleanField(default=True)
+    puede_programar = models.BooleanField(default=True)
+    activo = models.BooleanField(default=True)
+    creado_en = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Admin de organizador"
+        verbose_name_plural = "Admins de organizador"
+        unique_together = ("usuario", "organizador")
+        ordering = ["organizador__nombre", "usuario__username"]
+
+    def __str__(self):
+        return f"{self.usuario} - {self.organizador}"
+
+
 class RegistroActividad(models.Model):
     usuario = models.ForeignKey(User, on_delete=models.SET_NULL, blank=True, null=True, related_name="actividad_admin")
     torneo = models.ForeignKey(Torneo, on_delete=models.SET_NULL, blank=True, null=True, related_name="actividad")

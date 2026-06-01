@@ -30,8 +30,8 @@ import requests
 from django.views.decorators.http import require_POST
 from openpyxl import load_workbook
 
-from .forms import TorneoForm, OrganizadorForm, CategoriaForm, DocumentoForm, EquipoForm, EquipoDelegadoForm, JugadorForm, JugadorDelegadoForm, PartidoForm, AdminTorneoForm
-from .models import Torneo, Organizador, Categoria, Documento, Equipo, Partido, Gol, Tarjeta, Jugador, AlineacionPartido, SustitucionPartido, ReglaEdadCategoria, AdminTorneo, RegistroActividad, limpiar_ruta_cloudinary
+from .forms import TorneoForm, OrganizadorForm, CategoriaForm, DocumentoForm, EquipoForm, EquipoDelegadoForm, JugadorForm, JugadorDelegadoForm, PartidoForm, AdminTorneoForm, AdminOrganizadorForm
+from .models import Torneo, Organizador, Categoria, Documento, Equipo, Partido, Gol, Tarjeta, Jugador, AlineacionPartido, SustitucionPartido, ReglaEdadCategoria, AdminTorneo, AdminOrganizador, RegistroActividad, limpiar_ruta_cloudinary
 from django.utils import timezone
 
 def es_editor_torneo(user):
@@ -43,7 +43,12 @@ def es_editor_torneo(user):
         return False
     if not tabla_disponible("torneos_admintorneo"):
         return True
-    return AdminTorneo.objects.filter(usuario=user, activo=True).exists()
+    tiene_torneos = AdminTorneo.objects.filter(usuario=user, activo=True).exists()
+    tiene_organizadores = (
+        tabla_disponible("torneos_adminorganizador")
+        and AdminOrganizador.objects.filter(usuario=user, activo=True).exists()
+    )
+    return tiene_torneos or tiene_organizadores
 
 
 def es_superadmin(user):
@@ -104,7 +109,10 @@ def equipos_editables_para_usuario(user):
     if user.is_authenticated and user.is_staff:
         if not tabla_disponible("torneos_admintorneo"):
             return equipos
-        return equipos.filter(categoria__torneo__admins_asignados__usuario=user, categoria__torneo__admins_asignados__activo=True).distinct()
+        filtro = Q(categoria__torneo__admins_asignados__usuario=user, categoria__torneo__admins_asignados__activo=True)
+        if tabla_disponible("torneos_adminorganizador"):
+            filtro |= Q(categoria__torneo__organizador__admins_asignados__usuario=user, categoria__torneo__organizador__admins_asignados__activo=True)
+        return equipos.filter(filtro).distinct()
     return equipos_delegado_vigentes(user)
 
 
@@ -115,7 +123,10 @@ def equipos_alineacion_para_usuario(user):
     if user.is_authenticated and user.is_staff:
         if not tabla_disponible("torneos_admintorneo"):
             return equipos
-        return equipos.filter(categoria__torneo__admins_asignados__usuario=user, categoria__torneo__admins_asignados__activo=True).distinct()
+        filtro = Q(categoria__torneo__admins_asignados__usuario=user, categoria__torneo__admins_asignados__activo=True)
+        if tabla_disponible("torneos_adminorganizador"):
+            filtro |= Q(categoria__torneo__organizador__admins_asignados__usuario=user, categoria__torneo__organizador__admins_asignados__activo=True)
+        return equipos.filter(filtro).distinct()
     return equipos_delegado_asignados(user)
 
 
@@ -277,7 +288,10 @@ def torneos_para_usuario(request):
         return torneos
 
     if usuario.is_staff and tabla_disponible("torneos_admintorneo"):
-        return torneos.filter(admins_asignados__usuario=usuario, admins_asignados__activo=True).distinct()
+        filtro = Q(admins_asignados__usuario=usuario, admins_asignados__activo=True)
+        if tabla_disponible("torneos_adminorganizador"):
+            filtro |= Q(organizador__admins_asignados__usuario=usuario, organizador__admins_asignados__activo=True)
+        return torneos.filter(filtro).distinct()
 
     return torneos
 
@@ -289,7 +303,27 @@ def permisos_torneo_usuario(user, torneo):
         return SimpleNamespace(puede_editar=True, puede_validar=True, puede_programar=True, activo=True)
     if not user.is_staff or not torneo or not tabla_disponible("torneos_admintorneo"):
         return None
-    return AdminTorneo.objects.filter(usuario=user, torneo=torneo, activo=True).first()
+    permiso_torneo = AdminTorneo.objects.filter(usuario=user, torneo=torneo, activo=True).first()
+    permiso_organizador = None
+    if (
+        tabla_disponible("torneos_adminorganizador")
+        and getattr(torneo, "organizador_id", None)
+    ):
+        permiso_organizador = AdminOrganizador.objects.filter(
+            usuario=user,
+            organizador_id=torneo.organizador_id,
+            activo=True,
+        ).first()
+
+    if permiso_torneo and permiso_organizador:
+        return SimpleNamespace(
+            puede_editar=permiso_torneo.puede_editar or permiso_organizador.puede_editar,
+            puede_validar=permiso_torneo.puede_validar or permiso_organizador.puede_validar,
+            puede_programar=permiso_torneo.puede_programar or permiso_organizador.puede_programar,
+            activo=True,
+        )
+
+    return permiso_torneo or permiso_organizador
 
 
 def usuario_puede_editar_torneo(user, torneo):
@@ -3963,7 +3997,7 @@ def gestion_actividad(request):
     torneos = torneos_para_usuario(request)
 
     if not request.user.is_superuser:
-        registros = registros.filter(torneo__in=torneos)
+        registros = registros.filter(Q(torneo__in=torneos) | Q(torneo__isnull=True))
     elif torneo:
         registros = registros.filter(torneo=torneo)
 
@@ -4038,6 +4072,74 @@ def gestion_organizador_editar(request, organizador_id):
         "form": form,
         "volver_url": "gestion_organizadores",
     })
+
+
+@login_required
+@user_passes_test(es_superadmin)
+def gestion_organizador_admins(request, organizador_id):
+    organizador = get_object_or_404(Organizador, id=organizador_id)
+    asignaciones = AdminOrganizador.objects.select_related("usuario").filter(organizador=organizador)
+    form = AdminOrganizadorForm(request.POST or None)
+
+    if request.method == "POST" and form.is_valid():
+        asignacion = form.save(commit=False)
+        asignacion.organizador = organizador
+        existente = AdminOrganizador.objects.filter(organizador=organizador, usuario=asignacion.usuario).first()
+
+        if existente:
+            existente.puede_editar = asignacion.puede_editar
+            existente.puede_validar = asignacion.puede_validar
+            existente.puede_programar = asignacion.puede_programar
+            existente.activo = asignacion.activo
+            existente.save()
+            asignacion = existente
+            mensaje = "Admin actualizado correctamente."
+        else:
+            asignacion.save()
+            mensaje = "Admin asignado correctamente."
+
+        registrar_actividad(
+            request,
+            "ASIGNAR_ADMIN_ORGANIZADOR",
+            torneo=None,
+            descripcion=f"Asigno admin {asignacion.usuario.username} al organizador {organizador.nombre}.",
+            datos={
+                "organizador": organizador.nombre,
+                "usuario": asignacion.usuario.username,
+                "puede_editar": asignacion.puede_editar,
+                "puede_validar": asignacion.puede_validar,
+                "puede_programar": asignacion.puede_programar,
+                "activo": asignacion.activo,
+            },
+        )
+        messages.success(request, mensaje)
+        return redirect("gestion_organizador_admins", organizador_id=organizador.id)
+
+    return render(request, "gestion/organizador_admins.html", {
+        "organizador": organizador,
+        "asignaciones": asignaciones,
+        "form": form,
+        "torneos": organizador.torneos.order_by("-fecha_inicio", "nombre"),
+    })
+
+
+@login_required
+@user_passes_test(es_superadmin)
+@require_POST
+def gestion_organizador_admin_eliminar(request, asignacion_id):
+    asignacion = get_object_or_404(AdminOrganizador.objects.select_related("organizador", "usuario"), id=asignacion_id)
+    organizador = asignacion.organizador
+    usuario = asignacion.usuario.username
+    registrar_actividad(
+        request,
+        "QUITAR_ADMIN_ORGANIZADOR",
+        torneo=None,
+        descripcion=f"Quito admin {usuario} del organizador {organizador.nombre}.",
+        datos={"organizador": organizador.nombre, "usuario": usuario},
+    )
+    asignacion.delete()
+    messages.success(request, f"Admin retirado: {usuario}.")
+    return redirect("gestion_organizador_admins", organizador_id=organizador.id)
 
 
 @login_required

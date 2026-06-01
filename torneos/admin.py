@@ -7,7 +7,7 @@ from import_export.admin import ImportExportModelAdmin
 from import_export.widgets import ForeignKeyWidget
 from openpyxl import load_workbook
 
-from .models import Torneo, Organizador, Categoria, Documento, Equipo, Jugador, Partido, Gol, Tarjeta, AlineacionPartido, SustitucionPartido, ReglaEdadCategoria, AdminTorneo, RegistroActividad
+from .models import Torneo, Organizador, Categoria, Documento, Equipo, Jugador, Partido, Gol, Tarjeta, AlineacionPartido, SustitucionPartido, ReglaEdadCategoria, AdminTorneo, AdminOrganizador, RegistroActividad
 from django.contrib import admin
 
 admin.site.register(Torneo)
@@ -19,6 +19,13 @@ class AdminTorneoAdmin(admin.ModelAdmin):
     list_display = ("usuario", "torneo", "puede_editar", "puede_validar", "puede_programar", "activo", "creado_en")
     list_filter = ("torneo", "activo", "puede_editar", "puede_validar", "puede_programar")
     search_fields = ("usuario__username", "usuario__first_name", "usuario__last_name", "torneo__nombre")
+
+
+@admin.register(AdminOrganizador)
+class AdminOrganizadorAdmin(admin.ModelAdmin):
+    list_display = ("usuario", "organizador", "puede_editar", "puede_validar", "puede_programar", "activo", "creado_en")
+    list_filter = ("organizador", "activo", "puede_editar", "puede_validar", "puede_programar")
+    search_fields = ("usuario__username", "usuario__first_name", "usuario__last_name", "organizador__nombre")
 
 
 @admin.register(RegistroActividad)

@@ -8,7 +8,7 @@ from django.test import TestCase, TransactionTestCase, override_settings
 from django.utils import timezone
 
 from .forms import JugadorForm
-from .models import AlineacionPartido, AdminTorneo, Categoria, Equipo, Gol, Jugador, Partido, ReglaEdadCategoria, RegistroActividad, SustitucionPartido, Tarjeta, Torneo
+from .models import AlineacionPartido, AdminOrganizador, AdminTorneo, Categoria, Equipo, Gol, Jugador, Organizador, Partido, ReglaEdadCategoria, RegistroActividad, SustitucionPartido, Tarjeta, Torneo
 from .views import construir_estructura, construir_estadisticas_foraneos, _clave_orden_evento_resumen, _sincronizar_no_disponibles_por_tarjetas, etiqueta_edad_jugador, texto_edad_jugador, validar_reglas_edad_titulares
 
 
@@ -522,7 +522,9 @@ class PlanilleroPartidoTests(TestCase):
 
 class AdminTorneoPermisosTests(TestCase):
     def setUp(self):
-        self.torneo = Torneo.objects.create(nombre="Autorizado", fecha_inicio=date(2026, 1, 1))
+        self.organizador = Organizador.objects.create(nombre="Liga Pahevi")
+        self.otro_organizador = Organizador.objects.create(nombre="Otra Liga")
+        self.torneo = Torneo.objects.create(nombre="Autorizado", organizador=self.organizador, fecha_inicio=date(2026, 1, 1))
         self.otro_torneo = Torneo.objects.create(nombre="Bloqueado", fecha_inicio=date(2026, 2, 1))
         self.categoria = Categoria.objects.create(
             nombre="Senior",
@@ -598,6 +600,46 @@ class AdminTorneoPermisosTests(TestCase):
         respuesta = self.client.post(f"/gestion/partidos/{partido.id}/validar-estadisticas/")
 
         self.assertEqual(respuesta.status_code, 403)
+
+    def test_admin_de_organizador_ve_torneos_del_organizador(self):
+        torneo_organizador = Torneo.objects.create(
+            nombre="Segundo del organizador",
+            organizador=self.organizador,
+            fecha_inicio=date(2026, 3, 1),
+        )
+        admin = User.objects.create_user("admin-organizador", password="test", is_staff=True)
+        AdminOrganizador.objects.create(usuario=admin, organizador=self.organizador)
+        self.client.force_login(admin)
+
+        respuesta = self.client.get("/gestion/torneos/")
+
+        self.assertContains(respuesta, "Autorizado")
+        self.assertContains(respuesta, torneo_organizador.nombre)
+        self.assertNotContains(respuesta, "Bloqueado")
+
+    def test_admin_de_organizador_accede_torneo_creado_despues(self):
+        admin = User.objects.create_user("admin-organizador-futuro", password="test", is_staff=True)
+        AdminOrganizador.objects.create(usuario=admin, organizador=self.organizador)
+        torneo_nuevo = Torneo.objects.create(
+            nombre="Torneo futuro",
+            organizador=self.organizador,
+            fecha_inicio=date(2026, 4, 1),
+        )
+        categoria_nueva = Categoria.objects.create(
+            nombre="Futuro",
+            edad_minima=18,
+            edad_maxima=60,
+            torneo=torneo_nuevo,
+        )
+        Equipo.objects.create(nombre="Equipo Futuro", categoria=categoria_nueva)
+        self.client.force_login(admin)
+        session = self.client.session
+        session["torneo_id"] = torneo_nuevo.id
+        session.save()
+
+        respuesta = self.client.get("/gestion/equipos/")
+
+        self.assertContains(respuesta, "Equipo Futuro")
 
 
 class DelegadoEquipoTests(TestCase):
