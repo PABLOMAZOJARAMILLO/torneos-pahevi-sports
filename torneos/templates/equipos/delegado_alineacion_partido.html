@@ -96,6 +96,17 @@
         border-radius: 14px;
         background: #101d30;
     }
+    .edad-badge {
+        display: inline-flex;
+        margin-left: 6px;
+        padding: 2px 6px;
+        border-radius: 999px;
+        background: rgba(0,255,102,.16);
+        color: #00ff66;
+        font-size: .78rem;
+        font-weight: 800;
+        white-space: nowrap;
+    }
     .rol-switch {
         display: grid;
         grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -157,7 +168,7 @@
                     <option value="">{{ codigo }}</option>
                     {% for jugador in jugadores %}
                         <option value="{{ jugador.id }}" {% if jugador.rol_alineacion == "TITULAR" and jugador.posicion_alineacion == codigo %}selected{% endif %}>
-                            {% if jugador.dorsal %}#{{ jugador.dorsal }} - {% endif %}{{ jugador.nombres|texto_limpio }}
+                            {% if jugador.dorsal %}#{{ jugador.dorsal }} - {% endif %}{{ jugador.nombres|texto_limpio }}{% if jugador.texto_edad %} ({{ jugador.texto_edad }}){% endif %}
                         </option>
                     {% endfor %}
                 </select>
@@ -172,7 +183,7 @@
         {% for jugador in jugadores %}
         <section class="banco-jugador" data-jugador-row="{{ jugador.id }}">
             <div>
-                <div>{% if jugador.dorsal %}#{{ jugador.dorsal }} - {% endif %}{{ jugador.nombres|texto_limpio }}</div>
+                <div>{% if jugador.dorsal %}#{{ jugador.dorsal }} - {% endif %}{{ jugador.nombres|texto_limpio }}{% if jugador.texto_edad %}<span class="edad-badge">{{ jugador.texto_edad }}</span>{% endif %}</div>
                 {% if jugador.id in sancionados_tarjetas %}
                     <div class="muted">Sancionado: queda como no disponible.</div>
                 {% endif %}

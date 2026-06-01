@@ -1724,6 +1724,16 @@ def etiqueta_edad_jugador(jugador, categoria=None, fecha_referencia=None):
     return regla.etiqueta if regla else ""
 
 
+def texto_edad_jugador(jugador, categoria=None, fecha_referencia=None):
+    etiqueta = etiqueta_edad_jugador(jugador, categoria, fecha_referencia)
+    if etiqueta:
+        return etiqueta
+    edad = edad_jugador_en_fecha(jugador, fecha_referencia)
+    if edad is None:
+        return ""
+    return f"{edad} años"
+
+
 def validar_reglas_edad_titulares(partido, equipo, titulares_ids):
     reglas = [regla for regla in reglas_edad_categoria(partido.categoria) if regla.minimo_titulares]
     if not reglas or len(titulares_ids) < 11:
@@ -3011,6 +3021,11 @@ def _marcar_roles_alineacion(jugadores, alineaciones_por_jugador, partido=None):
         jugador.foto_alineacion = foto_jugador_url(jugador)
         jugador.iniciales_alineacion = iniciales_jugador(jugador)
         jugador.etiqueta_edad = etiqueta_edad_jugador(
+            jugador,
+            partido.categoria if partido else None,
+            partido.fecha if partido else None,
+        )
+        jugador.texto_edad = texto_edad_jugador(
             jugador,
             partido.categoria if partido else None,
             partido.fecha if partido else None,

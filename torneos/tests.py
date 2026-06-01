@@ -9,7 +9,7 @@ from django.utils import timezone
 
 from .forms import JugadorForm
 from .models import AlineacionPartido, Categoria, Equipo, Gol, Jugador, Partido, ReglaEdadCategoria, SustitucionPartido, Tarjeta, Torneo
-from .views import construir_estructura, construir_estadisticas_foraneos, _clave_orden_evento_resumen, _sincronizar_no_disponibles_por_tarjetas, etiqueta_edad_jugador, validar_reglas_edad_titulares
+from .views import construir_estructura, construir_estadisticas_foraneos, _clave_orden_evento_resumen, _sincronizar_no_disponibles_por_tarjetas, etiqueta_edad_jugador, texto_edad_jugador, validar_reglas_edad_titulares
 
 
 class SancionesTarjetasTests(TestCase):
@@ -398,6 +398,17 @@ class PlanilleroPartidoTests(TestCase):
         "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
         "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
     })
+    def test_editor_movil_muestra_edad_en_alineacion(self):
+        self.client.force_login(self.planillero)
+
+        respuesta = self.client.get(f"/partido/{self.partido.id}/editor-movil/")
+
+        self.assertContains(respuesta, "36 años")
+
+    @override_settings(STORAGES={
+        "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+        "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
+    })
     def test_planillero_ve_mensaje_de_acceso_exitoso_al_ingresar(self):
         respuesta = self.client.post(
             f"/ingresar/?next=/partido/{self.partido.id}/editor-movil/",
@@ -766,6 +777,22 @@ class DelegadoEquipoTests(TestCase):
                 rol="SUPLENTE",
             ).exists()
         )
+
+    def test_delegado_ve_edad_en_editor_de_alineacion(self):
+        ahora_local = timezone.localtime()
+        partido = Partido.objects.create(
+            categoria=self.categoria,
+            equipo_local=self.equipo,
+            equipo_visitante=self.otro_equipo,
+            fecha=(ahora_local - timedelta(hours=1)).date(),
+            hora=(ahora_local - timedelta(hours=1)).time(),
+            estado="PROGRAMADO",
+        )
+        self.client.force_login(self.delegado)
+
+        respuesta = self.client.get(f"/delegado/equipos/{self.equipo.id}/partidos/{partido.id}/alineacion/")
+
+        self.assertContains(respuesta, texto_edad_jugador(self.jugador, self.categoria, partido.fecha))
 
     def test_delegado_no_puede_guardar_alineacion_antes_de_hora_programada(self):
         ahora_local = timezone.localtime()

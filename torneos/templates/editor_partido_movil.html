@@ -778,8 +778,8 @@
                         <select class="slot-select" data-slot-select data-posicion-slot="{{ codigo }}" aria-label="Asignar {{ nombre }}">
                         <option value="">{{ codigo }}</option>
                         {% for j in jugadores_local %}
-                            <option value="{{ j.id }}" data-nombre="{{ j.nombres|texto_limpio }}" data-dorsal="{% if j.dorsal %}{{ j.dorsal }}{% endif %}" data-foto="{{ j.foto_alineacion }}" data-iniciales="{{ j.iniciales_alineacion }}" {% if j.posicion_alineacion == codigo and j.rol_alineacion == "TITULAR" %}selected{% endif %}>
-                                {% if j.dorsal %}#{{ j.dorsal }} - {% endif %}{{ j.nombres|texto_limpio }}
+                            <option value="{{ j.id }}" data-nombre="{{ j.nombres|texto_limpio }}{% if j.texto_edad %} ({{ j.texto_edad }}){% endif %}" data-dorsal="{% if j.dorsal %}{{ j.dorsal }}{% endif %}" data-foto="{{ j.foto_alineacion }}" data-iniciales="{{ j.iniciales_alineacion }}" {% if j.posicion_alineacion == codigo and j.rol_alineacion == "TITULAR" %}selected{% endif %}>
+                                {% if j.dorsal %}#{{ j.dorsal }} - {% endif %}{{ j.nombres|texto_limpio }}{% if j.texto_edad %} ({{ j.texto_edad }}){% endif %}
                             </option>
                         {% endfor %}
                         </select>
@@ -790,7 +790,7 @@
                 {% for j in jugadores_local %}
                 <div class="jugador-lineup-row" data-jugador-id="{{ j.id }}" data-nombre="{{ j.nombres|texto_limpio }}" data-dorsal="{% if j.dorsal %}{{ j.dorsal }}{% endif %}" data-foto="{{ j.foto_alineacion }}" data-iniciales="{{ j.iniciales_alineacion }}">
                     <div class="jugador-lineup-head">
-                        <span>{{ j.nombres|texto_limpio }}{% if j.etiqueta_edad %}<span class="edad-badge">{{ j.etiqueta_edad }}</span>{% endif %}</span>
+                        <span>{{ j.nombres|texto_limpio }}{% if j.texto_edad %}<span class="edad-badge">{{ j.texto_edad }}</span>{% endif %}</span>
                         <span class="jugador-lineup-dorsal">{% if j.dorsal %}#{{ j.dorsal }}{% else %}S/D{% endif %}</span>
                     </div>
                     <div class="rol-switch">
@@ -829,8 +829,8 @@
                         <select class="slot-select" data-slot-select data-posicion-slot="{{ codigo }}" aria-label="Asignar {{ nombre }}">
                         <option value="">{{ codigo }}</option>
                         {% for j in jugadores_visitante %}
-                            <option value="{{ j.id }}" data-nombre="{{ j.nombres|texto_limpio }}" data-dorsal="{% if j.dorsal %}{{ j.dorsal }}{% endif %}" data-foto="{{ j.foto_alineacion }}" data-iniciales="{{ j.iniciales_alineacion }}" {% if j.posicion_alineacion == codigo and j.rol_alineacion == "TITULAR" %}selected{% endif %}>
-                                {% if j.dorsal %}#{{ j.dorsal }} - {% endif %}{{ j.nombres|texto_limpio }}
+                            <option value="{{ j.id }}" data-nombre="{{ j.nombres|texto_limpio }}{% if j.texto_edad %} ({{ j.texto_edad }}){% endif %}" data-dorsal="{% if j.dorsal %}{{ j.dorsal }}{% endif %}" data-foto="{{ j.foto_alineacion }}" data-iniciales="{{ j.iniciales_alineacion }}" {% if j.posicion_alineacion == codigo and j.rol_alineacion == "TITULAR" %}selected{% endif %}>
+                                {% if j.dorsal %}#{{ j.dorsal }} - {% endif %}{{ j.nombres|texto_limpio }}{% if j.texto_edad %} ({{ j.texto_edad }}){% endif %}
                             </option>
                         {% endfor %}
                         </select>
@@ -841,7 +841,7 @@
                 {% for j in jugadores_visitante %}
                 <div class="jugador-lineup-row" data-jugador-id="{{ j.id }}" data-nombre="{{ j.nombres|texto_limpio }}" data-dorsal="{% if j.dorsal %}{{ j.dorsal }}{% endif %}" data-foto="{{ j.foto_alineacion }}" data-iniciales="{{ j.iniciales_alineacion }}">
                     <div class="jugador-lineup-head">
-                        <span>{{ j.nombres|texto_limpio }}{% if j.etiqueta_edad %}<span class="edad-badge">{{ j.etiqueta_edad }}</span>{% endif %}</span>
+                        <span>{{ j.nombres|texto_limpio }}{% if j.texto_edad %}<span class="edad-badge">{{ j.texto_edad }}</span>{% endif %}</span>
                         <span class="jugador-lineup-dorsal">{% if j.dorsal %}#{{ j.dorsal }}{% else %}S/D{% endif %}</span>
                     </div>
                     <div class="rol-switch">
