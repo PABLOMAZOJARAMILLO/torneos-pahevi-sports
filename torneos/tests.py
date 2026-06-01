@@ -669,6 +669,52 @@ class DelegadoEquipoTests(TestCase):
             ).exists()
         )
 
+    def test_delegado_guarda_titular_desde_cancha_y_suplente_desde_banco(self):
+        suplente = Jugador.objects.create(
+            equipo=self.equipo,
+            dorsal=8,
+            nombres="Jugador Suplente",
+            cedula="789",
+            fecha_nacimiento=date(1991, 1, 1),
+        )
+        ahora_local = timezone.localtime()
+        partido = Partido.objects.create(
+            categoria=self.categoria,
+            equipo_local=self.equipo,
+            equipo_visitante=self.otro_equipo,
+            fecha=(ahora_local - timedelta(hours=1)).date(),
+            hora=(ahora_local - timedelta(hours=1)).time(),
+            estado="PROGRAMADO",
+        )
+        self.client.force_login(self.delegado)
+
+        respuesta = self.client.post(
+            f"/delegado/equipos/{self.equipo.id}/partidos/{partido.id}/alineacion/",
+            {
+                "cancha_DC": self.jugador.id,
+                f"rol_{suplente.id}": "SUPLENTE",
+            },
+        )
+
+        self.assertEqual(respuesta.status_code, 302)
+        self.assertTrue(
+            AlineacionPartido.objects.filter(
+                partido=partido,
+                equipo=self.equipo,
+                jugador=self.jugador,
+                rol="TITULAR",
+                posicion_cancha="DC",
+            ).exists()
+        )
+        self.assertTrue(
+            AlineacionPartido.objects.filter(
+                partido=partido,
+                equipo=self.equipo,
+                jugador=suplente,
+                rol="SUPLENTE",
+            ).exists()
+        )
+
     def test_delegado_no_puede_guardar_alineacion_antes_de_hora_programada(self):
         ahora_local = timezone.localtime()
         partido = Partido.objects.create(

@@ -14,11 +14,81 @@
 </div>
 
 <style>
-    .alineacion-lista {
+    .cancha-resumen {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        align-items: center;
+        margin: 12px 0;
+        color: #bbf7d0;
+    }
+    .cancha-delegado {
+        position: relative;
+        min-height: 620px;
+        max-width: 420px;
+        margin: 0 auto 18px;
+        border: 2px solid rgba(255,255,255,.82);
+        border-radius: 20px;
+        overflow: hidden;
+        background:
+            linear-gradient(rgba(255,255,255,.22), rgba(255,255,255,.22)) 50% 50% / 100% 2px no-repeat,
+            repeating-linear-gradient(90deg, #166534 0 46px, #15803d 46px 92px);
+        box-shadow: inset 0 0 0 4px rgba(255,255,255,.16), 0 20px 40px rgba(0,0,0,.28);
+    }
+    .cancha-delegado::before {
+        content: "";
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        width: 118px;
+        height: 118px;
+        border: 2px solid rgba(255,255,255,.72);
+        border-radius: 50%;
+        transform: translate(-50%, -50%);
+    }
+    .cancha-slot {
+        position: absolute;
+        width: 118px;
+        transform: translate(-50%, -50%);
+        display: grid;
+        gap: 5px;
+        z-index: 2;
+    }
+    .cancha-slot.posicion-POR { left: 50%; top: 88%; }
+    .cancha-slot.posicion-LI { left: 18%; top: 68%; }
+    .cancha-slot.posicion-DFC1 { left: 39%; top: 70%; }
+    .cancha-slot.posicion-DFC2 { left: 61%; top: 70%; }
+    .cancha-slot.posicion-LD { left: 82%; top: 68%; }
+    .cancha-slot.posicion-MC1 { left: 30%; top: 48%; }
+    .cancha-slot.posicion-MC2 { left: 50%; top: 46%; }
+    .cancha-slot.posicion-MC3 { left: 70%; top: 48%; }
+    .cancha-slot.posicion-EI { left: 27%; top: 25%; }
+    .cancha-slot.posicion-DC { left: 50%; top: 21%; }
+    .cancha-slot.posicion-ED { left: 73%; top: 25%; }
+    .slot-codigo {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        justify-self: center;
+        min-width: 40px;
+        height: 28px;
+        border-radius: 999px;
+        background: #07111f;
+        color: #00ff66;
+        font-size: 12px;
+        box-shadow: 0 6px 14px rgba(0,0,0,.25);
+    }
+    .cancha-slot select {
+        min-height: 36px;
+        padding: 7px;
+        font-size: 12px;
+        border-radius: 10px;
+    }
+    .banco-lista {
         display: grid;
         gap: 10px;
     }
-    .alineacion-jugador {
+    .banco-jugador {
         display: grid;
         gap: 8px;
         padding: 12px;
@@ -26,15 +96,9 @@
         border-radius: 14px;
         background: #101d30;
     }
-    .alineacion-head {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 10px;
-    }
     .rol-switch {
         display: grid;
-        grid-template-columns: repeat(4, minmax(0, 1fr));
+        grid-template-columns: repeat(3, minmax(0, 1fr));
         gap: 6px;
     }
     .rol-switch label {
@@ -63,38 +127,61 @@
         border-color: #00e565;
     }
     @media (max-width: 560px) {
-        .rol-switch {
-            grid-template-columns: repeat(2, minmax(0, 1fr));
+        .cancha-delegado {
+            min-height: 560px;
+        }
+        .cancha-slot {
+            width: 96px;
+        }
+        .cancha-slot select {
+            font-size: 11px;
+            padding: 6px;
         }
     }
 </style>
 
-<form method="post">
+<form method="post" data-delegado-alineacion-form>
     {% csrf_token %}
-    <div class="alineacion-lista">
+
+    <div class="card">
+        <div class="cancha-resumen">
+            <strong>Titulares en cancha</strong>
+            <span><b data-titulares-count>0</b>/11</span>
+        </div>
+
+        <div class="cancha-delegado">
+            {% for codigo, nombre in posiciones_cancha %}
+            <div class="cancha-slot posicion-{{ codigo }}">
+                <span class="slot-codigo">{{ codigo }}</span>
+                <select name="cancha_{{ codigo }}" data-cancha-select aria-label="{{ nombre }}">
+                    <option value="">{{ codigo }}</option>
+                    {% for jugador in jugadores %}
+                        <option value="{{ jugador.id }}" {% if jugador.rol_alineacion == "TITULAR" and jugador.posicion_alineacion == codigo %}selected{% endif %}>
+                            {% if jugador.dorsal %}#{{ jugador.dorsal }} - {% endif %}{{ jugador.nombres|texto_limpio }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <h2 style="color:#00ff66;">Suplentes y no disponibles</h2>
+
+    <div class="banco-lista">
         {% for jugador in jugadores %}
-        <section class="alineacion-jugador">
-            <div class="alineacion-head">
-                <div>
-                    <div>{% if jugador.dorsal %}#{{ jugador.dorsal }} - {% endif %}{{ jugador.nombres|texto_limpio }}</div>
-                    {% if jugador.id in sancionados_tarjetas %}
-                        <div class="muted">Sancionado: queda como no disponible.</div>
-                    {% endif %}
-                </div>
+        <section class="banco-jugador" data-jugador-row="{{ jugador.id }}">
+            <div>
+                <div>{% if jugador.dorsal %}#{{ jugador.dorsal }} - {% endif %}{{ jugador.nombres|texto_limpio }}</div>
+                {% if jugador.id in sancionados_tarjetas %}
+                    <div class="muted">Sancionado: queda como no disponible.</div>
+                {% endif %}
             </div>
             <div class="rol-switch">
-                <label><input type="radio" name="rol_{{ jugador.id }}" value="" {% if not jugador.rol_alineacion %}checked{% endif %}><span>Fuera</span></label>
-                <label><input type="radio" name="rol_{{ jugador.id }}" value="TITULAR" {% if jugador.rol_alineacion == "TITULAR" %}checked{% endif %}><span>Titular</span></label>
+                <label><input type="radio" name="rol_{{ jugador.id }}" value="" {% if not jugador.rol_alineacion or jugador.rol_alineacion == "TITULAR" %}checked{% endif %}><span>Fuera</span></label>
                 <label><input type="radio" name="rol_{{ jugador.id }}" value="SUPLENTE" {% if jugador.rol_alineacion == "SUPLENTE" %}checked{% endif %}><span>Suplente</span></label>
                 <label><input type="radio" name="rol_{{ jugador.id }}" value="NO_DISPONIBLE" {% if jugador.rol_alineacion == "NO_DISPONIBLE" %}checked{% endif %}><span>No disponible</span></label>
             </div>
-            <label for="posicion-{{ jugador.id }}">Posicion en cancha si es titular</label>
-            <select id="posicion-{{ jugador.id }}" name="posicion_{{ jugador.id }}">
-                <option value="">Sin posicion</option>
-                {% for codigo, nombre in posiciones_cancha %}
-                    <option value="{{ codigo }}" {% if jugador.posicion_alineacion == codigo %}selected{% endif %}>{{ nombre }}</option>
-                {% endfor %}
-            </select>
         </section>
         {% empty %}
         <div class="card">Este equipo no tiene jugadores activos.</div>
@@ -103,4 +190,66 @@
 
     <p><button class="btn" type="submit">Guardar alineacion</button></p>
 </form>
+
+<script>
+    (function () {
+        const form = document.querySelector('[data-delegado-alineacion-form]');
+        if (!form) return;
+
+        const selects = Array.from(form.querySelectorAll('[data-cancha-select]'));
+        const counter = form.querySelector('[data-titulares-count]');
+
+        function selectedPlayerIds(exceptSelect) {
+            return selects
+                .filter((select) => select !== exceptSelect && select.value)
+                .map((select) => select.value);
+        }
+
+        function syncOptions() {
+            selects.forEach((select) => {
+                const usados = selectedPlayerIds(select);
+                Array.from(select.options).forEach((option) => {
+                    option.disabled = option.value && usados.includes(option.value);
+                });
+            });
+            if (counter) {
+                counter.textContent = selects.filter((select) => select.value).length;
+            }
+        }
+
+        function clearPlayerFromBench(playerId) {
+            const fuera = form.querySelector('input[name="rol_' + playerId + '"][value=""]');
+            if (fuera) fuera.checked = true;
+        }
+
+        function clearPlayerFromField(playerId) {
+            selects.forEach((select) => {
+                if (select.value === playerId) {
+                    select.value = "";
+                }
+            });
+        }
+
+        selects.forEach((select) => {
+            select.addEventListener('change', function () {
+                if (select.value) {
+                    clearPlayerFromBench(select.value);
+                }
+                syncOptions();
+            });
+        });
+
+        form.querySelectorAll('.rol-switch input').forEach((input) => {
+            input.addEventListener('change', function () {
+                if (input.checked && input.value) {
+                    const playerId = input.name.replace('rol_', '');
+                    clearPlayerFromField(playerId);
+                    syncOptions();
+                }
+            });
+        });
+
+        syncOptions();
+    })();
+</script>
 {% endblock %}

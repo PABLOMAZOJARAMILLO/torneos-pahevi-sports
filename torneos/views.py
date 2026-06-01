@@ -3529,22 +3529,40 @@ def delegado_alineacion_partido(request, equipo_id, partido_id):
         roles_validos = {"TITULAR", "SUPLENTE", "NO_DISPONIBLE"}
         posiciones_validas = {codigo for codigo, _ in AlineacionPartido.POSICIONES_CANCHA}
         posiciones_usadas = set()
+        jugadores_en_cancha = {}
         seleccionados = []
+
+        for posicion in posiciones_validas:
+            jugador_id = request.POST.get(f"cancha_{posicion}") or ""
+            if not jugador_id:
+                continue
+            if jugador_id not in jugadores_validos:
+                continue
+            if jugador_id in jugadores_en_cancha:
+                messages.error(request, "No repitas el mismo jugador en la cancha.")
+                return redirect("delegado_alineacion_partido", equipo_id=equipo.id, partido_id=partido.id)
+            if int(jugador_id) in sancionados_equipo:
+                messages.error(request, "Un jugador sancionado no puede quedar como titular.")
+                return redirect("delegado_alineacion_partido", equipo_id=equipo.id, partido_id=partido.id)
+            jugadores_en_cancha[jugador_id] = posicion
+            posiciones_usadas.add(posicion)
 
         for jugador in jugadores:
             jugador_id = str(jugador.id)
             rol = request.POST.get(f"rol_{jugador_id}") or ""
+            if jugador_id in jugadores_en_cancha:
+                rol = "TITULAR"
             if rol not in roles_validos:
                 continue
             if jugador_id not in jugadores_validos:
                 continue
             if jugador.id in sancionados_equipo:
                 rol = "NO_DISPONIBLE"
-            posicion = request.POST.get(f"posicion_{jugador_id}") or ""
+            posicion = jugadores_en_cancha.get(jugador_id) or request.POST.get(f"posicion_{jugador_id}") or ""
             if rol == "TITULAR":
                 if posicion not in posiciones_validas:
                     posicion = ""
-                if posicion and posicion in posiciones_usadas:
+                if posicion and posicion not in jugadores_en_cancha.values() and posicion in posiciones_usadas:
                     messages.error(request, "No repitas la misma posicion en la cancha.")
                     return redirect("delegado_alineacion_partido", equipo_id=equipo.id, partido_id=partido.id)
                 if posicion:
