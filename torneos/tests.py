@@ -8,7 +8,7 @@ from django.test import TestCase, TransactionTestCase, override_settings
 from django.utils import timezone
 
 from .forms import JugadorForm
-from .models import AlineacionPartido, Categoria, Equipo, Gol, Jugador, Partido, ReglaEdadCategoria, SustitucionPartido, Tarjeta, Torneo
+from .models import AlineacionPartido, AdminTorneo, Categoria, Equipo, Gol, Jugador, Partido, ReglaEdadCategoria, RegistroActividad, SustitucionPartido, Tarjeta, Torneo
 from .views import construir_estructura, construir_estadisticas_foraneos, _clave_orden_evento_resumen, _sincronizar_no_disponibles_por_tarjetas, etiqueta_edad_jugador, texto_edad_jugador, validar_reglas_edad_titulares
 
 
@@ -379,6 +379,7 @@ class PlanilleroPartidoTests(TestCase):
         self.planillero = User.objects.create_user("planillero", password="test")
         self.otro_usuario = User.objects.create_user("otro", password="test")
         self.admin = User.objects.create_user("admin", password="test", is_staff=True)
+        AdminTorneo.objects.create(usuario=self.admin, torneo=self.torneo)
         self.partido.planilleros.add(self.planillero)
 
     @override_settings(STORAGES={
@@ -517,6 +518,86 @@ class PlanilleroPartidoTests(TestCase):
         fila_local = next(fila for fila in estructura["Senior"]["grupos"]["SIN GRUPO"]["tabla"] if fila["id"] == self.local.id)
         self.assertEqual(fila_local["pj"], 1)
         self.assertEqual(estructura["Senior"]["goleadores_planilla"][0]["total"], 2)
+
+
+class AdminTorneoPermisosTests(TestCase):
+    def setUp(self):
+        self.torneo = Torneo.objects.create(nombre="Autorizado", fecha_inicio=date(2026, 1, 1))
+        self.otro_torneo = Torneo.objects.create(nombre="Bloqueado", fecha_inicio=date(2026, 2, 1))
+        self.categoria = Categoria.objects.create(
+            nombre="Senior",
+            edad_minima=18,
+            edad_maxima=60,
+            torneo=self.torneo,
+        )
+        self.otra_categoria = Categoria.objects.create(
+            nombre="Libre",
+            edad_minima=18,
+            edad_maxima=60,
+            torneo=self.otro_torneo,
+        )
+        self.equipo = Equipo.objects.create(nombre="Permitido", categoria=self.categoria)
+        self.otro_equipo = Equipo.objects.create(nombre="Privado", categoria=self.otra_categoria)
+        self.admin = User.objects.create_user("admin-torneo", password="test", is_staff=True)
+        AdminTorneo.objects.create(usuario=self.admin, torneo=self.torneo, puede_editar=True, puede_validar=False, puede_programar=False)
+
+    def test_admin_solo_ve_torneos_asignados(self):
+        self.client.force_login(self.admin)
+
+        respuesta = self.client.get("/gestion/torneos/")
+
+        self.assertContains(respuesta, "Autorizado")
+        self.assertNotContains(respuesta, "Bloqueado")
+
+    def test_admin_no_puede_editar_equipo_de_otro_torneo_por_url(self):
+        self.client.force_login(self.admin)
+
+        respuesta = self.client.get(f"/gestion/equipos/{self.otro_equipo.id}/editar/")
+
+        self.assertEqual(respuesta.status_code, 404)
+
+    def test_admin_asignado_registra_actividad_al_editar_equipo(self):
+        self.client.force_login(self.admin)
+        session = self.client.session
+        session["torneo_id"] = self.torneo.id
+        session.save()
+
+        respuesta = self.client.post(
+            f"/gestion/equipos/{self.equipo.id}/editar/",
+            {
+                "nombre": "Permitido FC",
+                "categoria": self.categoria.id,
+                "activo": "on",
+            },
+        )
+
+        self.assertEqual(respuesta.status_code, 302)
+        self.assertTrue(
+            RegistroActividad.objects.filter(
+                usuario=self.admin,
+                torneo=self.torneo,
+                accion="EDITAR",
+                modelo="Equipo",
+            ).exists()
+        )
+
+    def test_admin_sin_permiso_de_validar_no_valida_estadisticas(self):
+        partido = Partido.objects.create(
+            categoria=self.categoria,
+            equipo_local=self.equipo,
+            equipo_visitante=Equipo.objects.create(nombre="Rival", categoria=self.categoria),
+            fecha=date(2026, 5, 1),
+            hora=time(15, 0),
+            estado="FINALIZADO",
+        )
+        self.client.force_login(self.admin)
+        session = self.client.session
+        session["torneo_id"] = self.torneo.id
+        session.save()
+
+        respuesta = self.client.post(f"/gestion/partidos/{partido.id}/validar-estadisticas/")
+
+        self.assertEqual(respuesta.status_code, 403)
 
 
 class DelegadoEquipoTests(TestCase):

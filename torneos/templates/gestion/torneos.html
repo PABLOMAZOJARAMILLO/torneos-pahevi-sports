@@ -5,8 +5,10 @@
 
 {% block content %}
 <p>
+    {% if request.user.is_superuser %}
     <a class="btn" href="{% url 'gestion_torneo_nuevo' %}">Crear torneo</a>
-    <a class="btn secondary" href="{% url 'gestion_panel' %}">Volver a gestiÃ³n</a>
+    {% endif %}
+    <a class="btn secondary" href="{% url 'gestion_panel' %}">Volver a gestion</a>
 </p>
 
 {% for torneo in torneos %}
@@ -14,8 +16,8 @@
         <div>
             <h2 style="margin:0 0 6px;">{{ torneo.nombre }}</h2>
             <div class="muted">
-                Organizador: {% if torneo.organizador %}{{ torneo.organizador.nombre }}{% else %}Sin organizador{% endif %} · Estado: {{ torneo.get_estado_display }} · Inicio: {{ torneo.fecha_inicio }}
-                {% if torneo.fecha_fin %} · Fin: {{ torneo.fecha_fin }}{% endif %}
+                Organizador: {% if torneo.organizador %}{{ torneo.organizador.nombre }}{% else %}Sin organizador{% endif %} - Estado: {{ torneo.get_estado_display }} - Inicio: {{ torneo.fecha_inicio }}
+                {% if torneo.fecha_fin %} - Fin: {{ torneo.fecha_fin }}{% endif %}
             </div>
             {% if torneo.descripcion %}
                 <p class="muted">{{ torneo.descripcion }}</p>
@@ -26,20 +28,25 @@
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
             <a class="btn secondary" href="{% url 'gestion_torneo_editar' torneo.id %}">Editar</a>
+            {% if request.user.is_superuser %}
+            <a class="btn secondary" href="{% url 'gestion_torneo_admins' torneo.id %}">Admins</a>
+            {% endif %}
             <form method="post" action="{% url 'gestion_torneo_activar' torneo.id %}" style="padding:0;border:0;background:transparent;box-shadow:none;">
                 {% csrf_token %}
                 <button class="btn" type="submit">Gestionar</button>
             </form>
-            <form class="inline-form" method="post" action="{% url 'gestion_torneo_eliminar' torneo.id %}" onsubmit="return confirm('Eliminar este torneo borrara tambien sus categorias, equipos, jugadores y partidos. ¿Continuar?');">
+            {% if request.user.is_superuser %}
+            <form class="inline-form" method="post" action="{% url 'gestion_torneo_eliminar' torneo.id %}" onsubmit="return confirm('Eliminar este torneo borrara tambien sus categorias, equipos, jugadores y partidos. Continuar?');">
                 {% csrf_token %}
                 <button class="btn danger" type="submit">Eliminar</button>
             </form>
+            {% endif %}
         </div>
     </div>
 {% empty %}
     <div class="card">
         <h2>No hay torneos</h2>
-        <p class="muted">Crea el primer torneo para empezar a organizar categorÃ­as, equipos y partidos.</p>
+        <p class="muted">Crea el primer torneo para empezar a organizar categorias, equipos y partidos.</p>
     </div>
 {% endfor %}
 {% endblock %}

@@ -1,6 +1,6 @@
 from django import forms
 
-from .models import Torneo, Organizador, Documento, Categoria, Equipo, Jugador, Partido
+from .models import Torneo, Organizador, Documento, Categoria, Equipo, Jugador, Partido, AdminTorneo
 
 
 class OrganizadorForm(forms.ModelForm):
@@ -39,6 +39,23 @@ class TorneoForm(forms.ModelForm):
             "fecha_fin": forms.DateInput(attrs={"type": "date"}),
             "descripcion": forms.Textarea(attrs={"rows": 3}),
         }
+
+
+class AdminTorneoForm(forms.ModelForm):
+    class Meta:
+        model = AdminTorneo
+        fields = [
+            "usuario",
+            "puede_editar",
+            "puede_validar",
+            "puede_programar",
+            "activo",
+        ]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["usuario"].queryset = self.fields["usuario"].queryset.filter(is_staff=True).order_by("username")
+        self.fields["usuario"].label_from_instance = lambda obj: obj.get_full_name() or obj.username
 
 
 class DocumentoForm(forms.ModelForm):

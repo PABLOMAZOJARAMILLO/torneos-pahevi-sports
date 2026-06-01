@@ -1,0 +1,43 @@
+{% extends "gestion/base.html" %}
+
+{% block title %}Admins del torneo{% endblock %}
+{% block heading %}Admins: {{ torneo.nombre }}{% endblock %}
+
+{% block content %}
+<p>
+    <a class="btn secondary" href="{% url 'gestion_torneos' %}">Volver a torneos</a>
+</p>
+
+<div class="card" style="margin-bottom:16px;">
+    <h2 style="margin-top:0;">Asignar admin</h2>
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button class="btn" type="submit">Guardar admin</button>
+    </form>
+</div>
+
+{% for asignacion in asignaciones %}
+    <div class="row">
+        <div>
+            <h2 style="margin:0 0 6px;">{{ asignacion.usuario.get_full_name|default:asignacion.usuario.username }}</h2>
+            <div class="muted">
+                Usuario: {{ asignacion.usuario.username }} -
+                Editar: {% if asignacion.puede_editar %}Si{% else %}No{% endif %} -
+                Validar: {% if asignacion.puede_validar %}Si{% else %}No{% endif %} -
+                Programar: {% if asignacion.puede_programar %}Si{% else %}No{% endif %} -
+                Estado: {% if asignacion.activo %}Activo{% else %}Inactivo{% endif %}
+            </div>
+        </div>
+        <form class="inline-form" method="post" action="{% url 'gestion_torneo_admin_eliminar' asignacion.id %}" onsubmit="return confirm('Quitar este admin del torneo?');">
+            {% csrf_token %}
+            <button class="btn danger" type="submit">Quitar</button>
+        </form>
+    </div>
+{% empty %}
+    <div class="card">
+        <h2>Sin admins asignados</h2>
+        <p class="muted">Solo los superusuarios pueden gestionar este torneo hasta que asignes admins.</p>
+    </div>
+{% endfor %}
+{% endblock %}

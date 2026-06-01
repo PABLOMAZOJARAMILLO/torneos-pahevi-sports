@@ -7,11 +7,26 @@ from import_export.admin import ImportExportModelAdmin
 from import_export.widgets import ForeignKeyWidget
 from openpyxl import load_workbook
 
-from .models import Torneo, Organizador, Categoria, Documento, Equipo, Jugador, Partido, Gol, Tarjeta, AlineacionPartido, SustitucionPartido, ReglaEdadCategoria
+from .models import Torneo, Organizador, Categoria, Documento, Equipo, Jugador, Partido, Gol, Tarjeta, AlineacionPartido, SustitucionPartido, ReglaEdadCategoria, AdminTorneo, RegistroActividad
 from django.contrib import admin
 
 admin.site.register(Torneo)
 admin.site.register(Organizador)
+
+
+@admin.register(AdminTorneo)
+class AdminTorneoAdmin(admin.ModelAdmin):
+    list_display = ("usuario", "torneo", "puede_editar", "puede_validar", "puede_programar", "activo", "creado_en")
+    list_filter = ("torneo", "activo", "puede_editar", "puede_validar", "puede_programar")
+    search_fields = ("usuario__username", "usuario__first_name", "usuario__last_name", "torneo__nombre")
+
+
+@admin.register(RegistroActividad)
+class RegistroActividadAdmin(admin.ModelAdmin):
+    list_display = ("creado_en", "usuario", "torneo", "accion", "modelo", "objeto_repr", "ip")
+    list_filter = ("accion", "torneo", "modelo", "creado_en")
+    search_fields = ("usuario__username", "torneo__nombre", "descripcion", "objeto_repr")
+    readonly_fields = ("creado_en",)
 
 def limpiar_texto(valor):
     return '' if valor is None else str(valor).strip()

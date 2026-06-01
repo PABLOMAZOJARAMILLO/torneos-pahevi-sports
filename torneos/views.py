@@ -10,6 +10,7 @@ from urllib.parse import quote
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import logout
+from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.views import LoginView
 from django.http import FileResponse, HttpResponse, HttpResponseForbidden
@@ -29,17 +30,33 @@ import requests
 from django.views.decorators.http import require_POST
 from openpyxl import load_workbook
 
-from .forms import TorneoForm, OrganizadorForm, CategoriaForm, DocumentoForm, EquipoForm, EquipoDelegadoForm, JugadorForm, JugadorDelegadoForm, PartidoForm
-from .models import Torneo, Organizador, Categoria, Documento, Equipo, Partido, Gol, Tarjeta, Jugador, AlineacionPartido, SustitucionPartido, ReglaEdadCategoria, limpiar_ruta_cloudinary
+from .forms import TorneoForm, OrganizadorForm, CategoriaForm, DocumentoForm, EquipoForm, EquipoDelegadoForm, JugadorForm, JugadorDelegadoForm, PartidoForm, AdminTorneoForm
+from .models import Torneo, Organizador, Categoria, Documento, Equipo, Partido, Gol, Tarjeta, Jugador, AlineacionPartido, SustitucionPartido, ReglaEdadCategoria, AdminTorneo, RegistroActividad, limpiar_ruta_cloudinary
 from django.utils import timezone
 
 def es_editor_torneo(user):
-    return user.is_authenticated and (user.is_staff or user.is_superuser)
+    if not user.is_authenticated:
+        return False
+    if user.is_superuser:
+        return True
+    if not user.is_staff:
+        return False
+    if not tabla_disponible("torneos_admintorneo"):
+        return True
+    return AdminTorneo.objects.filter(usuario=user, activo=True).exists()
+
+
+def es_superadmin(user):
+    return user.is_authenticated and user.is_superuser
 
 
 def puede_diligenciar_partido(user, partido):
-    if es_editor_torneo(user):
+    if user.is_authenticated and user.is_superuser:
         return True
+    if user.is_authenticated and user.is_staff and partido:
+        if not tabla_disponible("torneos_admintorneo"):
+            return True
+        return usuario_puede_editar_torneo(user, partido.categoria.torneo if partido.categoria_id else None)
     if not user.is_authenticated or not partido:
         return False
     if partido.estado == "FINALIZADO":
@@ -67,8 +84,12 @@ def equipos_delegado_asignados(user):
 
 
 def puede_editar_equipo_delegado(user, equipo):
-    if es_editor_torneo(user):
+    if user.is_authenticated and user.is_superuser:
         return True
+    if user.is_authenticated and user.is_staff:
+        if not tabla_disponible("torneos_admintorneo"):
+            return True
+        return usuario_puede_editar_torneo(user, equipo.categoria.torneo if equipo.categoria_id else None)
     return bool(
         user.is_authenticated
         and equipo.responsable_id == user.id
@@ -78,15 +99,23 @@ def puede_editar_equipo_delegado(user, equipo):
 
 def equipos_editables_para_usuario(user):
     equipos = Equipo.objects.select_related("categoria")
-    if es_editor_torneo(user):
+    if user.is_authenticated and user.is_superuser:
         return equipos
+    if user.is_authenticated and user.is_staff:
+        if not tabla_disponible("torneos_admintorneo"):
+            return equipos
+        return equipos.filter(categoria__torneo__admins_asignados__usuario=user, categoria__torneo__admins_asignados__activo=True).distinct()
     return equipos_delegado_vigentes(user)
 
 
 def equipos_alineacion_para_usuario(user):
     equipos = Equipo.objects.select_related("categoria")
-    if es_editor_torneo(user):
+    if user.is_authenticated and user.is_superuser:
         return equipos
+    if user.is_authenticated and user.is_staff:
+        if not tabla_disponible("torneos_admintorneo"):
+            return equipos
+        return equipos.filter(categoria__torneo__admins_asignados__usuario=user, categoria__torneo__admins_asignados__activo=True).distinct()
     return equipos_delegado_asignados(user)
 
 
@@ -123,8 +152,12 @@ def partido_pertenece_equipo(partido, equipo):
 
 
 def puede_editar_alineacion_delegado(user, partido, equipo):
-    if es_editor_torneo(user):
+    if user.is_authenticated and user.is_superuser:
         return partido_pertenece_equipo(partido, equipo)
+    if user.is_authenticated and user.is_staff:
+        if not tabla_disponible("torneos_admintorneo"):
+            return partido_pertenece_equipo(partido, equipo)
+        return partido_pertenece_equipo(partido, equipo) and usuario_puede_editar_torneo(user, partido.categoria.torneo if partido.categoria_id else None)
     if not user.is_authenticated or equipo.responsable_id != user.id:
         return False
     if not partido_pertenece_equipo(partido, equipo):
@@ -234,7 +267,104 @@ def tabla_disponible(nombre_tabla):
 def torneos_para_usuario(request):
     # No usamos select_related ni filtros por Organizador aqui porque Render puede
     # servir el codigo nuevo unos segundos antes de aplicar la migracion.
-    return Torneo.objects.order_by("-fecha_inicio", "nombre")
+    torneos = Torneo.objects.order_by("-fecha_inicio", "nombre")
+    usuario = getattr(request, "user", None)
+
+    if not usuario or not usuario.is_authenticated:
+        return torneos
+
+    if usuario.is_superuser:
+        return torneos
+
+    if usuario.is_staff and tabla_disponible("torneos_admintorneo"):
+        return torneos.filter(admins_asignados__usuario=usuario, admins_asignados__activo=True).distinct()
+
+    return torneos
+
+
+def permisos_torneo_usuario(user, torneo):
+    if not user.is_authenticated:
+        return None
+    if user.is_superuser:
+        return SimpleNamespace(puede_editar=True, puede_validar=True, puede_programar=True, activo=True)
+    if not user.is_staff or not torneo or not tabla_disponible("torneos_admintorneo"):
+        return None
+    return AdminTorneo.objects.filter(usuario=user, torneo=torneo, activo=True).first()
+
+
+def usuario_puede_editar_torneo(user, torneo):
+    permisos = permisos_torneo_usuario(user, torneo)
+    return bool(permisos and permisos.puede_editar)
+
+
+def usuario_puede_validar_torneo(user, torneo):
+    permisos = permisos_torneo_usuario(user, torneo)
+    return bool(permisos and permisos.puede_validar)
+
+
+def usuario_puede_programar_torneo(user, torneo):
+    permisos = permisos_torneo_usuario(user, torneo)
+    return bool(permisos and permisos.puede_programar)
+
+
+def denegar_permiso_torneo():
+    return HttpResponseForbidden("No tienes permiso para manipular este torneo.")
+
+
+def puede_gestionar_torneo(request, torneo, permiso="editar"):
+    if request.user.is_superuser:
+        return True
+    if not tabla_disponible("torneos_admintorneo"):
+        return True
+    if permiso == "validar":
+        return usuario_puede_validar_torneo(request.user, torneo)
+    if permiso == "programar":
+        return usuario_puede_programar_torneo(request.user, torneo)
+    return usuario_puede_editar_torneo(request.user, torneo)
+
+
+def ip_cliente(request):
+    encabezado = request.META.get("HTTP_X_FORWARDED_FOR")
+    if encabezado:
+        return encabezado.split(",")[0].strip()
+    return request.META.get("REMOTE_ADDR")
+
+
+def registrar_actividad(request, accion, objeto=None, torneo=None, descripcion="", datos=None):
+    if not tabla_disponible("torneos_registroactividad"):
+        return
+
+    if not torneo and objeto is not None:
+        torneo = torneo_de_objeto(objeto)
+
+    RegistroActividad.objects.create(
+        usuario=request.user if request.user.is_authenticated else None,
+        torneo=torneo,
+        accion=accion,
+        modelo=objeto.__class__.__name__ if objeto is not None else "",
+        objeto_id=getattr(objeto, "id", None),
+        objeto_repr=str(objeto)[:255] if objeto is not None else "",
+        descripcion=descripcion,
+        datos=datos or {},
+        ip=ip_cliente(request),
+        user_agent=(request.META.get("HTTP_USER_AGENT") or "")[:300],
+    )
+
+
+def torneo_de_objeto(objeto):
+    if isinstance(objeto, Torneo):
+        return objeto
+    if isinstance(objeto, Categoria):
+        return objeto.torneo
+    if isinstance(objeto, Documento):
+        return objeto.torneo
+    if isinstance(objeto, Equipo):
+        return objeto.categoria.torneo if objeto.categoria_id else None
+    if isinstance(objeto, Jugador):
+        return objeto.equipo.categoria.torneo if objeto.equipo_id and objeto.equipo.categoria_id else None
+    if isinstance(objeto, Partido):
+        return objeto.categoria.torneo if objeto.categoria_id else None
+    return None
 
 
 def organizador_seguro(torneo):
@@ -415,8 +545,17 @@ def url_imagen_cloudinary(public_id):
 @login_required
 @user_passes_test(es_editor_torneo)
 def gestion_biblioteca_cloudinary(request):
+    torneo = torneo_actual(request)
+    if not puede_gestionar_torneo(request, torneo, "editar"):
+        return denegar_permiso_torneo()
     imagenes = listar_imagenes_cloudinary(500)
     q = request.GET.get("q", "").strip()
+    equipos = Equipo.objects.select_related("categoria").order_by("categoria__nombre", "nombre")
+    jugadores = Jugador.objects.select_related("equipo", "equipo__categoria").order_by("equipo__nombre", "nombres")
+
+    if torneo:
+        equipos = equipos.filter(categoria__torneo=torneo)
+        jugadores = jugadores.filter(equipo__categoria__torneo=torneo)
 
     if q:
         imagenes = [
@@ -427,8 +566,8 @@ def gestion_biblioteca_cloudinary(request):
     return render(request, "gestion/biblioteca_cloudinary.html", {
         "imagenes": imagenes,
         "q": q,
-        "equipos": Equipo.objects.select_related("categoria").order_by("categoria__nombre", "nombre"),
-        "jugadores": Jugador.objects.select_related("equipo").order_by("equipo__nombre", "nombres"),
+        "equipos": equipos,
+        "jugadores": jugadores,
     })
 
 
@@ -438,6 +577,9 @@ def gestion_asignar_imagen_cloudinary(request):
     if request.method != "POST":
         return redirect("gestion_biblioteca_cloudinary")
 
+    torneo = torneo_actual(request)
+    if not puede_gestionar_torneo(request, torneo, "editar"):
+        return denegar_permiso_torneo()
     public_id = (request.POST.get("public_id") or "").strip()
     tipo = request.POST.get("tipo")
     objeto_id = request.POST.get("objeto_id")
@@ -447,16 +589,24 @@ def gestion_asignar_imagen_cloudinary(request):
         return redirect("gestion_biblioteca_cloudinary")
 
     if tipo == "equipo":
-        equipo = get_object_or_404(Equipo, id=objeto_id)
+        equipos = Equipo.objects.select_related("categoria")
+        if torneo:
+            equipos = equipos.filter(categoria__torneo=torneo)
+        equipo = get_object_or_404(equipos, id=objeto_id)
         equipo.escudo = public_id
         equipo.save(update_fields=["escudo"])
+        registrar_actividad(request, "ASIGNAR_IMAGEN", equipo, descripcion=f"Asigno imagen al equipo {equipo.nombre}.")
         messages.success(request, f"Imagen asignada al equipo {equipo.nombre}.")
         return redirect("gestion_equipo_editar", equipo_id=equipo.id)
 
     if tipo == "jugador":
-        jugador = get_object_or_404(Jugador, id=objeto_id)
+        jugadores = Jugador.objects.select_related("equipo", "equipo__categoria")
+        if torneo:
+            jugadores = jugadores.filter(equipo__categoria__torneo=torneo)
+        jugador = get_object_or_404(jugadores, id=objeto_id)
         jugador.foto = public_id
         jugador.save(update_fields=["foto"])
+        registrar_actividad(request, "ASIGNAR_IMAGEN", jugador, descripcion=f"Asigno imagen al jugador {jugador.nombres}.")
         messages.success(request, f"Imagen asignada al jugador {jugador.nombres}.")
         return redirect("gestion_jugador_editar", jugador_id=jugador.id)
 
@@ -3803,6 +3953,44 @@ def gestion_panel(request):
 
 @login_required
 @user_passes_test(es_editor_torneo)
+def gestion_actividad(request):
+    if not tabla_disponible("torneos_registroactividad"):
+        messages.error(request, "La tabla de actividad todavia no esta creada. Ejecuta las migraciones.")
+        return redirect("gestion_panel")
+
+    torneo = torneo_actual(request)
+    registros = RegistroActividad.objects.select_related("usuario", "torneo").order_by("-creado_en")
+    torneos = torneos_para_usuario(request)
+
+    if not request.user.is_superuser:
+        registros = registros.filter(torneo__in=torneos)
+    elif torneo:
+        registros = registros.filter(torneo=torneo)
+
+    usuario_id = request.GET.get("usuario", "").strip()
+    accion = request.GET.get("accion", "").strip()
+
+    if usuario_id:
+        registros = registros.filter(usuario_id=usuario_id)
+
+    if accion:
+        registros = registros.filter(accion=accion)
+
+    acciones = RegistroActividad.objects.order_by("accion").values_list("accion", flat=True).distinct()
+    usuarios = User.objects.filter(actividad_admin__isnull=False).distinct().order_by("username")
+
+    return render(request, "gestion/actividad.html", {
+        "registros": registros[:250],
+        "torneo_seleccionado": torneo,
+        "usuarios": usuarios,
+        "acciones": acciones,
+        "usuario_id": usuario_id,
+        "accion": accion,
+    })
+
+
+@login_required
+@user_passes_test(es_superadmin)
 def gestion_organizadores(request):
     if not tabla_disponible("torneos_organizador"):
         messages.error(request, "La tabla de organizadores todavia no esta creada. Espera que Render termine de aplicar las migraciones.")
@@ -3816,12 +4004,13 @@ def gestion_organizadores(request):
 
 
 @login_required
-@user_passes_test(es_editor_torneo)
+@user_passes_test(es_superadmin)
 def gestion_organizador_nuevo(request):
     form = OrganizadorForm(request.POST or None, request.FILES or None)
 
     if request.method == "POST" and form.is_valid():
-        form.save()
+        organizador = form.save()
+        registrar_actividad(request, "CREAR", organizador, descripcion=f"Creo organizador {organizador.nombre}.")
         messages.success(request, "Organizador creado correctamente.")
         return redirect("gestion_organizadores")
 
@@ -3833,13 +4022,14 @@ def gestion_organizador_nuevo(request):
 
 
 @login_required
-@user_passes_test(es_editor_torneo)
+@user_passes_test(es_superadmin)
 def gestion_organizador_editar(request, organizador_id):
     organizador = get_object_or_404(Organizador, id=organizador_id)
     form = OrganizadorForm(request.POST or None, request.FILES or None, instance=organizador)
 
     if request.method == "POST" and form.is_valid():
-        form.save()
+        organizador = form.save()
+        registrar_actividad(request, "EDITAR", organizador, descripcion=f"Actualizo organizador {organizador.nombre}.")
         messages.success(request, "Organizador actualizado correctamente.")
         return redirect("gestion_organizadores")
 
@@ -3862,7 +4052,7 @@ def gestion_torneos(request):
 
 
 @login_required
-@user_passes_test(es_editor_torneo)
+@user_passes_test(es_superadmin)
 def gestion_torneo_nuevo(request):
     form = TorneoForm(request.POST or None, request.FILES or None)
 
@@ -3871,6 +4061,7 @@ def gestion_torneo_nuevo(request):
         aplicar_imagenes_torneo_cloudinary(torneo, request.FILES)
         torneo.save()
         request.session["torneo_id"] = torneo.id
+        registrar_actividad(request, "CREAR", torneo, descripcion=f"Creo torneo {torneo.nombre}.")
         messages.success(request, "Torneo creado correctamente.")
         return redirect("gestion_torneos")
 
@@ -3885,6 +4076,8 @@ def gestion_torneo_nuevo(request):
 @user_passes_test(es_editor_torneo)
 def gestion_torneo_editar(request, torneo_id):
     torneo = get_object_or_404(torneos_para_usuario(request), id=torneo_id)
+    if not puede_gestionar_torneo(request, torneo, "editar"):
+        return denegar_permiso_torneo()
     form = TorneoForm(request.POST or None, request.FILES or None, instance=torneo)
 
     if request.method == "POST" and form.is_valid():
@@ -3892,6 +4085,7 @@ def gestion_torneo_editar(request, torneo_id):
         aplicar_imagenes_torneo_cloudinary(torneo, request.FILES)
         torneo.save()
         request.session["torneo_id"] = torneo.id
+        registrar_actividad(request, "EDITAR", torneo, descripcion=f"Actualizo torneo {torneo.nombre}.")
         messages.success(request, "Torneo actualizado correctamente.")
         return redirect("gestion_torneos")
 
@@ -3900,6 +4094,66 @@ def gestion_torneo_editar(request, torneo_id):
         "form": form,
         "volver_url": "gestion_torneos",
     })
+
+
+@login_required
+@user_passes_test(es_superadmin)
+def gestion_torneo_admins(request, torneo_id):
+    torneo = get_object_or_404(Torneo, id=torneo_id)
+    asignaciones = AdminTorneo.objects.select_related("usuario").filter(torneo=torneo)
+    form = AdminTorneoForm(request.POST or None)
+
+    if request.method == "POST" and form.is_valid():
+        asignacion = form.save(commit=False)
+        asignacion.torneo = torneo
+        existente = AdminTorneo.objects.filter(torneo=torneo, usuario=asignacion.usuario).first()
+
+        if existente:
+            existente.puede_editar = asignacion.puede_editar
+            existente.puede_validar = asignacion.puede_validar
+            existente.puede_programar = asignacion.puede_programar
+            existente.activo = asignacion.activo
+            existente.save()
+            asignacion = existente
+            mensaje = "Admin actualizado correctamente."
+        else:
+            asignacion.save()
+            mensaje = "Admin asignado correctamente."
+
+        registrar_actividad(
+            request,
+            "ASIGNAR_ADMIN",
+            torneo,
+            descripcion=f"Asigno admin {asignacion.usuario.username} al torneo {torneo.nombre}.",
+            datos={
+                "usuario": asignacion.usuario.username,
+                "puede_editar": asignacion.puede_editar,
+                "puede_validar": asignacion.puede_validar,
+                "puede_programar": asignacion.puede_programar,
+                "activo": asignacion.activo,
+            },
+        )
+        messages.success(request, mensaje)
+        return redirect("gestion_torneo_admins", torneo_id=torneo.id)
+
+    return render(request, "gestion/torneo_admins.html", {
+        "torneo": torneo,
+        "asignaciones": asignaciones,
+        "form": form,
+    })
+
+
+@login_required
+@user_passes_test(es_superadmin)
+@require_POST
+def gestion_torneo_admin_eliminar(request, asignacion_id):
+    asignacion = get_object_or_404(AdminTorneo.objects.select_related("torneo", "usuario"), id=asignacion_id)
+    torneo = asignacion.torneo
+    usuario = asignacion.usuario.username
+    registrar_actividad(request, "QUITAR_ADMIN", torneo, descripcion=f"Quito admin {usuario} del torneo {torneo.nombre}.")
+    asignacion.delete()
+    messages.success(request, f"Admin retirado: {usuario}.")
+    return redirect("gestion_torneo_admins", torneo_id=torneo.id)
 
 
 @login_required
@@ -3913,13 +4167,14 @@ def gestion_torneo_activar(request, torneo_id):
 
 
 @login_required
-@user_passes_test(es_editor_torneo)
+@user_passes_test(es_superadmin)
 @require_POST
 def gestion_torneo_eliminar(request, torneo_id):
     torneo = get_object_or_404(torneos_para_usuario(request), id=torneo_id)
     nombre = torneo.nombre
     if request.session.get("torneo_id") == torneo.id:
         request.session.pop("torneo_id", None)
+    registrar_actividad(request, "ELIMINAR", torneo, descripcion=f"Elimino torneo {nombre}.")
     torneo.delete()
     messages.success(request, f"Torneo eliminado: {nombre}.")
     return redirect("gestion_torneos")
@@ -3943,12 +4198,15 @@ def gestion_categorias(request):
 @user_passes_test(es_editor_torneo)
 def gestion_categoria_nueva(request):
     torneo = torneo_actual(request)
+    if not puede_gestionar_torneo(request, torneo, "editar"):
+        return denegar_permiso_torneo()
     form = CategoriaForm(request.POST or None)
 
     if request.method == "POST" and form.is_valid():
         categoria = form.save(commit=False)
         categoria.torneo = torneo
         categoria.save()
+        registrar_actividad(request, "CREAR", categoria, descripcion=f"Creo categoria {categoria.nombre}.")
         messages.success(request, "Categoría creada correctamente.")
         return redirect("gestion_categorias")
 
@@ -3963,6 +4221,8 @@ def gestion_categoria_nueva(request):
 @user_passes_test(es_editor_torneo)
 def gestion_categoria_editar(request, categoria_id):
     torneo = torneo_actual(request)
+    if not puede_gestionar_torneo(request, torneo, "editar"):
+        return denegar_permiso_torneo()
     categorias = Categoria.objects.select_related("torneo")
     if torneo:
         categorias = categorias.filter(torneo=torneo)
@@ -3974,6 +4234,7 @@ def gestion_categoria_editar(request, categoria_id):
         if torneo:
             categoria.torneo = torneo
         categoria.save()
+        registrar_actividad(request, "EDITAR", categoria, descripcion=f"Actualizo categoria {categoria.nombre}.")
         messages.success(request, "Categoría actualizada correctamente.")
         return redirect("gestion_categorias")
 
@@ -3989,11 +4250,14 @@ def gestion_categoria_editar(request, categoria_id):
 @require_POST
 def gestion_categoria_eliminar(request, categoria_id):
     torneo = torneo_actual(request)
+    if not puede_gestionar_torneo(request, torneo, "editar"):
+        return denegar_permiso_torneo()
     categorias = Categoria.objects.select_related("torneo")
     if torneo:
         categorias = categorias.filter(torneo=torneo)
     categoria = get_object_or_404(categorias, id=categoria_id)
     nombre = categoria.nombre
+    registrar_actividad(request, "ELIMINAR", categoria, descripcion=f"Elimino categoria {nombre}.")
     categoria.delete()
     messages.success(request, f"Categoria eliminada: {nombre}.")
     return redirect("gestion_categorias")
@@ -4022,7 +4286,9 @@ def gestion_documentos(request):
 @user_passes_test(es_editor_torneo)
 def gestion_documento_nuevo(request):
     torneo = torneo_actual(request)
-    form = DocumentoForm(request.POST or None, request.FILES or None, initial={"torneo": torneo})
+    if not puede_gestionar_torneo(request, torneo, "editar"):
+        return denegar_permiso_torneo()
+    form = DocumentoForm(request.POST or None, request.FILES or None, initial={"torneo": torneo}, torneo=torneo)
 
     if request.method == "POST" and form.is_valid():
         documento = form.save(commit=False)
@@ -4033,6 +4299,7 @@ def gestion_documento_nuevo(request):
             documento.tipo,
         )
         documento.save()
+        registrar_actividad(request, "CREAR", documento, descripcion=f"Creo documento {documento.titulo}.")
         messages.success(request, "Documento creado correctamente.")
         return redirect("gestion_documentos")
 
@@ -4046,8 +4313,14 @@ def gestion_documento_nuevo(request):
 @login_required
 @user_passes_test(es_editor_torneo)
 def gestion_documento_editar(request, documento_id):
-    documento = get_object_or_404(Documento, id=documento_id)
-    form = DocumentoForm(request.POST or None, request.FILES or None, instance=documento)
+    torneo = torneo_actual(request)
+    documentos = Documento.objects.all()
+    if torneo:
+        documentos = documentos.filter(Q(torneo=torneo) | Q(torneo__isnull=True))
+    documento = get_object_or_404(documentos, id=documento_id)
+    if not puede_gestionar_torneo(request, documento.torneo or torneo, "editar"):
+        return denegar_permiso_torneo()
+    form = DocumentoForm(request.POST or None, request.FILES or None, instance=documento, torneo=torneo)
 
     if request.method == "POST" and form.is_valid():
         documento = form.save(commit=False)
@@ -4057,6 +4330,7 @@ def gestion_documento_editar(request, documento_id):
             documento.archivo = subir_documento_torneo(archivo_subido, documento.tipo)
 
         documento.save()
+        registrar_actividad(request, "EDITAR", documento, descripcion=f"Actualizo documento {documento.titulo}.")
         messages.success(request, "Documento actualizado correctamente.")
         return redirect("gestion_documentos")
 
@@ -4144,6 +4418,8 @@ def armar_grupos_desde_formulario(equipos, cabezas, request_post, cantidad_grupo
 @user_passes_test(es_editor_torneo)
 def gestion_generar_fixture(request):
     torneo = torneo_actual(request)
+    if not puede_gestionar_torneo(request, torneo, "programar"):
+        return denegar_permiso_torneo()
     categorias = Categoria.objects.order_by("nombre")
     if torneo:
         categorias = categorias.filter(torneo=torneo)
@@ -4227,6 +4503,13 @@ def gestion_generar_fixture(request):
                         creados += 1
 
         messages.success(request, f"Fixture generado para {categoria.nombre}. Partidos creados: {creados}.")
+        registrar_actividad(
+            request,
+            "GENERAR_FIXTURE",
+            categoria,
+            descripcion=f"Genero fixture para {categoria.nombre}. Partidos creados: {creados}.",
+            datos={"partidos_creados": creados, "grupos": cantidad_grupos},
+        )
 
     return render(request, "gestion/generar_fixture.html", {
         "categorias": categorias,
@@ -4268,6 +4551,8 @@ def gestion_equipos(request):
 @user_passes_test(es_editor_torneo)
 def gestion_equipo_nuevo(request):
     torneo = torneo_actual(request)
+    if not puede_gestionar_torneo(request, torneo, "editar"):
+        return denegar_permiso_torneo()
     form = EquipoForm(request.POST or None, request.FILES or None, torneo=torneo)
 
     if request.method == "POST" and form.is_valid():
@@ -4280,6 +4565,7 @@ def gestion_equipo_nuevo(request):
         )
         equipo.save()
         form.save_m2m()
+        registrar_actividad(request, "CREAR", equipo, descripcion=f"Creo equipo {equipo.nombre}.")
         messages.success(request, "Equipo creado correctamente.")
         return redirect("gestion_equipo_editar", equipo_id=equipo.id)
 
@@ -4296,6 +4582,8 @@ def gestion_equipo_nuevo(request):
 @user_passes_test(es_editor_torneo)
 def gestion_equipo_editar(request, equipo_id):
     torneo = torneo_actual(request)
+    if not puede_gestionar_torneo(request, torneo, "editar"):
+        return denegar_permiso_torneo()
     equipos = Equipo.objects.select_related("categoria")
     if torneo:
         equipos = equipos.filter(categoria__torneo=torneo)
@@ -4313,6 +4601,7 @@ def gestion_equipo_editar(request, equipo_id):
         )
         equipo.save()
         form.save_m2m()
+        registrar_actividad(request, "EDITAR", equipo, descripcion=f"Actualizo equipo {equipo.nombre}.")
         messages.success(request, "Equipo actualizado correctamente.")
         return redirect("gestion_equipo_editar", equipo_id=equipo.id)
 
@@ -4333,6 +4622,8 @@ def gestion_equipo_editar(request, equipo_id):
 @require_POST
 def gestion_equipo_jugadores_guardar(request, equipo_id):
     torneo = torneo_actual(request)
+    if not puede_gestionar_torneo(request, torneo, "editar"):
+        return denegar_permiso_torneo()
     equipos = Equipo.objects.select_related("categoria")
     if torneo:
         equipos = equipos.filter(categoria__torneo=torneo)
@@ -4384,11 +4675,19 @@ def gestion_equipo_jugadores_guardar(request, equipo_id):
             )
             try:
                 nuevo.save()
+                registrar_actividad(request, "CREAR", nuevo, descripcion=f"Agrego jugador {nuevo.nombres} al equipo {equipo.nombre}.")
                 messages.success(request, f"Jugador agregado: {nuevo.nombres}.")
             except Exception as exc:
                 errores.append(f"No se pudo agregar {nuevo_nombre}: {exc}")
 
     if actualizados:
+        registrar_actividad(
+            request,
+            "EDITAR_PLANTILLA",
+            equipo,
+            descripcion=f"Actualizo plantilla de {equipo.nombre}. Jugadores actualizados: {actualizados}.",
+            datos={"actualizados": actualizados},
+        )
         messages.success(request, f"Plantilla actualizada: {actualizados} jugador(es).")
     for error in errores[:8]:
         messages.error(request, error)
@@ -4403,11 +4702,14 @@ def gestion_equipo_jugadores_guardar(request, equipo_id):
 @require_POST
 def gestion_equipo_eliminar(request, equipo_id):
     torneo = torneo_actual(request)
+    if not puede_gestionar_torneo(request, torneo, "editar"):
+        return denegar_permiso_torneo()
     equipos = Equipo.objects.select_related("categoria")
     if torneo:
         equipos = equipos.filter(categoria__torneo=torneo)
     equipo = get_object_or_404(equipos, id=equipo_id)
     nombre = equipo.nombre
+    registrar_actividad(request, "ELIMINAR", equipo, descripcion=f"Elimino equipo {nombre}.")
     equipo.delete()
     messages.success(request, f"Equipo eliminado: {nombre}.")
     return redirect("gestion_equipos")
@@ -4456,6 +4758,8 @@ def gestion_jugadores(request):
 @user_passes_test(es_editor_torneo)
 def gestion_jugador_nuevo(request):
     torneo = torneo_actual(request)
+    if not puede_gestionar_torneo(request, torneo, "editar"):
+        return denegar_permiso_torneo()
     form = JugadorForm(request.POST or None, request.FILES or None, torneo=torneo)
 
     if request.method == "POST" and form.is_valid():
@@ -4468,6 +4772,7 @@ def gestion_jugador_nuevo(request):
         )
         jugador.save()
         form.save_m2m()
+        registrar_actividad(request, "CREAR", jugador, descripcion=f"Creo jugador {jugador.nombres}.")
         messages.success(request, "Jugador creado correctamente.")
         return redirect("gestion_jugador_editar", jugador_id=jugador.id)
 
@@ -4484,6 +4789,8 @@ def gestion_jugador_nuevo(request):
 @user_passes_test(es_editor_torneo)
 def gestion_jugador_editar(request, jugador_id):
     torneo = torneo_actual(request)
+    if not puede_gestionar_torneo(request, torneo, "editar"):
+        return denegar_permiso_torneo()
     jugadores = Jugador.objects.select_related("equipo", "equipo__categoria")
     if torneo:
         jugadores = jugadores.filter(equipo__categoria__torneo=torneo)
@@ -4500,6 +4807,7 @@ def gestion_jugador_editar(request, jugador_id):
         )
         jugador.save()
         form.save_m2m()
+        registrar_actividad(request, "EDITAR", jugador, descripcion=f"Actualizo jugador {jugador.nombres}.")
         messages.success(request, "Jugador actualizado correctamente.")
         return redirect("gestion_jugadores")
 
@@ -4517,11 +4825,14 @@ def gestion_jugador_editar(request, jugador_id):
 @require_POST
 def gestion_jugador_eliminar(request, jugador_id):
     torneo = torneo_actual(request)
+    if not puede_gestionar_torneo(request, torneo, "editar"):
+        return denegar_permiso_torneo()
     jugadores = Jugador.objects.select_related("equipo", "equipo__categoria")
     if torneo:
         jugadores = jugadores.filter(equipo__categoria__torneo=torneo)
     jugador = get_object_or_404(jugadores, id=jugador_id)
     nombre = jugador.nombres
+    registrar_actividad(request, "ELIMINAR", jugador, descripcion=f"Elimino jugador {nombre}.")
     jugador.delete()
     messages.success(request, f"Jugador eliminado: {nombre}.")
     return redirect("gestion_jugadores")
@@ -4531,6 +4842,8 @@ def gestion_jugador_eliminar(request, jugador_id):
 @user_passes_test(es_editor_torneo)
 def gestion_importar_planilla(request):
     torneo = torneo_actual(request)
+    if not puede_gestionar_torneo(request, torneo, "editar"):
+        return denegar_permiso_torneo()
 
     if request.method == "POST":
         archivo = request.FILES.get("archivo_excel")
@@ -4649,6 +4962,13 @@ def gestion_importar_planilla(request):
                 request,
                 f"Planilla importada: {equipo.nombre} / {categoria.nombre}. Nuevos: {creados}. Actualizados: {actualizados}. Omitidos: {omitidos}.",
             )
+            registrar_actividad(
+                request,
+                "IMPORTAR_PLANILLA",
+                equipo,
+                descripcion=f"Importo planilla de {equipo.nombre}. Nuevos: {creados}. Actualizados: {actualizados}. Omitidos: {omitidos}.",
+                datos={"creados": creados, "actualizados": actualizados, "omitidos": omitidos},
+            )
 
             for error in errores[:12]:
                 messages.warning(request, error)
@@ -4714,6 +5034,8 @@ def gestion_partidos(request):
 @user_passes_test(es_editor_torneo)
 def gestion_partido_nuevo(request):
     torneo = torneo_actual(request)
+    if not puede_gestionar_torneo(request, torneo, "programar"):
+        return denegar_permiso_torneo()
     form = PartidoForm(request.POST or None, torneo=torneo)
 
     if request.method == "POST" and form.is_valid():
@@ -4723,6 +5045,7 @@ def gestion_partido_nuevo(request):
         if partido.estado == "EN_JUEGO" and not partido.inicio_en_vivo:
             partido.inicio_en_vivo = timezone.now()
             partido.save()
+        registrar_actividad(request, "CREAR", partido, descripcion=f"Creo partido {partido.equipo_local} vs {partido.equipo_visitante}.")
         messages.success(request, "Partido creado correctamente.")
         return redirect("gestion_partido_editar", partido_id=partido.id)
         
@@ -4737,6 +5060,8 @@ def gestion_partido_nuevo(request):
 @user_passes_test(es_editor_torneo)
 def gestion_partido_editar(request, partido_id):
     torneo = torneo_actual(request)
+    if not puede_gestionar_torneo(request, torneo, "programar"):
+        return denegar_permiso_torneo()
     partidos = Partido.objects.select_related("categoria", "equipo_local", "equipo_visitante")
     if torneo:
         partidos = partidos.filter(categoria__torneo=torneo)
@@ -4747,6 +5072,7 @@ def gestion_partido_editar(request, partido_id):
         partido = form.save()
         if partido.estadisticas_validadas and not partido.estadisticas_validadas_en:
             _validar_estadisticas_partido(partido, request.user)
+        registrar_actividad(request, "EDITAR", partido, descripcion=f"Actualizo partido {partido.equipo_local} vs {partido.equipo_visitante}.")
         messages.success(request, "Partido actualizado correctamente.")
         return redirect("gestion_partidos")
 
@@ -4762,11 +5088,14 @@ def gestion_partido_editar(request, partido_id):
 @require_POST
 def gestion_partido_validar_estadisticas(request, partido_id):
     torneo = torneo_actual(request)
+    if not puede_gestionar_torneo(request, torneo, "validar"):
+        return denegar_permiso_torneo()
     partidos = Partido.objects.select_related("categoria", "equipo_local", "equipo_visitante")
     if torneo:
         partidos = partidos.filter(categoria__torneo=torneo)
     partido = get_object_or_404(partidos, id=partido_id)
     _validar_estadisticas_partido(partido, request.user)
+    registrar_actividad(request, "VALIDAR_ESTADISTICAS", partido, descripcion=f"Valido estadisticas de {partido.equipo_local} vs {partido.equipo_visitante}.")
     messages.success(request, f"Estadisticas validadas: {partido.equipo_local} vs {partido.equipo_visitante}.")
     return redirect(request.POST.get("next") or "gestion_partidos")
 
@@ -4775,6 +5104,8 @@ def gestion_partido_validar_estadisticas(request, partido_id):
 @user_passes_test(es_editor_torneo)
 def gestion_importar_partidos(request):
     torneo = torneo_actual(request)
+    if not puede_gestionar_torneo(request, torneo, "programar"):
+        return denegar_permiso_torneo()
 
     if request.method == "POST":
         archivo = request.FILES.get("archivo_excel")
@@ -4880,6 +5211,13 @@ def gestion_importar_partidos(request):
             messages.success(
                 request,
                 f"Partidos importados. Nuevos: {creados}. Actualizados: {actualizados}. Omitidos: {omitidos}.",
+            )
+            registrar_actividad(
+                request,
+                "IMPORTAR_PARTIDOS",
+                torneo=torneo,
+                descripcion=f"Importo partidos. Nuevos: {creados}. Actualizados: {actualizados}. Omitidos: {omitidos}.",
+                datos={"creados": creados, "actualizados": actualizados, "omitidos": omitidos},
             )
 
             for error in errores[:12]:

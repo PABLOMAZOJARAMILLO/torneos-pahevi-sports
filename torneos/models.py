@@ -115,6 +115,48 @@ class Torneo(models.Model):
         return self.nombre
 
 
+class AdminTorneo(models.Model):
+    usuario = models.ForeignKey(User, on_delete=models.CASCADE, related_name="torneos_administrados")
+    torneo = models.ForeignKey(Torneo, on_delete=models.CASCADE, related_name="admins_asignados")
+    puede_editar = models.BooleanField(default=True)
+    puede_validar = models.BooleanField(default=True)
+    puede_programar = models.BooleanField(default=True)
+    activo = models.BooleanField(default=True)
+    creado_en = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Admin de torneo"
+        verbose_name_plural = "Admins de torneo"
+        unique_together = ("usuario", "torneo")
+        ordering = ["torneo__nombre", "usuario__username"]
+
+    def __str__(self):
+        return f"{self.usuario} - {self.torneo}"
+
+
+class RegistroActividad(models.Model):
+    usuario = models.ForeignKey(User, on_delete=models.SET_NULL, blank=True, null=True, related_name="actividad_admin")
+    torneo = models.ForeignKey(Torneo, on_delete=models.SET_NULL, blank=True, null=True, related_name="actividad")
+    accion = models.CharField(max_length=40)
+    modelo = models.CharField(max_length=80, blank=True)
+    objeto_id = models.PositiveIntegerField(blank=True, null=True)
+    objeto_repr = models.CharField(max_length=255, blank=True)
+    descripcion = models.TextField(blank=True)
+    datos = models.JSONField(default=dict, blank=True)
+    ip = models.GenericIPAddressField(blank=True, null=True)
+    user_agent = models.CharField(max_length=300, blank=True)
+    creado_en = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Registro de actividad"
+        verbose_name_plural = "Registros de actividad"
+        ordering = ["-creado_en"]
+
+    def __str__(self):
+        usuario = self.usuario.username if self.usuario_id else "Sistema"
+        return f"{self.creado_en:%Y-%m-%d %H:%M} - {usuario} - {self.accion}"
+
+
 class Categoria(models.Model):
     nombre = models.CharField(max_length=100, verbose_name='Nombre de la categoría')
     descripcion = models.TextField(blank=True, null=True, verbose_name='Descripción')

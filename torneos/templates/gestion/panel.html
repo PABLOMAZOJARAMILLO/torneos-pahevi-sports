@@ -5,10 +5,12 @@
 
 {% block content %}
 <div class="grid">
+    {% if request.user.is_superuser %}
     <a class="card" href="{% url 'gestion_organizadores' %}">
         <h2>Organizadores</h2>
         <p class="muted">{{ total_organizadores }} registrados</p>
     </a>
+    {% endif %}
 
     <a class="card" href="{% url 'gestion_torneos' %}">
         <h2>Torneos</h2>
@@ -48,6 +50,11 @@
     <a class="card" href="{% url 'gestion_documentos' %}">
         <h2>Documentos</h2>
         <p class="muted">{{ total_documentos }} reglamentos, resoluciones y demandas</p>
+    </a>
+
+    <a class="card" href="{% url 'gestion_actividad' %}">
+        <h2>Actividad</h2>
+        <p class="muted">Historial de movimientos de admins</p>
     </a>
 </div>
 {% endblock %}

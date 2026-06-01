@@ -1,0 +1,55 @@
+{% extends "gestion/base.html" %}
+
+{% block title %}Actividad{% endblock %}
+{% block heading %}Actividad{% endblock %}
+
+{% block content %}
+<form method="get" style="margin-bottom:16px;">
+    <label for="usuario">Admin</label>
+    <select id="usuario" name="usuario">
+        <option value="">Todos</option>
+        {% for usuario in usuarios %}
+            <option value="{{ usuario.id }}" {% if usuario_id == usuario.id|stringformat:"s" %}selected{% endif %}>{{ usuario.get_full_name|default:usuario.username }}</option>
+        {% endfor %}
+    </select>
+
+    <label for="accion">Accion</label>
+    <select id="accion" name="accion">
+        <option value="">Todas</option>
+        {% for item in acciones %}
+            <option value="{{ item }}" {% if accion == item %}selected{% endif %}>{{ item }}</option>
+        {% endfor %}
+    </select>
+
+    <p style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="btn" type="submit">Filtrar</button>
+        <a class="btn secondary" href="{% url 'gestion_actividad' %}">Limpiar</a>
+        <a class="btn secondary" href="{% url 'gestion_panel' %}">Volver</a>
+    </p>
+</form>
+
+{% for registro in registros %}
+    <div class="row">
+        <div>
+            <h2 style="margin:0 0 6px;">{{ registro.accion }}{% if registro.modelo %} - {{ registro.modelo }}{% endif %}</h2>
+            <div class="muted">
+                {{ registro.creado_en|date:"Y-m-d H:i" }} -
+                {% if registro.usuario %}{{ registro.usuario.username }}{% else %}Sistema{% endif %}
+                {% if registro.torneo %} - {{ registro.torneo.nombre }}{% endif %}
+                {% if registro.ip %} - IP {{ registro.ip }}{% endif %}
+            </div>
+            {% if registro.descripcion %}
+                <p>{{ registro.descripcion }}</p>
+            {% endif %}
+            {% if registro.objeto_repr %}
+                <p class="muted">Objeto: {{ registro.objeto_repr }}</p>
+            {% endif %}
+        </div>
+    </div>
+{% empty %}
+    <div class="card">
+        <h2>Sin movimientos</h2>
+        <p class="muted">Todavia no hay actividad registrada con estos filtros.</p>
+    </div>
+{% endfor %}
+{% endblock %}
