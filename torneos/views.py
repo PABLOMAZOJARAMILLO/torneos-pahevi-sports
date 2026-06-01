@@ -83,6 +83,13 @@ def equipos_editables_para_usuario(user):
     return equipos_delegado_vigentes(user)
 
 
+def equipos_alineacion_para_usuario(user):
+    equipos = Equipo.objects.select_related("categoria")
+    if es_editor_torneo(user):
+        return equipos
+    return equipos_delegado_asignados(user)
+
+
 def inicio_programado_partido(partido):
     if not partido.fecha or not partido.hora:
         return None
@@ -118,7 +125,7 @@ def partido_pertenece_equipo(partido, equipo):
 def puede_editar_alineacion_delegado(user, partido, equipo):
     if es_editor_torneo(user):
         return partido_pertenece_equipo(partido, equipo)
-    if not puede_editar_equipo_delegado(user, equipo):
+    if not user.is_authenticated or equipo.responsable_id != user.id:
         return False
     if not partido_pertenece_equipo(partido, equipo):
         return False
@@ -126,10 +133,35 @@ def puede_editar_alineacion_delegado(user, partido, equipo):
     return habilitado
 
 
+def partidos_alineacion_para_equipo(equipo):
+    partidos = Partido.objects.select_related(
+        "categoria",
+        "equipo_local",
+        "equipo_visitante",
+    ).filter(
+        categoria=equipo.categoria,
+    ).filter(
+        Q(equipo_local=equipo) | Q(equipo_visitante=equipo)
+    ).filter(
+        estado__in=["PROGRAMADO", "EN_JUEGO"]
+    ).order_by("fecha", "hora", "id")
+
+    items = []
+    for partido in partidos:
+        habilitado, motivo = ventana_alineacion_delegado(partido)
+        items.append(SimpleNamespace(
+            partido=partido,
+            rival=partido.equipo_visitante if partido.equipo_local_id == equipo.id else partido.equipo_local,
+            habilitado=habilitado,
+            motivo=motivo,
+        ))
+    return items
+
+
 def equipo_delegado_para_partido(user, partido):
     if not user.is_authenticated or not partido or es_editor_torneo(user):
         return None
-    return equipos_delegado_vigentes(user).filter(
+    return equipos_delegado_asignados(user).filter(
         id__in=[partido.equipo_local_id, partido.equipo_visitante_id],
     ).first()
 
@@ -3462,27 +3494,6 @@ def delegado_equipo_editar(request, equipo_id):
 
     form = EquipoDelegadoForm(request.POST or None, request.FILES or None, instance=equipo)
     jugadores = equipo.jugadores.order_by("dorsal", "nombres")
-    partidos = Partido.objects.select_related(
-        "categoria",
-        "equipo_local",
-        "equipo_visitante",
-    ).filter(
-        categoria=equipo.categoria,
-    ).filter(
-        Q(equipo_local=equipo) | Q(equipo_visitante=equipo)
-    ).filter(
-        estado__in=["PROGRAMADO", "EN_JUEGO"]
-    ).order_by("fecha", "hora", "id")
-
-    partidos_alineacion = []
-    for partido in partidos:
-        habilitado, motivo = ventana_alineacion_delegado(partido)
-        partidos_alineacion.append(SimpleNamespace(
-            partido=partido,
-            rival=partido.equipo_visitante if partido.equipo_local_id == equipo.id else partido.equipo_local,
-            habilitado=habilitado,
-            motivo=motivo,
-        ))
 
     if request.method == "POST" and form.is_valid():
         equipo = form.save(commit=False)
@@ -3495,13 +3506,22 @@ def delegado_equipo_editar(request, equipo_id):
         "equipo": equipo,
         "form": form,
         "jugadores": jugadores,
-        "partidos_alineacion": partidos_alineacion,
+    })
+
+
+@login_required
+def delegado_partidos_equipo(request, equipo_id):
+    equipo = get_object_or_404(equipos_alineacion_para_usuario(request.user), id=equipo_id)
+
+    return render(request, "equipos/delegado_partidos_equipo.html", {
+        "equipo": equipo,
+        "partidos_alineacion": partidos_alineacion_para_equipo(equipo),
     })
 
 
 @login_required
 def delegado_alineacion_partido(request, equipo_id, partido_id):
-    equipo = get_object_or_404(equipos_editables_para_usuario(request.user), id=equipo_id)
+    equipo = get_object_or_404(equipos_alineacion_para_usuario(request.user), id=equipo_id)
     partido = get_object_or_404(
         Partido.objects.select_related("categoria", "equipo_local", "equipo_visitante"),
         id=partido_id,

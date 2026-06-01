@@ -1,0 +1,32 @@
+{% extends "gestion/base.html" %}
+
+{% block title %}Alineacion de partidos{% endblock %}
+{% block heading %}Alineacion{% endblock %}
+
+{% block content %}
+<p><a class="btn secondary" href="{% url 'delegado_mis_equipos' %}">Mis equipos</a></p>
+
+<div class="card">
+    <div>{{ equipo.nombre }}</div>
+    <div class="muted">{{ equipo.categoria.nombre }}</div>
+</div>
+
+{% for item in partidos_alineacion %}
+<div class="row">
+    <div>
+        <div>{{ item.partido.equipo_local.nombre }} vs {{ item.partido.equipo_visitante.nombre }}</div>
+        <div class="muted">
+            {{ item.partido.fecha|date:"d/m/Y" }} - {{ item.partido.hora|time:"H:i" }} - {{ item.partido.estado }} - Rival: {{ item.rival.nombre }}
+        </div>
+        <div class="muted">{{ item.motivo }}</div>
+    </div>
+    {% if item.habilitado %}
+        <a class="btn" href="{% url 'delegado_alineacion_partido' equipo.id item.partido.id %}">Cargar alineacion</a>
+    {% else %}
+        <span class="btn secondary" style="opacity:.65;cursor:not-allowed;">Bloqueado</span>
+    {% endif %}
+</div>
+{% empty %}
+<div class="card">No hay partidos programados o en juego para este equipo.</div>
+{% endfor %}
+{% endblock %}

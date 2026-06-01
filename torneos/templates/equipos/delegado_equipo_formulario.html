@@ -14,27 +14,6 @@
     <div class="muted">Acceso vigente hasta {{ equipo.acceso_delegado_hasta|date:"d/m/Y H:i" }}</div>
 </div>
 
-<h2 style="color:#00ff66;">Alineacion de partidos</h2>
-
-{% for item in partidos_alineacion %}
-<div class="row">
-    <div>
-        <div>{{ item.partido.equipo_local.nombre }} vs {{ item.partido.equipo_visitante.nombre }}</div>
-        <div class="muted">
-            {{ item.partido.fecha|date:"d/m/Y" }} - {{ item.partido.hora|time:"H:i" }} - {{ item.partido.estado }} - Rival: {{ item.rival.nombre }}
-        </div>
-        <div class="muted">{{ item.motivo }}</div>
-    </div>
-    {% if item.habilitado %}
-        <a class="btn" href="{% url 'delegado_alineacion_partido' equipo.id item.partido.id %}">Cargar alineacion</a>
-    {% else %}
-        <span class="btn secondary" style="opacity:.65;cursor:not-allowed;">Bloqueado</span>
-    {% endif %}
-</div>
-{% empty %}
-<div class="card">No hay partidos programados o en juego para este equipo.</div>
-{% endfor %}
-
 <form method="post" enctype="multipart/form-data">
     {% csrf_token %}
     {% for field in form %}

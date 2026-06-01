@@ -602,7 +602,42 @@ class DelegadoEquipoTests(TestCase):
 
         self.assertContains(respuesta, "Niqueleros")
         self.assertContains(respuesta, "Sin fecha de acceso asignada.")
-        self.assertContains(respuesta, "Acceso bloqueado")
+        self.assertContains(respuesta, "Alineacion de partidos")
+        self.assertContains(respuesta, "Edicion de equipo bloqueada")
+
+    def test_delegado_sin_acceso_a_edicion_de_equipo_puede_ver_partidos_de_alineacion(self):
+        self.equipo.acceso_delegado_hasta = None
+        self.equipo.save(update_fields=["acceso_delegado_hasta"])
+        ahora_local = timezone.localtime()
+        partido = Partido.objects.create(
+            categoria=self.categoria,
+            equipo_local=self.equipo,
+            equipo_visitante=self.otro_equipo,
+            fecha=(ahora_local - timedelta(hours=1)).date(),
+            hora=(ahora_local - timedelta(hours=1)).time(),
+            estado="PROGRAMADO",
+        )
+        self.client.force_login(self.delegado)
+
+        respuesta_lista = self.client.get(f"/delegado/equipos/{self.equipo.id}/partidos/")
+        respuesta_guardar = self.client.post(
+            f"/delegado/equipos/{self.equipo.id}/partidos/{partido.id}/alineacion/",
+            {
+                "cancha_DC": self.jugador.id,
+            },
+        )
+
+        self.assertContains(respuesta_lista, "Cargar alineacion")
+        self.assertEqual(respuesta_guardar.status_code, 302)
+        self.assertTrue(
+            AlineacionPartido.objects.filter(
+                partido=partido,
+                equipo=self.equipo,
+                jugador=self.jugador,
+                rol="TITULAR",
+                posicion_cancha="DC",
+            ).exists()
+        )
 
     def test_delegado_puede_agregar_jugador_a_su_equipo(self):
         self.client.force_login(self.delegado)

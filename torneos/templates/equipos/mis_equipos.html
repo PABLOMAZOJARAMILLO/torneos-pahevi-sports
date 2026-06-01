@@ -20,11 +20,14 @@
             </div>
         </div>
     </div>
-    {% if equipo.acceso_vigente_delegado %}
-        <a class="btn" href="{% url 'delegado_equipo_editar' equipo.id %}">Editar equipo</a>
-    {% else %}
-        <span class="btn secondary" style="opacity:.65;cursor:not-allowed;">Acceso bloqueado</span>
-    {% endif %}
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <a class="btn" href="{% url 'delegado_partidos_equipo' equipo.id %}">Alineacion de partidos</a>
+        {% if equipo.acceso_vigente_delegado %}
+            <a class="btn secondary" href="{% url 'delegado_equipo_editar' equipo.id %}">Editar equipo</a>
+        {% else %}
+            <span class="btn secondary" style="opacity:.65;cursor:not-allowed;">Edicion de equipo bloqueada</span>
+        {% endif %}
+    </div>
 </div>
 {% empty %}
 <div class="card">No tienes equipos asignados a este usuario.</div>
