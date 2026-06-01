@@ -5,7 +5,7 @@
 {% block heading %}Alineacion{% endblock %}
 
 {% block content %}
-<p><a class="btn secondary" href="{% url 'delegado_equipo_editar' equipo.id %}">Volver al equipo</a></p>
+<p><a class="btn secondary" href="{% url 'delegado_partidos_equipo' equipo.id %}">Volver a partidos</a></p>
 
 <div class="card">
     <div>{{ partido.equipo_local.nombre }} vs {{ partido.equipo_visitante.nombre }}</div>

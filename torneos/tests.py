@@ -639,6 +639,19 @@ class DelegadoEquipoTests(TestCase):
             ).exists()
         )
 
+    def test_editar_equipo_bloqueado_redirige_a_partidos_de_alineacion(self):
+        self.equipo.acceso_delegado_hasta = None
+        self.equipo.save(update_fields=["acceso_delegado_hasta"])
+        self.client.force_login(self.delegado)
+
+        respuesta = self.client.get(f"/delegado/equipos/{self.equipo.id}/editar/")
+
+        self.assertRedirects(
+            respuesta,
+            f"/delegado/equipos/{self.equipo.id}/partidos/",
+            fetch_redirect_response=False,
+        )
+
     def test_delegado_puede_agregar_jugador_a_su_equipo(self):
         self.client.force_login(self.delegado)
 
@@ -671,7 +684,11 @@ class DelegadoEquipoTests(TestCase):
 
         respuesta = self.client.get(f"/delegado/equipos/{self.equipo.id}/editar/")
 
-        self.assertEqual(respuesta.status_code, 404)
+        self.assertRedirects(
+            respuesta,
+            f"/delegado/equipos/{self.equipo.id}/partidos/",
+            fetch_redirect_response=False,
+        )
 
     def test_delegado_puede_guardar_alineacion_desde_hora_programada(self):
         ahora_local = timezone.localtime()

@@ -3488,9 +3488,10 @@ def mis_equipos(request):
 
 @login_required
 def delegado_equipo_editar(request, equipo_id):
-    equipo = get_object_or_404(equipos_editables_para_usuario(request.user), id=equipo_id)
+    equipo = get_object_or_404(equipos_alineacion_para_usuario(request.user), id=equipo_id)
     if not puede_editar_equipo_delegado(request.user, equipo):
-        return HttpResponseForbidden("El acceso a este equipo ya no esta vigente.")
+        messages.warning(request, "La edicion del equipo esta bloqueada. Puedes cargar la alineacion de partidos desde aqui.")
+        return redirect("delegado_partidos_equipo", equipo_id=equipo.id)
 
     form = EquipoDelegadoForm(request.POST or None, request.FILES or None, instance=equipo)
     jugadores = equipo.jugadores.order_by("dorsal", "nombres")
@@ -3613,7 +3614,7 @@ def delegado_alineacion_partido(request, equipo_id, partido_id):
         if errores_edad:
             messages.warning(request, "Advertencia de reglas de edad: " + " ".join(errores_edad))
         messages.success(request, f"Alineacion guardada para {equipo.nombre}.")
-        return redirect("delegado_equipo_editar", equipo_id=equipo.id)
+        return redirect("delegado_partidos_equipo", equipo_id=equipo.id)
 
     return render(request, "equipos/delegado_alineacion_partido.html", {
         "equipo": equipo,
