@@ -574,6 +574,18 @@ class DelegadoEquipoTests(TestCase):
 
         self.assertContains(respuesta, "Acceso exitoso. Bienvenido al portal de delegados.")
 
+    def test_delegado_con_next_de_admin_entra_a_mis_equipos(self):
+        respuesta = self.client.post(
+            "/ingresar/?next=/gestion/",
+            {
+                "username": "delegado",
+                "password": "test",
+                "next": "/gestion/",
+            },
+        )
+
+        self.assertRedirects(respuesta, "/delegado/equipos/", fetch_redirect_response=False)
+
     def test_delegado_puede_agregar_jugador_a_su_equipo(self):
         self.client.force_login(self.delegado)
 

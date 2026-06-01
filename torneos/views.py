@@ -141,6 +141,15 @@ def url_alineacion_delegado_si_aplica(user, partido):
 class IngresoTorneosView(LoginView):
     template_name = "registration/login.html"
 
+    def get_success_url(self):
+        if (
+            self.request.user.is_authenticated
+            and not es_editor_torneo(self.request.user)
+            and equipos_delegado_vigentes(self.request.user).exists()
+        ):
+            return reverse("delegado_mis_equipos")
+        return super().get_success_url()
+
     def form_valid(self, form):
         response = super().form_valid(form)
         user = self.request.user
