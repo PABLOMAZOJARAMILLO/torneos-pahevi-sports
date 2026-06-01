@@ -353,6 +353,12 @@ class Partido(models.Model):
         ('TERCER_PUESTO', 'Tercer puesto'),
     ]
 
+    ESTADOS_PROGRAMACION = [
+        ("MANUAL", "Manual"),
+        ("SUGERIDA", "Sugerida"),
+        ("OFICIAL", "Oficial"),
+    ]
+
     categoria = models.ForeignKey(Categoria, on_delete=models.CASCADE)
     equipo_local = models.ForeignKey(Equipo, on_delete=models.CASCADE, related_name='partidos_local')
     equipo_visitante = models.ForeignKey(Equipo, on_delete=models.CASCADE, related_name='partidos_visitante')
@@ -370,6 +376,7 @@ class Partido(models.Model):
     numero_fecha = models.CharField(max_length=50, blank=True, null=True, verbose_name='Fecha del fixture')
     grupo = models.CharField(max_length=20, blank=True, null=True, verbose_name='Grupo')
     cancha = models.CharField(max_length=100, blank=True, null=True, verbose_name='Cancha')
+    estado_programacion = models.CharField(max_length=20, choices=ESTADOS_PROGRAMACION, default="MANUAL", verbose_name="Estado de programacion")
     fase = models.CharField(max_length=20, choices=FASES, default='GRUPOS', verbose_name='Fase')
     ajuste_puntos_local = models.IntegerField(default=0, verbose_name='Ajuste puntos local')
     ajuste_puntos_visitante = models.IntegerField(default=0, verbose_name='Ajuste puntos visitante')

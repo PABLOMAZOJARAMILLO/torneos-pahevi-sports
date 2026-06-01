@@ -234,6 +234,7 @@ class PartidoForm(forms.ModelForm):
             "numero_fecha",
             "grupo",
             "cancha",
+            "estado_programacion",
             "fase",
             "goles_local",
             "goles_visitante",

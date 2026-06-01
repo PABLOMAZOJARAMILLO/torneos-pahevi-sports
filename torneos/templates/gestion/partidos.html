@@ -7,14 +7,14 @@
 <p>
     <a class="btn" href="{% url 'gestion_partido_nuevo' %}">Nuevo partido</a>
     <a class="btn" href="{% url 'gestion_importar_partidos' %}">Importar partidos</a>
-    <a class="btn secondary" href="{% url 'gestion_panel' %}">Gestión</a>
+    <a class="btn secondary" href="{% url 'gestion_panel' %}">Gestion</a>
 </p>
 
 <form method="get">
     <label for="q">Buscar partido</label>
     <input id="q" type="search" name="q" value="{{ q }}" placeholder="Equipo o cancha">
 
-    <label for="categoria">Categoría</label>
+    <label for="categoria">Categoria</label>
     <select id="categoria" name="categoria">
         <option value="">Todas</option>
         {% for categoria in categorias %}
@@ -41,10 +41,13 @@
     <div>
         <div>{{ partido.equipo_local.nombre }} vs {{ partido.equipo_visitante.nombre }}</div>
         <div class="muted">
-            {{ partido.categoria.nombre }} · {{ partido.numero_fecha|default:"Sin fecha fixture" }} · {{ partido.grupo|default:"Sin grupo" }}
+            {{ partido.categoria.nombre }} - {{ partido.numero_fecha|default:"Sin fecha fixture" }} - {{ partido.grupo|default:"Sin grupo" }}
         </div>
         <div class="muted">
-            {{ partido.fecha|default:"Sin día" }} · {{ partido.hora|default:"Sin hora" }} · {{ partido.cancha|default:"Sin cancha" }} · {{ partido.estado }}
+            {{ partido.fecha|default:"Sin dia" }} - {{ partido.hora|default:"Sin hora" }} - {{ partido.cancha|default:"Sin cancha" }} - {{ partido.estado }}
+        </div>
+        <div class="muted">
+            Programacion: {{ partido.get_estado_programacion_display }}
         </div>
         <div class="muted">
             Estadisticas:
@@ -58,6 +61,13 @@
     <div style="display:flex;gap:8px;flex-wrap:wrap;">
         <a class="btn secondary" href="{% url 'editor_partido_movil' partido.id %}">Editor juego</a>
         <a class="btn" href="{% url 'gestion_partido_editar' partido.id %}">Programar</a>
+        {% if partido.estado_programacion == "SUGERIDA" %}
+        <form class="inline-form" method="post" action="{% url 'gestion_partido_confirmar_programacion' partido.id %}">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ request.get_full_path }}">
+            <button class="btn" type="submit">Confirmar programacion</button>
+        </form>
+        {% endif %}
         {% if not partido.estadisticas_validadas %}
         <form class="inline-form" method="post" action="{% url 'gestion_partido_validar_estadisticas' partido.id %}">
             {% csrf_token %}

@@ -219,6 +219,7 @@ urlpatterns = [
     path('gestion/partidos/importar/', views.gestion_importar_partidos, name='gestion_importar_partidos'),
     path('gestion/partidos/nuevo/', views.gestion_partido_nuevo, name='gestion_partido_nuevo'),
     path('gestion/partidos/<int:partido_id>/editar/', views.gestion_partido_editar, name='gestion_partido_editar'),
+    path('gestion/partidos/<int:partido_id>/confirmar-programacion/', views.gestion_partido_confirmar_programacion, name='gestion_partido_confirmar_programacion'),
     path('gestion/partidos/<int:partido_id>/validar-estadisticas/', views.gestion_partido_validar_estadisticas, name='gestion_partido_validar_estadisticas'),
     path('partido/<int:partido_id>/cronometro/primer-tiempo/', views.cronometro_primer_tiempo, name='cronometro_primer_tiempo'),
     path('partido/<int:partido_id>/cronometro/entretiempo/', views.cronometro_entretiempo, name='cronometro_entretiempo'),

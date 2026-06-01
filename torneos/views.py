@@ -2836,6 +2836,7 @@ def construir_partidos_programacion(request, categoria_obj=None):
     torneo = torneo_actual(request)
     partidos = Partido.objects.filter(
         estado="PROGRAMADO",
+        estado_programacion__in=["MANUAL", "OFICIAL"],
         fecha__isnull=False,
         hora__isnull=False,
         cancha__isnull=False,
@@ -4739,6 +4740,7 @@ def gestion_generar_fixture(request):
                 "hora": time(0, 0),
                 "estado": "PROGRAMADO",
                 "cancha": "",
+                "estado_programacion": "MANUAL",
             }
 
             if generar_programacion and cupos:
@@ -4759,6 +4761,7 @@ def gestion_generar_fixture(request):
                         "fecha": cupo["fecha"],
                         "hora": cupo["hora"],
                         "cancha": cupo["cancha"],
+                        "estado_programacion": "SUGERIDA",
                     })
 
                     for equipo_id in [local.id, visitante.id]:
@@ -5375,6 +5378,9 @@ def gestion_partido_editar(request, partido_id):
 
     if request.method == "POST" and form.is_valid():
         partido = form.save()
+        if partido.estado_programacion == "SUGERIDA":
+            partido.estado_programacion = "OFICIAL"
+            partido.save(update_fields=["estado_programacion"])
         if partido.estadisticas_validadas and not partido.estadisticas_validadas_en:
             _validar_estadisticas_partido(partido, request.user)
         registrar_actividad(request, "EDITAR", partido, descripcion=f"Actualizo partido {partido.equipo_local} vs {partido.equipo_visitante}.")
@@ -5386,6 +5392,29 @@ def gestion_partido_editar(request, partido_id):
         "form": form,
         "volver_url": "gestion_partidos",
     })
+
+
+@login_required
+@user_passes_test(es_editor_torneo)
+@require_POST
+def gestion_partido_confirmar_programacion(request, partido_id):
+    torneo = torneo_actual(request)
+    if not puede_gestionar_torneo(request, torneo, "programar"):
+        return denegar_permiso_torneo()
+    partidos = Partido.objects.select_related("categoria", "equipo_local", "equipo_visitante")
+    if torneo:
+        partidos = partidos.filter(categoria__torneo=torneo)
+    partido = get_object_or_404(partidos, id=partido_id)
+    partido.estado_programacion = "OFICIAL"
+    partido.save(update_fields=["estado_programacion"])
+    registrar_actividad(
+        request,
+        "CONFIRMAR_PROGRAMACION",
+        partido,
+        descripcion=f"Confirmo programacion de {partido.equipo_local} vs {partido.equipo_visitante}.",
+    )
+    messages.success(request, f"Programacion oficial: {partido.equipo_local} vs {partido.equipo_visitante}.")
+    return redirect(request.POST.get("next") or "gestion_partidos")
 
 
 @login_required
@@ -5501,6 +5530,7 @@ def gestion_importar_partidos(request):
                         "fecha": fecha_partido or date.today(),
                         "hora": hora_partido or time(0, 0),
                         "estado": estado,
+                        "estado_programacion": "MANUAL",
                         "grupo": grupo,
                         "cancha": cancha,
                         "goles_local": goles_local,

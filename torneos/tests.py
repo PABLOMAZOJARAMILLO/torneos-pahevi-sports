@@ -9,7 +9,7 @@ from django.utils import timezone
 
 from .forms import JugadorForm
 from .models import AlineacionPartido, AdminOrganizador, AdminTorneo, Categoria, Equipo, Gol, Jugador, Organizador, Partido, ReglaEdadCategoria, RegistroActividad, SustitucionPartido, Tarjeta, Torneo
-from .views import construir_estructura, construir_estadisticas_foraneos, _clave_orden_evento_resumen, _sincronizar_no_disponibles_por_tarjetas, etiqueta_edad_jugador, texto_edad_jugador, validar_reglas_edad_titulares
+from .views import construir_estructura, construir_estadisticas_foraneos, construir_partidos_programacion, _clave_orden_evento_resumen, _sincronizar_no_disponibles_por_tarjetas, etiqueta_edad_jugador, texto_edad_jugador, validar_reglas_edad_titulares
 
 
 class SancionesTarjetasTests(TestCase):
@@ -685,6 +685,7 @@ class FixtureProgramacionBalanceadaTests(TestCase):
         self.assertEqual(partidos.count(), 6)
         self.assertTrue(all(partido.cancha == "" for partido in partidos))
         self.assertTrue(all(partido.hora == time(0, 0) for partido in partidos))
+        self.assertTrue(all(partido.estado_programacion == "MANUAL" for partido in partidos))
 
     def test_fixture_con_programacion_balancea_cancha_obligatoria(self):
         self.client.force_login(self.admin)
@@ -696,6 +697,7 @@ class FixtureProgramacionBalanceadaTests(TestCase):
         self.assertEqual(partidos.count(), 6)
         self.assertTrue(all(partido.cancha in ["Principal", "Porvenir"] for partido in partidos))
         self.assertTrue(all(partido.hora != time(0, 0) for partido in partidos))
+        self.assertTrue(all(partido.estado_programacion == "SUGERIDA" for partido in partidos))
 
         apariciones_porvenir = {equipo.id: 0 for equipo in self.equipos}
         for partido in partidos.filter(cancha__iexact="Porvenir"):
@@ -703,6 +705,29 @@ class FixtureProgramacionBalanceadaTests(TestCase):
             apariciones_porvenir[partido.equipo_visitante_id] += 1
 
         self.assertTrue(all(cantidad >= 1 for cantidad in apariciones_porvenir.values()))
+
+    def test_descarga_programacion_excluye_partidos_sugeridos(self):
+        self.client.force_login(self.admin)
+        self.client.post("/gestion/generar-fixture/", self.datos_fixture(programacion=True))
+        session = self.client.session
+        session["torneo_id"] = self.torneo.id
+        session.save()
+
+        request = self.client.get("/gestion/partidos/").wsgi_request
+        partidos = construir_partidos_programacion(request, self.categoria)
+
+        self.assertEqual(partidos, [])
+
+    def test_confirmar_programacion_vuelve_partido_oficial(self):
+        self.client.force_login(self.admin)
+        self.client.post("/gestion/generar-fixture/", self.datos_fixture(programacion=True))
+        partido = Partido.objects.filter(categoria=self.categoria).first()
+
+        respuesta = self.client.post(f"/gestion/partidos/{partido.id}/confirmar-programacion/")
+
+        self.assertEqual(respuesta.status_code, 302)
+        partido.refresh_from_db()
+        self.assertEqual(partido.estado_programacion, "OFICIAL")
 
 
 class DelegadoEquipoTests(TestCase):
