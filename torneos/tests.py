@@ -378,6 +378,7 @@ class PlanilleroPartidoTests(TestCase):
         )
         self.planillero = User.objects.create_user("planillero", password="test")
         self.otro_usuario = User.objects.create_user("otro", password="test")
+        self.admin = User.objects.create_user("admin", password="test", is_staff=True)
         self.partido.planilleros.add(self.planillero)
 
     @override_settings(STORAGES={
@@ -414,6 +415,8 @@ class PlanilleroPartidoTests(TestCase):
 
         self.assertEqual(respuesta.status_code, 302)
         self.assertTrue(Gol.objects.filter(partido=self.partido, jugador=self.jugador).exists())
+        self.partido.refresh_from_db()
+        self.assertFalse(self.partido.estadisticas_validadas)
 
     def test_planillero_no_puede_marcar_wo(self):
         self.client.force_login(self.planillero)
@@ -449,6 +452,210 @@ class PlanilleroPartidoTests(TestCase):
 
         respuesta_editor = self.client.get(f"/partido/{self.partido.id}/editor-movil/")
         self.assertEqual(respuesta_editor.status_code, 403)
+
+    def test_estadisticas_pendientes_no_entran_a_tabla_ni_goleadores(self):
+        self.partido.estado = "FINALIZADO"
+        self.partido.goles_local = 2
+        self.partido.goles_visitante = 0
+        self.partido.estadisticas_validadas = False
+        self.partido.save()
+        Gol.objects.create(partido=self.partido, equipo=self.local, jugador=self.jugador, cantidad=2)
+
+        estructura = construir_estructura(self.torneo)
+        datos = estructura["Senior"]["grupos"]["SIN GRUPO"]
+        fila_local = next(fila for fila in datos["tabla"] if fila["id"] == self.local.id)
+
+        self.assertEqual(fila_local["pj"], 0)
+        self.assertEqual(estructura["Senior"]["goleadores_planilla"], [])
+
+    def test_admin_valida_estadisticas_y_entran_a_reportes(self):
+        self.partido.estado = "FINALIZADO"
+        self.partido.goles_local = 2
+        self.partido.goles_visitante = 0
+        self.partido.estadisticas_validadas = False
+        self.partido.save()
+        Gol.objects.create(partido=self.partido, equipo=self.local, jugador=self.jugador, cantidad=2)
+        self.client.force_login(self.admin)
+        session = self.client.session
+        session["torneo_id"] = self.torneo.id
+        session.save()
+
+        respuesta = self.client.post(f"/gestion/partidos/{self.partido.id}/validar-estadisticas/")
+
+        self.assertEqual(respuesta.status_code, 302)
+        self.partido.refresh_from_db()
+        self.assertTrue(self.partido.estadisticas_validadas)
+        estructura = construir_estructura(self.torneo)
+        fila_local = next(fila for fila in estructura["Senior"]["grupos"]["SIN GRUPO"]["tabla"] if fila["id"] == self.local.id)
+        self.assertEqual(fila_local["pj"], 1)
+        self.assertEqual(estructura["Senior"]["goleadores_planilla"][0]["total"], 2)
+
+
+class DelegadoEquipoTests(TestCase):
+    def setUp(self):
+        self.torneo = Torneo.objects.create(
+            nombre="Veranero",
+            fecha_inicio=date(2026, 1, 1),
+        )
+        self.categoria = Categoria.objects.create(
+            nombre="Senior",
+            edad_minima=18,
+            edad_maxima=60,
+            torneo=self.torneo,
+        )
+        self.delegado = User.objects.create_user("delegado", password="test")
+        self.otro_usuario = User.objects.create_user("otro-delegado", password="test")
+        self.equipo = Equipo.objects.create(
+            nombre="Niqueleros",
+            categoria=self.categoria,
+            responsable=self.delegado,
+            acceso_delegado_hasta=timezone.now() + timedelta(days=2),
+        )
+        self.otro_equipo = Equipo.objects.create(
+            nombre="Rival",
+            categoria=self.categoria,
+            responsable=self.otro_usuario,
+            acceso_delegado_hasta=timezone.now() + timedelta(days=2),
+        )
+        self.jugador = Jugador.objects.create(
+            equipo=self.equipo,
+            dorsal=7,
+            nombres="Jugador Uno",
+            cedula="123",
+            fecha_nacimiento=date(1990, 1, 1),
+        )
+
+    def test_delegado_con_acceso_vigente_puede_editar_su_equipo(self):
+        self.client.force_login(self.delegado)
+
+        respuesta = self.client.post(
+            f"/delegado/equipos/{self.equipo.id}/editar/",
+            {
+                "delegado": "Pablo Mazo",
+                "telefono": "300123",
+                "director_tecnico": "DT Uno",
+                "telefono_dt": "300456",
+                "asistente_tecnico": "AT Uno",
+                "telefono_at": "300789",
+            },
+        )
+
+        self.assertEqual(respuesta.status_code, 302)
+        self.equipo.refresh_from_db()
+        self.assertEqual(self.equipo.delegado, "Pablo Mazo")
+        self.assertEqual(self.equipo.director_tecnico, "DT Uno")
+
+    def test_delegado_puede_agregar_jugador_a_su_equipo(self):
+        self.client.force_login(self.delegado)
+
+        respuesta = self.client.post(
+            f"/delegado/equipos/{self.equipo.id}/jugadores/nuevo/",
+            {
+                "dorsal": 10,
+                "nombres": "Jugador Nuevo",
+                "cedula": "456",
+                "fecha_nacimiento": "1995-02-03",
+                "telefono": "301000",
+                "estado": "ACTIVO",
+            },
+        )
+
+        self.assertEqual(respuesta.status_code, 302)
+        self.assertTrue(Jugador.objects.filter(equipo=self.equipo, cedula="456", nombres="JUGADOR NUEVO").exists())
+
+    def test_delegado_no_puede_editar_otro_equipo(self):
+        self.client.force_login(self.delegado)
+
+        respuesta = self.client.get(f"/delegado/equipos/{self.otro_equipo.id}/editar/")
+
+        self.assertEqual(respuesta.status_code, 404)
+
+    def test_delegado_pierde_acceso_al_vencer_plazo(self):
+        self.equipo.acceso_delegado_hasta = timezone.now() - timedelta(minutes=1)
+        self.equipo.save(update_fields=["acceso_delegado_hasta"])
+        self.client.force_login(self.delegado)
+
+        respuesta = self.client.get(f"/delegado/equipos/{self.equipo.id}/editar/")
+
+        self.assertEqual(respuesta.status_code, 404)
+
+    def test_delegado_puede_guardar_alineacion_desde_hora_programada(self):
+        ahora_local = timezone.localtime()
+        partido = Partido.objects.create(
+            categoria=self.categoria,
+            equipo_local=self.equipo,
+            equipo_visitante=self.otro_equipo,
+            fecha=(ahora_local - timedelta(hours=1)).date(),
+            hora=(ahora_local - timedelta(hours=1)).time(),
+            estado="PROGRAMADO",
+        )
+        self.client.force_login(self.delegado)
+
+        respuesta = self.client.post(
+            f"/delegado/equipos/{self.equipo.id}/partidos/{partido.id}/alineacion/",
+            {
+                f"rol_{self.jugador.id}": "TITULAR",
+                f"posicion_{self.jugador.id}": "DC",
+            },
+        )
+
+        self.assertEqual(respuesta.status_code, 302)
+        self.assertTrue(
+            AlineacionPartido.objects.filter(
+                partido=partido,
+                equipo=self.equipo,
+                jugador=self.jugador,
+                rol="TITULAR",
+                posicion_cancha="DC",
+            ).exists()
+        )
+
+    def test_delegado_no_puede_guardar_alineacion_antes_de_hora_programada(self):
+        ahora_local = timezone.localtime()
+        partido = Partido.objects.create(
+            categoria=self.categoria,
+            equipo_local=self.equipo,
+            equipo_visitante=self.otro_equipo,
+            fecha=(ahora_local + timedelta(hours=1)).date(),
+            hora=(ahora_local + timedelta(hours=1)).time(),
+            estado="PROGRAMADO",
+        )
+        self.client.force_login(self.delegado)
+
+        respuesta = self.client.post(
+            f"/delegado/equipos/{self.equipo.id}/partidos/{partido.id}/alineacion/",
+            {
+                f"rol_{self.jugador.id}": "TITULAR",
+                f"posicion_{self.jugador.id}": "DC",
+            },
+        )
+
+        self.assertEqual(respuesta.status_code, 403)
+        self.assertFalse(AlineacionPartido.objects.filter(partido=partido).exists())
+
+    def test_delegado_no_puede_guardar_alineacion_despues_de_diez_minutos_en_juego(self):
+        ahora_local = timezone.localtime()
+        partido = Partido.objects.create(
+            categoria=self.categoria,
+            equipo_local=self.equipo,
+            equipo_visitante=self.otro_equipo,
+            fecha=ahora_local.date(),
+            hora=(ahora_local - timedelta(hours=1)).time(),
+            estado="EN_JUEGO",
+            inicio_en_vivo=timezone.now() - timedelta(minutes=11),
+        )
+        self.client.force_login(self.delegado)
+
+        respuesta = self.client.post(
+            f"/delegado/equipos/{self.equipo.id}/partidos/{partido.id}/alineacion/",
+            {
+                f"rol_{self.jugador.id}": "TITULAR",
+                f"posicion_{self.jugador.id}": "DC",
+            },
+        )
+
+        self.assertEqual(respuesta.status_code, 403)
+        self.assertFalse(AlineacionPartido.objects.filter(partido=partido).exists())
 
 
 class JugadorCedulaPorEquipoTests(TransactionTestCase):

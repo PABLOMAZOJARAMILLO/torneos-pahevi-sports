@@ -245,7 +245,7 @@ class EquipoResource(resources.ModelResource):
     class Meta:
         model = Equipo
         import_id_fields = ('nombre', 'categoria')
-        fields = ('id', 'nombre', 'categoria', 'delegado', 'telefono', 'director_tecnico', 'telefono_dt', 'asistente_tecnico', 'telefono_at', 'activo')
+        fields = ('id', 'nombre', 'categoria', 'responsable', 'acceso_delegado_hasta', 'delegado', 'telefono', 'director_tecnico', 'telefono_dt', 'asistente_tecnico', 'telefono_at', 'activo')
         skip_unchanged = True
         report_skipped = True
 
@@ -267,7 +267,7 @@ class PartidoResource(resources.ModelResource):
     class Meta:
         model = Partido
         import_id_fields = ('categoria', 'fase', 'numero_fecha', 'equipo_local', 'equipo_visitante')
-        fields = ('id', 'categoria', 'equipo_local', 'equipo_visitante', 'fecha', 'hora', 'goles_local', 'goles_visitante', 'estado', 'observaciones', 'numero_fecha', 'grupo', 'cancha', 'fase', 'ajuste_puntos_local', 'ajuste_puntos_visitante', 'observacion_comite', 'goles_local_penales', 'goles_visitante_penales')
+        fields = ('id', 'categoria', 'equipo_local', 'equipo_visitante', 'fecha', 'hora', 'goles_local', 'goles_visitante', 'estado', 'estadisticas_validadas', 'observaciones', 'numero_fecha', 'grupo', 'cancha', 'fase', 'ajuste_puntos_local', 'ajuste_puntos_visitante', 'observacion_comite', 'goles_local_penales', 'goles_visitante_penales')
         skip_unchanged = True
         report_skipped = True
 
@@ -326,9 +326,9 @@ class JugadorInline(admin.TabularInline):
 @admin.register(Equipo)
 class EquipoAdmin(ImportExportModelAdmin):
     resource_class = EquipoResource
-    list_display = ('nombre', 'categoria', 'delegado', 'telefono', 'director_tecnico', 'telefono_dt', 'asistente_tecnico', 'telefono_at', 'activo')
+    list_display = ('nombre', 'categoria', 'responsable', 'acceso_delegado_hasta', 'delegado', 'telefono', 'director_tecnico', 'telefono_dt', 'asistente_tecnico', 'telefono_at', 'activo')
     list_filter = ('categoria__torneo', 'categoria', 'activo')
-    search_fields = ('nombre', 'delegado', 'telefono', 'director_tecnico', 'telefono_dt', 'asistente_tecnico', 'telefono_at')
+    search_fields = ('nombre', 'responsable__username', 'delegado', 'telefono', 'director_tecnico', 'telefono_dt', 'asistente_tecnico', 'telefono_at')
     inlines = [JugadorInline]
 
 
@@ -374,8 +374,8 @@ class SustitucionInline(admin.TabularInline):
 @admin.register(Partido)
 class PartidoAdmin(ImportExportModelAdmin):
     resource_class = PartidoResource
-    list_display = ('categoria', 'grupo', 'numero_fecha', 'fase', 'equipo_local', 'equipo_visitante', 'goles_local', 'goles_visitante', 'estado', 'fecha', 'hora', 'cancha', 'ajuste_puntos_local', 'ajuste_puntos_visitante', 'goles_local_penales', 'goles_visitante_penales')
-    list_filter = ('categoria__torneo', 'categoria', 'grupo', 'numero_fecha', 'fase', 'estado')
+    list_display = ('categoria', 'grupo', 'numero_fecha', 'fase', 'equipo_local', 'equipo_visitante', 'goles_local', 'goles_visitante', 'estado', 'estadisticas_validadas', 'fecha', 'hora', 'cancha', 'ajuste_puntos_local', 'ajuste_puntos_visitante', 'goles_local_penales', 'goles_visitante_penales')
+    list_filter = ('categoria__torneo', 'categoria', 'grupo', 'numero_fecha', 'fase', 'estado', 'estadisticas_validadas')
     search_fields = ('equipo_local__nombre', 'equipo_visitante__nombre', 'cancha')
     filter_horizontal = ('planilleros',)
     inlines = [GolInline, TarjetaInline, AlineacionInline, SustitucionInline]

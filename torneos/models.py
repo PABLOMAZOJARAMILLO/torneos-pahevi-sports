@@ -4,6 +4,7 @@ import re
 from django.db import models
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
+from django.utils import timezone
 
 
 def limpiar_ruta_cloudinary(valor):
@@ -191,6 +192,7 @@ class Equipo(models.Model):
     nombre = models.CharField(max_length=120, verbose_name='Nombre del equipo')
     categoria = models.ForeignKey(Categoria, on_delete=models.CASCADE, related_name='equipos')
     responsable = models.ForeignKey(User, on_delete=models.SET_NULL, blank=True, null=True, related_name='equipos_asignados', verbose_name='Usuario responsable')
+    acceso_delegado_hasta = models.DateTimeField(blank=True, null=True, verbose_name='Acceso delegado hasta')
     delegado = models.CharField(max_length=120, blank=True, null=True, verbose_name='Delegado')
     telefono = models.CharField(max_length=30, blank=True, null=True, verbose_name='Celular delegado')
     director_tecnico = models.CharField(max_length=150, blank=True, null=True, verbose_name='Director técnico')
@@ -207,6 +209,13 @@ class Equipo(models.Model):
 
     def __str__(self):
         return self.nombre
+
+    def acceso_delegado_vigente(self):
+        return bool(
+            self.responsable_id
+            and self.acceso_delegado_hasta
+            and self.acceso_delegado_hasta >= timezone.now()
+        )
 
 
 class Jugador(models.Model):
@@ -292,6 +301,9 @@ class Partido(models.Model):
     goles_local = models.IntegerField(default=0)
     goles_visitante = models.IntegerField(default=0)
     estado = models.CharField(max_length=30, choices=ESTADOS, default='PROGRAMADO')
+    estadisticas_validadas = models.BooleanField(default=True, verbose_name='Estadísticas validadas')
+    estadisticas_validadas_en = models.DateTimeField(blank=True, null=True, verbose_name='Estadísticas validadas en')
+    estadisticas_validadas_por = models.ForeignKey(User, on_delete=models.SET_NULL, blank=True, null=True, related_name='partidos_estadisticas_validadas', verbose_name='Estadísticas validadas por')
     inicio_en_vivo = models.DateTimeField(blank=True, null=True, verbose_name="Inicio real en vivo")
     observaciones = models.TextField(blank=True, null=True)
     numero_fecha = models.CharField(max_length=50, blank=True, null=True, verbose_name='Fecha del fixture')

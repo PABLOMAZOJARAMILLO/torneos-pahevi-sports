@@ -1,0 +1,30 @@
+{% extends "gestion/base.html" %}
+
+{% block title %}{{ titulo }}{% endblock %}
+{% block heading %}{{ titulo }}{% endblock %}
+
+{% block content %}
+<p><a class="btn secondary" href="{% url 'delegado_equipo_editar' equipo.id %}">Volver al equipo</a></p>
+
+<form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    {% for field in form %}
+        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+        {{ field }}
+        {% if field.help_text %}
+            <div class="muted">{{ field.help_text }}</div>
+        {% endif %}
+        {% for error in field.errors %}
+            <div class="message">{{ error }}</div>
+        {% endfor %}
+    {% endfor %}
+
+    {% if form.non_field_errors %}
+        {% for error in form.non_field_errors %}
+            <div class="message">{{ error }}</div>
+        {% endfor %}
+    {% endif %}
+
+    <p><button class="btn" type="submit">Guardar jugador</button></p>
+</form>
+{% endblock %}

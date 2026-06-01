@@ -1,0 +1,106 @@
+{% extends "gestion/base.html" %}
+{% load texto_limpio %}
+
+{% block title %}Alineacion {{ equipo.nombre }}{% endblock %}
+{% block heading %}Alineacion{% endblock %}
+
+{% block content %}
+<p><a class="btn secondary" href="{% url 'delegado_equipo_editar' equipo.id %}">Volver al equipo</a></p>
+
+<div class="card">
+    <div>{{ partido.equipo_local.nombre }} vs {{ partido.equipo_visitante.nombre }}</div>
+    <div class="muted">{{ partido.fecha|date:"d/m/Y" }} - {{ partido.hora|time:"H:i" }} - {{ partido.estado }}</div>
+    <div class="muted">Equipo a cargar: {{ equipo.nombre }}</div>
+</div>
+
+<style>
+    .alineacion-lista {
+        display: grid;
+        gap: 10px;
+    }
+    .alineacion-jugador {
+        display: grid;
+        gap: 8px;
+        padding: 12px;
+        border: 1px solid rgba(0,255,102,0.35);
+        border-radius: 14px;
+        background: #101d30;
+    }
+    .alineacion-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+    }
+    .rol-switch {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 6px;
+    }
+    .rol-switch label {
+        margin: 0;
+    }
+    .rol-switch input {
+        position: absolute;
+        opacity: 0;
+        pointer-events: none;
+    }
+    .rol-switch span {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 38px;
+        border: 1px solid #334155;
+        border-radius: 10px;
+        background: #0b1526;
+        color: #e5e7eb;
+        font-size: 12px;
+        text-align: center;
+    }
+    .rol-switch input:checked + span {
+        background: #00e565;
+        color: #03110a;
+        border-color: #00e565;
+    }
+    @media (max-width: 560px) {
+        .rol-switch {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+    }
+</style>
+
+<form method="post">
+    {% csrf_token %}
+    <div class="alineacion-lista">
+        {% for jugador in jugadores %}
+        <section class="alineacion-jugador">
+            <div class="alineacion-head">
+                <div>
+                    <div>{% if jugador.dorsal %}#{{ jugador.dorsal }} - {% endif %}{{ jugador.nombres|texto_limpio }}</div>
+                    {% if jugador.id in sancionados_tarjetas %}
+                        <div class="muted">Sancionado: queda como no disponible.</div>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="rol-switch">
+                <label><input type="radio" name="rol_{{ jugador.id }}" value="" {% if not jugador.rol_alineacion %}checked{% endif %}><span>Fuera</span></label>
+                <label><input type="radio" name="rol_{{ jugador.id }}" value="TITULAR" {% if jugador.rol_alineacion == "TITULAR" %}checked{% endif %}><span>Titular</span></label>
+                <label><input type="radio" name="rol_{{ jugador.id }}" value="SUPLENTE" {% if jugador.rol_alineacion == "SUPLENTE" %}checked{% endif %}><span>Suplente</span></label>
+                <label><input type="radio" name="rol_{{ jugador.id }}" value="NO_DISPONIBLE" {% if jugador.rol_alineacion == "NO_DISPONIBLE" %}checked{% endif %}><span>No disponible</span></label>
+            </div>
+            <label for="posicion-{{ jugador.id }}">Posicion en cancha si es titular</label>
+            <select id="posicion-{{ jugador.id }}" name="posicion_{{ jugador.id }}">
+                <option value="">Sin posicion</option>
+                {% for codigo, nombre in posiciones_cancha %}
+                    <option value="{{ codigo }}" {% if jugador.posicion_alineacion == codigo %}selected{% endif %}>{{ nombre }}</option>
+                {% endfor %}
+            </select>
+        </section>
+        {% empty %}
+        <div class="card">Este equipo no tiene jugadores activos.</div>
+        {% endfor %}
+    </div>
+
+    <p><button class="btn" type="submit">Guardar alineacion</button></p>
+</form>
+{% endblock %}

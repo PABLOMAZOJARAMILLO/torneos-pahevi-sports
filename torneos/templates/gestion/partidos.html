@@ -46,10 +46,25 @@
         <div class="muted">
             {{ partido.fecha|default:"Sin día" }} · {{ partido.hora|default:"Sin hora" }} · {{ partido.cancha|default:"Sin cancha" }} · {{ partido.estado }}
         </div>
+        <div class="muted">
+            Estadisticas:
+            {% if partido.estadisticas_validadas %}
+                Validadas{% if partido.estadisticas_validadas_en %} el {{ partido.estadisticas_validadas_en|date:"d/m/Y H:i" }}{% endif %}
+            {% else %}
+                Pendientes de validacion
+            {% endif %}
+        </div>
     </div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;">
         <a class="btn secondary" href="{% url 'editor_partido_movil' partido.id %}">Editor juego</a>
         <a class="btn" href="{% url 'gestion_partido_editar' partido.id %}">Programar</a>
+        {% if not partido.estadisticas_validadas %}
+        <form class="inline-form" method="post" action="{% url 'gestion_partido_validar_estadisticas' partido.id %}">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ request.get_full_path }}">
+            <button class="btn" type="submit">Validar estadisticas</button>
+        </form>
+        {% endif %}
     </div>
 </div>
 {% empty %}

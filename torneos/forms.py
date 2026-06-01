@@ -91,6 +91,7 @@ class EquipoForm(forms.ModelForm):
             "nombre",
             "categoria",
             "responsable",
+            "acceso_delegado_hasta",
             "delegado",
             "telefono",
             "director_tecnico",
@@ -100,15 +101,37 @@ class EquipoForm(forms.ModelForm):
             "escudo",
             "activo",
         ]
+        widgets = {
+            "acceso_delegado_hasta": forms.DateTimeInput(
+                format="%Y-%m-%dT%H:%M",
+                attrs={"type": "datetime-local"},
+            ),
+        }
 
     def __init__(self, *args, **kwargs):
         torneo = kwargs.pop("torneo", None)
         super().__init__(*args, **kwargs)
+        self.fields["acceso_delegado_hasta"].input_formats = ["%Y-%m-%dT%H:%M", "%Y-%m-%d %H:%M:%S"]
+        self.fields["acceso_delegado_hasta"].help_text = "El delegado solo podra editar este equipo hasta esta fecha y hora."
         categorias = Categoria.objects.order_by("nombre")
         if torneo:
             categorias = categorias.filter(torneo=torneo)
         self.fields["categoria"].queryset = categorias
         self.fields["categoria"].label_from_instance = lambda obj: obj.nombre
+
+
+class EquipoDelegadoForm(forms.ModelForm):
+    class Meta:
+        model = Equipo
+        fields = [
+            "delegado",
+            "telefono",
+            "director_tecnico",
+            "telefono_dt",
+            "asistente_tecnico",
+            "telefono_at",
+            "escudo",
+        ]
 
 
 class JugadorForm(forms.ModelForm):
@@ -140,6 +163,28 @@ class JugadorForm(forms.ModelForm):
         self.fields["equipo"].label_from_instance = lambda obj: f"{obj.categoria.nombre} - {obj.nombre}"
 
 
+class JugadorDelegadoForm(forms.ModelForm):
+    class Meta:
+        model = Jugador
+        fields = [
+            "dorsal",
+            "nombres",
+            "cedula",
+            "fecha_nacimiento",
+            "telefono",
+            "estado",
+            "foto",
+            "es_foraneo",
+        ]
+        widgets = {
+            "fecha_nacimiento": forms.DateInput(format="%Y-%m-%d", attrs={"type": "date"}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["fecha_nacimiento"].input_formats = ["%Y-%m-%d"]
+
+
 class PartidoForm(forms.ModelForm):
     class Meta:
         model = Partido
@@ -151,6 +196,7 @@ class PartidoForm(forms.ModelForm):
             "fecha",
             "hora",
             "estado",
+            "estadisticas_validadas",
             "numero_fecha",
             "grupo",
             "cancha",

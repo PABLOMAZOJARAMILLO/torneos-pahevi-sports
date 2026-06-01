@@ -1,5 +1,4 @@
 from django.urls import path
-from django.contrib.auth.views import LoginView
 from . import views
 from .views import (
     panel_principal,
@@ -30,7 +29,7 @@ from .views import (
 
 urlpatterns = [
     path('', panel_principal, name='panel'),
-    path('ingresar/', LoginView.as_view(template_name='registration/login.html'), name='login'),
+    path('ingresar/', views.IngresoTorneosView.as_view(), name='login'),
     path('sw.js', views.service_worker, name='service_worker'),
     path('salir/', views.cerrar_sesion, name='cerrar_sesion'),
     path('partido/<int:partido_id>/', views.detalle_partido_publico, name='partido_detalle_publico'),
@@ -173,6 +172,12 @@ urlpatterns = [
     path('equipos/', views.lista_equipos, name='lista_equipos'),
     path('equipos/<int:equipo_id>/', views.detalle_equipo, name='detalle_equipo'),
     path('mis-equipos/', views.mis_equipos, name='mis_equipos'),
+    path('delegado/equipos/', views.mis_equipos, name='delegado_mis_equipos'),
+    path('delegado/equipos/<int:equipo_id>/editar/', views.delegado_equipo_editar, name='delegado_equipo_editar'),
+    path('delegado/equipos/<int:equipo_id>/partidos/<int:partido_id>/alineacion/', views.delegado_alineacion_partido, name='delegado_alineacion_partido'),
+    path('delegado/equipos/<int:equipo_id>/jugadores/nuevo/', views.delegado_jugador_nuevo, name='delegado_jugador_nuevo'),
+    path('delegado/jugadores/<int:jugador_id>/editar/', views.delegado_jugador_editar, name='delegado_jugador_editar'),
+    path('delegado/jugadores/<int:jugador_id>/eliminar/', views.delegado_jugador_eliminar, name='delegado_jugador_eliminar'),
 
     path('gestion/', views.gestion_panel, name='gestion_panel'),
     path('gestion/organizadores/', views.gestion_organizadores, name='gestion_organizadores'),
@@ -208,6 +213,7 @@ urlpatterns = [
     path('gestion/partidos/importar/', views.gestion_importar_partidos, name='gestion_importar_partidos'),
     path('gestion/partidos/nuevo/', views.gestion_partido_nuevo, name='gestion_partido_nuevo'),
     path('gestion/partidos/<int:partido_id>/editar/', views.gestion_partido_editar, name='gestion_partido_editar'),
+    path('gestion/partidos/<int:partido_id>/validar-estadisticas/', views.gestion_partido_validar_estadisticas, name='gestion_partido_validar_estadisticas'),
     path('partido/<int:partido_id>/cronometro/primer-tiempo/', views.cronometro_primer_tiempo, name='cronometro_primer_tiempo'),
     path('partido/<int:partido_id>/cronometro/entretiempo/', views.cronometro_entretiempo, name='cronometro_entretiempo'),
     path('partido/<int:partido_id>/cronometro/segundo-tiempo/', views.cronometro_segundo_tiempo, name='cronometro_segundo_tiempo'),

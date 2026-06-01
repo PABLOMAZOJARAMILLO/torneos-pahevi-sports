@@ -291,6 +291,16 @@
             color: #00ff66;
             white-space: nowrap;
         }
+        .validacion-box {
+            background: rgba(250, 204, 21, 0.14);
+            border: 1px solid rgba(250, 204, 21, 0.52);
+            border-radius: 14px;
+            padding: 9px;
+            margin: 8px 0;
+            color: #fef9c3;
+            font-size: 12px;
+            text-align: center;
+        }
         .edad-badge {
             display: inline-grid;
             place-items: center;
@@ -513,6 +523,19 @@
             </div>
             <div class="estado-chip">{{ partido.estado }}</div>
         </div>
+
+        {% if not partido.estadisticas_validadas %}
+        <div class="validacion-box">
+            Estadisticas pendientes de validacion.
+            {% if puede_editar_programacion %}
+            <form method="post" action="{% url 'gestion_partido_validar_estadisticas' partido.id %}" style="margin-top:8px;">
+                {% csrf_token %}
+                <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                <button class="btn" type="submit">Validar estadisticas</button>
+            </form>
+            {% endif %}
+        </div>
+        {% endif %}
 
         <div class="card cronometro-card">
     <h2>Cronómetro en vivo</h2>

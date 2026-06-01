@@ -1,0 +1,84 @@
+{% extends "gestion/base.html" %}
+{% load texto_limpio %}
+
+{% block title %}{{ titulo }}{% endblock %}
+{% block heading %}{{ equipo.nombre }}{% endblock %}
+
+{% block content %}
+<p>
+    <a class="btn secondary" href="{% url 'delegado_mis_equipos' %}">Mis equipos</a>
+    <a class="btn" href="{% url 'delegado_jugador_nuevo' equipo.id %}">Agregar jugador</a>
+</p>
+
+<div class="card">
+    <div class="muted">Acceso vigente hasta {{ equipo.acceso_delegado_hasta|date:"d/m/Y H:i" }}</div>
+</div>
+
+<h2 style="color:#00ff66;">Alineacion de partidos</h2>
+
+{% for item in partidos_alineacion %}
+<div class="row">
+    <div>
+        <div>{{ item.partido.equipo_local.nombre }} vs {{ item.partido.equipo_visitante.nombre }}</div>
+        <div class="muted">
+            {{ item.partido.fecha|date:"d/m/Y" }} - {{ item.partido.hora|time:"H:i" }} - {{ item.partido.estado }} - Rival: {{ item.rival.nombre }}
+        </div>
+        <div class="muted">{{ item.motivo }}</div>
+    </div>
+    {% if item.habilitado %}
+        <a class="btn" href="{% url 'delegado_alineacion_partido' equipo.id item.partido.id %}">Cargar alineacion</a>
+    {% else %}
+        <span class="btn secondary" style="opacity:.65;cursor:not-allowed;">Bloqueado</span>
+    {% endif %}
+</div>
+{% empty %}
+<div class="card">No hay partidos programados o en juego para este equipo.</div>
+{% endfor %}
+
+<form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    {% for field in form %}
+        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+        {{ field }}
+        {% if field.help_text %}
+            <div class="muted">{{ field.help_text }}</div>
+        {% endif %}
+        {% for error in field.errors %}
+            <div class="message">{{ error }}</div>
+        {% endfor %}
+    {% endfor %}
+
+    {% if form.non_field_errors %}
+        {% for error in form.non_field_errors %}
+            <div class="message">{{ error }}</div>
+        {% endfor %}
+    {% endif %}
+
+    <p><button class="btn" type="submit">Guardar equipo</button></p>
+</form>
+
+<h2 style="color:#00ff66;">Jugadores</h2>
+
+{% for jugador in jugadores %}
+<div class="row">
+    <div style="display:flex;align-items:center;gap:12px;">
+        {% if jugador.foto %}
+            <img class="avatar" src="{{ jugador.foto.url }}" alt="">
+        {% endif %}
+        <div>
+            <div>{% if jugador.dorsal %}#{{ jugador.dorsal }} - {% endif %}{{ jugador.nombres|texto_limpio }}</div>
+            <div class="muted">{{ jugador.cedula }} - {{ jugador.estado }}{% if jugador.es_foraneo %} - Foraneo{% endif %}</div>
+        </div>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <a class="btn" href="{% url 'delegado_jugador_editar' jugador.id %}">Editar</a>
+        <form class="inline-form" method="post" action="{% url 'delegado_jugador_eliminar' jugador.id %}" onsubmit="return confirm('Eliminar este jugador?');">
+            {% csrf_token %}
+            <button class="btn danger" type="submit">Eliminar</button>
+        </form>
+    </div>
+</div>
+{% empty %}
+<div class="card">Este equipo todavia no tiene jugadores.</div>
+{% endfor %}
+{% endblock %}

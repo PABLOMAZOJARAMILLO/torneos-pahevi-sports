@@ -1,6 +1,6 @@
 from collections import defaultdict
 from types import SimpleNamespace
-from datetime import date, datetime, time
+from datetime import date, datetime, time, timedelta
 from concurrent.futures import ThreadPoolExecutor, TimeoutError
 import os
 import re
@@ -11,6 +11,7 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import logout
 from django.contrib.auth.decorators import login_required, user_passes_test
+from django.contrib.auth.views import LoginView
 from django.http import FileResponse, HttpResponse, HttpResponseForbidden
 from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
@@ -28,7 +29,7 @@ import requests
 from django.views.decorators.http import require_POST
 from openpyxl import load_workbook
 
-from .forms import TorneoForm, OrganizadorForm, CategoriaForm, DocumentoForm, EquipoForm, JugadorForm, PartidoForm
+from .forms import TorneoForm, OrganizadorForm, CategoriaForm, DocumentoForm, EquipoForm, EquipoDelegadoForm, JugadorForm, JugadorDelegadoForm, PartidoForm
 from .models import Torneo, Organizador, Categoria, Documento, Equipo, Partido, Gol, Tarjeta, Jugador, AlineacionPartido, SustitucionPartido, ReglaEdadCategoria, limpiar_ruta_cloudinary
 from django.utils import timezone
 
@@ -48,6 +49,88 @@ def puede_diligenciar_partido(user, partido):
 
 def denegar_partido_no_autorizado():
     return HttpResponseForbidden("No tienes permiso para editar este partido.")
+
+
+def equipos_delegado_vigentes(user):
+    if not user.is_authenticated:
+        return Equipo.objects.none()
+    return Equipo.objects.select_related("categoria").filter(
+        responsable=user,
+        acceso_delegado_hasta__gte=timezone.now(),
+    )
+
+
+def puede_editar_equipo_delegado(user, equipo):
+    if es_editor_torneo(user):
+        return True
+    return bool(
+        user.is_authenticated
+        and equipo.responsable_id == user.id
+        and equipo.acceso_delegado_vigente()
+    )
+
+
+def equipos_editables_para_usuario(user):
+    equipos = Equipo.objects.select_related("categoria")
+    if es_editor_torneo(user):
+        return equipos
+    return equipos_delegado_vigentes(user)
+
+
+def inicio_programado_partido(partido):
+    if not partido.fecha or not partido.hora:
+        return None
+    inicio = datetime.combine(partido.fecha, partido.hora)
+    if timezone.is_naive(inicio):
+        return timezone.make_aware(inicio, timezone.get_current_timezone())
+    return inicio
+
+
+def ventana_alineacion_delegado(partido, ahora=None):
+    ahora = ahora or timezone.now()
+    if partido.estado == "PROGRAMADO":
+        inicio = inicio_programado_partido(partido)
+        if not inicio:
+            return False, "Sin fecha u hora programada."
+        if ahora < inicio:
+            return False, f"Disponible desde {inicio.strftime('%d/%m/%Y %H:%M')}."
+        return True, "Disponible por hora programada."
+    if partido.estado == "EN_JUEGO":
+        if not partido.inicio_en_vivo:
+            return False, "El partido esta en juego, pero no tiene hora de inicio registrada."
+        cierre = partido.inicio_en_vivo + timedelta(minutes=10)
+        if ahora <= cierre:
+            return True, f"Disponible hasta {cierre.strftime('%H:%M')}."
+        return False, "La ventana de 10 minutos ya finalizo."
+    return False, "Disponible solo en partidos programados o en los primeros 10 minutos de juego."
+
+
+def partido_pertenece_equipo(partido, equipo):
+    return equipo.id in [partido.equipo_local_id, partido.equipo_visitante_id]
+
+
+def puede_editar_alineacion_delegado(user, partido, equipo):
+    if es_editor_torneo(user):
+        return partido_pertenece_equipo(partido, equipo)
+    if not puede_editar_equipo_delegado(user, equipo):
+        return False
+    if not partido_pertenece_equipo(partido, equipo):
+        return False
+    habilitado, _ = ventana_alineacion_delegado(partido)
+    return habilitado
+
+
+class IngresoTorneosView(LoginView):
+    template_name = "registration/login.html"
+
+    def get_default_redirect_url(self):
+        if (
+            self.request.user.is_authenticated
+            and not es_editor_torneo(self.request.user)
+            and equipos_delegado_vigentes(self.request.user).exists()
+        ):
+            return reverse("delegado_mis_equipos")
+        return super().get_default_redirect_url()
 
 
 ESTADOS_PLANILLERO_PARTIDO = {"PROGRAMADO", "EN_JUEGO", "FINALIZADO", "SUSPENDIDO"}
@@ -782,6 +865,30 @@ def etiqueta_columna_planilla(columna):
 ESTADOS_PARTIDO_CERRADO = ["FINALIZADO", "DECIDIDO_COMITE", "WO"]
 
 
+def _marcar_estadisticas_pendientes(partido, user=None):
+    if user is not None and es_editor_torneo(user):
+        return
+    partido.estadisticas_validadas = False
+    partido.estadisticas_validadas_en = None
+    partido.estadisticas_validadas_por = None
+    partido.save(update_fields=[
+        "estadisticas_validadas",
+        "estadisticas_validadas_en",
+        "estadisticas_validadas_por",
+    ])
+
+
+def _validar_estadisticas_partido(partido, user):
+    partido.estadisticas_validadas = True
+    partido.estadisticas_validadas_en = timezone.now()
+    partido.estadisticas_validadas_por = user
+    partido.save(update_fields=[
+        "estadisticas_validadas",
+        "estadisticas_validadas_en",
+        "estadisticas_validadas_por",
+    ])
+
+
 def construir_estadisticas_foraneos(categoria):
     if not categoria or not categoria.controlar_foraneos:
         return []
@@ -790,6 +897,7 @@ def construir_estadisticas_foraneos(categoria):
         categoria=categoria,
         fase="GRUPOS",
         estado__in=ESTADOS_PARTIDO_CERRADO,
+        estadisticas_validadas=True,
     )
     total_partidos_por_equipo = defaultdict(int)
     partidos_por_equipo = defaultdict(set)
@@ -804,6 +912,7 @@ def construir_estadisticas_foraneos(categoria):
         partido__categoria=categoria,
         partido__fase="GRUPOS",
         partido__estado__in=ESTADOS_PARTIDO_CERRADO,
+        partido__estadisticas_validadas=True,
         rol="TITULAR",
         jugador__es_foraneo=True,
     ).values_list("jugador_id", "partido_id")
@@ -814,6 +923,7 @@ def construir_estadisticas_foraneos(categoria):
         partido__categoria=categoria,
         partido__fase="GRUPOS",
         partido__estado__in=ESTADOS_PARTIDO_CERRADO,
+        partido__estadisticas_validadas=True,
         jugador_entra__es_foraneo=True,
     ).values_list("jugador_entra_id", "partido_id")
     for jugador_id, partido_id in sustituciones:
@@ -927,7 +1037,7 @@ def construir_estructura(torneo=None):
                     "pts": 0,
                 })
 
-        if partido.estado in ESTADOS_PARTIDO_CERRADO:
+        if partido.estado in ESTADOS_PARTIDO_CERRADO and partido.estadisticas_validadas:
             gl = partido.goles_local or 0
             gv = partido.goles_visitante or 0
 
@@ -989,6 +1099,7 @@ def construir_estructura(torneo=None):
     )
     if torneo:
         goles_qs = goles_qs.filter(partido__categoria__torneo=torneo)
+    goles_qs = goles_qs.filter(partido__estadisticas_validadas=True)
 
     for gol in goles_qs:
         if gol.partido.estado not in ESTADOS_PARTIDO_CERRADO:
@@ -1027,6 +1138,7 @@ def construir_estructura(torneo=None):
     )
     if torneo:
         tarjetas_qs = tarjetas_qs.filter(partido__categoria__torneo=torneo)
+    tarjetas_qs = tarjetas_qs.filter(partido__estadisticas_validadas=True)
 
     for tarjeta in tarjetas_qs:
         if tarjeta.partido.estado not in ESTADOS_PARTIDO_CERRADO:
@@ -1066,7 +1178,7 @@ def construir_estructura(torneo=None):
     }))
 
     for partido in partidos:
-        if partido.estado not in ESTADOS_PARTIDO_CERRADO:
+        if partido.estado not in ESTADOS_PARTIDO_CERRADO or not partido.estadisticas_validadas:
             continue
 
         categoria = partido.categoria.nombre
@@ -1109,6 +1221,7 @@ def construir_estructura(torneo=None):
     )
     if torneo:
         alertas_tarjetas_qs = alertas_tarjetas_qs.filter(partido__categoria__torneo=torneo)
+    alertas_tarjetas_qs = alertas_tarjetas_qs.filter(partido__estadisticas_validadas=True)
 
     for tarjeta in alertas_tarjetas_qs:
         if tarjeta.partido.estado not in ESTADOS_PARTIDO_CERRADO:
@@ -2708,6 +2821,7 @@ def _partidos_equipo_antes(partido, equipo):
     return Partido.objects.filter(
         categoria=partido.categoria,
         estado__in=ESTADOS_PARTIDO_CERRADO,
+        estadisticas_validadas=True,
     ).filter(
         Q(equipo_local=equipo) | Q(equipo_visitante=equipo)
     ).filter(
@@ -2949,6 +3063,7 @@ def guardar_info_partido_movil(request, partido_id):
         partido.ajuste_puntos_visitante = entero_post(request, 'ajuste_puntos_visitante', 0)
         partido.observacion_comite = request.POST.get('observacion_comite') or ''
     partido.save()
+    _marcar_estadisticas_pendientes(partido, request.user)
 
     messages.success(request, 'Partido actualizado correctamente.')
     if not es_editor_torneo(request.user) and partido.estado == "FINALIZADO":
@@ -2987,6 +3102,7 @@ def agregar_gol_movil(request, partido_id):
                 minuto=_minuto_evento_en_vivo(partido),
             )
             _recalcular_marcador_por_goles(partido)
+            _marcar_estadisticas_pendientes(partido, request.user)
             if es_autogol:
                 messages.success(request, 'Autogol agregado correctamente.')
             elif es_penal:
@@ -3021,6 +3137,7 @@ def agregar_tarjeta_movil(request, partido_id):
                 tipo=tipo,
                 minuto=_minuto_evento_en_vivo(partido),
             )
+            _marcar_estadisticas_pendientes(partido, request.user)
             messages.success(request, 'Tarjeta agregada correctamente.')
         else:
             messages.error(request, 'El jugador no pertenece al equipo seleccionado.')
@@ -3056,6 +3173,7 @@ def agregar_alineacion_movil(request, partido_id):
                 jugador=jugador,
                 defaults={'equipo': equipo, 'rol': rol, 'posicion_cancha': posicion_cancha if rol == 'TITULAR' else ''}
             )
+            _marcar_estadisticas_pendientes(partido, request.user)
             messages.success(request, 'Jugador agregado a la alineación.')
         else:
             messages.error(request, 'El jugador no pertenece al equipo seleccionado.')
@@ -3127,6 +3245,7 @@ def guardar_alineacion_masiva_movil(request, partido_id):
         for jugador_id, rol, posicion in seleccionados
     ]
     AlineacionPartido.objects.bulk_create(nuevas_alineaciones)
+    _marcar_estadisticas_pendientes(partido, request.user)
 
     if sancionados_equipo:
         messages.warning(
@@ -3172,6 +3291,7 @@ def agregar_sustitucion_movil(request, partido_id):
                 minuto=minuto,
                 observacion=observacion
             )
+            _marcar_estadisticas_pendientes(partido, request.user)
             messages.success(request, 'Sustitución agregada correctamente.')
         else:
             messages.error(request, 'Los jugadores deben pertenecer al equipo seleccionado.')
@@ -3189,6 +3309,7 @@ def eliminar_gol_movil(request, gol_id):
         return denegar_partido_no_autorizado()
     gol.delete()
     _recalcular_marcador_por_goles(partido)
+    _marcar_estadisticas_pendientes(partido, request.user)
     messages.success(request, 'Gol eliminado.')
     return redirect('editor_partido_movil', partido_id=partido_id)
 
@@ -3201,6 +3322,7 @@ def eliminar_tarjeta_movil(request, tarjeta_id):
     if not puede_diligenciar_partido(request.user, tarjeta.partido):
         return denegar_partido_no_autorizado()
     tarjeta.delete()
+    _marcar_estadisticas_pendientes(tarjeta.partido, request.user)
     messages.success(request, 'Tarjeta eliminada.')
     return redirect('editor_partido_movil', partido_id=partido_id)
 
@@ -3213,6 +3335,7 @@ def eliminar_alineacion_movil(request, alineacion_id):
     if not puede_diligenciar_partido(request.user, alineacion.partido):
         return denegar_partido_no_autorizado()
     alineacion.delete()
+    _marcar_estadisticas_pendientes(alineacion.partido, request.user)
     messages.success(request, 'Jugador eliminado de la alineación.')
     return redirect('editor_partido_movil', partido_id=partido_id)
 
@@ -3225,6 +3348,7 @@ def eliminar_sustitucion_movil(request, sustitucion_id):
     if not puede_diligenciar_partido(request.user, sustitucion.partido):
         return denegar_partido_no_autorizado()
     sustitucion.delete()
+    _marcar_estadisticas_pendientes(sustitucion.partido, request.user)
     messages.success(request, 'Sustitución eliminada.')
     return redirect('editor_partido_movil', partido_id=partido_id)
 
@@ -3261,11 +3385,210 @@ def detalle_equipo(request, equipo_id):
 
 @login_required
 def mis_equipos(request):
-    equipos = Equipo.objects.filter(responsable=request.user).order_by('nombre')
+    equipos = equipos_delegado_vigentes(request.user).order_by('categoria__nombre', 'nombre')
 
     return render(request, 'equipos/mis_equipos.html', {
         'equipos': equipos
     })
+
+
+@login_required
+def delegado_equipo_editar(request, equipo_id):
+    equipo = get_object_or_404(equipos_editables_para_usuario(request.user), id=equipo_id)
+    if not puede_editar_equipo_delegado(request.user, equipo):
+        return HttpResponseForbidden("El acceso a este equipo ya no esta vigente.")
+
+    form = EquipoDelegadoForm(request.POST or None, request.FILES or None, instance=equipo)
+    jugadores = equipo.jugadores.order_by("dorsal", "nombres")
+    partidos = Partido.objects.select_related(
+        "categoria",
+        "equipo_local",
+        "equipo_visitante",
+    ).filter(
+        categoria=equipo.categoria,
+    ).filter(
+        Q(equipo_local=equipo) | Q(equipo_visitante=equipo)
+    ).filter(
+        estado__in=["PROGRAMADO", "EN_JUEGO"]
+    ).order_by("fecha", "hora", "id")
+
+    partidos_alineacion = []
+    for partido in partidos:
+        habilitado, motivo = ventana_alineacion_delegado(partido)
+        partidos_alineacion.append(SimpleNamespace(
+            partido=partido,
+            rival=partido.equipo_visitante if partido.equipo_local_id == equipo.id else partido.equipo_local,
+            habilitado=habilitado,
+            motivo=motivo,
+        ))
+
+    if request.method == "POST" and form.is_valid():
+        equipo = form.save(commit=False)
+        equipo.save()
+        messages.success(request, "Equipo actualizado correctamente.")
+        return redirect("delegado_equipo_editar", equipo_id=equipo.id)
+
+    return render(request, "equipos/delegado_equipo_formulario.html", {
+        "titulo": f"Editar equipo: {equipo.nombre}",
+        "equipo": equipo,
+        "form": form,
+        "jugadores": jugadores,
+        "partidos_alineacion": partidos_alineacion,
+    })
+
+
+@login_required
+def delegado_alineacion_partido(request, equipo_id, partido_id):
+    equipo = get_object_or_404(equipos_editables_para_usuario(request.user), id=equipo_id)
+    partido = get_object_or_404(
+        Partido.objects.select_related("categoria", "equipo_local", "equipo_visitante"),
+        id=partido_id,
+        categoria=equipo.categoria,
+    )
+    if not partido_pertenece_equipo(partido, equipo):
+        return HttpResponseForbidden("Este equipo no pertenece al partido.")
+    if not puede_editar_alineacion_delegado(request.user, partido, equipo):
+        _, motivo = ventana_alineacion_delegado(partido)
+        return HttpResponseForbidden(f"No puedes editar esta alineacion en este momento. {motivo}")
+
+    sancionados_tarjetas = _sincronizar_no_disponibles_por_tarjetas(partido)
+    jugadores = list(Jugador.objects.filter(equipo=equipo, estado="ACTIVO").order_by("dorsal", "nombres"))
+    alineaciones = AlineacionPartido.objects.filter(partido=partido, equipo=equipo).select_related("jugador")
+    alineaciones_por_jugador = {alineacion.jugador_id: alineacion for alineacion in alineaciones}
+    jugadores = _marcar_roles_alineacion(jugadores, alineaciones_por_jugador, partido)
+    sancionados_equipo = {
+        jugador_id: data
+        for jugador_id, data in sancionados_tarjetas.items()
+        if data["equipo_id"] == equipo.id
+    }
+
+    if request.method == "POST":
+        jugadores_validos = {str(jugador.id) for jugador in jugadores}
+        roles_validos = {"TITULAR", "SUPLENTE", "NO_DISPONIBLE"}
+        posiciones_validas = {codigo for codigo, _ in AlineacionPartido.POSICIONES_CANCHA}
+        posiciones_usadas = set()
+        seleccionados = []
+
+        for jugador in jugadores:
+            jugador_id = str(jugador.id)
+            rol = request.POST.get(f"rol_{jugador_id}") or ""
+            if rol not in roles_validos:
+                continue
+            if jugador_id not in jugadores_validos:
+                continue
+            if jugador.id in sancionados_equipo:
+                rol = "NO_DISPONIBLE"
+            posicion = request.POST.get(f"posicion_{jugador_id}") or ""
+            if rol == "TITULAR":
+                if posicion not in posiciones_validas:
+                    posicion = ""
+                if posicion and posicion in posiciones_usadas:
+                    messages.error(request, "No repitas la misma posicion en la cancha.")
+                    return redirect("delegado_alineacion_partido", equipo_id=equipo.id, partido_id=partido.id)
+                if posicion:
+                    posiciones_usadas.add(posicion)
+            else:
+                posicion = ""
+            seleccionados.append((jugador.id, rol, posicion))
+
+        seleccionados_ids = {jugador_id for jugador_id, _, _ in seleccionados}
+        for jugador_id in sancionados_equipo.keys() - seleccionados_ids:
+            seleccionados.append((jugador_id, "NO_DISPONIBLE", ""))
+
+        titulares = [jugador_id for jugador_id, rol, _ in seleccionados if rol == "TITULAR"]
+        if len(titulares) > 11:
+            messages.error(request, "Solo puedes seleccionar 11 titulares.")
+            return redirect("delegado_alineacion_partido", equipo_id=equipo.id, partido_id=partido.id)
+
+        errores_edad = validar_reglas_edad_titulares(partido, equipo, titulares)
+        AlineacionPartido.objects.filter(partido=partido, equipo=equipo).delete()
+        AlineacionPartido.objects.bulk_create([
+            AlineacionPartido(partido=partido, equipo=equipo, jugador_id=jugador_id, rol=rol, posicion_cancha=posicion)
+            for jugador_id, rol, posicion in seleccionados
+        ])
+        _marcar_estadisticas_pendientes(partido, request.user)
+
+        if sancionados_equipo:
+            messages.warning(request, "Los jugadores sancionados quedaron como no disponibles.")
+        if errores_edad:
+            messages.warning(request, "Advertencia de reglas de edad: " + " ".join(errores_edad))
+        messages.success(request, f"Alineacion guardada para {equipo.nombre}.")
+        return redirect("delegado_equipo_editar", equipo_id=equipo.id)
+
+    return render(request, "equipos/delegado_alineacion_partido.html", {
+        "equipo": equipo,
+        "partido": partido,
+        "jugadores": jugadores,
+        "posiciones_cancha": AlineacionPartido.POSICIONES_CANCHA,
+        "sancionados_tarjetas": sancionados_equipo,
+    })
+
+
+@login_required
+def delegado_jugador_nuevo(request, equipo_id):
+    equipo = get_object_or_404(equipos_editables_para_usuario(request.user), id=equipo_id)
+    if not puede_editar_equipo_delegado(request.user, equipo):
+        return HttpResponseForbidden("El acceso a este equipo ya no esta vigente.")
+
+    form = JugadorDelegadoForm(request.POST or None, request.FILES or None)
+
+    if request.method == "POST" and form.is_valid():
+        jugador = form.save(commit=False)
+        jugador.equipo = equipo
+        jugador.nombres = jugador.nombres.upper()
+        jugador.save()
+        messages.success(request, "Jugador agregado correctamente.")
+        return redirect("delegado_equipo_editar", equipo_id=equipo.id)
+
+    return render(request, "equipos/delegado_jugador_formulario.html", {
+        "titulo": f"Agregar jugador: {equipo.nombre}",
+        "equipo": equipo,
+        "form": form,
+    })
+
+
+@login_required
+def delegado_jugador_editar(request, jugador_id):
+    jugador = get_object_or_404(
+        Jugador.objects.select_related("equipo", "equipo__categoria"),
+        id=jugador_id,
+    )
+    if not puede_editar_equipo_delegado(request.user, jugador.equipo):
+        return HttpResponseForbidden("No tienes permiso para editar este jugador.")
+
+    form = JugadorDelegadoForm(request.POST or None, request.FILES or None, instance=jugador)
+
+    if request.method == "POST" and form.is_valid():
+        jugador = form.save(commit=False)
+        jugador.nombres = jugador.nombres.upper()
+        jugador.save()
+        messages.success(request, "Jugador actualizado correctamente.")
+        return redirect("delegado_equipo_editar", equipo_id=jugador.equipo_id)
+
+    return render(request, "equipos/delegado_jugador_formulario.html", {
+        "titulo": f"Editar jugador: {jugador.nombres}",
+        "equipo": jugador.equipo,
+        "form": form,
+        "jugador": jugador,
+    })
+
+
+@login_required
+@require_POST
+def delegado_jugador_eliminar(request, jugador_id):
+    jugador = get_object_or_404(
+        Jugador.objects.select_related("equipo"),
+        id=jugador_id,
+    )
+    equipo_id = jugador.equipo_id
+    if not puede_editar_equipo_delegado(request.user, jugador.equipo):
+        return HttpResponseForbidden("No tienes permiso para eliminar este jugador.")
+
+    nombre = jugador.nombres
+    jugador.delete()
+    messages.success(request, f"Jugador eliminado: {nombre}.")
+    return redirect("delegado_equipo_editar", equipo_id=equipo_id)
+
 
 @login_required
 @user_passes_test(es_editor_torneo)
@@ -4305,7 +4628,9 @@ def gestion_partido_editar(request, partido_id):
     form = PartidoForm(request.POST or None, instance=partido, torneo=torneo)
 
     if request.method == "POST" and form.is_valid():
-        form.save()
+        partido = form.save()
+        if partido.estadisticas_validadas and not partido.estadisticas_validadas_en:
+            _validar_estadisticas_partido(partido, request.user)
         messages.success(request, "Partido actualizado correctamente.")
         return redirect("gestion_partidos")
 
@@ -4314,6 +4639,20 @@ def gestion_partido_editar(request, partido_id):
         "form": form,
         "volver_url": "gestion_partidos",
     })
+
+
+@login_required
+@user_passes_test(es_editor_torneo)
+@require_POST
+def gestion_partido_validar_estadisticas(request, partido_id):
+    torneo = torneo_actual(request)
+    partidos = Partido.objects.select_related("categoria", "equipo_local", "equipo_visitante")
+    if torneo:
+        partidos = partidos.filter(categoria__torneo=torneo)
+    partido = get_object_or_404(partidos, id=partido_id)
+    _validar_estadisticas_partido(partido, request.user)
+    messages.success(request, f"Estadisticas validadas: {partido.equipo_local} vs {partido.equipo_visitante}.")
+    return redirect(request.POST.get("next") or "gestion_partidos")
 
 
 @login_required

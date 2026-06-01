@@ -1,25 +1,28 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <title>Mis equipos</title>
-</head>
-<body>
+{% extends "gestion/base.html" %}
 
-<h1>Mis equipos</h1>
+{% block title %}Mis equipos{% endblock %}
+{% block heading %}Mis equipos{% endblock %}
+
+{% block content %}
+<p class="muted">Solo aparecen los equipos con acceso vigente para tu usuario.</p>
 
 {% for equipo in equipos %}
-    <div style="border:1px solid #ccc; padding:15px; margin:10px;">
-        <h2>{{ equipo.nombre }}</h2>
-        <p>{{ equipo.categoria.nombre }}</p>
-
-        <a href="{% url 'detalle_equipo' equipo.id %}">
-            Ver plantilla
-        </a>
+<div class="row">
+    <div style="display:flex;align-items:center;gap:12px;">
+        {% if equipo.escudo %}
+            <img class="avatar" src="{{ equipo.escudo.url }}" alt="">
+        {% endif %}
+        <div>
+            <div>{{ equipo.nombre }}</div>
+            <div class="muted">
+                {{ equipo.categoria.nombre }}
+                {% if equipo.acceso_delegado_hasta %} - Disponible hasta {{ equipo.acceso_delegado_hasta|date:"d/m/Y H:i" }}{% endif %}
+            </div>
+        </div>
     </div>
+    <a class="btn" href="{% url 'delegado_equipo_editar' equipo.id %}">Editar equipo</a>
+</div>
 {% empty %}
-    <p>No tienes equipos asignados.</p>
+<div class="card">No tienes equipos asignados con acceso vigente.</div>
 {% endfor %}
-
-</body>
-</html>
+{% endblock %}
