@@ -394,6 +394,23 @@ class PlanilleroPartidoTests(TestCase):
         self.assertContains(respuesta, "Resultado del partido")
         self.assertNotContains(respuesta, 'name="cancha"')
 
+    @override_settings(STORAGES={
+        "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+        "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
+    })
+    def test_planillero_ve_mensaje_de_acceso_exitoso_al_ingresar(self):
+        respuesta = self.client.post(
+            f"/ingresar/?next=/partido/{self.partido.id}/editor-movil/",
+            {
+                "username": "planillero",
+                "password": "test",
+                "next": f"/partido/{self.partido.id}/editor-movil/",
+            },
+            follow=True,
+        )
+
+        self.assertContains(respuesta, "Acceso exitoso. Ya puedes diligenciar tus partidos asignados.")
+
     def test_usuario_no_asignado_no_puede_abrir_editor(self):
         self.client.force_login(self.otro_usuario)
 
@@ -544,6 +561,18 @@ class DelegadoEquipoTests(TestCase):
         self.equipo.refresh_from_db()
         self.assertEqual(self.equipo.delegado, "Pablo Mazo")
         self.assertEqual(self.equipo.director_tecnico, "DT Uno")
+
+    def test_delegado_ve_mensaje_de_acceso_exitoso_al_ingresar(self):
+        respuesta = self.client.post(
+            "/ingresar/",
+            {
+                "username": "delegado",
+                "password": "test",
+            },
+            follow=True,
+        )
+
+        self.assertContains(respuesta, "Acceso exitoso. Bienvenido al portal de delegados.")
 
     def test_delegado_puede_agregar_jugador_a_su_equipo(self):
         self.client.force_login(self.delegado)

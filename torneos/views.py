@@ -123,6 +123,19 @@ def puede_editar_alineacion_delegado(user, partido, equipo):
 class IngresoTorneosView(LoginView):
     template_name = "registration/login.html"
 
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        user = self.request.user
+        if es_editor_torneo(user):
+            messages.success(self.request, "Acceso exitoso. Bienvenido al panel de gestion.")
+        elif equipos_delegado_vigentes(user).exists():
+            messages.success(self.request, "Acceso exitoso. Bienvenido al portal de delegados.")
+        elif user.partidos_planillero.exclude(estado="FINALIZADO").exists():
+            messages.success(self.request, "Acceso exitoso. Ya puedes diligenciar tus partidos asignados.")
+        else:
+            messages.success(self.request, "Acceso exitoso.")
+        return response
+
     def get_default_redirect_url(self):
         if (
             self.request.user.is_authenticated
