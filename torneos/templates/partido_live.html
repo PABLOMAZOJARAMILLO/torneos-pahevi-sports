@@ -959,7 +959,11 @@ a { color: inherit; text-decoration: none; }
         <a class="live-icon" href="javascript:navigator.share ? navigator.share({title: document.title, url: location.href}) : void 0">&nearr;</a>
     </div>
 
-    {% if puede_diligenciar_partido %}
+    {% if delegado_alineacion_url %}
+    <div class="admin-live-actions">
+        <a class="btn" href="{{ delegado_alineacion_url }}">Cargar alineaci&oacute;n</a>
+    </div>
+    {% elif puede_diligenciar_partido %}
     <div class="admin-live-actions">
         <details class="admin-live-menu">
             <summary>&#9881;&#65039; Editar partido</summary>

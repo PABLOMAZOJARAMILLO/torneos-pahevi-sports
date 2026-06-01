@@ -686,6 +686,50 @@ class DelegadoEquipoTests(TestCase):
         self.assertEqual(respuesta.status_code, 403)
         self.assertFalse(AlineacionPartido.objects.filter(partido=partido).exists())
 
+    def test_delegado_asignado_como_planillero_no_abre_editor_completo(self):
+        ahora_local = timezone.localtime()
+        partido = Partido.objects.create(
+            categoria=self.categoria,
+            equipo_local=self.equipo,
+            equipo_visitante=self.otro_equipo,
+            fecha=(ahora_local - timedelta(hours=1)).date(),
+            hora=(ahora_local - timedelta(hours=1)).time(),
+            estado="PROGRAMADO",
+        )
+        partido.planilleros.add(self.delegado)
+        self.client.force_login(self.delegado)
+
+        respuesta = self.client.get(f"/partido/{partido.id}/editor-movil/")
+
+        self.assertRedirects(
+            respuesta,
+            f"/delegado/equipos/{self.equipo.id}/partidos/{partido.id}/alineacion/",
+            fetch_redirect_response=False,
+        )
+
+    @override_settings(STORAGES={
+        "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+        "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
+    })
+    def test_partido_en_vivo_muestra_solo_boton_de_alineacion_a_delegado(self):
+        ahora_local = timezone.localtime()
+        partido = Partido.objects.create(
+            categoria=self.categoria,
+            equipo_local=self.equipo,
+            equipo_visitante=self.otro_equipo,
+            fecha=(ahora_local - timedelta(hours=1)).date(),
+            hora=(ahora_local - timedelta(hours=1)).time(),
+            estado="PROGRAMADO",
+        )
+        partido.planilleros.add(self.delegado)
+        self.client.force_login(self.delegado)
+
+        respuesta = self.client.get(f"/partido/{partido.id}/live/")
+
+        self.assertContains(respuesta, "Cargar alineaci")
+        self.assertNotContains(respuesta, "Goles <span>")
+        self.assertNotContains(respuesta, "Tarjetas <span>")
+
 
 class JugadorCedulaPorEquipoTests(TransactionTestCase):
     def test_permite_misma_cedula_en_categorias_distintas(self):

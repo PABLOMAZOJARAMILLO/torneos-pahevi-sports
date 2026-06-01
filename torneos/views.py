@@ -120,6 +120,24 @@ def puede_editar_alineacion_delegado(user, partido, equipo):
     return habilitado
 
 
+def equipo_delegado_para_partido(user, partido):
+    if not user.is_authenticated or not partido or es_editor_torneo(user):
+        return None
+    return equipos_delegado_vigentes(user).filter(
+        id__in=[partido.equipo_local_id, partido.equipo_visitante_id],
+    ).first()
+
+
+def url_alineacion_delegado_si_aplica(user, partido):
+    equipo = equipo_delegado_para_partido(user, partido)
+    if not equipo:
+        return ""
+    habilitado, _ = ventana_alineacion_delegado(partido)
+    if not habilitado:
+        return ""
+    return reverse("delegado_alineacion_partido", args=[equipo.id, partido.id])
+
+
 class IngresoTorneosView(LoginView):
     template_name = "registration/login.html"
 
@@ -3010,6 +3028,12 @@ def editor_partido_movil(request, partido_id):
         Partido.objects.select_related('categoria', 'equipo_local', 'equipo_visitante'),
         id=partido_id
     )
+    equipo_delegado = equipo_delegado_para_partido(request.user, partido)
+    if equipo_delegado:
+        if puede_editar_alineacion_delegado(request.user, partido, equipo_delegado):
+            return redirect("delegado_alineacion_partido", equipo_id=equipo_delegado.id, partido_id=partido.id)
+        _, motivo = ventana_alineacion_delegado(partido)
+        return HttpResponseForbidden(f"Los delegados solo pueden editar la alineacion de su equipo. {motivo}")
     if not puede_diligenciar_partido(request.user, partido):
         return denegar_partido_no_autorizado()
     sancionados_tarjetas = _sincronizar_no_disponibles_por_tarjetas(partido)
@@ -4995,6 +5019,7 @@ def partido_live(request, partido_id):
         "eventos_live": eventos_live,
         "segundos_vivos": segundos_vivos_partido(partido),
         "volver_url": volver_url,
+        "delegado_alineacion_url": url_alineacion_delegado_si_aplica(request.user, partido),
         "puede_diligenciar_partido": puede_diligenciar_partido(request.user, partido),
     })
 def _pausar_cronometro(partido):
