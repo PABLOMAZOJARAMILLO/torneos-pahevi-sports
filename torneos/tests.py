@@ -135,6 +135,39 @@ class CronometroEventoTests(TestCase):
 
         self.assertEqual(_minuto_evento_en_vivo(partido), 1)
 
+    def test_sustitucion_sin_minuto_usa_cronometro(self):
+        torneo = Torneo.objects.create(nombre="Veranero", fecha_inicio=date(2026, 1, 1))
+        categoria = Categoria.objects.create(nombre="Senior", edad_minima=18, edad_maxima=60, torneo=torneo)
+        equipo = Equipo.objects.create(nombre="Local", categoria=categoria)
+        rival = Equipo.objects.create(nombre="Visitante", categoria=categoria)
+        jugador_sale = Jugador.objects.create(equipo=equipo, nombres="Sale Uno", cedula="1", fecha_nacimiento=date(1990, 1, 1))
+        jugador_entra = Jugador.objects.create(equipo=equipo, nombres="Entra Uno", cedula="2", fecha_nacimiento=date(1991, 1, 1))
+        partido = Partido.objects.create(
+            categoria=categoria,
+            equipo_local=equipo,
+            equipo_visitante=rival,
+            fecha=date(2026, 6, 1),
+            hora=time(16, 0),
+            estado="EN_JUEGO",
+            segundos_acumulados=(39 * 60) + 33,
+            cronometro_pausado=True,
+        )
+        admin = User.objects.create_user("admin-crono", password="test", is_staff=True, is_superuser=True)
+
+        self.client.force_login(admin)
+        respuesta = self.client.post(
+            f"/partido/{partido.id}/agregar-sustitucion-movil/",
+            {
+                "equipo": str(equipo.id),
+                "jugador_sale": str(jugador_sale.id),
+                "jugador_entra": str(jugador_entra.id),
+            },
+        )
+
+        self.assertEqual(respuesta.status_code, 302)
+        sustitucion = SustitucionPartido.objects.get(partido=partido)
+        self.assertEqual(sustitucion.minuto, 39)
+
 
 class TablaPosicionesWoTests(TestCase):
     def test_partido_wo_suma_en_tabla(self):

@@ -3640,7 +3640,7 @@ def agregar_sustitucion_movil(request, partido_id):
     equipo_id = request.POST.get('equipo')
     jugador_sale_id = request.POST.get('jugador_sale')
     jugador_entra_id = request.POST.get('jugador_entra')
-    minuto = request.POST.get('minuto') or None
+    minuto = request.POST.get('minuto') or _minuto_evento_en_vivo(partido)
     observacion = request.POST.get('observacion') or ''
 
     if equipo_id and jugador_sale_id and jugador_entra_id:
