@@ -100,7 +100,7 @@ class SancionesTarjetasTests(TestCase):
 
 
 class ResumenPartidoOrdenTests(TestCase):
-    def test_ordena_por_minuto_y_luego_por_edicion(self):
+    def test_muestra_ultimo_movimiento_arriba(self):
         base = timezone.now()
         eventos = [
             SimpleNamespace(minuto=None, creado_en=base, orden=1),
@@ -109,9 +109,9 @@ class ResumenPartidoOrdenTests(TestCase):
             SimpleNamespace(minuto=None, creado_en=base + timedelta(seconds=10), orden=4),
         ]
 
-        ordenados = sorted(eventos, key=_clave_orden_evento_resumen)
+        ordenados = sorted(eventos, key=_clave_orden_evento_resumen, reverse=True)
 
-        self.assertEqual([evento.orden for evento in ordenados], [3, 2, 1, 4])
+        self.assertEqual([evento.orden for evento in ordenados], [2, 3, 4, 1])
 
 
 class TablaPosicionesWoTests(TestCase):

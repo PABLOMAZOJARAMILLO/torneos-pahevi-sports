@@ -3344,9 +3344,8 @@ def _minuto_evento_en_vivo(partido):
 def _clave_orden_evento_resumen(evento):
     creado_en = getattr(evento, "creado_en", None)
     return (
-        evento.minuto is None,
-        evento.minuto if evento.minuto is not None else 999,
-        creado_en is None,
+        evento.minuto is not None,
+        evento.minuto if evento.minuto is not None else -1,
         creado_en.timestamp() if creado_en else 0,
         evento.orden or 0,
     )
@@ -6043,6 +6042,7 @@ def partido_live(request, partido_id):
     eventos_live = sorted(
         eventos_live,
         key=_clave_orden_evento_resumen,
+        reverse=True,
     )
 
     return render(request, "partido_live.html", {
