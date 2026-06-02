@@ -4,6 +4,41 @@
 {% block heading %}Equipos{% endblock %}
 
 {% block content %}
+<style>
+    .acciones-delegados {
+        display: grid;
+        gap: 14px;
+    }
+    .tabs-admin {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    .tab-admin {
+        border: 1px solid rgba(0, 255, 102, 0.45);
+        border-radius: 999px;
+        padding: 9px 14px;
+        background: rgba(15, 23, 42, 0.78);
+        color: #e5e7eb;
+        cursor: pointer;
+        font-weight: 800;
+    }
+    .tab-admin.active {
+        background: #00e676;
+        color: #001b12;
+        border-color: #00e676;
+    }
+    .panel-delegados {
+        display: none;
+        border: 1px solid rgba(0, 255, 102, 0.35);
+        border-radius: 12px;
+        padding: 14px;
+    }
+    .panel-delegados.active {
+        display: block;
+    }
+</style>
+
 <p>
     <a class="btn" href="{% url 'gestion_equipo_nuevo' %}">Nuevo equipo</a>
     <a class="btn secondary" href="{% url 'gestion_panel' %}">Gestion</a>
@@ -27,61 +62,67 @@
     </p>
 </form>
 
-<div class="card">
-    <h2>Crear usuarios delegados</h2>
-    <p class="muted">Crea un usuario distinto para cada equipo visible que todavia no tenga delegado responsable.</p>
-    <form method="post" action="{% url 'gestion_equipos_crear_delegados_masivo' %}">
-        {% csrf_token %}
-        <input type="hidden" name="q" value="{{ q }}">
-        <input type="hidden" name="categoria" value="{{ categoria_id }}">
+<div class="card acciones-delegados">
+    <h2>Acciones de delegados</h2>
+    <div class="tabs-admin" role="tablist" aria-label="Acciones de delegados">
+        <button class="tab-admin active" type="button" data-tab-delegados="crear">Crear</button>
+        <button class="tab-admin" type="button" data-tab-delegados="vencimiento">Vencimiento</button>
+        <button class="tab-admin" type="button" data-tab-delegados="renombrar">Renombrar</button>
+    </div>
 
-        <label for="password-temporal">Contrasena temporal</label>
-        <input id="password-temporal" type="text" name="password_temporal" minlength="8" required>
+    <section class="panel-delegados active" data-panel-delegados="crear">
+        <p class="muted">Crea un usuario distinto para cada equipo visible que todavia no tenga delegado responsable.</p>
+        <form method="post" action="{% url 'gestion_equipos_crear_delegados_masivo' %}">
+            {% csrf_token %}
+            <input type="hidden" name="q" value="{{ q }}">
+            <input type="hidden" name="categoria" value="{{ categoria_id }}">
 
-        <label for="acceso-creacion">Puede editar hasta</label>
-        <input id="acceso-creacion" type="datetime-local" name="acceso_delegado_hasta">
+            <label for="password-temporal">Contrasena temporal</label>
+            <input id="password-temporal" type="text" name="password_temporal" minlength="8" required>
 
-        <p>
-            <button class="btn" type="submit" onclick="return confirm('Se creara un usuario delegado distinto para cada equipo visible sin responsable. Continuar?');">
-                Crear usuarios faltantes
-            </button>
-        </p>
-    </form>
-</div>
+            <label for="acceso-creacion">Puede editar hasta</label>
+            <input id="acceso-creacion" type="datetime-local" name="acceso_delegado_hasta">
 
-<div class="card">
-    <h2>Vencimiento delegado masivo</h2>
-    <p class="muted">Actualiza solo la fecha/hora de vencimiento de los equipos visibles que ya tienen delegado asignado.</p>
-    <form method="post" action="{% url 'gestion_equipos_acceso_delegado_masivo' %}">
-        {% csrf_token %}
-        <input type="hidden" name="q" value="{{ q }}">
-        <input type="hidden" name="categoria" value="{{ categoria_id }}">
+            <p>
+                <button class="btn" type="submit" onclick="return confirm('Se creara un usuario delegado distinto para cada equipo visible sin responsable. Continuar?');">
+                    Crear usuarios faltantes
+                </button>
+            </p>
+        </form>
+    </section>
 
-        <label for="acceso-masivo">Puede editar hasta</label>
-        <input id="acceso-masivo" type="datetime-local" name="acceso_delegado_hasta" required>
+    <section class="panel-delegados" data-panel-delegados="vencimiento">
+        <p class="muted">Actualiza solo la fecha/hora de vencimiento de los equipos visibles que ya tienen delegado asignado.</p>
+        <form method="post" action="{% url 'gestion_equipos_acceso_delegado_masivo' %}">
+            {% csrf_token %}
+            <input type="hidden" name="q" value="{{ q }}">
+            <input type="hidden" name="categoria" value="{{ categoria_id }}">
 
-        <p>
-            <button class="btn" type="submit" onclick="return confirm('Se actualizara solo la fecha de acceso de los delegados ya asignados. Continuar?');">
-                Actualizar vencimiento
-            </button>
-        </p>
-    </form>
-</div>
+            <label for="acceso-masivo">Puede editar hasta</label>
+            <input id="acceso-masivo" type="datetime-local" name="acceso_delegado_hasta" required>
 
-<div class="card">
-    <h2>Renombrar usuarios delegados</h2>
-    <p class="muted">Cambia los usuarios largos de los equipos visibles al formato corto, por ejemplo admin-niquelerosfc.</p>
-    <form method="post" action="{% url 'gestion_equipos_renombrar_delegados_masivo' %}">
-        {% csrf_token %}
-        <input type="hidden" name="q" value="{{ q }}">
-        <input type="hidden" name="categoria" value="{{ categoria_id }}">
+            <p>
+                <button class="btn" type="submit" onclick="return confirm('Se actualizara solo la fecha de acceso de los delegados ya asignados. Continuar?');">
+                    Actualizar vencimiento
+                </button>
+            </p>
+        </form>
+    </section>
 
-        <p>
-            <button class="btn secondary" type="submit" onclick="return confirm('Se renombraran los usuarios responsables de los equipos visibles. Las contrasenas no cambian. Continuar?');">
-                Renombrar usuarios visibles
-            </button>
-        </p>
-    </form>
+    <section class="panel-delegados" data-panel-delegados="renombrar">
+        <p class="muted">Cambia los usuarios largos de los equipos visibles al formato corto, por ejemplo admin-niquelerosfc.</p>
+        <form method="post" action="{% url 'gestion_equipos_renombrar_delegados_masivo' %}">
+            {% csrf_token %}
+            <input type="hidden" name="q" value="{{ q }}">
+            <input type="hidden" name="categoria" value="{{ categoria_id }}">
+
+            <p>
+                <button class="btn secondary" type="submit" onclick="return confirm('Se renombraran los usuarios responsables de los equipos visibles. Las contrasenas no cambian. Continuar?');">
+                    Renombrar usuarios visibles
+                </button>
+            </p>
+        </form>
+    </section>
 </div>
 
 {% for equipo in equipos %}
@@ -110,4 +151,18 @@
 {% empty %}
 <div class="card">No hay equipos registrados.</div>
 {% endfor %}
+
+<script>
+    document.querySelectorAll('[data-tab-delegados]').forEach(function (boton) {
+        boton.addEventListener('click', function () {
+            var tab = boton.getAttribute('data-tab-delegados');
+            document.querySelectorAll('[data-tab-delegados]').forEach(function (item) {
+                item.classList.toggle('active', item === boton);
+            });
+            document.querySelectorAll('[data-panel-delegados]').forEach(function (panel) {
+                panel.classList.toggle('active', panel.getAttribute('data-panel-delegados') === tab);
+            });
+        });
+    });
+</script>
 {% endblock %}
