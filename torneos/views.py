@@ -951,6 +951,48 @@ def valor_por_encabezado(row, indices, *nombres):
     return None
 
 
+def encabezado_existe(indices, *nombres):
+    return any(normalizar_encabezado_excel(nombre) in indices for nombre in nombres)
+
+
+def separar_planilleros_excel(valor):
+    texto = limpiar_texto_excel(valor)
+    if not texto:
+        return []
+
+    return [
+        item.strip()
+        for item in re.split(r"[;,\n\r]+", texto)
+        if item.strip()
+    ]
+
+
+def buscar_planilleros_excel(valor):
+    usuarios = []
+    no_encontrados = []
+
+    for identificador in separar_planilleros_excel(valor):
+        usuario = User.objects.filter(
+            Q(username__iexact=identificador) | Q(email__iexact=identificador),
+            is_active=True,
+        ).first()
+
+        if not usuario:
+            identificador_normalizado = limpiar_nombre(identificador)
+            for candidato in User.objects.filter(is_active=True):
+                if limpiar_nombre(candidato.get_full_name()) == identificador_normalizado:
+                    usuario = candidato
+                    break
+
+        if usuario:
+            if usuario not in usuarios:
+                usuarios.append(usuario)
+        else:
+            no_encontrados.append(identificador)
+
+    return usuarios, no_encontrados
+
+
 def construir_fecha_partido_excel(valor):
     if not valor:
         return None
@@ -5488,6 +5530,16 @@ def gestion_importar_partidos(request):
             actualizados = 0
             omitidos = 0
             errores = []
+            planilleros_asignados = 0
+            tiene_columna_planillero = encabezado_existe(
+                encabezados,
+                "planillero",
+                "planilleros",
+                "planillero_asignado",
+                "planilleros_asignados",
+                "usuario_planillero",
+                "usuarios_planilleros",
+            )
 
             for numero_fila, row in enumerate(hoja.iter_rows(min_row=2), start=2):
                 categoria_nombre = limpiar_texto_excel(valor_por_encabezado(row, encabezados, "categoria", "categoría"))
@@ -5534,6 +5586,16 @@ def gestion_importar_partidos(request):
                 hora_partido = construir_hora_partido_excel(valor_por_encabezado(row, encabezados, "hora"))
                 goles_local = limpiar_entero_excel(valor_por_encabezado(row, encabezados, "goles_local", "gl")) or 0
                 goles_visitante = limpiar_entero_excel(valor_por_encabezado(row, encabezados, "goles_visitante", "gv")) or 0
+                planilleros_excel = valor_por_encabezado(
+                    row,
+                    encabezados,
+                    "planillero",
+                    "planilleros",
+                    "planillero_asignado",
+                    "planilleros_asignados",
+                    "usuario_planillero",
+                    "usuarios_planilleros",
+                )
 
                 if fase not in dict(Partido.FASES):
                     fase = fase.upper().replace(" ", "_")
@@ -5570,16 +5632,37 @@ def gestion_importar_partidos(request):
                 else:
                     actualizados += 1
 
+                if tiene_columna_planillero and limpiar_texto_excel(planilleros_excel):
+                    planilleros, planilleros_no_encontrados = buscar_planilleros_excel(planilleros_excel)
+                    if planilleros:
+                        partido.planilleros.set(planilleros)
+                        planilleros_asignados += len(planilleros)
+                    if planilleros_no_encontrados:
+                        errores.append(
+                            f"Fila {numero_fila}: planillero(s) no encontrado(s): {', '.join(planilleros_no_encontrados)}."
+                        )
+
             messages.success(
                 request,
-                f"Partidos importados. Nuevos: {creados}. Actualizados: {actualizados}. Omitidos: {omitidos}.",
+                (
+                    f"Partidos importados. Nuevos: {creados}. Actualizados: {actualizados}. "
+                    f"Omitidos: {omitidos}. Planilleros asignados: {planilleros_asignados}."
+                ),
             )
             registrar_actividad(
                 request,
                 "IMPORTAR_PARTIDOS",
                 torneo=torneo,
-                descripcion=f"Importo partidos. Nuevos: {creados}. Actualizados: {actualizados}. Omitidos: {omitidos}.",
-                datos={"creados": creados, "actualizados": actualizados, "omitidos": omitidos},
+                descripcion=(
+                    f"Importo partidos. Nuevos: {creados}. Actualizados: {actualizados}. "
+                    f"Omitidos: {omitidos}. Planilleros asignados: {planilleros_asignados}."
+                ),
+                datos={
+                    "creados": creados,
+                    "actualizados": actualizados,
+                    "omitidos": omitidos,
+                    "planilleros_asignados": planilleros_asignados,
+                },
             )
 
             for error in errores[:12]:

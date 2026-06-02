@@ -9,7 +9,7 @@ from django.utils import timezone
 
 from .forms import JugadorForm
 from .models import AlineacionPartido, AdminOrganizador, AdminTorneo, Categoria, Equipo, Gol, Jugador, Organizador, Partido, ReglaEdadCategoria, RegistroActividad, SustitucionPartido, Tarjeta, Torneo
-from .views import construir_estructura, construir_estadisticas_foraneos, construir_partidos_portada, construir_partidos_programacion, _clave_orden_evento_resumen, _sincronizar_no_disponibles_por_tarjetas, etiqueta_edad_jugador, texto_edad_jugador, validar_reglas_edad_titulares
+from .views import buscar_planilleros_excel, construir_estructura, construir_estadisticas_foraneos, construir_partidos_portada, construir_partidos_programacion, _clave_orden_evento_resumen, _sincronizar_no_disponibles_por_tarjetas, etiqueta_edad_jugador, texto_edad_jugador, validar_reglas_edad_titulares
 
 
 class SancionesTarjetasTests(TestCase):
@@ -757,6 +757,25 @@ class FixtureProgramacionBalanceadaTests(TestCase):
         self.assertEqual(respuesta.status_code, 302)
         partido.refresh_from_db()
         self.assertEqual(partido.estado_programacion, "OFICIAL")
+
+
+class ImportacionPartidosPlanillerosTests(TestCase):
+    def test_busca_planilleros_por_usuario_correo_y_nombre(self):
+        usuario = User.objects.create_user(
+            "planilla1",
+            email="planilla1@example.com",
+            password="test",
+            first_name="Carlos",
+            last_name="Planillero",
+        )
+        otro = User.objects.create_user("planilla2", email="planilla2@example.com", password="test")
+
+        planilleros, no_encontrados = buscar_planilleros_excel(
+            "planilla1; planilla2@example.com; Carlos Planillero; noexiste"
+        )
+
+        self.assertEqual(planilleros, [usuario, otro])
+        self.assertEqual(no_encontrados, ["noexiste"])
 
 
 class DelegadoEquipoTests(TestCase):
