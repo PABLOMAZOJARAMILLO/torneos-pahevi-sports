@@ -4919,12 +4919,10 @@ def gestion_equipos(request):
         categorias = categorias.filter(torneo=torneo)
     q = request.GET.get("q", "").strip()
     categoria_id = request.GET.get("categoria", "").strip()
-    usuarios_delegados = User.objects.filter(is_active=True, is_staff=False).order_by("username")
 
     return render(request, "gestion/equipos.html", {
         "equipos": equipos,
         "categorias": categorias,
-        "usuarios_delegados": usuarios_delegados,
         "q": q,
         "categoria_id": categoria_id,
     })
@@ -4951,18 +4949,12 @@ def gestion_equipos_acceso_delegado_masivo(request):
     if not puede_gestionar_torneo(request, torneo, "editar"):
         return denegar_permiso_torneo()
 
-    responsable_id = (request.POST.get("responsable") or "").strip()
     acceso_hasta_texto = (request.POST.get("acceso_delegado_hasta") or "").strip()
     q = request.POST.get("q", "")
     categoria_id = request.POST.get("categoria", "")
 
-    if not responsable_id or not acceso_hasta_texto:
-        messages.error(request, "Selecciona el delegado y la fecha/hora de vencimiento.")
-        return redirect(f"{reverse('gestion_equipos')}?q={quote(q)}&categoria={quote(categoria_id)}")
-
-    responsable = User.objects.filter(id=responsable_id, is_active=True, is_staff=False).first()
-    if not responsable:
-        messages.error(request, "El usuario delegado seleccionado no es valido.")
+    if not acceso_hasta_texto:
+        messages.error(request, "Selecciona la fecha/hora de vencimiento.")
         return redirect(f"{reverse('gestion_equipos')}?q={quote(q)}&categoria={quote(categoria_id)}")
 
     acceso_hasta = parse_datetime(acceso_hasta_texto)
@@ -4972,24 +4964,22 @@ def gestion_equipos_acceso_delegado_masivo(request):
     if timezone.is_naive(acceso_hasta):
         acceso_hasta = timezone.make_aware(acceso_hasta, timezone.get_current_timezone())
 
-    equipos = equipos_gestion_filtrados(torneo, q, categoria_id)
-    cantidad = equipos.update(responsable=responsable, acceso_delegado_hasta=acceso_hasta)
+    equipos = equipos_gestion_filtrados(torneo, q, categoria_id).filter(responsable__isnull=False)
+    cantidad = equipos.update(acceso_delegado_hasta=acceso_hasta)
 
     registrar_actividad(
         request,
         "ACCESO_DELEGADO_MASIVO",
         torneo=torneo,
-        descripcion=f"Asigno delegado {responsable.username} a {cantidad} equipo(s) hasta {timezone.localtime(acceso_hasta).strftime('%d/%m/%Y %H:%M')}.",
+        descripcion=f"Actualizo vencimiento de acceso delegado para {cantidad} equipo(s) hasta {timezone.localtime(acceso_hasta).strftime('%d/%m/%Y %H:%M')}.",
         datos={
-            "responsable": responsable.username,
-            "responsable_id": responsable.id,
             "equipos": cantidad,
             "categoria_id": categoria_id,
             "q": q,
             "acceso_delegado_hasta": acceso_hasta.isoformat(),
         },
     )
-    messages.success(request, f"Acceso delegado actualizado para {cantidad} equipo(s).")
+    messages.success(request, f"Fecha de acceso delegado actualizada para {cantidad} equipo(s) con responsable asignado.")
     return redirect(f"{reverse('gestion_equipos')}?q={quote(q)}&categoria={quote(categoria_id)}")
 
 

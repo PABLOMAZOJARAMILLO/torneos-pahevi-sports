@@ -912,13 +912,14 @@ class GestionEquiposAccesoDelegadoMasivoTests(TestCase):
             edad_maxima=60,
             torneo=self.torneo,
         )
-        self.equipo_uno = Equipo.objects.create(nombre="Equipo Uno", categoria=self.categoria)
-        self.equipo_dos = Equipo.objects.create(nombre="Equipo Dos", categoria=self.categoria)
+        self.delegado_uno = User.objects.create_user("delegado-uno", password="test")
+        self.delegado_dos = User.objects.create_user("delegado-dos", password="test")
+        self.equipo_uno = Equipo.objects.create(nombre="Equipo Uno", categoria=self.categoria, responsable=self.delegado_uno)
+        self.equipo_dos = Equipo.objects.create(nombre="Equipo Dos", categoria=self.categoria, responsable=self.delegado_dos)
         self.equipo_otro = Equipo.objects.create(nombre="Equipo Otro", categoria=self.otra_categoria)
-        self.delegado = User.objects.create_user("delegado-masivo", password="test")
         self.admin = User.objects.create_user("admin-masivo", password="test", is_staff=True, is_superuser=True)
 
-    def test_asigna_delegado_y_vencimiento_a_equipos_filtrados(self):
+    def test_actualiza_vencimiento_sin_reemplazar_delegados(self):
         self.client.force_login(self.admin)
         session = self.client.session
         session["torneo_id"] = self.torneo.id
@@ -927,7 +928,6 @@ class GestionEquiposAccesoDelegadoMasivoTests(TestCase):
         respuesta = self.client.post(
             "/gestion/equipos/acceso-delegado-masivo/",
             {
-                "responsable": str(self.delegado.id),
                 "acceso_delegado_hasta": "2026-06-10T18:00",
                 "categoria": str(self.categoria.id),
                 "q": "",
@@ -938,10 +938,12 @@ class GestionEquiposAccesoDelegadoMasivoTests(TestCase):
         self.equipo_uno.refresh_from_db()
         self.equipo_dos.refresh_from_db()
         self.equipo_otro.refresh_from_db()
-        self.assertEqual(self.equipo_uno.responsable, self.delegado)
-        self.assertEqual(self.equipo_dos.responsable, self.delegado)
+        self.assertEqual(self.equipo_uno.responsable, self.delegado_uno)
+        self.assertEqual(self.equipo_dos.responsable, self.delegado_dos)
         self.assertIsNone(self.equipo_otro.responsable)
         self.assertEqual(timezone.localtime(self.equipo_uno.acceso_delegado_hasta).strftime("%Y-%m-%dT%H:%M"), "2026-06-10T18:00")
+        self.assertEqual(timezone.localtime(self.equipo_dos.acceso_delegado_hasta).strftime("%Y-%m-%dT%H:%M"), "2026-06-10T18:00")
+        self.assertIsNone(self.equipo_otro.acceso_delegado_hasta)
 
 
 class DelegadoEquipoTests(TestCase):
