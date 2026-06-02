@@ -2162,7 +2162,6 @@ def panel_principal(request):
     partidos_resultados = sorted(
         [p for p in partidos_portada if p["bloque"] == "RESULTADOS RECIENTES"],
         key=lambda p: (
-            orden_fecha_fixture(p),
             p["orden_fecha"],
             p["hora_orden"],
             p["categoria"],
