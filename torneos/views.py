@@ -1941,7 +1941,6 @@ def validar_reglas_edad_titulares(partido, equipo, titulares_ids):
 
 
 def construir_partidos_portada(torneo=None):
-    hoy = date.today()
     partidos = Partido.objects.filter(
         fecha__isnull=False,
     ).select_related(
@@ -1982,11 +1981,19 @@ def construir_partidos_portada(torneo=None):
         if partido.estado not in estados_visibles:
             continue
 
+        cancha_normalizada = (partido.cancha or "").strip().lower()
+        programacion_completa = (
+            bool(cancha_normalizada)
+            and cancha_normalizada != "por definir"
+            and partido.hora
+            and partido.hora != time(0, 0)
+        )
+
         if partido.estado in ESTADOS_PARTIDO_CERRADO:
             bloque = "RESULTADOS RECIENTES"
             orden_bloque = 0
             orden_fecha = partido.fecha.toordinal()
-        elif partido.fecha <= hoy:
+        elif partido.estado == "EN_JUEGO" or programacion_completa:
             bloque = "PROGRAMADOS"
             orden_bloque = 1
             orden_fecha = partido.fecha.toordinal()

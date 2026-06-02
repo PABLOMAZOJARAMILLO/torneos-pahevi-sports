@@ -9,7 +9,7 @@ from django.utils import timezone
 
 from .forms import JugadorForm
 from .models import AlineacionPartido, AdminOrganizador, AdminTorneo, Categoria, Equipo, Gol, Jugador, Organizador, Partido, ReglaEdadCategoria, RegistroActividad, SustitucionPartido, Tarjeta, Torneo
-from .views import construir_estructura, construir_estadisticas_foraneos, construir_partidos_programacion, _clave_orden_evento_resumen, _sincronizar_no_disponibles_por_tarjetas, etiqueta_edad_jugador, texto_edad_jugador, validar_reglas_edad_titulares
+from .views import construir_estructura, construir_estadisticas_foraneos, construir_partidos_portada, construir_partidos_programacion, _clave_orden_evento_resumen, _sincronizar_no_disponibles_por_tarjetas, etiqueta_edad_jugador, texto_edad_jugador, validar_reglas_edad_titulares
 
 
 class SancionesTarjetasTests(TestCase):
@@ -686,6 +686,35 @@ class FixtureProgramacionBalanceadaTests(TestCase):
         self.assertTrue(all(partido.cancha == "" for partido in partidos))
         self.assertTrue(all(partido.hora == time(0, 0) for partido in partidos))
         self.assertTrue(all(partido.estado_programacion == "MANUAL" for partido in partidos))
+
+    def test_portada_distingue_programados_reales_de_futuros_sin_programar(self):
+        programado = Partido.objects.create(
+            categoria=self.categoria,
+            equipo_local=self.equipos[0],
+            equipo_visitante=self.equipos[1],
+            fecha=date.today() + timedelta(days=30),
+            hora=time(16, 0),
+            cancha="Porvenir",
+            estado="PROGRAMADO",
+            numero_fecha="1",
+            grupo="A",
+        )
+        futuro = Partido.objects.create(
+            categoria=self.categoria,
+            equipo_local=self.equipos[2],
+            equipo_visitante=self.equipos[3],
+            fecha=date.today() + timedelta(days=30),
+            hora=time(0, 0),
+            cancha="",
+            estado="PROGRAMADO",
+            numero_fecha="1",
+            grupo="A",
+        )
+
+        partidos_portada = {partido["id"]: partido for partido in construir_partidos_portada(self.torneo)}
+
+        self.assertEqual(partidos_portada[programado.id]["bloque"], "PROGRAMADOS")
+        self.assertEqual(partidos_portada[futuro.id]["bloque"], "FUTUROS")
 
     def test_fixture_con_programacion_balancea_cancha_obligatoria(self):
         self.client.force_login(self.admin)
