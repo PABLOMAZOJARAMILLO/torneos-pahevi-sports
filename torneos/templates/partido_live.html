@@ -1001,7 +1001,7 @@ a { color: inherit; text-decoration: none; }
             {% if partido.estado == "EN_JUEGO" %}
             <span class="live-clock"
                   data-inicio="{{ partido.inicio_en_vivo|date:'c' }}"
-                  data-segundos="{{ segundos_vivos|default:0 }}"
+                  data-segundos="{{ partido.segundos_acumulados|default:0 }}"
                   data-pausado="{% if partido.cronometro_pausado %}1{% else %}0{% endif %}"
                   data-periodo="{{ partido.periodo_en_vivo|default:'PT' }}">&#9201; 1T &middot; 00:00</span>
             {% endif %}
