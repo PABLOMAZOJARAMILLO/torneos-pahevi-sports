@@ -2172,8 +2172,7 @@ def panel_principal(request):
         [p for p in partidos_portada if p["bloque"] == "PROGRAMADOS"],
         key=lambda p: (
             orden_fecha_fixture(p),
-            0 if p["fecha"] >= date.today() else 1,
-            p["orden_fecha"] if p["fecha"] >= date.today() else -p["orden_fecha"],
+            p["orden_fecha"],
             p["hora_orden"],
             p["categoria"],
             p["grupo"],
