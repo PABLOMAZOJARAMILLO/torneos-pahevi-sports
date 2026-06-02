@@ -897,6 +897,53 @@ class PartidoFormTests(TestCase):
         self.assertNotIn(self.admin, usuarios)
 
 
+class GestionEquiposAccesoDelegadoMasivoTests(TestCase):
+    def setUp(self):
+        self.torneo = Torneo.objects.create(nombre="Veranero", fecha_inicio=date(2026, 1, 1))
+        self.categoria = Categoria.objects.create(
+            nombre="Senior",
+            edad_minima=18,
+            edad_maxima=60,
+            torneo=self.torneo,
+        )
+        self.otra_categoria = Categoria.objects.create(
+            nombre="Plus",
+            edad_minima=18,
+            edad_maxima=60,
+            torneo=self.torneo,
+        )
+        self.equipo_uno = Equipo.objects.create(nombre="Equipo Uno", categoria=self.categoria)
+        self.equipo_dos = Equipo.objects.create(nombre="Equipo Dos", categoria=self.categoria)
+        self.equipo_otro = Equipo.objects.create(nombre="Equipo Otro", categoria=self.otra_categoria)
+        self.delegado = User.objects.create_user("delegado-masivo", password="test")
+        self.admin = User.objects.create_user("admin-masivo", password="test", is_staff=True, is_superuser=True)
+
+    def test_asigna_delegado_y_vencimiento_a_equipos_filtrados(self):
+        self.client.force_login(self.admin)
+        session = self.client.session
+        session["torneo_id"] = self.torneo.id
+        session.save()
+
+        respuesta = self.client.post(
+            "/gestion/equipos/acceso-delegado-masivo/",
+            {
+                "responsable": str(self.delegado.id),
+                "acceso_delegado_hasta": "2026-06-10T18:00",
+                "categoria": str(self.categoria.id),
+                "q": "",
+            },
+        )
+
+        self.assertEqual(respuesta.status_code, 302)
+        self.equipo_uno.refresh_from_db()
+        self.equipo_dos.refresh_from_db()
+        self.equipo_otro.refresh_from_db()
+        self.assertEqual(self.equipo_uno.responsable, self.delegado)
+        self.assertEqual(self.equipo_dos.responsable, self.delegado)
+        self.assertIsNone(self.equipo_otro.responsable)
+        self.assertEqual(timezone.localtime(self.equipo_uno.acceso_delegado_hasta).strftime("%Y-%m-%dT%H:%M"), "2026-06-10T18:00")
+
+
 class DelegadoEquipoTests(TestCase):
     def setUp(self):
         self.torneo = Torneo.objects.create(

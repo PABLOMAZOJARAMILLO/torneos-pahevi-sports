@@ -27,6 +27,33 @@
     </p>
 </form>
 
+<div class="card">
+    <h2>Acceso delegado masivo</h2>
+    <p class="muted">Aplica el mismo usuario y vencimiento a los equipos visibles con el filtro actual.</p>
+    <form method="post" action="{% url 'gestion_equipos_acceso_delegado_masivo' %}">
+        {% csrf_token %}
+        <input type="hidden" name="q" value="{{ q }}">
+        <input type="hidden" name="categoria" value="{{ categoria_id }}">
+
+        <label for="responsable-masivo">Usuario delegado</label>
+        <select id="responsable-masivo" name="responsable" required>
+            <option value="">Seleccionar usuario</option>
+            {% for usuario in usuarios_delegados %}
+                <option value="{{ usuario.id }}">{{ usuario.get_full_name|default:usuario.username }}{% if usuario.email %} - {{ usuario.email }}{% endif %}</option>
+            {% endfor %}
+        </select>
+
+        <label for="acceso-masivo">Puede editar hasta</label>
+        <input id="acceso-masivo" type="datetime-local" name="acceso_delegado_hasta" required>
+
+        <p>
+            <button class="btn" type="submit" onclick="return confirm('Se actualizara el acceso delegado de los equipos visibles. ¿Continuar?');">
+                Aplicar a {{ equipos|length }} equipo(s)
+            </button>
+        </p>
+    </form>
+</div>
+
 {% for equipo in equipos %}
 <div class="row">
     <div style="display:flex;align-items:center;gap:12px;">
@@ -35,7 +62,11 @@
         {% endif %}
         <div>
             <div>{{ equipo.nombre }}</div>
-            <div class="muted">{{ equipo.categoria.nombre }}{% if not equipo.activo %} · Inactivo{% endif %}</div>
+            <div class="muted">
+                {{ equipo.categoria.nombre }}{% if not equipo.activo %} · Inactivo{% endif %}
+                {% if equipo.responsable %} · Delegado: {{ equipo.responsable.get_full_name|default:equipo.responsable.username }}{% endif %}
+                {% if equipo.acceso_delegado_hasta %} · Hasta: {{ equipo.acceso_delegado_hasta|date:"d/m/Y H:i" }}{% endif %}
+            </div>
         </div>
     </div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;">

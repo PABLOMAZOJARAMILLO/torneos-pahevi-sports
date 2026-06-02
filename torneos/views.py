@@ -25,6 +25,7 @@ from django.template.loader import render_to_string
 from django.templatetags.static import static
 from django.utils.html import escape
 from django.utils.http import url_has_allowed_host_and_scheme
+from django.utils.dateparse import parse_datetime
 from html2image import Html2Image
 import requests
 from django.views.decorators.http import require_POST
@@ -4913,25 +4914,83 @@ def gestion_generar_fixture(request):
 def gestion_equipos(request):
     torneo = torneo_actual(request)
     categorias = Categoria.objects.order_by("nombre")
-    equipos = Equipo.objects.select_related("categoria").order_by("categoria__nombre", "nombre")
+    equipos = equipos_gestion_filtrados(torneo, request.GET.get("q", ""), request.GET.get("categoria", ""))
     if torneo:
         categorias = categorias.filter(torneo=torneo)
-        equipos = equipos.filter(categoria__torneo=torneo)
     q = request.GET.get("q", "").strip()
     categoria_id = request.GET.get("categoria", "").strip()
-
-    if q:
-        equipos = equipos.filter(nombre__icontains=q)
-
-    if categoria_id:
-        equipos = equipos.filter(categoria_id=categoria_id)
+    usuarios_delegados = User.objects.filter(is_active=True, is_staff=False).order_by("username")
 
     return render(request, "gestion/equipos.html", {
         "equipos": equipos,
         "categorias": categorias,
+        "usuarios_delegados": usuarios_delegados,
         "q": q,
         "categoria_id": categoria_id,
     })
+
+
+def equipos_gestion_filtrados(torneo, q="", categoria_id=""):
+    equipos = Equipo.objects.select_related("categoria").order_by("categoria__nombre", "nombre")
+    if torneo:
+        equipos = equipos.filter(categoria__torneo=torneo)
+    q = (q or "").strip()
+    categoria_id = (categoria_id or "").strip()
+    if q:
+        equipos = equipos.filter(nombre__icontains=q)
+    if categoria_id:
+        equipos = equipos.filter(categoria_id=categoria_id)
+    return equipos
+
+
+@login_required
+@user_passes_test(es_editor_torneo)
+@require_POST
+def gestion_equipos_acceso_delegado_masivo(request):
+    torneo = torneo_actual(request)
+    if not puede_gestionar_torneo(request, torneo, "editar"):
+        return denegar_permiso_torneo()
+
+    responsable_id = (request.POST.get("responsable") or "").strip()
+    acceso_hasta_texto = (request.POST.get("acceso_delegado_hasta") or "").strip()
+    q = request.POST.get("q", "")
+    categoria_id = request.POST.get("categoria", "")
+
+    if not responsable_id or not acceso_hasta_texto:
+        messages.error(request, "Selecciona el delegado y la fecha/hora de vencimiento.")
+        return redirect(f"{reverse('gestion_equipos')}?q={quote(q)}&categoria={quote(categoria_id)}")
+
+    responsable = User.objects.filter(id=responsable_id, is_active=True, is_staff=False).first()
+    if not responsable:
+        messages.error(request, "El usuario delegado seleccionado no es valido.")
+        return redirect(f"{reverse('gestion_equipos')}?q={quote(q)}&categoria={quote(categoria_id)}")
+
+    acceso_hasta = parse_datetime(acceso_hasta_texto)
+    if not acceso_hasta:
+        messages.error(request, "La fecha/hora de vencimiento no es valida.")
+        return redirect(f"{reverse('gestion_equipos')}?q={quote(q)}&categoria={quote(categoria_id)}")
+    if timezone.is_naive(acceso_hasta):
+        acceso_hasta = timezone.make_aware(acceso_hasta, timezone.get_current_timezone())
+
+    equipos = equipos_gestion_filtrados(torneo, q, categoria_id)
+    cantidad = equipos.update(responsable=responsable, acceso_delegado_hasta=acceso_hasta)
+
+    registrar_actividad(
+        request,
+        "ACCESO_DELEGADO_MASIVO",
+        torneo=torneo,
+        descripcion=f"Asigno delegado {responsable.username} a {cantidad} equipo(s) hasta {timezone.localtime(acceso_hasta).strftime('%d/%m/%Y %H:%M')}.",
+        datos={
+            "responsable": responsable.username,
+            "responsable_id": responsable.id,
+            "equipos": cantidad,
+            "categoria_id": categoria_id,
+            "q": q,
+            "acceso_delegado_hasta": acceso_hasta.isoformat(),
+        },
+    )
+    messages.success(request, f"Acceso delegado actualizado para {cantidad} equipo(s).")
+    return redirect(f"{reverse('gestion_equipos')}?q={quote(q)}&categoria={quote(categoria_id)}")
 
 
 @login_required

@@ -206,6 +206,7 @@ urlpatterns = [
     path('gestion/documentos/<int:documento_id>/editar/', views.gestion_documento_editar, name='gestion_documento_editar'),
     path('gestion/generar-fixture/', views.gestion_generar_fixture, name='gestion_generar_fixture'),
     path('gestion/equipos/', views.gestion_equipos, name='gestion_equipos'),
+    path('gestion/equipos/acceso-delegado-masivo/', views.gestion_equipos_acceso_delegado_masivo, name='gestion_equipos_acceso_delegado_masivo'),
     path('gestion/equipos/nuevo/', views.gestion_equipo_nuevo, name='gestion_equipo_nuevo'),
     path('gestion/equipos/<int:equipo_id>/editar/', views.gestion_equipo_editar, name='gestion_equipo_editar'),
     path('gestion/equipos/<int:equipo_id>/jugadores/guardar/', views.gestion_equipo_jugadores_guardar, name='gestion_equipo_jugadores_guardar'),
