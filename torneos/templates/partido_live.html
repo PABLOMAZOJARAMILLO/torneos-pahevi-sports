@@ -294,6 +294,10 @@ a { color: inherit; text-decoration: none; }
     background: #111827;
     color: #ffffff;
 }
+.timeline-period.inicio {
+    background: #dcfce7;
+    color: #166534;
+}
 .timeline-period.descanso {
     background: #f1f5f9;
     color: #64748b;
@@ -1087,13 +1091,12 @@ a { color: inherit; text-decoration: none; }
         {% if eventos_live %}
         <div class="timeline">
             {% if partido.estado == "FINALIZADO" %}
-            <div class="timeline-period final">Final del partido</div>
+            <div class="timeline-period final">Fin de los 90 minutos</div>
             {% endif %}
             {% for grupo in eventos_live_grupos %}
             {% if grupo.mostrar_descanso %}
             <div class="timeline-period descanso">Descanso</div>
             {% endif %}
-            <div class="timeline-period">{{ grupo.titulo }}</div>
             {% for evento in grupo.eventos %}
             <div class="timeline-event {{ evento.tipo }} {% if evento.equipo_id == partido.equipo_local_id %}local{% else %}visitante{% endif %}">
                 <div class="event-box">
@@ -1119,6 +1122,7 @@ a { color: inherit; text-decoration: none; }
             </div>
             {% endfor %}
             {% endfor %}
+            <div class="timeline-period inicio">Inicio partido</div>
         </div>
         {% else %}
         <div class="empty-state">Aun no hay eventos registrados para este partido.</div>
