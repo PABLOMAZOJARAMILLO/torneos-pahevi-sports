@@ -2153,7 +2153,7 @@ def panel_principal(request):
     partidos_final = [p for p in partidos_portada if p["fase"] in ["FINAL", "TERCER_PUESTO"]]
     partidos_resultados = sorted(
         [p for p in partidos_portada if p["bloque"] == "RESULTADOS RECIENTES"],
-        key=lambda p: (-p["orden_fecha"], p["hora_orden"], p["categoria"]),
+        key=lambda p: (p["orden_fecha"], p["hora_orden"], p["categoria"]),
     )
     partidos_programados = sorted(
         [p for p in partidos_portada if p["bloque"] == "PROGRAMADOS"],
