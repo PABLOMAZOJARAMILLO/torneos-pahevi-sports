@@ -988,7 +988,7 @@ a { color: inherit; text-decoration: none; }
         <div class="score-center">
             <div class="score-main">
                 {% if partido.estado == "PROGRAMADO" %}
-                    {% if partido.hora %}{{ partido.hora|time:"H:i" }}{% else %}VS{% endif %}
+                    VS
                 {% elif partido.estado == "APLAZADO" or partido.estado == "SUSPENDIDO" %}
                     VS
                 {% else %}

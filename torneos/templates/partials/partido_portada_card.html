@@ -34,7 +34,7 @@
         </div>
 
         {% if partido.estado == "PROGRAMADO" %}
-        <div class="marcador-portada programado">{{ partido.hora }}</div>
+        <div class="marcador-portada programado">VS</div>
         {% elif partido.estado == "EN_JUEGO" %}
         <div class="marcador-portada marcador-live">
             <span>{{ partido.goles_local }}</span>

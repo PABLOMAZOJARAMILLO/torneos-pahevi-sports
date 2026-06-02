@@ -5745,7 +5745,7 @@ body.solo-lectura .menu-principal{top:96px!important}
                                 <div class="estado-card">{% if item.partido.estado == "EN_JUEGO" %}&#128308; EN VIVO{% else %}{{ item.partido.get_estado_display }}{% endif %}</div>
                                 {% if item.partido.estado == "PROGRAMADO" %}
                                 <div class="marcador-card">
-                                    {% if item.partido.hora %}<span>{{ item.partido.hora|time:"H:i" }}</span>{% else %}<span>VS</span>{% endif %}
+                                    <span>VS</span>
                                 </div>
                                 {% else %}
                                 <div class="marcador-card">
