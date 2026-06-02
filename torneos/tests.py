@@ -1,11 +1,14 @@
 from datetime import date, time, timedelta
+from io import BytesIO
 
 from types import SimpleNamespace
 
 from django.core.exceptions import ValidationError
 from django.contrib.auth.models import User
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase, TransactionTestCase, override_settings
 from django.utils import timezone
+from openpyxl import Workbook
 
 from .forms import JugadorForm
 from .models import AlineacionPartido, AdminOrganizador, AdminTorneo, Categoria, Equipo, Gol, Jugador, Organizador, Partido, ReglaEdadCategoria, RegistroActividad, SustitucionPartido, Tarjeta, Torneo
@@ -760,6 +763,18 @@ class FixtureProgramacionBalanceadaTests(TestCase):
 
 
 class ImportacionPartidosPlanillerosTests(TestCase):
+    def setUp(self):
+        self.torneo = Torneo.objects.create(nombre="Veranero", fecha_inicio=date(2026, 1, 1))
+        self.categoria = Categoria.objects.create(
+            nombre="Senior Master",
+            edad_minima=18,
+            edad_maxima=60,
+            torneo=self.torneo,
+        )
+        self.local = Equipo.objects.create(nombre="Local", categoria=self.categoria)
+        self.visitante = Equipo.objects.create(nombre="Visitante", categoria=self.categoria)
+        self.admin = User.objects.create_user("admin-importa", password="test", is_staff=True, is_superuser=True)
+
     def test_busca_planilleros_por_usuario_correo_y_nombre(self):
         usuario = User.objects.create_user(
             "planilla1",
@@ -776,6 +791,67 @@ class ImportacionPartidosPlanillerosTests(TestCase):
 
         self.assertEqual(planilleros, [usuario, otro])
         self.assertEqual(no_encontrados, ["noexiste"])
+
+    def test_busca_planillero_ignorando_espacios_en_usuario(self):
+        usuario = User.objects.create_user("Planillero 1", password="test")
+
+        planilleros, no_encontrados = buscar_planilleros_excel("planillero1")
+
+        self.assertEqual(planilleros, [usuario])
+        self.assertEqual(no_encontrados, [])
+
+    def test_importacion_asigna_planillero_desde_columna_planilleros(self):
+        planillero = User.objects.create_user("Planillero 1", password="test")
+        workbook = Workbook()
+        hoja = workbook.active
+        hoja.append([
+            "categoria",
+            "equipo_local",
+            "equipo_visitante",
+            "fecha",
+            "hora",
+            "numero_fecha",
+            "grupo",
+            "cancha",
+            "fase",
+            "estado",
+            "planilleros",
+        ])
+        hoja.append([
+            self.categoria.nombre,
+            self.local.nombre,
+            self.visitante.nombre,
+            date(2026, 6, 1),
+            time(16, 0),
+            "1",
+            "A",
+            "Porvenir",
+            "GRUPOS",
+            "PROGRAMADO",
+            "planillero1",
+        ])
+        archivo = BytesIO()
+        workbook.save(archivo)
+        archivo.seek(0)
+
+        self.client.force_login(self.admin)
+        session = self.client.session
+        session["torneo_id"] = self.torneo.id
+        session.save()
+        respuesta = self.client.post(
+            "/gestion/partidos/importar/",
+            {
+                "archivo_excel": SimpleUploadedFile(
+                    "partidos.xlsx",
+                    archivo.read(),
+                    content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                )
+            },
+        )
+
+        self.assertEqual(respuesta.status_code, 302)
+        partido = Partido.objects.get(categoria=self.categoria, equipo_local=self.local, equipo_visitante=self.visitante)
+        self.assertEqual(list(partido.planilleros.all()), [planillero])
 
 
 class DelegadoEquipoTests(TestCase):

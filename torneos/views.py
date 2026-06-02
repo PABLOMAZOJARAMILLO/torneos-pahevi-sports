@@ -967,6 +967,10 @@ def separar_planilleros_excel(valor):
     ]
 
 
+def normalizar_usuario_excel(valor):
+    return re.sub(r"[^a-z0-9]+", "", limpiar_texto_excel(valor).lower())
+
+
 def buscar_planilleros_excel(valor):
     usuarios = []
     no_encontrados = []
@@ -978,9 +982,15 @@ def buscar_planilleros_excel(valor):
         ).first()
 
         if not usuario:
-            identificador_normalizado = limpiar_nombre(identificador)
+            identificador_normalizado = normalizar_usuario_excel(identificador)
             for candidato in User.objects.filter(is_active=True):
-                if limpiar_nombre(candidato.get_full_name()) == identificador_normalizado:
+                valores_candidato = [
+                    candidato.username,
+                    candidato.email,
+                    candidato.get_full_name(),
+                    f"{candidato.first_name}{candidato.last_name}",
+                ]
+                if any(normalizar_usuario_excel(valor) == identificador_normalizado for valor in valores_candidato):
                     usuario = candidato
                     break
 
