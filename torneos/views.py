@@ -2232,6 +2232,7 @@ def panel_principal(request):
     partidos_programados = sorted(
         [p for p in partidos_portada if p["bloque"] == "PROGRAMADOS"],
         key=lambda p: (
+            0 if p["estado"] == "EN_JUEGO" else 1,
             orden_fecha_fixture(p),
             p["orden_fecha"],
             p["hora_orden"],
