@@ -2151,22 +2151,44 @@ def panel_principal(request):
     partidos_cuartos = [p for p in partidos_portada if p["fase"] == "CUARTOS"]
     partidos_semifinal = [p for p in partidos_portada if p["fase"] == "SEMIFINAL"]
     partidos_final = [p for p in partidos_portada if p["fase"] in ["FINAL", "TERCER_PUESTO"]]
+
+    def orden_fecha_fixture(partido):
+        numero_fecha = partido["numero_fecha"]
+        return (
+            int(numero_fecha) if str(numero_fecha).isdigit() else 9999,
+            str(numero_fecha),
+        )
+
     partidos_resultados = sorted(
         [p for p in partidos_portada if p["bloque"] == "RESULTADOS RECIENTES"],
-        key=lambda p: (p["orden_fecha"], p["hora_orden"], p["categoria"]),
+        key=lambda p: (
+            orden_fecha_fixture(p),
+            p["orden_fecha"],
+            p["hora_orden"],
+            p["categoria"],
+            p["grupo"],
+        ),
     )
     partidos_programados = sorted(
         [p for p in partidos_portada if p["bloque"] == "PROGRAMADOS"],
         key=lambda p: (
+            orden_fecha_fixture(p),
             0 if p["fecha"] >= date.today() else 1,
             p["orden_fecha"] if p["fecha"] >= date.today() else -p["orden_fecha"],
             p["hora_orden"],
             p["categoria"],
+            p["grupo"],
         ),
     )
     partidos_futuros = sorted(
         [p for p in partidos_portada if p["bloque"] == "FUTUROS"],
-        key=lambda p: (p["orden_fecha"], p["hora_orden"], p["categoria"]),
+        key=lambda p: (
+            orden_fecha_fixture(p),
+            p["orden_fecha"],
+            p["hora_orden"],
+            p["categoria"],
+            p["grupo"],
+        ),
     )
 
     return render(request, "panel_principal.html", {
