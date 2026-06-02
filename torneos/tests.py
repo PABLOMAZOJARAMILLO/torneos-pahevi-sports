@@ -995,6 +995,43 @@ class GestionEquiposCrearDelegadosMasivoTests(TestCase):
         self.assertEqual(timezone.localtime(self.equipo_uno.acceso_delegado_hasta).strftime("%Y-%m-%dT%H:%M"), "2026-06-10T18:00")
 
 
+class GestionEquiposRenombrarDelegadosMasivoTests(TestCase):
+    def setUp(self):
+        self.torneo = Torneo.objects.create(nombre="Veranero", fecha_inicio=date(2026, 1, 1))
+        self.categoria = Categoria.objects.create(
+            nombre="Senior",
+            edad_minima=18,
+            edad_maxima=60,
+            torneo=self.torneo,
+        )
+        self.usuario_largo = User.objects.create_user("delegado-senior-niqueleros-fc", password="Temporal123")
+        self.equipo = Equipo.objects.create(
+            nombre="Niqueleros FC",
+            categoria=self.categoria,
+            responsable=self.usuario_largo,
+        )
+        self.admin = User.objects.create_user("admin-renombra-delegados", password="test", is_staff=True, is_superuser=True)
+
+    def test_renombra_usuario_largo_a_formato_corto_sin_cambiar_password(self):
+        self.client.force_login(self.admin)
+        session = self.client.session
+        session["torneo_id"] = self.torneo.id
+        session.save()
+
+        respuesta = self.client.post(
+            "/gestion/equipos/renombrar-delegados-masivo/",
+            {
+                "categoria": str(self.categoria.id),
+                "q": "",
+            },
+        )
+
+        self.assertEqual(respuesta.status_code, 302)
+        self.usuario_largo.refresh_from_db()
+        self.assertEqual(self.usuario_largo.username, "admin-niquelerosfc")
+        self.assertTrue(self.usuario_largo.check_password("Temporal123"))
+
+
 class DelegadoEquipoTests(TestCase):
     def setUp(self):
         self.torneo = Torneo.objects.create(

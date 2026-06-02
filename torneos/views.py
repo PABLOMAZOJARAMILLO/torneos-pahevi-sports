@@ -4942,12 +4942,15 @@ def equipos_gestion_filtrados(torneo, q="", categoria_id=""):
     return equipos
 
 
-def username_delegado_equipo(equipo):
+def username_delegado_equipo(equipo, usuario_actual=None):
     nombre_equipo = (slugify(equipo.nombre) or f"equipo-{equipo.id}").replace("-", "")
     base = f"admin-{nombre_equipo}"[:140].strip("-") or f"admin-equipo-{equipo.id}"
     username = base
     contador = 2
-    while User.objects.filter(username__iexact=username).exists():
+    existentes = User.objects.all()
+    if usuario_actual and usuario_actual.pk:
+        existentes = existentes.exclude(pk=usuario_actual.pk)
+    while existentes.filter(username__iexact=username).exists():
         sufijo = f"-{contador}"
         username = f"{base[:150 - len(sufijo)]}{sufijo}"
         contador += 1
@@ -5056,6 +5059,51 @@ def gestion_equipos_crear_delegados_masivo(request):
             messages.info(request, f"Y {len(creados) - 20} usuario(s) mas.")
     else:
         messages.warning(request, "No se crearon usuarios: los equipos visibles ya tienen delegado responsable.")
+    return redirect(f"{reverse('gestion_equipos')}?q={quote(q)}&categoria={quote(categoria_id)}")
+
+
+@login_required
+@user_passes_test(es_editor_torneo)
+@require_POST
+def gestion_equipos_renombrar_delegados_masivo(request):
+    torneo = torneo_actual(request)
+    if not puede_gestionar_torneo(request, torneo, "editar"):
+        return denegar_permiso_torneo()
+
+    q = request.POST.get("q", "")
+    categoria_id = request.POST.get("categoria", "")
+    equipos = equipos_gestion_filtrados(torneo, q, categoria_id).filter(responsable__isnull=False).select_related("responsable")
+    cambios = []
+
+    for equipo in equipos:
+        usuario = equipo.responsable
+        username_nuevo = username_delegado_equipo(equipo, usuario_actual=usuario)
+        if usuario.username == username_nuevo:
+            continue
+        username_anterior = usuario.username
+        usuario.username = username_nuevo
+        usuario.save(update_fields=["username"])
+        cambios.append({"equipo": equipo.nombre, "antes": username_anterior, "despues": username_nuevo})
+
+    registrar_actividad(
+        request,
+        "RENOMBRAR_DELEGADOS_MASIVO",
+        torneo=torneo,
+        descripcion=f"Renombro usuarios delegados para {len(cambios)} equipo(s).",
+        datos={
+            "cambios": cambios,
+            "categoria_id": categoria_id,
+            "q": q,
+        },
+    )
+    if cambios:
+        messages.success(request, f"Usuarios delegados renombrados: {len(cambios)}.")
+        resumen = ", ".join(f"{item['antes']} -> {item['despues']}" for item in cambios[:10])
+        messages.info(request, resumen)
+        if len(cambios) > 10:
+            messages.info(request, f"Y {len(cambios) - 10} cambio(s) mas.")
+    else:
+        messages.warning(request, "No hubo usuarios para renombrar en los equipos visibles.")
     return redirect(f"{reverse('gestion_equipos')}?q={quote(q)}&categoria={quote(categoria_id)}")
 
 

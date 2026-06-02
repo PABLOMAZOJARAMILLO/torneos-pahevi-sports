@@ -68,6 +68,22 @@
     </form>
 </div>
 
+<div class="card">
+    <h2>Renombrar usuarios delegados</h2>
+    <p class="muted">Cambia los usuarios largos de los equipos visibles al formato corto, por ejemplo admin-niquelerosfc.</p>
+    <form method="post" action="{% url 'gestion_equipos_renombrar_delegados_masivo' %}">
+        {% csrf_token %}
+        <input type="hidden" name="q" value="{{ q }}">
+        <input type="hidden" name="categoria" value="{{ categoria_id }}">
+
+        <p>
+            <button class="btn secondary" type="submit" onclick="return confirm('Se renombraran los usuarios responsables de los equipos visibles. Las contrasenas no cambian. Continuar?');">
+                Renombrar usuarios visibles
+            </button>
+        </p>
+    </form>
+</div>
+
 {% for equipo in equipos %}
 <div class="row">
     <div style="display:flex;align-items:center;gap:12px;">
