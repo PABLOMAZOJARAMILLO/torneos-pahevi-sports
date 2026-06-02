@@ -3338,7 +3338,7 @@ def _minuto_evento_en_vivo(partido):
     if partido.inicio_en_vivo and not partido.cronometro_pausado:
         segundos += max(int((timezone.now() - partido.inicio_en_vivo).total_seconds()), 0)
 
-    return max((segundos // 60) + 1, 1)
+    return max(segundos // 60, 1)
 
 
 def _clave_orden_evento_resumen(evento):

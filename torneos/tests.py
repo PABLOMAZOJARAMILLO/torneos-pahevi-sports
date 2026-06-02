@@ -12,7 +12,7 @@ from openpyxl import Workbook
 
 from .forms import JugadorForm, PartidoForm
 from .models import AlineacionPartido, AdminOrganizador, AdminTorneo, Categoria, Equipo, Gol, Jugador, Organizador, Partido, ReglaEdadCategoria, RegistroActividad, SustitucionPartido, Tarjeta, Torneo
-from .views import buscar_planilleros_excel, construir_estructura, construir_estadisticas_foraneos, construir_partidos_portada, construir_partidos_programacion, _clave_orden_evento_resumen, _sincronizar_no_disponibles_por_tarjetas, etiqueta_edad_jugador, texto_edad_jugador, validar_reglas_edad_titulares
+from .views import buscar_planilleros_excel, construir_estructura, construir_estadisticas_foraneos, construir_partidos_portada, construir_partidos_programacion, _clave_orden_evento_resumen, _minuto_evento_en_vivo, _sincronizar_no_disponibles_por_tarjetas, etiqueta_edad_jugador, texto_edad_jugador, validar_reglas_edad_titulares
 
 
 class SancionesTarjetasTests(TestCase):
@@ -112,6 +112,28 @@ class ResumenPartidoOrdenTests(TestCase):
         ordenados = sorted(eventos, key=_clave_orden_evento_resumen, reverse=True)
 
         self.assertEqual([evento.orden for evento in ordenados], [2, 3, 4, 1])
+
+
+class CronometroEventoTests(TestCase):
+    def test_minuto_evento_coincide_con_minuto_visible_del_cronometro(self):
+        partido = SimpleNamespace(
+            estado="EN_JUEGO",
+            segundos_acumulados=(16 * 60) + 42,
+            inicio_en_vivo=None,
+            cronometro_pausado=True,
+        )
+
+        self.assertEqual(_minuto_evento_en_vivo(partido), 16)
+
+    def test_minuto_evento_no_baja_de_uno_al_inicio(self):
+        partido = SimpleNamespace(
+            estado="EN_JUEGO",
+            segundos_acumulados=30,
+            inicio_en_vivo=None,
+            cronometro_pausado=True,
+        )
+
+        self.assertEqual(_minuto_evento_en_vivo(partido), 1)
 
 
 class TablaPosicionesWoTests(TestCase):
