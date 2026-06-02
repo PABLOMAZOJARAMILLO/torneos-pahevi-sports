@@ -287,6 +287,10 @@ a { color: inherit; text-decoration: none; }
 .timeline-event:not(.sustitucion) {
     grid-template-rows: 18px 12px;
 }
+.timeline-event.sustitucion {
+    align-items: center;
+    min-height: 38px;
+}
 .timeline-event .event-text {
     font-size: 17px;
     font-weight: 850;
@@ -392,6 +396,9 @@ a { color: inherit; text-decoration: none; }
 }
 .timeline-event:not(.sustitucion) .event-empty {
     grid-row: 1 / span 2;
+}
+.timeline-event.sustitucion .event-minute {
+    align-self: center;
 }
 .timeline-event .event-box {
     min-width: 0;
