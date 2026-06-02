@@ -946,6 +946,53 @@ class GestionEquiposAccesoDelegadoMasivoTests(TestCase):
         self.assertIsNone(self.equipo_otro.acceso_delegado_hasta)
 
 
+class GestionEquiposCrearDelegadosMasivoTests(TestCase):
+    def setUp(self):
+        self.torneo = Torneo.objects.create(nombre="Veranero", fecha_inicio=date(2026, 1, 1))
+        self.categoria = Categoria.objects.create(
+            nombre="Senior",
+            edad_minima=18,
+            edad_maxima=60,
+            torneo=self.torneo,
+        )
+        self.equipo_uno = Equipo.objects.create(nombre="Equipo Uno", categoria=self.categoria)
+        self.equipo_dos = Equipo.objects.create(nombre="Equipo Dos", categoria=self.categoria)
+        self.delegado_existente = User.objects.create_user("delegado-existente", password="test")
+        self.equipo_con_delegado = Equipo.objects.create(
+            nombre="Equipo Con Delegado",
+            categoria=self.categoria,
+            responsable=self.delegado_existente,
+        )
+        self.admin = User.objects.create_user("admin-crea-delegados", password="test", is_staff=True, is_superuser=True)
+
+    def test_crea_un_usuario_por_equipo_sin_responsable(self):
+        self.client.force_login(self.admin)
+        session = self.client.session
+        session["torneo_id"] = self.torneo.id
+        session.save()
+
+        respuesta = self.client.post(
+            "/gestion/equipos/crear-delegados-masivo/",
+            {
+                "password_temporal": "Temporal123",
+                "acceso_delegado_hasta": "2026-06-10T18:00",
+                "categoria": str(self.categoria.id),
+                "q": "",
+            },
+        )
+
+        self.assertEqual(respuesta.status_code, 302)
+        self.equipo_uno.refresh_from_db()
+        self.equipo_dos.refresh_from_db()
+        self.equipo_con_delegado.refresh_from_db()
+        self.assertIsNotNone(self.equipo_uno.responsable)
+        self.assertIsNotNone(self.equipo_dos.responsable)
+        self.assertNotEqual(self.equipo_uno.responsable, self.equipo_dos.responsable)
+        self.assertEqual(self.equipo_con_delegado.responsable, self.delegado_existente)
+        self.assertTrue(self.equipo_uno.responsable.check_password("Temporal123"))
+        self.assertEqual(timezone.localtime(self.equipo_uno.acceso_delegado_hasta).strftime("%Y-%m-%dT%H:%M"), "2026-06-10T18:00")
+
+
 class DelegadoEquipoTests(TestCase):
     def setUp(self):
         self.torneo = Torneo.objects.create(

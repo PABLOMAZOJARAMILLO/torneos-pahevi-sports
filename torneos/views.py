@@ -26,6 +26,7 @@ from django.templatetags.static import static
 from django.utils.html import escape
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.utils.dateparse import parse_datetime
+from django.utils.text import slugify
 from html2image import Html2Image
 import requests
 from django.views.decorators.http import require_POST
@@ -4941,6 +4942,18 @@ def equipos_gestion_filtrados(torneo, q="", categoria_id=""):
     return equipos
 
 
+def username_delegado_equipo(equipo):
+    base = slugify(f"delegado-{equipo.categoria.nombre}-{equipo.nombre}") or f"delegado-equipo-{equipo.id}"
+    base = base[:140].strip("-") or f"delegado-equipo-{equipo.id}"
+    username = base
+    contador = 2
+    while User.objects.filter(username__iexact=username).exists():
+        sufijo = f"-{contador}"
+        username = f"{base[:150 - len(sufijo)]}{sufijo}"
+        contador += 1
+    return username
+
+
 @login_required
 @user_passes_test(es_editor_torneo)
 @require_POST
@@ -4980,6 +4993,69 @@ def gestion_equipos_acceso_delegado_masivo(request):
         },
     )
     messages.success(request, f"Fecha de acceso delegado actualizada para {cantidad} equipo(s) con responsable asignado.")
+    return redirect(f"{reverse('gestion_equipos')}?q={quote(q)}&categoria={quote(categoria_id)}")
+
+
+@login_required
+@user_passes_test(es_editor_torneo)
+@require_POST
+def gestion_equipos_crear_delegados_masivo(request):
+    torneo = torneo_actual(request)
+    if not puede_gestionar_torneo(request, torneo, "editar"):
+        return denegar_permiso_torneo()
+
+    password_temporal = request.POST.get("password_temporal") or ""
+    acceso_hasta_texto = (request.POST.get("acceso_delegado_hasta") or "").strip()
+    q = request.POST.get("q", "")
+    categoria_id = request.POST.get("categoria", "")
+
+    if len(password_temporal) < 8:
+        messages.error(request, "La contrasena temporal debe tener minimo 8 caracteres.")
+        return redirect(f"{reverse('gestion_equipos')}?q={quote(q)}&categoria={quote(categoria_id)}")
+
+    acceso_hasta = None
+    if acceso_hasta_texto:
+        acceso_hasta = parse_datetime(acceso_hasta_texto)
+        if not acceso_hasta:
+            messages.error(request, "La fecha/hora de vencimiento no es valida.")
+            return redirect(f"{reverse('gestion_equipos')}?q={quote(q)}&categoria={quote(categoria_id)}")
+        if timezone.is_naive(acceso_hasta):
+            acceso_hasta = timezone.make_aware(acceso_hasta, timezone.get_current_timezone())
+
+    equipos = equipos_gestion_filtrados(torneo, q, categoria_id).filter(responsable__isnull=True)
+    creados = []
+    for equipo in equipos:
+        username = username_delegado_equipo(equipo)
+        usuario = User.objects.create_user(
+            username=username,
+            password=password_temporal,
+            first_name=equipo.nombre[:150],
+        )
+        equipo.responsable = usuario
+        if acceso_hasta:
+            equipo.acceso_delegado_hasta = acceso_hasta
+        equipo.save(update_fields=["responsable", "acceso_delegado_hasta"])
+        creados.append(username)
+
+    registrar_actividad(
+        request,
+        "CREAR_DELEGADOS_MASIVO",
+        torneo=torneo,
+        descripcion=f"Creo usuarios delegados para {len(creados)} equipo(s).",
+        datos={
+            "usuarios": creados,
+            "categoria_id": categoria_id,
+            "q": q,
+            "acceso_delegado_hasta": acceso_hasta.isoformat() if acceso_hasta else "",
+        },
+    )
+    if creados:
+        messages.success(request, f"Usuarios delegados creados: {len(creados)}. Contrasena temporal aplicada.")
+        messages.info(request, "Usuarios: " + ", ".join(creados[:20]))
+        if len(creados) > 20:
+            messages.info(request, f"Y {len(creados) - 20} usuario(s) mas.")
+    else:
+        messages.warning(request, "No se crearon usuarios: los equipos visibles ya tienen delegado responsable.")
     return redirect(f"{reverse('gestion_equipos')}?q={quote(q)}&categoria={quote(categoria_id)}")
 
 

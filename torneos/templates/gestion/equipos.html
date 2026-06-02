@@ -28,6 +28,28 @@
 </form>
 
 <div class="card">
+    <h2>Crear usuarios delegados</h2>
+    <p class="muted">Crea un usuario distinto para cada equipo visible que todavia no tenga delegado responsable.</p>
+    <form method="post" action="{% url 'gestion_equipos_crear_delegados_masivo' %}">
+        {% csrf_token %}
+        <input type="hidden" name="q" value="{{ q }}">
+        <input type="hidden" name="categoria" value="{{ categoria_id }}">
+
+        <label for="password-temporal">Contrasena temporal</label>
+        <input id="password-temporal" type="text" name="password_temporal" minlength="8" required>
+
+        <label for="acceso-creacion">Puede editar hasta</label>
+        <input id="acceso-creacion" type="datetime-local" name="acceso_delegado_hasta">
+
+        <p>
+            <button class="btn" type="submit" onclick="return confirm('Se creara un usuario delegado distinto para cada equipo visible sin responsable. Continuar?');">
+                Crear usuarios faltantes
+            </button>
+        </p>
+    </form>
+</div>
+
+<div class="card">
     <h2>Vencimiento delegado masivo</h2>
     <p class="muted">Actualiza solo la fecha/hora de vencimiento de los equipos visibles que ya tienen delegado asignado.</p>
     <form method="post" action="{% url 'gestion_equipos_acceso_delegado_masivo' %}">
