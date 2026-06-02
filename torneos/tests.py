@@ -10,7 +10,7 @@ from django.test import TestCase, TransactionTestCase, override_settings
 from django.utils import timezone
 from openpyxl import Workbook
 
-from .forms import JugadorForm
+from .forms import JugadorForm, PartidoForm
 from .models import AlineacionPartido, AdminOrganizador, AdminTorneo, Categoria, Equipo, Gol, Jugador, Organizador, Partido, ReglaEdadCategoria, RegistroActividad, SustitucionPartido, Tarjeta, Torneo
 from .views import buscar_planilleros_excel, construir_estructura, construir_estadisticas_foraneos, construir_partidos_portada, construir_partidos_programacion, _clave_orden_evento_resumen, _sincronizar_no_disponibles_por_tarjetas, etiqueta_edad_jugador, texto_edad_jugador, validar_reglas_edad_titulares
 
@@ -852,6 +852,49 @@ class ImportacionPartidosPlanillerosTests(TestCase):
         self.assertEqual(respuesta.status_code, 302)
         partido = Partido.objects.get(categoria=self.categoria, equipo_local=self.local, equipo_visitante=self.visitante)
         self.assertEqual(list(partido.planilleros.all()), [planillero])
+
+
+class PartidoFormTests(TestCase):
+    def setUp(self):
+        self.torneo = Torneo.objects.create(nombre="Veranero", fecha_inicio=date(2026, 1, 1))
+        self.categoria = Categoria.objects.create(
+            nombre="Senior",
+            edad_minima=18,
+            edad_maxima=60,
+            torneo=self.torneo,
+        )
+        self.local = Equipo.objects.create(nombre="Local", categoria=self.categoria)
+        self.visitante = Equipo.objects.create(nombre="Visitante", categoria=self.categoria)
+        self.planillero = User.objects.create_user("planillero1", password="test")
+        self.planillero_no_asignado = User.objects.create_user("planillero2", password="test")
+        self.admin = User.objects.create_user("admin-torneo", password="test", is_staff=True)
+        self.admin_asignado = User.objects.create_user("admin-asignado", password="test", is_staff=True)
+        self.partido = Partido.objects.create(
+            categoria=self.categoria,
+            equipo_local=self.local,
+            equipo_visitante=self.visitante,
+            fecha=date(2026, 6, 1),
+            hora=time(16, 0),
+            estado="PROGRAMADO",
+            numero_fecha="1",
+            grupo="A",
+            cancha="Porvenir",
+        )
+        self.partido.planilleros.add(self.planillero, self.admin_asignado)
+
+    def test_fecha_se_renderiza_en_formato_html_date(self):
+        form = PartidoForm(instance=self.partido, torneo=self.torneo)
+
+        self.assertIn('value="2026-06-01"', str(form["fecha"]))
+
+    def test_planilleros_muestra_solo_asignados_si_el_partido_ya_los_tiene(self):
+        form = PartidoForm(instance=self.partido, torneo=self.torneo)
+        usuarios = list(form.fields["planilleros"].queryset)
+
+        self.assertIn(self.planillero, usuarios)
+        self.assertIn(self.admin_asignado, usuarios)
+        self.assertNotIn(self.planillero_no_asignado, usuarios)
+        self.assertNotIn(self.admin, usuarios)
 
 
 class DelegadoEquipoTests(TestCase):

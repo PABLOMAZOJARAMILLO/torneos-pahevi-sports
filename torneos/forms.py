@@ -1,4 +1,5 @@
 from django import forms
+from django.contrib.auth.models import User
 
 from .models import Torneo, Organizador, Documento, Categoria, Equipo, Jugador, Partido, AdminTorneo, AdminOrganizador
 
@@ -245,7 +246,7 @@ class PartidoForm(forms.ModelForm):
             "goles_visitante_penales",
         ]
         widgets = {
-            "fecha": forms.DateInput(attrs={"type": "date"}),
+            "fecha": forms.DateInput(format="%Y-%m-%d", attrs={"type": "date"}),
             "hora": forms.TimeInput(attrs={"type": "time"}),
             "observacion_comite": forms.Textarea(attrs={"rows": 3}),
         }
@@ -264,6 +265,21 @@ class PartidoForm(forms.ModelForm):
         self.fields["equipo_visitante"].queryset = equipos
         self.fields["equipo_local"].label_from_instance = lambda obj: f"{obj.categoria.nombre} - {obj.nombre}"
         self.fields["equipo_visitante"].label_from_instance = lambda obj: f"{obj.categoria.nombre} - {obj.nombre}"
+        self.fields["fecha"].input_formats = ["%Y-%m-%d"]
+        planilleros_asignados = []
+        if self.instance and self.instance.pk:
+            planilleros_asignados = list(self.instance.planilleros.values_list("id", flat=True))
+        if planilleros_asignados:
+            self.fields["planilleros"].queryset = User.objects.filter(
+                id__in=planilleros_asignados,
+                is_active=True,
+            ).order_by("username")
+        else:
+            self.fields["planilleros"].queryset = User.objects.filter(
+                is_staff=False,
+                is_active=True,
+            ).order_by("username")
+        self.fields["planilleros"].help_text = "Si el partido ya tiene planilleros asignados, solo aparecen esos usuarios."
 
     def clean(self):
         cleaned_data = super().clean()
