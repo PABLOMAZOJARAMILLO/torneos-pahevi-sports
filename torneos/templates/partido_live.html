@@ -314,6 +314,7 @@ a { color: inherit; text-decoration: none; }
 .timeline-event.sustitucion {
     align-items: center;
     min-height: 36px;
+    grid-template-rows: 17px 17px;
 }
 .timeline-event .event-text {
     font-size: 17px;
@@ -363,7 +364,7 @@ a { color: inherit; text-decoration: none; }
     gap: 3px;
     font-size: 17px;
     font-weight: 850;
-    line-height: 18px;
+    line-height: 17px;
     white-space: nowrap;
 }
 .timeline-event.local .event-sub-line {
@@ -376,7 +377,7 @@ a { color: inherit; text-decoration: none; }
     order: -1;
 }
 .event-sub-line + .event-sub-line {
-    margin-top: 2px;
+    margin-top: 0;
 }
 .event-arrow {
     display: inline-block;
@@ -422,9 +423,11 @@ a { color: inherit; text-decoration: none; }
     grid-row: 1 / span 2;
 }
 .timeline-event.sustitucion .event-minute {
+    grid-row: 1 / span 2;
     align-self: center;
 }
 .timeline-event.sustitucion .event-box {
+    grid-row: 1 / span 2;
     align-self: center;
 }
 .timeline-event .event-box {
@@ -925,6 +928,10 @@ a { color: inherit; text-decoration: none; }
     }
     .timeline-event:not(.sustitucion) {
         grid-template-rows: 16px 12px;
+    }
+    .timeline-event.sustitucion {
+        min-height: 32px;
+        grid-template-rows: 16px 16px;
     }
     .timeline-event .event-text,
     .event-sub-line {

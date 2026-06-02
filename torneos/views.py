@@ -3354,7 +3354,7 @@ def _clave_orden_evento_resumen(evento):
 def _grupo_tiempo_evento_resumen(evento):
     minuto = evento.minuto
     if minuto is None:
-        return "sin_minuto", "Sin minuto"
+        return "primero", "Primer tiempo"
     if minuto >= 46:
         return "segundo", "Segundo tiempo"
     return "primero", "Primer tiempo"
@@ -3364,19 +3364,17 @@ def _agrupar_eventos_resumen_live(eventos):
     grupos = {
         "segundo": [],
         "primero": [],
-        "sin_minuto": [],
     }
     titulos = {
         "segundo": "Segundo tiempo",
         "primero": "Primer tiempo",
-        "sin_minuto": "Sin minuto",
     }
     for evento in eventos:
         codigo, _titulo = _grupo_tiempo_evento_resumen(evento)
         grupos[codigo].append(evento)
 
     resultado = []
-    for codigo in ("segundo", "primero", "sin_minuto"):
+    for codigo in ("segundo", "primero"):
         if not grupos[codigo]:
             continue
         resultado.append(SimpleNamespace(
