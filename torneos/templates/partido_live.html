@@ -274,6 +274,30 @@ a { color: inherit; text-decoration: none; }
     width: 1px;
     background: #cbd5e1;
 }
+.timeline-period {
+    position: relative;
+    z-index: 2;
+    width: fit-content;
+    max-width: 92%;
+    margin: 8px auto;
+    padding: 4px 14px;
+    border-radius: 999px;
+    background: #e5e7eb;
+    color: #334155;
+    font-size: 12px;
+    font-weight: 900;
+    line-height: 1;
+    text-align: center;
+    text-transform: uppercase;
+}
+.timeline-period.final {
+    background: #111827;
+    color: #ffffff;
+}
+.timeline-period.descanso {
+    background: #f1f5f9;
+    color: #64748b;
+}
 .timeline-event {
     position: relative;
     display: grid;
@@ -289,7 +313,7 @@ a { color: inherit; text-decoration: none; }
 }
 .timeline-event.sustitucion {
     align-items: center;
-    min-height: 38px;
+    min-height: 36px;
 }
 .timeline-event .event-text {
     font-size: 17px;
@@ -398,6 +422,9 @@ a { color: inherit; text-decoration: none; }
     grid-row: 1 / span 2;
 }
 .timeline-event.sustitucion .event-minute {
+    align-self: center;
+}
+.timeline-event.sustitucion .event-box {
     align-self: center;
 }
 .timeline-event .event-box {
@@ -1052,7 +1079,15 @@ a { color: inherit; text-decoration: none; }
         <div class="panel-title">Resumen del partido</div>
         {% if eventos_live %}
         <div class="timeline">
-            {% for evento in eventos_live %}
+            {% if partido.estado == "FINALIZADO" %}
+            <div class="timeline-period final">Final del partido</div>
+            {% endif %}
+            {% for grupo in eventos_live_grupos %}
+            {% if grupo.mostrar_descanso %}
+            <div class="timeline-period descanso">Descanso</div>
+            {% endif %}
+            <div class="timeline-period">{{ grupo.titulo }}</div>
+            {% for evento in grupo.eventos %}
             <div class="timeline-event {{ evento.tipo }} {% if evento.equipo_id == partido.equipo_local_id %}local{% else %}visitante{% endif %}">
                 <div class="event-box">
                     {% if evento.tipo == "sustitucion" %}
@@ -1075,6 +1110,7 @@ a { color: inherit; text-decoration: none; }
                 <div class="event-minute">{% if evento.minuto %}{{ evento.minuto }}'{% else %}--{% endif %}</div>
                 <div class="event-empty"></div>
             </div>
+            {% endfor %}
             {% endfor %}
         </div>
         {% else %}

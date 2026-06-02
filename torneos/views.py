@@ -3351,6 +3351,43 @@ def _clave_orden_evento_resumen(evento):
     )
 
 
+def _grupo_tiempo_evento_resumen(evento):
+    minuto = evento.minuto
+    if minuto is None:
+        return "sin_minuto", "Sin minuto"
+    if minuto >= 46:
+        return "segundo", "Segundo tiempo"
+    return "primero", "Primer tiempo"
+
+
+def _agrupar_eventos_resumen_live(eventos):
+    grupos = {
+        "segundo": [],
+        "primero": [],
+        "sin_minuto": [],
+    }
+    titulos = {
+        "segundo": "Segundo tiempo",
+        "primero": "Primer tiempo",
+        "sin_minuto": "Sin minuto",
+    }
+    for evento in eventos:
+        codigo, _titulo = _grupo_tiempo_evento_resumen(evento)
+        grupos[codigo].append(evento)
+
+    resultado = []
+    for codigo in ("segundo", "primero", "sin_minuto"):
+        if not grupos[codigo]:
+            continue
+        resultado.append(SimpleNamespace(
+            codigo=codigo,
+            titulo=titulos[codigo],
+            eventos=grupos[codigo],
+            mostrar_descanso=codigo == "primero" and bool(grupos["segundo"]),
+        ))
+    return resultado
+
+
 @login_required
 def editor_partido_movil(request, partido_id):
     partido = get_object_or_404(
@@ -6044,6 +6081,7 @@ def partido_live(request, partido_id):
         key=_clave_orden_evento_resumen,
         reverse=True,
     )
+    eventos_live_grupos = _agrupar_eventos_resumen_live(eventos_live)
 
     return render(request, "partido_live.html", {
         "partido": partido,
@@ -6063,6 +6101,7 @@ def partido_live(request, partido_id):
         "no_disponibles_local": no_disponibles_local,
         "no_disponibles_visitante": no_disponibles_visitante,
         "eventos_live": eventos_live,
+        "eventos_live_grupos": eventos_live_grupos,
         "segundos_vivos": segundos_vivos_partido(partido),
         "volver_url": volver_url,
         "delegado_alineacion_url": url_alineacion_delegado_si_aplica(request.user, partido),
