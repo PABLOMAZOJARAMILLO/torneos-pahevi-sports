@@ -987,6 +987,8 @@ class GestionEquiposCrearDelegadosMasivoTests(TestCase):
         self.equipo_con_delegado.refresh_from_db()
         self.assertIsNotNone(self.equipo_uno.responsable)
         self.assertIsNotNone(self.equipo_dos.responsable)
+        self.assertEqual(self.equipo_uno.responsable.username, "admin-equipouno")
+        self.assertEqual(self.equipo_dos.responsable.username, "admin-equipodos")
         self.assertNotEqual(self.equipo_uno.responsable, self.equipo_dos.responsable)
         self.assertEqual(self.equipo_con_delegado.responsable, self.delegado_existente)
         self.assertTrue(self.equipo_uno.responsable.check_password("Temporal123"))

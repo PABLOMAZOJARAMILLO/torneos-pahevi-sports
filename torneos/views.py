@@ -4943,8 +4943,8 @@ def equipos_gestion_filtrados(torneo, q="", categoria_id=""):
 
 
 def username_delegado_equipo(equipo):
-    base = slugify(f"delegado-{equipo.categoria.nombre}-{equipo.nombre}") or f"delegado-equipo-{equipo.id}"
-    base = base[:140].strip("-") or f"delegado-equipo-{equipo.id}"
+    nombre_equipo = (slugify(equipo.nombre) or f"equipo-{equipo.id}").replace("-", "")
+    base = f"admin-{nombre_equipo}"[:140].strip("-") or f"admin-equipo-{equipo.id}"
     username = base
     contador = 2
     while User.objects.filter(username__iexact=username).exists():
