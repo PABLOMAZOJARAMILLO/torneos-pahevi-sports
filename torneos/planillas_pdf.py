@@ -11,8 +11,8 @@ PDF_DPI = 200
 MARGIN_X = 70
 MARGIN_Y = 80
 
-BLACK = "#111111"
-BORDER = "#111111"
+BLACK = "#000000"
+BORDER = "#000000"
 LIGHT = "#F2F2F2"
 WHITE = "#FFFFFF"
 
@@ -32,13 +32,19 @@ def _font(size, bold=False):
     candidates = []
     if bold:
         candidates.extend([
+            r"C:\Windows\Fonts\timesbd.ttf",
             r"C:\Windows\Fonts\arialbd.ttf",
             r"C:\Windows\Fonts\segoeuib.ttf",
+            "/usr/share/fonts/truetype/msttcorefonts/Times_New_Roman_Bold.ttf",
+            "/usr/share/fonts/truetype/liberation2/LiberationSerif-Bold.ttf",
             "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
         ])
     candidates.extend([
+        r"C:\Windows\Fonts\times.ttf",
         r"C:\Windows\Fonts\arial.ttf",
         r"C:\Windows\Fonts\segoeui.ttf",
+        "/usr/share/fonts/truetype/msttcorefonts/Times_New_Roman.ttf",
+        "/usr/share/fonts/truetype/liberation2/LiberationSerif-Regular.ttf",
         "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
         "arial.ttf",
     ])
@@ -50,13 +56,13 @@ def _font(size, bold=False):
     return ImageFont.load_default()
 
 
-FONT_TITLE = _font(30, True)
-FONT_HEAD = _font(21, True)
-FONT_NORMAL = _font(19)
-FONT_SMALL = _font(18)
-FONT_SMALL_BOLD = _font(18, True)
-FONT_TINY = _font(16)
-FONT_TINY_BOLD = _font(16, True)
+FONT_TITLE = _font(36, True)
+FONT_HEAD = _font(31, True)
+FONT_NORMAL = _font(31)
+FONT_SMALL = _font(31)
+FONT_SMALL_BOLD = _font(31, True)
+FONT_TINY = _font(31)
+FONT_TINY_BOLD = _font(31, True)
 
 STATIC_IMG_DIR = Path(__file__).resolve().parent / "static" / "torneos" / "img"
 HEADER_IMAGES = [
