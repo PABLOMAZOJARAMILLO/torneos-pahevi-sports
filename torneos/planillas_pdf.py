@@ -164,13 +164,13 @@ def _text(draw, box, text, font=FONT_NORMAL, align="center", valign="middle", bo
     draw.text((x, y), text, font=font, fill=BLACK)
 
 
-def _cell(draw, col1, row1, col2=None, row2=None, text="", fill=WHITE, font=FONT_SMALL, align="center", width=1):
+def _cell(draw, col1, row1, col2=None, row2=None, text="", fill=WHITE, font=FONT_SMALL, align="center", valign="middle", width=1):
     col2 = col2 or col1
     row2 = row2 or row1
     box = _box(col1, row1, col2, row2)
     draw.rectangle(box, outline=BORDER, width=width, fill=fill)
     if text not in (None, ""):
-        _text(draw, box, text, font=font, align=align)
+        _text(draw, box, text, font=font, align=align, valign=valign)
 
 
 def _draw_image_fit(base, path, box):
@@ -197,21 +197,21 @@ def _jugadores(equipo):
 def _draw_player_side(draw, start_col, team_title, jugadores, referencia):
     name_start = start_col + 1
     if start_col == 1:
-        name_end = 7
-        number_col, edad_col, inic_col, sup_col, amarilla_col, roja_col = 8, 9, 10, 11, 12, 13
+        name_end = 6
+        number_col, edad_col, inic_col, sup_col, amarilla_cols, roja_col = 7, 8, 9, 10, (11, 12), 13
     else:
-        name_end = 21
-        number_col, edad_col, inic_col, sup_col, amarilla_col, roja_col = 22, 23, 24, 25, 26, 27
+        name_end = 20
+        number_col, edad_col, inic_col, sup_col, amarilla_cols, roja_col = 21, 22, 23, 24, (25, 26), 27
 
     _cell(draw, start_col, 10, start_col + 12, 10, team_title, fill=LIGHT, font=FONT_SMALL_BOLD, width=2)
-    _cell(draw, start_col + 11, 10, start_col + 12, 10, "Tarjetas", fill=LIGHT, font=FONT_SMALL_BOLD, width=2)
+    _cell(draw, amarilla_cols[0], 10, roja_col, 10, "Tarjetas", fill=LIGHT, font=FONT_SMALL_BOLD, width=2)
     _cell(draw, start_col, 11, text="No", fill=LIGHT, font=FONT_TINY_BOLD, width=2)
     _cell(draw, name_start, 11, name_end, 11, "NOMBRE Y APELLIDOS", fill=LIGHT, font=FONT_SMALL_BOLD, width=2)
     _cell(draw, number_col, 11, text="#", fill=LIGHT, font=FONT_TINY_BOLD, width=2)
     _cell(draw, edad_col, 11, text="EDAD", fill=LIGHT, font=FONT_TINY_BOLD, width=2)
     _cell(draw, inic_col, 11, text="INIC", fill=LIGHT, font=FONT_TINY_BOLD, width=2)
     _cell(draw, sup_col, 11, text="SUP", fill=LIGHT, font=FONT_TINY_BOLD, width=2)
-    _cell(draw, amarilla_col, 11, text="A", fill=LIGHT, font=FONT_TINY_BOLD, width=2)
+    _cell(draw, amarilla_cols[0], 11, amarilla_cols[1], 11, "A", fill=LIGHT, font=FONT_TINY_BOLD, width=2)
     _cell(draw, roja_col, 11, text="R", fill=LIGHT, font=FONT_TINY_BOLD, width=2)
 
     for index in range(30):
@@ -232,7 +232,8 @@ def _draw_player_side(draw, start_col, team_title, jugadores, referencia):
         _cell(draw, edad_col, row, text=_edad(getattr(jugador, "fecha_nacimiento", None), referencia) if jugador else "", font=FONT_TINY)
         _cell(draw, inic_col, row, text="", font=FONT_TINY)
         _cell(draw, sup_col, row, text="", font=FONT_TINY)
-        _cell(draw, amarilla_col, row, text="", font=FONT_TINY)
+        _cell(draw, amarilla_cols[0], row, text="", font=FONT_TINY)
+        _cell(draw, amarilla_cols[1], row, text="", font=FONT_TINY)
         _cell(draw, roja_col, row, text="", font=FONT_TINY)
 
 
@@ -240,6 +241,7 @@ def _draw_changes(draw, col1, col2):
     _cell(draw, col1, 42, col2, 42, "CONTROL DE CAMBIOS", fill=LIGHT, font=FONT_SMALL_BOLD, width=2)
     groups = [(col1 + 1, col1 + 3), (col1 + 5, col1 + 7), (col1 + 9, col1 + 11)]
     for group in groups:
+        _cell(draw, group[0], 43, group[1], 49, "", width=2)
         for col, label in zip(group, ["E", "S", "MIN"]):
             _cell(draw, col, 43, text=label, fill=LIGHT, font=FONT_TINY_BOLD, width=2)
             for row in range(44, 50):
@@ -252,9 +254,8 @@ def _draw_goals(draw, col1, col2):
     for row_label, row_number in [(51, 52), (53, 54)]:
         for col in range(col1 + 1, col2, 2):
             _cell(draw, col, row_label, col + 1, row_label, f"GOL {goal}", fill=LIGHT, font=FONT_TINY_BOLD)
-            _cell(draw, col, row_number, col + 1, row_number, "#", font=FONT_SMALL_BOLD)
+            _cell(draw, col, row_number, col + 1, row_number, "#", font=FONT_SMALL_BOLD, align="left")
             goal += 1
-    _cell(draw, col1 + 1, 55, col2 - 1, 58, "")
 
 
 def generar_planilla_juego_pdf(partido):
@@ -286,8 +287,8 @@ def generar_planilla_juego_pdf(partido):
     _draw_goals(draw, 1, 13)
     _draw_goals(draw, 15, 27)
 
-    _cell(draw, 2, 59, 13, 59, "Firma Delegado Equipo A: ", font=FONT_SMALL_BOLD, align="left", width=2)
-    _cell(draw, 15, 59, 26, 59, "Firma Delegado Equipo B:", font=FONT_SMALL_BOLD, align="left", width=2)
+    _cell(draw, 1, 55, 27, 58, "COMENTARIOS DEL ARBITRO:", font=FONT_SMALL_BOLD, align="left", valign="top", width=2)
+    _cell(draw, 1, 59, 27, 59, "FIRMA ARBITRO CENTRAL:", font=FONT_SMALL_BOLD, align="left", width=2)
 
     output = BytesIO()
     img.save(output, format="PDF", resolution=PDF_DPI)

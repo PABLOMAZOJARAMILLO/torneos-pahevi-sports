@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Descargando archivo</title>
+<style>
+body {
+    margin: 0;
+    min-height: 100vh;
+    display: grid;
+    place-items: center;
+    background: #061224;
+    color: #ffffff;
+    font-family: Arial, sans-serif;
+}
+.panel {
+    width: min(88vw, 420px);
+    padding: 22px;
+    border: 1px solid #00e676;
+    border-radius: 14px;
+    text-align: center;
+}
+.estado {
+    margin-bottom: 16px;
+    font-weight: 800;
+}
+.btn {
+    display: inline-block;
+    border: 0;
+    border-radius: 999px;
+    padding: 12px 18px;
+    background: #00e676;
+    color: #061224;
+    font-weight: 800;
+    text-decoration: none;
+}
+</style>
+</head>
+<body>
+<div class="panel">
+    <div id="estado" class="estado">Preparando descarga...</div>
+    <a id="descarga" class="btn" href="{{ data_url }}" download="{{ nombre_archivo }}">Descargar manualmente</a>
+</div>
+
+<script>
+const dataUrl = "{{ data_url|escapejs }}";
+const nombreArchivo = "{{ nombre_archivo|escapejs }}";
+const contentType = "{{ content_type|escapejs }}";
+const volverUrl = "{{ volver_url|escapejs }}";
+
+function volver() {
+    setTimeout(function() {
+        window.location.href = volverUrl || "/";
+    }, 2200);
+}
+
+window.onload = function() {
+    const estado = document.getElementById("estado");
+
+    if (window.AndroidDownloader && typeof window.AndroidDownloader.guardarArchivo === "function") {
+        window.AndroidDownloader.guardarArchivo(dataUrl, nombreArchivo, contentType);
+        estado.innerText = "Descarga iniciada en Descargas";
+        volver();
+        return;
+    }
+
+    const enlace = document.getElementById("descarga");
+    enlace.click();
+    estado.innerText = "Archivo generado. Si no descarga, toca el boton.";
+    volver();
+};
+</script>
+</body>
+</html>

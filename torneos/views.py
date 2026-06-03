@@ -1,4 +1,5 @@
 from collections import defaultdict
+import base64
 from io import BytesIO
 from types import SimpleNamespace
 from datetime import date, datetime, time, timedelta
@@ -6515,6 +6516,16 @@ def respuesta_pdf_planilla(partido):
     return response
 
 
+def respuesta_archivo_descarga_app(request, contenido, nombre_archivo, content_type, volver_url):
+    data_url = f"data:{content_type};base64,{base64.b64encode(contenido).decode('ascii')}"
+    return render(request, "descargas/archivo_descarga.html", {
+        "data_url": data_url,
+        "nombre_archivo": nombre_archivo,
+        "content_type": content_type,
+        "volver_url": volver_url,
+    })
+
+
 @login_required
 @user_passes_test(es_editor_torneo)
 def descargar_planilla_juego_partido(request, partido_id):
@@ -6524,10 +6535,18 @@ def descargar_planilla_juego_partido(request, partido_id):
     )
     if not puede_gestionar_torneo(request, partido.categoria.torneo if partido.categoria_id else None, "editar"):
         return denegar_permiso_torneo()
+    if request.GET.get("app") == "1":
+        return respuesta_archivo_descarga_app(
+            request,
+            generar_planilla_juego_pdf(partido),
+            nombre_archivo_planilla(partido),
+            "application/pdf",
+            request.GET.get("volver") or reverse("gestion_partidos"),
+        )
     return respuesta_pdf_planilla(partido)
 
 
-def respuesta_zip_planillas(partidos, nombre_zip):
+def generar_zip_planillas(partidos):
     buffer = BytesIO()
     usados = set()
     with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as archivo_zip:
@@ -6539,7 +6558,11 @@ def respuesta_zip_planillas(partidos, nombre_zip):
             usados.add(nombre)
             archivo_zip.writestr(nombre, generar_planilla_juego_pdf(partido))
     buffer.seek(0)
-    response = HttpResponse(buffer.getvalue(), content_type="application/zip")
+    return buffer.getvalue()
+
+
+def respuesta_zip_planillas(partidos, nombre_zip):
+    response = HttpResponse(generar_zip_planillas(partidos), content_type="application/zip")
     response["Content-Disposition"] = f'attachment; filename="{nombre_zip}"'
     return response
 
@@ -6556,6 +6579,14 @@ def descargar_planillas_juego_categoria(request, categoria_id):
         messages.warning(request, "No hay partidos para generar planillas en esta categoria.")
         return redirect("gestion_partidos")
     nombre_zip = f"PLANILLAS_{limpiar_nombre(categoria.nombre)}.zip"
+    if request.GET.get("app") == "1":
+        return respuesta_archivo_descarga_app(
+            request,
+            generar_zip_planillas(partidos),
+            nombre_zip,
+            "application/zip",
+            request.GET.get("volver") or reverse("gestion_partidos"),
+        )
     return respuesta_zip_planillas(partidos, nombre_zip)
 
 
@@ -6568,4 +6599,13 @@ def descargar_planillas_juego_torneo(request):
         messages.warning(request, "No hay partidos para generar planillas.")
         return redirect("gestion_partidos")
     nombre_base = limpiar_nombre(torneo.nombre) if torneo else "TORNEO"
-    return respuesta_zip_planillas(partidos, f"PLANILLAS_{nombre_base}.zip")
+    nombre_zip = f"PLANILLAS_{nombre_base}.zip"
+    if request.GET.get("app") == "1":
+        return respuesta_archivo_descarga_app(
+            request,
+            generar_zip_planillas(partidos),
+            nombre_zip,
+            "application/zip",
+            request.GET.get("volver") or reverse("gestion_partidos"),
+        )
+    return respuesta_zip_planillas(partidos, nombre_zip)

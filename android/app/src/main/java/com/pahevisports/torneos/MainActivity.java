@@ -6,6 +6,7 @@ import android.content.ContentValues;
 import android.net.Uri;
 import android.os.Environment;
 import android.os.Bundle;
+import android.os.Build;
 import android.provider.MediaStore;
 import android.util.Base64;
 import android.webkit.CookieManager;
@@ -16,6 +17,8 @@ import android.widget.Toast;
 
 import com.getcapacitor.BridgeActivity;
 
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.OutputStream;
 
 public class MainActivity extends BridgeActivity {
@@ -66,6 +69,50 @@ public class MainActivity extends BridgeActivity {
             Toast.makeText(this, "Imagen guardada en Fotos/TorneosPaheviSports", Toast.LENGTH_LONG).show();
         } catch (Exception e) {
             Toast.makeText(this, "No se pudo descargar la imagen", Toast.LENGTH_LONG).show();
+        }
+    }
+
+    private void guardarArchivoBase64(String dataUrl, String nombreArchivo, String mimetype) {
+        try {
+            String base64 = dataUrl.substring(dataUrl.indexOf(",") + 1);
+            byte[] bytes = Base64.decode(base64, Base64.DEFAULT);
+            String nombre = limpiarNombreDescarga(nombreArchivo, mimetype);
+            String tipoArchivo = mimetype == null || mimetype.trim().isEmpty()
+                ? (nombre.toLowerCase().endsWith(".zip") ? "application/zip" : "application/pdf")
+                : mimetype;
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                ContentValues values = new ContentValues();
+                values.put(MediaStore.MediaColumns.DISPLAY_NAME, nombre);
+                values.put(MediaStore.MediaColumns.MIME_TYPE, tipoArchivo);
+                values.put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS + "/TorneosPaheviSports");
+
+                Uri uri = getContentResolver().insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values);
+                if (uri == null) {
+                    Toast.makeText(this, "No se pudo guardar el archivo", Toast.LENGTH_LONG).show();
+                    return;
+                }
+
+                try (OutputStream output = getContentResolver().openOutputStream(uri)) {
+                    if (output != null) {
+                        output.write(bytes);
+                    }
+                }
+            } else {
+                File carpeta = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), "TorneosPaheviSports");
+                if (!carpeta.exists() && !carpeta.mkdirs()) {
+                    Toast.makeText(this, "No se pudo crear la carpeta de descarga", Toast.LENGTH_LONG).show();
+                    return;
+                }
+                File archivo = new File(carpeta, nombre);
+                try (FileOutputStream output = new FileOutputStream(archivo)) {
+                    output.write(bytes);
+                }
+            }
+
+            Toast.makeText(this, "Archivo guardado en Descargas/TorneosPaheviSports", Toast.LENGTH_LONG).show();
+        } catch (Exception e) {
+            Toast.makeText(this, "No se pudo descargar el archivo", Toast.LENGTH_LONG).show();
         }
     }
 
@@ -142,6 +189,11 @@ public class MainActivity extends BridgeActivity {
         @JavascriptInterface
         public void guardarImagen(String dataUrl, String nombreArchivo) {
             runOnUiThread(() -> guardarImagenBase64(dataUrl, nombreArchivo));
+        }
+
+        @JavascriptInterface
+        public void guardarArchivo(String dataUrl, String nombreArchivo, String mimetype) {
+            runOnUiThread(() -> guardarArchivoBase64(dataUrl, nombreArchivo, mimetype));
         }
     }
 }
