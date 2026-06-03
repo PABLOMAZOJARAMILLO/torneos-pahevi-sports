@@ -1,5 +1,5 @@
-﻿from io import BytesIO
 from datetime import date
+from io import BytesIO
 
 from PIL import Image, ImageDraw, ImageFont
 from django.utils.text import slugify
@@ -7,11 +7,24 @@ from django.utils.text import slugify
 PAGE_W = 2148
 PAGE_H = 3038
 PDF_DPI = 200
-MARGIN = 70
+MARGIN_X = 70
+MARGIN_Y = 80
+
 BLACK = "#111111"
-GRAY = "#666666"
-LIGHT = "#F3F4F6"
-BORDER = "#1F2937"
+BORDER = "#111111"
+LIGHT = "#F2F2F2"
+WHITE = "#FFFFFF"
+
+COL_WIDTHS = [
+    4.0, 5.83203125, 13.0, 13.0, 13.0, 13.0, 13.0, 13.0, 13.0,
+    13.0, 13.0, 13.0, 4.0, 3.5, 4.0, 5.83203125, 13.0, 13.0,
+    13.0, 13.0, 13.0, 13.0, 13.0, 13.0, 13.0, 6.0, 4.0,
+]
+ROW_HEIGHTS = [
+    15, 15, 15, 13.5, 19.5, 15.75, 15.75, 15.75, 16.5, 20.1,
+    30.0, *([15.75] * 30), 16.5, 15.0, *([20.25] * 6),
+    15.75, 15.0, 20.25, 15.0, 20.25, *([13.5] * 4), 15.0,
+]
 
 
 def _font(size, bold=False):
@@ -20,10 +33,12 @@ def _font(size, bold=False):
         candidates.extend([
             r"C:\Windows\Fonts\arialbd.ttf",
             r"C:\Windows\Fonts\segoeuib.ttf",
+            "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
         ])
     candidates.extend([
         r"C:\Windows\Fonts\arial.ttf",
         r"C:\Windows\Fonts\segoeui.ttf",
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
         "arial.ttf",
     ])
     for candidate in candidates:
@@ -34,12 +49,13 @@ def _font(size, bold=False):
     return ImageFont.load_default()
 
 
-FONT_TITLE = _font(34, True)
-FONT_HEAD = _font(24, True)
-FONT_NORMAL = _font(22)
-FONT_SMALL = _font(18)
-FONT_SMALL_BOLD = _font(18, True)
-FONT_TINY = _font(15)
+FONT_TITLE = _font(24, True)
+FONT_HEAD = _font(18, True)
+FONT_NORMAL = _font(17)
+FONT_SMALL = _font(15)
+FONT_SMALL_BOLD = _font(15, True)
+FONT_TINY = _font(13)
+FONT_TINY_BOLD = _font(13, True)
 
 
 def _clean(value, default=""):
@@ -57,14 +73,18 @@ def _fecha(value):
 def _hora(value):
     if not value:
         return ""
-    return value.strftime("%I:%M %p").lower().replace("am", "a. m.").replace("pm", "p. m.")
+    return value.strftime("%I:%M:%S %p").lower().replace("am", "a. m.").replace("pm", "p. m.")
 
 
 def _edad(fecha_nacimiento, referencia=None):
     if not fecha_nacimiento:
         return ""
     referencia = referencia or date.today()
-    return str(referencia.year - fecha_nacimiento.year - ((referencia.month, referencia.day) < (fecha_nacimiento.month, fecha_nacimiento.day)))
+    return str(
+        referencia.year
+        - fecha_nacimiento.year
+        - ((referencia.month, referencia.day) < (fecha_nacimiento.month, fecha_nacimiento.day))
+    )
 
 
 def _fase(partido):
@@ -74,8 +94,31 @@ def _fase(partido):
 
 
 def nombre_archivo_planilla(partido, extension="pdf"):
-    base = f"{partido.categoria.nombre} - {partido.equipo_local.nombre} VS {partido.equipo_visitante.nombre} - {_fase(partido)} - {_fecha(partido.fecha).replace('/', '-')}"
+    base = (
+        f"{partido.categoria.nombre} - {partido.equipo_local.nombre} VS "
+        f"{partido.equipo_visitante.nombre} - {_fase(partido)} - "
+        f"{_fecha(partido.fecha).replace('/', '-')}"
+    )
     return f"{slugify(base).upper() or 'PLANILLA'}.{extension}"
+
+
+def _positions(lengths, start, end):
+    total = sum(lengths)
+    scale = (end - start) / total
+    positions = [start]
+    current = start
+    for item in lengths:
+        current += item * scale
+        positions.append(current)
+    return positions
+
+
+X = _positions(COL_WIDTHS, MARGIN_X, PAGE_W - MARGIN_X)
+Y = _positions(ROW_HEIGHTS, MARGIN_Y, PAGE_H - MARGIN_Y)
+
+
+def _box(col1, row1, col2, row2):
+    return [X[col1 - 1], Y[row1 - 1], X[col2], Y[row2]]
 
 
 def _fit(draw, text, font, max_width):
@@ -90,136 +133,135 @@ def _fit(draw, text, font, max_width):
     return text + ellipsis if text else ""
 
 
-def _center(draw, box, text, font, fill=BLACK):
+def _text(draw, box, text, font=FONT_NORMAL, align="center", valign="middle", bold=False):
     x1, y1, x2, y2 = box
     text = _clean(text)
+    font = font or (FONT_SMALL_BOLD if bold else FONT_SMALL)
+    text = _fit(draw, text, font, max(8, x2 - x1 - 8))
     bbox = draw.textbbox((0, 0), text, font=font)
     tw = bbox[2] - bbox[0]
     th = bbox[3] - bbox[1]
-    draw.text((x1 + (x2 - x1 - tw) / 2, y1 + (y2 - y1 - th) / 2 - 2), text, font=font, fill=fill)
+    if align == "left":
+        x = x1 + 6
+    elif align == "right":
+        x = x2 - tw - 6
+    else:
+        x = x1 + (x2 - x1 - tw) / 2
+    if valign == "top":
+        y = y1 + 4
+    elif valign == "bottom":
+        y = y2 - th - 4
+    else:
+        y = y1 + (y2 - y1 - th) / 2 - 1
+    draw.text((x, y), text, font=font, fill=BLACK)
 
 
-def _label_value(draw, x, y, label, value, label_w=210, value_w=420):
-    draw.rectangle([x, y, x + label_w, y + 42], outline=BORDER, width=2, fill=LIGHT)
-    draw.rectangle([x + label_w, y, x + label_w + value_w, y + 42], outline=BORDER, width=2)
-    draw.text((x + 10, y + 8), label, font=FONT_SMALL_BOLD, fill=BLACK)
-    draw.text((x + label_w + 10, y + 8), _fit(draw, value, FONT_SMALL_BOLD, value_w - 20), font=FONT_SMALL_BOLD, fill=BLACK)
+def _cell(draw, col1, row1, col2=None, row2=None, text="", fill=WHITE, font=FONT_SMALL, align="center", width=1):
+    col2 = col2 or col1
+    row2 = row2 or row1
+    box = _box(col1, row1, col2, row2)
+    draw.rectangle(box, outline=BORDER, width=width, fill=fill)
+    if text not in (None, ""):
+        _text(draw, box, text, font=font, align=align)
 
 
-def _draw_player_table(draw, x, y, w, title, jugadores, referencia):
-    draw.rectangle([x, y, x + w, y + 44], outline=BORDER, width=2, fill=LIGHT)
-    _center(draw, (x, y, x + w, y + 44), title, FONT_SMALL_BOLD)
-
-    headers = ["No", "NOMBRE Y APELLIDOS", "#", "EDAD", "INIC", "A", "R"]
-    widths = [58, w - 430, 62, 72, 70, 52, 52]
-    row_h = 45
-    yy = y + 44
-    xx = x
-    for header, cw in zip(headers, widths):
-        draw.rectangle([xx, yy, xx + cw, yy + row_h], outline=BORDER, width=2, fill=LIGHT)
-        _center(draw, (xx, yy, xx + cw, yy + row_h), header, FONT_TINY if header != "NOMBRE Y APELLIDOS" else FONT_SMALL_BOLD)
-        xx += cw
-
-    jugadores = list(jugadores)[:30]
-    for idx in range(30):
-        jugador = jugadores[idx] if idx < len(jugadores) else None
-        yy = y + 44 + row_h * (idx + 1)
-        values = [str(idx + 1), "", "", "", "", "", ""]
-        if jugador:
-            values = [
-                str(idx + 1),
-                _clean(jugador.nombres).title(),
-                _clean(jugador.dorsal),
-                _edad(jugador.fecha_nacimiento, referencia),
-                "",
-                "",
-                "",
-            ]
-        xx = x
-        for pos, cw in enumerate(widths):
-            draw.rectangle([xx, yy, xx + cw, yy + row_h], outline=BORDER, width=1)
-            if pos == 1:
-                draw.text((xx + 8, yy + 10), _fit(draw, values[pos], FONT_SMALL, cw - 16), font=FONT_SMALL, fill=BLACK)
-            else:
-                _center(draw, (xx, yy, xx + cw, yy + row_h), values[pos], FONT_SMALL)
-            xx += cw
-
-    return y + 44 + row_h * 31
+def _label_value(draw, label_cols, row, value_cols, label, value):
+    _cell(draw, label_cols[0], row, label_cols[1], row, text=label, fill=LIGHT, font=FONT_SMALL_BOLD, width=2)
+    _cell(draw, value_cols[0], row, value_cols[1], row, text=value, font=FONT_SMALL_BOLD, align="left", width=2)
 
 
-def _draw_goals(draw, x, y, w, title):
-    draw.rectangle([x, y, x + w, y + 40], outline=BORDER, width=2, fill=LIGHT)
-    _center(draw, (x, y, x + w, y + 40), title, FONT_SMALL_BOLD)
-    cell_w = w / 6
-    cell_h = 54
-    for row in range(2):
-        for col in range(6):
-            n = row * 6 + col + 1
-            x1 = x + col * cell_w
-            y1 = y + 40 + row * cell_h
-            draw.rectangle([x1, y1, x1 + cell_w, y1 + cell_h], outline=BORDER, width=1)
-            draw.text((x1 + 8, y1 + 6), f"GOL {n}", font=FONT_TINY, fill=GRAY)
-            draw.text((x1 + cell_w - 34, y1 + 26), "#", font=FONT_SMALL_BOLD, fill=BLACK)
+def _jugadores(equipo):
+    return list(equipo.jugadores.filter(estado="ACTIVO").order_by("dorsal", "nombres"))[:30]
 
 
-def _draw_changes(draw, x, y, w):
-    draw.rectangle([x, y, x + w, y + 40], outline=BORDER, width=2, fill=LIGHT)
-    _center(draw, (x, y, x + w, y + 40), "CONTROL DE CAMBIOS", FONT_SMALL_BOLD)
-    headers = ["E", "S", "MIN", "E", "S", "MIN", "E", "S", "MIN"]
-    cw = w / len(headers)
-    for i, header in enumerate(headers):
-        x1 = x + i * cw
-        draw.rectangle([x1, y + 40, x1 + cw, y + 88], outline=BORDER, width=1)
-        _center(draw, (x1, y + 40, x1 + cw, y + 88), header, FONT_TINY)
+def _draw_player_side(draw, start_col, team_title, jugadores, referencia):
+    name_start = start_col + 1
+    if start_col == 1:
+        name_end = 7
+        number_col, edad_col, inic_col, amarilla_cols, roja_col = 8, 9, 10, (11, 12), 13
+    else:
+        name_end = 21
+        number_col, edad_col, inic_col, amarilla_cols, roja_col = 22, 23, 24, (25, 26), 27
+
+    _cell(draw, start_col, 10, start_col + 12, 10, team_title, fill=LIGHT, font=FONT_SMALL_BOLD, width=2)
+    _cell(draw, start_col + 10, 10, start_col + 12, 10, "Tarjetas", fill=LIGHT, font=FONT_SMALL_BOLD, width=2)
+    _cell(draw, start_col, 11, text="Nº", fill=LIGHT, font=FONT_TINY_BOLD, width=2)
+    _cell(draw, name_start, 11, name_end, 11, "NOMBRE Y APELLIDOS", fill=LIGHT, font=FONT_SMALL_BOLD, width=2)
+    _cell(draw, number_col, 11, text="#", fill=LIGHT, font=FONT_TINY_BOLD, width=2)
+    _cell(draw, edad_col, 11, text="EDAD", fill=LIGHT, font=FONT_TINY_BOLD, width=2)
+    _cell(draw, inic_col, 11, text="INIC", fill=LIGHT, font=FONT_TINY_BOLD, width=2)
+    _cell(draw, amarilla_cols[0], 11, amarilla_cols[1], 11, "A", fill=LIGHT, font=FONT_TINY_BOLD, width=2)
+    _cell(draw, roja_col, 11, text="R", fill=LIGHT, font=FONT_TINY_BOLD, width=2)
+
+    for index in range(30):
+        row = 12 + index
+        jugador = jugadores[index] if index < len(jugadores) else None
+        _cell(draw, start_col, row, text=str(index + 1), font=FONT_TINY)
+        _cell(
+            draw,
+            name_start,
+            row,
+            name_end,
+            row,
+            _clean(getattr(jugador, "nombres", "")).title() if jugador else "",
+            font=FONT_SMALL,
+            align="left",
+        )
+        _cell(draw, number_col, row, text=_clean(getattr(jugador, "dorsal", "")) if jugador else "", font=FONT_TINY)
+        _cell(draw, edad_col, row, text=_edad(getattr(jugador, "fecha_nacimiento", None), referencia) if jugador else "", font=FONT_TINY)
+        _cell(draw, inic_col, row, text="", font=FONT_TINY)
+        _cell(draw, amarilla_cols[0], row, amarilla_cols[1], row, text="", font=FONT_TINY)
+        _cell(draw, roja_col, row, text="", font=FONT_TINY)
+
+
+def _draw_changes(draw, col1, col2):
+    _cell(draw, col1, 42, col2, 42, "CONTROL DE CAMBIOS", fill=LIGHT, font=FONT_SMALL_BOLD, width=2)
+    groups = [(col1 + 1, col1 + 3), (col1 + 5, col1 + 7), (col1 + 9, col1 + 11)]
+    for group in groups:
+        for col, label in zip(group, ["E", "S", "MIN"]):
+            _cell(draw, col, 43, text=label, fill=LIGHT, font=FONT_TINY_BOLD, width=2)
+            for row in range(44, 50):
+                _cell(draw, col, row)
+
+
+def _draw_goals(draw, col1, col2):
+    _cell(draw, col1 + 1, 50, col2 - 1, 50, "GOLES", fill=LIGHT, font=FONT_SMALL_BOLD, width=2)
+    goal = 1
+    for row_label, row_number in [(51, 52), (53, 54)]:
+        for col in range(col1 + 1, col2, 2):
+            _cell(draw, col, row_label, col + 1, row_label, f"GOL {goal}", fill=LIGHT, font=FONT_TINY_BOLD)
+            _cell(draw, col, row_number, col + 1, row_number, "#", font=FONT_SMALL_BOLD)
+            goal += 1
+    _cell(draw, col1 + 1, 55, col2 - 1, 58, "")
 
 
 def generar_planilla_juego_pdf(partido):
-    img = Image.new("RGB", (PAGE_W, PAGE_H), "white")
+    img = Image.new("RGB", (PAGE_W, PAGE_H), WHITE)
     draw = ImageDraw.Draw(img)
 
-    title = "PLANILLA DE JUEGO TORNEO VERANERO: SENIOR MASTER, PLUS 50 E INTERBARRIOS"
-    _center(draw, (MARGIN, 42, PAGE_W - MARGIN, 100), title, FONT_TITLE)
+    _cell(draw, 1, 5, 27, 5, "PLANILLA DE JUEGO TORNEO VERANERO: SENIOR MASTER, PLUS 50 E INTERBARRIOS", fill=WHITE, font=FONT_TITLE, width=2)
 
-    top_y = 126
-    _label_value(draw, MARGIN, top_y, "FECHAS:", _fase(partido), 170, 520)
-    _label_value(draw, PAGE_W - MARGIN - 620, top_y, "FECHA", _fecha(partido.fecha), 180, 440)
-    _label_value(draw, MARGIN, top_y + 48, "CATEGORIA", partido.categoria.nombre.upper(), 220, 470)
-    _label_value(draw, PAGE_W - MARGIN - 620, top_y + 48, "HORA", _hora(partido.hora), 180, 440)
-    _label_value(draw, MARGIN, top_y + 96, "CANCHA", _clean(partido.cancha, ""), 220, 470)
-    _label_value(draw, PAGE_W - MARGIN - 620, top_y + 96, "ARBITRO", "", 180, 440)
-
-    team_y = top_y + 154
-    half = (PAGE_W - MARGIN * 2 - 28) / 2
-    _label_value(draw, MARGIN, team_y, "Equipo A:", partido.equipo_local.nombre.upper(), 180, int(half - 180))
-    _label_value(draw, int(MARGIN + half + 28), team_y, "Equipo B:", partido.equipo_visitante.nombre.upper(), 180, int(half - 180))
-    _label_value(draw, PAGE_W // 2 - 170, team_y + 54, "MARCADOR", "", 160, 180)
+    _label_value(draw, (1, 4), 6, (5, 13), "FECHAS:", _fase(partido))
+    _label_value(draw, (15, 17), 6, (18, 21), "FECHA", _fecha(partido.fecha))
+    _label_value(draw, (22, 23), 6, (24, 27), "HORA", _hora(partido.hora))
+    _label_value(draw, (1, 4), 7, (5, 13), "CATEGORIA", partido.categoria.nombre.upper())
+    _label_value(draw, (15, 17), 7, (18, 27), "ARBITRO", "")
+    _label_value(draw, (1, 4), 8, (5, 13), "CANCHA", _clean(partido.cancha, "").upper())
+    _label_value(draw, (15, 17), 8, (18, 27), "MARCADOR", "")
+    _label_value(draw, (1, 4), 9, (5, 13), "Equipo A:", partido.equipo_local.nombre.upper())
+    _label_value(draw, (15, 17), 9, (18, 27), "Equipo B:", partido.equipo_visitante.nombre.upper())
 
     referencia = partido.fecha or date.today()
-    jugadores_local = partido.equipo_local.jugadores.filter(estado="ACTIVO").order_by("dorsal", "nombres")
-    jugadores_visitante = partido.equipo_visitante.jugadores.filter(estado="ACTIVO").order_by("dorsal", "nombres")
+    _draw_player_side(draw, 1, "LISTADO DE JUGADORES – EQUIPO A", _jugadores(partido.equipo_local), referencia)
+    _draw_player_side(draw, 15, "LISTADO DE JUGADORES – EQUIPO B", _jugadores(partido.equipo_visitante), referencia)
 
-    table_y = team_y + 110
-    left_x = MARGIN
-    right_x = int(MARGIN + half + 28)
-    table_w = int(half)
-    bottom_tables = _draw_player_table(draw, left_x, table_y, table_w, "LISTADO DE JUGADORES - EQUIPO A", jugadores_local, referencia)
-    _draw_player_table(draw, right_x, table_y, table_w, "LISTADO DE JUGADORES - EQUIPO B", jugadores_visitante, referencia)
+    _draw_changes(draw, 1, 13)
+    _draw_changes(draw, 15, 27)
+    _draw_goals(draw, 1, 13)
+    _draw_goals(draw, 15, 27)
 
-    section_y = bottom_tables + 32
-    _draw_goals(draw, left_x, section_y, table_w, "GOLES")
-    _draw_goals(draw, right_x, section_y, table_w, "GOLES")
-    _draw_changes(draw, left_x, section_y + 172, table_w)
-    _draw_changes(draw, right_x, section_y + 172, table_w)
-
-    sign_y = section_y + 292
-    draw.line([left_x, sign_y, left_x + table_w, sign_y], fill=BORDER, width=2)
-    draw.text((left_x + 8, sign_y + 10), "Firma Delegado Equipo A:", font=FONT_SMALL_BOLD, fill=BLACK)
-    draw.line([right_x, sign_y, right_x + table_w, sign_y], fill=BORDER, width=2)
-    draw.text((right_x + 8, sign_y + 10), "Firma Delegado Equipo B:", font=FONT_SMALL_BOLD, fill=BLACK)
-
-    obs_y = sign_y + 72
-    draw.rectangle([MARGIN, obs_y, PAGE_W - MARGIN, obs_y + 96], outline=BORDER, width=2)
-    draw.text((MARGIN + 12, obs_y + 10), "OBSERVACIONES:", font=FONT_SMALL_BOLD, fill=BLACK)
+    _cell(draw, 2, 59, 13, 59, "Firma Delegado Equipo A: ", font=FONT_SMALL_BOLD, align="left", width=2)
+    _cell(draw, 15, 59, 26, 59, "Firma Delegado Equipo B:", font=FONT_SMALL_BOLD, align="left", width=2)
 
     output = BytesIO()
     img.save(output, format="PDF", resolution=PDF_DPI)
