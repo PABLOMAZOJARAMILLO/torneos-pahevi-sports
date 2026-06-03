@@ -5168,6 +5168,13 @@ def equipos_gestion_filtrados(torneo, q="", categoria_id=""):
     return equipos
 
 
+def equipos_gestionables_para_usuario(request):
+    equipos = Equipo.objects.select_related("categoria", "categoria__torneo").order_by("categoria__nombre", "nombre")
+    if request.user.is_superuser:
+        return equipos
+    return equipos.filter(categoria__torneo__in=torneos_para_usuario(request)).distinct()
+
+
 def username_delegado_equipo(equipo, usuario_actual=None):
     nombre_equipo = (slugify(equipo.nombre) or f"equipo-{equipo.id}").replace("-", "")
     base = f"admin-{nombre_equipo}"[:140].strip("-") or f"admin-equipo-{equipo.id}"
@@ -5367,14 +5374,11 @@ def gestion_equipo_nuevo(request):
 @login_required
 @user_passes_test(es_editor_torneo)
 def gestion_equipo_editar(request, equipo_id):
-    torneo = torneo_actual(request)
-    if not puede_gestionar_torneo(request, torneo, "editar"):
+    equipo = get_object_or_404(equipos_gestionables_para_usuario(request), id=equipo_id)
+    torneo_equipo = equipo.categoria.torneo if equipo.categoria_id else None
+    if not puede_gestionar_torneo(request, torneo_equipo, "editar"):
         return denegar_permiso_torneo()
-    equipos = Equipo.objects.select_related("categoria")
-    if torneo:
-        equipos = equipos.filter(categoria__torneo=torneo)
-    equipo = get_object_or_404(equipos, id=equipo_id)
-    form = EquipoForm(request.POST or None, request.FILES or None, instance=equipo, torneo=torneo)
+    form = EquipoForm(request.POST or None, request.FILES or None, instance=equipo, torneo=torneo_equipo)
     jugadores = equipo.jugadores.order_by("dorsal", "nombres")
 
     if request.method == "POST" and form.is_valid():
@@ -5498,13 +5502,10 @@ def gestion_equipo_reinscribir(request, equipo_id):
 @user_passes_test(es_editor_torneo)
 @require_POST
 def gestion_equipo_jugadores_guardar(request, equipo_id):
-    torneo = torneo_actual(request)
-    if not puede_gestionar_torneo(request, torneo, "editar"):
+    equipo = get_object_or_404(equipos_gestionables_para_usuario(request), id=equipo_id)
+    torneo_equipo = equipo.categoria.torneo if equipo.categoria_id else None
+    if not puede_gestionar_torneo(request, torneo_equipo, "editar"):
         return denegar_permiso_torneo()
-    equipos = Equipo.objects.select_related("categoria")
-    if torneo:
-        equipos = equipos.filter(categoria__torneo=torneo)
-    equipo = get_object_or_404(equipos, id=equipo_id)
 
     jugadores = list(equipo.jugadores.all())
     errores = []
@@ -5578,13 +5579,10 @@ def gestion_equipo_jugadores_guardar(request, equipo_id):
 @user_passes_test(es_editor_torneo)
 @require_POST
 def gestion_equipo_eliminar(request, equipo_id):
-    torneo = torneo_actual(request)
-    if not puede_gestionar_torneo(request, torneo, "editar"):
+    equipo = get_object_or_404(equipos_gestionables_para_usuario(request), id=equipo_id)
+    torneo_equipo = equipo.categoria.torneo if equipo.categoria_id else None
+    if not puede_gestionar_torneo(request, torneo_equipo, "editar"):
         return denegar_permiso_torneo()
-    equipos = Equipo.objects.select_related("categoria")
-    if torneo:
-        equipos = equipos.filter(categoria__torneo=torneo)
-    equipo = get_object_or_404(equipos, id=equipo_id)
     nombre = equipo.nombre
     registrar_actividad(request, "ELIMINAR", equipo, descripcion=f"Elimino equipo {nombre}.")
     equipo.delete()
