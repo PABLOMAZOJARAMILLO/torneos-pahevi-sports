@@ -1,5 +1,6 @@
 from datetime import date
 from io import BytesIO
+from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFont
 from django.utils.text import slugify
@@ -49,13 +50,20 @@ def _font(size, bold=False):
     return ImageFont.load_default()
 
 
-FONT_TITLE = _font(24, True)
-FONT_HEAD = _font(18, True)
-FONT_NORMAL = _font(17)
-FONT_SMALL = _font(15)
-FONT_SMALL_BOLD = _font(15, True)
-FONT_TINY = _font(13)
-FONT_TINY_BOLD = _font(13, True)
+FONT_TITLE = _font(30, True)
+FONT_HEAD = _font(21, True)
+FONT_NORMAL = _font(19)
+FONT_SMALL = _font(18)
+FONT_SMALL_BOLD = _font(18, True)
+FONT_TINY = _font(16)
+FONT_TINY_BOLD = _font(16, True)
+
+STATIC_IMG_DIR = Path(__file__).resolve().parent / "static" / "torneos" / "img"
+HEADER_IMAGES = [
+    (1, 1, 7, 4, STATIC_IMG_DIR / "planilla_header_left.png"),
+    (8, 1, 17, 4, STATIC_IMG_DIR / "planilla_header_center.png"),
+    (18, 1, 27, 4, STATIC_IMG_DIR / "planilla_header_right.png"),
+]
 
 
 def _clean(value, default=""):
@@ -165,6 +173,18 @@ def _cell(draw, col1, row1, col2=None, row2=None, text="", fill=WHITE, font=FONT
         _text(draw, box, text, font=font, align=align)
 
 
+def _draw_image_fit(base, path, box):
+    if not path.exists():
+        return
+    x1, y1, x2, y2 = [int(round(value)) for value in box]
+    with Image.open(path) as image:
+        image = image.convert("RGBA")
+        image.thumbnail((max(1, x2 - x1 - 8), max(1, y2 - y1 - 8)), Image.Resampling.LANCZOS)
+        canvas = Image.new("RGBA", (x2 - x1, y2 - y1), (255, 255, 255, 255))
+        canvas.paste(image, ((canvas.width - image.width) // 2, (canvas.height - image.height) // 2), image)
+        base.paste(canvas.convert("RGB"), (x1, y1))
+
+
 def _label_value(draw, label_cols, row, value_cols, label, value):
     _cell(draw, label_cols[0], row, label_cols[1], row, text=label, fill=LIGHT, font=FONT_SMALL_BOLD, width=2)
     _cell(draw, value_cols[0], row, value_cols[1], row, text=value, font=FONT_SMALL_BOLD, align="left", width=2)
@@ -178,19 +198,20 @@ def _draw_player_side(draw, start_col, team_title, jugadores, referencia):
     name_start = start_col + 1
     if start_col == 1:
         name_end = 7
-        number_col, edad_col, inic_col, amarilla_cols, roja_col = 8, 9, 10, (11, 12), 13
+        number_col, edad_col, inic_col, sup_col, amarilla_col, roja_col = 8, 9, 10, 11, 12, 13
     else:
         name_end = 21
-        number_col, edad_col, inic_col, amarilla_cols, roja_col = 22, 23, 24, (25, 26), 27
+        number_col, edad_col, inic_col, sup_col, amarilla_col, roja_col = 22, 23, 24, 25, 26, 27
 
     _cell(draw, start_col, 10, start_col + 12, 10, team_title, fill=LIGHT, font=FONT_SMALL_BOLD, width=2)
-    _cell(draw, start_col + 10, 10, start_col + 12, 10, "Tarjetas", fill=LIGHT, font=FONT_SMALL_BOLD, width=2)
-    _cell(draw, start_col, 11, text="Nº", fill=LIGHT, font=FONT_TINY_BOLD, width=2)
+    _cell(draw, start_col + 11, 10, start_col + 12, 10, "Tarjetas", fill=LIGHT, font=FONT_SMALL_BOLD, width=2)
+    _cell(draw, start_col, 11, text="No", fill=LIGHT, font=FONT_TINY_BOLD, width=2)
     _cell(draw, name_start, 11, name_end, 11, "NOMBRE Y APELLIDOS", fill=LIGHT, font=FONT_SMALL_BOLD, width=2)
     _cell(draw, number_col, 11, text="#", fill=LIGHT, font=FONT_TINY_BOLD, width=2)
     _cell(draw, edad_col, 11, text="EDAD", fill=LIGHT, font=FONT_TINY_BOLD, width=2)
     _cell(draw, inic_col, 11, text="INIC", fill=LIGHT, font=FONT_TINY_BOLD, width=2)
-    _cell(draw, amarilla_cols[0], 11, amarilla_cols[1], 11, "A", fill=LIGHT, font=FONT_TINY_BOLD, width=2)
+    _cell(draw, sup_col, 11, text="SUP", fill=LIGHT, font=FONT_TINY_BOLD, width=2)
+    _cell(draw, amarilla_col, 11, text="A", fill=LIGHT, font=FONT_TINY_BOLD, width=2)
     _cell(draw, roja_col, 11, text="R", fill=LIGHT, font=FONT_TINY_BOLD, width=2)
 
     for index in range(30):
@@ -210,7 +231,8 @@ def _draw_player_side(draw, start_col, team_title, jugadores, referencia):
         _cell(draw, number_col, row, text=_clean(getattr(jugador, "dorsal", "")) if jugador else "", font=FONT_TINY)
         _cell(draw, edad_col, row, text=_edad(getattr(jugador, "fecha_nacimiento", None), referencia) if jugador else "", font=FONT_TINY)
         _cell(draw, inic_col, row, text="", font=FONT_TINY)
-        _cell(draw, amarilla_cols[0], row, amarilla_cols[1], row, text="", font=FONT_TINY)
+        _cell(draw, sup_col, row, text="", font=FONT_TINY)
+        _cell(draw, amarilla_col, row, text="", font=FONT_TINY)
         _cell(draw, roja_col, row, text="", font=FONT_TINY)
 
 
@@ -239,6 +261,10 @@ def generar_planilla_juego_pdf(partido):
     img = Image.new("RGB", (PAGE_W, PAGE_H), WHITE)
     draw = ImageDraw.Draw(img)
 
+    for col1, row1, col2, row2, path in HEADER_IMAGES:
+        _cell(draw, col1, row1, col2, row2, fill=WHITE, width=2)
+        _draw_image_fit(img, path, _box(col1, row1, col2, row2))
+
     _cell(draw, 1, 5, 27, 5, "PLANILLA DE JUEGO TORNEO VERANERO: SENIOR MASTER, PLUS 50 E INTERBARRIOS", fill=WHITE, font=FONT_TITLE, width=2)
 
     _label_value(draw, (1, 4), 6, (5, 13), "FECHAS:", _fase(partido))
@@ -252,8 +278,8 @@ def generar_planilla_juego_pdf(partido):
     _label_value(draw, (15, 17), 9, (18, 27), "Equipo B:", partido.equipo_visitante.nombre.upper())
 
     referencia = partido.fecha or date.today()
-    _draw_player_side(draw, 1, "LISTADO DE JUGADORES – EQUIPO A", _jugadores(partido.equipo_local), referencia)
-    _draw_player_side(draw, 15, "LISTADO DE JUGADORES – EQUIPO B", _jugadores(partido.equipo_visitante), referencia)
+    _draw_player_side(draw, 1, "LISTADO DE JUGADORES - EQUIPO A", _jugadores(partido.equipo_local), referencia)
+    _draw_player_side(draw, 15, "LISTADO DE JUGADORES - EQUIPO B", _jugadores(partido.equipo_visitante), referencia)
 
     _draw_changes(draw, 1, 13)
     _draw_changes(draw, 15, 27)
