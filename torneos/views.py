@@ -1,10 +1,12 @@
 from collections import defaultdict
+from io import BytesIO
 from types import SimpleNamespace
 from datetime import date, datetime, time, timedelta
 from concurrent.futures import ThreadPoolExecutor, TimeoutError
 import os
 import re
 import uuid
+import zipfile
 from urllib.parse import quote
 
 from django.conf import settings
@@ -34,6 +36,7 @@ from openpyxl import load_workbook
 
 from .forms import TorneoForm, OrganizadorForm, CategoriaForm, DocumentoForm, EquipoForm, EquipoDelegadoForm, EquipoReinscripcionForm, JugadorForm, JugadorDelegadoForm, PartidoForm, AdminTorneoForm, AdminOrganizadorForm
 from .models import Torneo, Organizador, Categoria, Documento, Equipo, Partido, Gol, Tarjeta, Jugador, AlineacionPartido, SustitucionPartido, ReglaEdadCategoria, AdminTorneo, AdminOrganizador, RegistroActividad, SolicitudValidacion, limpiar_ruta_cloudinary
+from .planillas_pdf import generar_planilla_juego_pdf, nombre_archivo_planilla
 from django.utils import timezone
 
 def es_editor_torneo(user):
@@ -6480,3 +6483,89 @@ def cronometro_finalizar(request, partido_id):
         return redirect("partido_live", partido_id=partido.id)
     return redirect("editor_partido_movil", partido_id=partido.id)
 
+
+def partidos_para_planillas(torneo, categoria_id=None):
+    partidos = Partido.objects.select_related(
+        "categoria",
+        "categoria__torneo",
+        "equipo_local",
+        "equipo_visitante",
+    ).prefetch_related(
+        "equipo_local__jugadores",
+        "equipo_visitante__jugadores",
+    ).filter(
+        estado="PROGRAMADO",
+        estado_programacion__in=["MANUAL", "OFICIAL"],
+    ).exclude(
+        cancha__isnull=True,
+    ).exclude(
+        cancha__exact="",
+    ).order_by("fecha", "hora", "categoria__nombre", "fase", "numero_fecha", "equipo_local__nombre")
+    if torneo:
+        partidos = partidos.filter(categoria__torneo=torneo)
+    if categoria_id:
+        partidos = partidos.filter(categoria_id=categoria_id)
+    return partidos
+
+
+def respuesta_pdf_planilla(partido):
+    contenido = generar_planilla_juego_pdf(partido)
+    response = HttpResponse(contenido, content_type="application/pdf")
+    response["Content-Disposition"] = f'attachment; filename="{nombre_archivo_planilla(partido)}"'
+    return response
+
+
+@login_required
+@user_passes_test(es_editor_torneo)
+def descargar_planilla_juego_partido(request, partido_id):
+    partido = get_object_or_404(
+        partidos_para_planillas(None),
+        id=partido_id,
+    )
+    if not puede_gestionar_torneo(request, partido.categoria.torneo if partido.categoria_id else None, "editar"):
+        return denegar_permiso_torneo()
+    return respuesta_pdf_planilla(partido)
+
+
+def respuesta_zip_planillas(partidos, nombre_zip):
+    buffer = BytesIO()
+    usados = set()
+    with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as archivo_zip:
+        for partido in partidos:
+            nombre = nombre_archivo_planilla(partido)
+            if nombre in usados:
+                base, ext = nombre.rsplit(".", 1)
+                nombre = f"{base}-{partido.id}.{ext}"
+            usados.add(nombre)
+            archivo_zip.writestr(nombre, generar_planilla_juego_pdf(partido))
+    buffer.seek(0)
+    response = HttpResponse(buffer.getvalue(), content_type="application/zip")
+    response["Content-Disposition"] = f'attachment; filename="{nombre_zip}"'
+    return response
+
+
+@login_required
+@user_passes_test(es_editor_torneo)
+def descargar_planillas_juego_categoria(request, categoria_id):
+    torneo = torneo_actual(request)
+    categoria = get_object_or_404(Categoria, id=categoria_id)
+    if not puede_gestionar_torneo(request, categoria.torneo, "editar"):
+        return HttpResponseForbidden("No tienes permiso para esta categoria.")
+    partidos = list(partidos_para_planillas(torneo, categoria_id=categoria.id))
+    if not partidos:
+        messages.warning(request, "No hay partidos para generar planillas en esta categoria.")
+        return redirect("gestion_partidos")
+    nombre_zip = f"PLANILLAS_{limpiar_nombre(categoria.nombre)}.zip"
+    return respuesta_zip_planillas(partidos, nombre_zip)
+
+
+@login_required
+@user_passes_test(es_editor_torneo)
+def descargar_planillas_juego_torneo(request):
+    torneo = torneo_actual(request)
+    partidos = list(partidos_para_planillas(torneo))
+    if not partidos:
+        messages.warning(request, "No hay partidos para generar planillas.")
+        return redirect("gestion_partidos")
+    nombre_base = limpiar_nombre(torneo.nombre) if torneo else "TORNEO"
+    return respuesta_zip_planillas(partidos, f"PLANILLAS_{nombre_base}.zip")

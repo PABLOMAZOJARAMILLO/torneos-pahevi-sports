@@ -235,3 +235,21 @@ urlpatterns = [
     path('partido/<int:partido_id>/cronometro/suspender/', views.cronometro_suspender, name='cronometro_suspender'),
     path('partido/<int:partido_id>/cronometro/finalizar/', views.cronometro_finalizar, name='cronometro_finalizar'),
 ]
+
+urlpatterns += [
+    path(
+        'gestion/partidos/<int:partido_id>/planilla-pdf/',
+        views.descargar_planilla_juego_partido,
+        name='descargar_planilla_juego_partido',
+    ),
+    path(
+        'gestion/partidos/planillas-pdf/categoria/<int:categoria_id>/',
+        views.descargar_planillas_juego_categoria,
+        name='descargar_planillas_juego_categoria',
+    ),
+    path(
+        'gestion/partidos/planillas-pdf/torneo/',
+        views.descargar_planillas_juego_torneo,
+        name='descargar_planillas_juego_torneo',
+    ),
+]

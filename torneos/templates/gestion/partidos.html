@@ -7,6 +7,8 @@
 <p>
     <a class="btn" href="{% url 'gestion_partido_nuevo' %}">Nuevo partido</a>
     <a class="btn" href="{% url 'gestion_importar_partidos' %}">Importar partidos</a>
+    <a class="btn" href="{% url 'descargar_planillas_juego_torneo' %}">Planillas PDF programadas</a>
+    {% if categoria_id %}<a class="btn secondary" href="{% url 'descargar_planillas_juego_categoria' categoria_id %}">PDF categoria filtrada</a>{% endif %}
     <a class="btn secondary" href="{% url 'gestion_panel' %}">Gestion</a>
 </p>
 
@@ -60,6 +62,9 @@
     </div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;">
         <a class="btn secondary" href="{% url 'editor_partido_movil' partido.id %}">Editor juego</a>
+        {% if partido.estado == "PROGRAMADO" and partido.estado_programacion != "SUGERIDA" and partido.cancha %}
+        <a class="btn secondary" href="{% url 'descargar_planilla_juego_partido' partido.id %}">Planilla PDF</a>
+        {% endif %}
         <a class="btn" href="{% url 'gestion_partido_editar' partido.id %}">Programar</a>
         {% if partido.estado_programacion == "SUGERIDA" %}
         <form class="inline-form" method="post" action="{% url 'gestion_partido_confirmar_programacion' partido.id %}">
