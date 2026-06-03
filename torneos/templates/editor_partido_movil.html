@@ -193,6 +193,16 @@
         textarea { min-height: 80px; resize: vertical; }
         .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
         .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+        .ajuste-comite {
+            display: grid;
+            grid-template-columns: 72px minmax(0, 1fr);
+            gap: 8px;
+            align-items: center;
+        }
+        .ajuste-comite select,
+        .ajuste-comite input {
+            min-width: 0;
+        }
         .btn {
             width: 100%;
             border: none;
@@ -640,8 +650,28 @@
                 {% if puede_editar_programacion %}
                 <label>Ajuste de puntos</label>
                 <div class="grid-2">
-                    <input type="number" name="ajuste_puntos_local" value="{{ partido.ajuste_puntos_local|default:0 }}" placeholder="Ajuste local">
-                    <input type="number" name="ajuste_puntos_visitante" value="{{ partido.ajuste_puntos_visitante|default:0 }}" placeholder="Ajuste visitante">
+                    <div>
+                        <label>{{ partido.equipo_local.nombre }}</label>
+                        <div class="ajuste-comite" data-ajuste-comite>
+                            <select data-ajuste-signo aria-label="Signo ajuste local">
+                                <option value="+" {% if ajuste_puntos_local_signo == "+" %}selected{% endif %}>+</option>
+                                <option value="-" {% if ajuste_puntos_local_signo == "-" %}selected{% endif %}>-</option>
+                            </select>
+                            <input type="number" min="0" step="1" inputmode="numeric" data-ajuste-valor value="{{ ajuste_puntos_local_abs }}" placeholder="Puntos">
+                            <input type="hidden" name="ajuste_puntos_local" data-ajuste-total value="{{ partido.ajuste_puntos_local|default:0 }}">
+                        </div>
+                    </div>
+                    <div>
+                        <label>{{ partido.equipo_visitante.nombre }}</label>
+                        <div class="ajuste-comite" data-ajuste-comite>
+                            <select data-ajuste-signo aria-label="Signo ajuste visitante">
+                                <option value="+" {% if ajuste_puntos_visitante_signo == "+" %}selected{% endif %}>+</option>
+                                <option value="-" {% if ajuste_puntos_visitante_signo == "-" %}selected{% endif %}>-</option>
+                            </select>
+                            <input type="number" min="0" step="1" inputmode="numeric" data-ajuste-valor value="{{ ajuste_puntos_visitante_abs }}" placeholder="Puntos">
+                            <input type="hidden" name="ajuste_puntos_visitante" data-ajuste-total value="{{ partido.ajuste_puntos_visitante|default:0 }}">
+                        </div>
+                    </div>
                 </div>
 
                 <label>Observación del comité</label>
@@ -1196,11 +1226,33 @@ function activarHashInicial() {
     activarTabEditor('resultado');
 }
 
+function sincronizarAjusteComite(control) {
+    if (!control) return;
+    const signo = control.querySelector('[data-ajuste-signo]');
+    const valor = control.querySelector('[data-ajuste-valor]');
+    const total = control.querySelector('[data-ajuste-total]');
+    if (!signo || !valor || !total) return;
+
+    const numero = Math.max(parseInt(valor.value || '0', 10) || 0, 0);
+    valor.value = numero;
+    total.value = signo.value === '-' && numero > 0 ? '-' + numero : String(numero);
+}
+
 document.querySelectorAll('input, select, textarea').forEach(function(campo) {
     campo.addEventListener('change', guardarContextoPanelEditor);
 });
 
 document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('[data-ajuste-comite]').forEach(function(control) {
+        sincronizarAjusteComite(control);
+        control.addEventListener('change', function() {
+            sincronizarAjusteComite(control);
+        });
+        control.addEventListener('input', function() {
+            sincronizarAjusteComite(control);
+        });
+    });
+
     document.querySelectorAll('[data-equipo-filtro]').forEach(function(selectorEquipo) {
         const form = selectorEquipo.closest('form');
         filtrarJugadoresPorEquipo(form);

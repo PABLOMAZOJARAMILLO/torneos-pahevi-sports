@@ -1,5 +1,6 @@
 from django import forms
 from django.contrib.auth.models import User
+from django.db.models import Q
 
 from .models import Torneo, Organizador, Documento, Categoria, Equipo, Jugador, Partido, AdminTorneo, AdminOrganizador
 
@@ -167,6 +168,51 @@ class EquipoDelegadoForm(forms.ModelForm):
             "telefono_at",
             "escudo",
         ]
+
+
+class EquipoReinscripcionForm(forms.Form):
+    categoria_destino = forms.ModelChoiceField(
+        queryset=Categoria.objects.none(),
+        label="Nueva categoria/torneo",
+        empty_label="Selecciona la categoria destino",
+    )
+    conservar_delegado = forms.BooleanField(
+        required=False,
+        initial=True,
+        label="Conservar usuario delegado responsable",
+    )
+    conservar_acceso_delegado = forms.BooleanField(
+        required=False,
+        initial=False,
+        label="Copiar fecha de vencimiento del delegado",
+    )
+    copiar_jugadores_retirados = forms.BooleanField(
+        required=False,
+        initial=False,
+        label="Incluir jugadores retirados",
+    )
+
+    def __init__(self, *args, **kwargs):
+        user = kwargs.pop("user", None)
+        equipo_origen = kwargs.pop("equipo_origen", None)
+        super().__init__(*args, **kwargs)
+        self.equipo_origen = equipo_origen
+        categorias = Categoria.objects.select_related("torneo").order_by("-torneo__fecha_inicio", "torneo__nombre", "nombre")
+        if user and not user.is_superuser:
+            filtro = Q(torneo__admins_asignados__usuario=user, torneo__admins_asignados__activo=True)
+            filtro |= Q(torneo__organizador__admins_asignados__usuario=user, torneo__organizador__admins_asignados__activo=True)
+            categorias = categorias.filter(filtro).distinct()
+        if equipo_origen and equipo_origen.categoria_id:
+            categorias = categorias.exclude(id=equipo_origen.categoria_id)
+        self.fields["categoria_destino"].queryset = categorias
+        self.fields["categoria_destino"].label_from_instance = lambda obj: f"{obj.torneo.nombre} - {obj.nombre}"
+
+    def clean_categoria_destino(self):
+        categoria = self.cleaned_data["categoria_destino"]
+        equipo_origen = getattr(self, "equipo_origen", None)
+        if equipo_origen and Equipo.objects.filter(categoria=categoria, nombre__iexact=equipo_origen.nombre).exists():
+            raise forms.ValidationError("Ya existe un equipo con ese nombre en la categoria destino.")
+        return categoria
 
 
 class JugadorForm(forms.ModelForm):

@@ -211,6 +211,7 @@ urlpatterns = [
     path('gestion/equipos/renombrar-delegados-masivo/', views.gestion_equipos_renombrar_delegados_masivo, name='gestion_equipos_renombrar_delegados_masivo'),
     path('gestion/equipos/nuevo/', views.gestion_equipo_nuevo, name='gestion_equipo_nuevo'),
     path('gestion/equipos/<int:equipo_id>/editar/', views.gestion_equipo_editar, name='gestion_equipo_editar'),
+    path('gestion/equipos/<int:equipo_id>/reinscribir/', views.gestion_equipo_reinscribir, name='gestion_equipo_reinscribir'),
     path('gestion/equipos/<int:equipo_id>/jugadores/guardar/', views.gestion_equipo_jugadores_guardar, name='gestion_equipo_jugadores_guardar'),
     path('gestion/equipos/<int:equipo_id>/eliminar/', views.gestion_equipo_eliminar, name='gestion_equipo_eliminar'),
     path('gestion/jugadores/', views.gestion_jugadores, name='gestion_jugadores'),

@@ -142,6 +142,7 @@
     </div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;">
         <a class="btn" href="{% url 'gestion_equipo_editar' equipo.id %}">Editar</a>
+        <a class="btn secondary" href="{% url 'gestion_equipo_reinscribir' equipo.id %}">Reinscribir</a>
         <form class="inline-form" method="post" action="{% url 'gestion_equipo_eliminar' equipo.id %}" onsubmit="return confirm('Eliminar este equipo borrara sus jugadores y partidos relacionados. Continuar?');">
             {% csrf_token %}
             <button class="btn danger" type="submit">Eliminar</button>

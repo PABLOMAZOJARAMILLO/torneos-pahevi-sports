@@ -1,0 +1,52 @@
+{% extends "gestion/base.html" %}
+{% load texto_limpio %}
+
+{% block title %}{{ titulo }}{% endblock %}
+{% block heading %}{{ titulo }}{% endblock %}
+
+{% block content %}
+<p>
+    <a class="btn secondary" href="{% url volver_url %}">Volver</a>
+    <a class="btn secondary" href="{% url 'gestion_equipo_editar' equipo.id %}">Editar equipo origen</a>
+</p>
+
+<div class="card">
+    <h2>Equipo origen</h2>
+    <p class="muted">
+        {{ equipo.nombre }} - {{ equipo.categoria.torneo.nombre }} / {{ equipo.categoria.nombre }}
+    </p>
+    <p class="muted">
+        Esta opcion crea un equipo nuevo en otra categoria. Los partidos, goles, tarjetas y tablas anteriores siguen ligados al equipo origen.
+    </p>
+</div>
+
+<form method="post">
+    {% csrf_token %}
+    <div class="card">
+        {{ form.as_p }}
+    </div>
+
+    <div class="card">
+        <h2>Jugadores a copiar</h2>
+        <p class="muted">Los jugadores activos aparecen marcados. Puedes desmarcar los que no siguen en el nuevo torneo.</p>
+
+        {% for jugador in jugadores %}
+        <label class="row" style="justify-content:flex-start;gap:12px;">
+            <input type="checkbox" name="jugadores" value="{{ jugador.id }}" {% if jugador.estado != "RETIRADO" %}checked{% endif %}>
+            <span>
+                <strong>{% if jugador.dorsal %}#{{ jugador.dorsal }} - {% endif %}{{ jugador.nombres|texto_limpio }}</strong>
+                <span class="muted"> - {{ jugador.cedula }} - {{ jugador.estado }}{% if jugador.es_foraneo %} - Foraneo{% endif %}</span>
+            </span>
+        </label>
+        {% empty %}
+        <p class="muted">Este equipo no tiene jugadores para copiar.</p>
+        {% endfor %}
+    </div>
+
+    <p>
+        <button class="btn" type="submit" onclick="return confirm('Se creara una nueva inscripcion del equipo. Las estadisticas anteriores no se modifican. Continuar?');">
+            Reinscribir equipo
+        </button>
+    </p>
+</form>
+{% endblock %}

@@ -16,7 +16,7 @@ from django.contrib.auth.views import LoginView
 from django.http import FileResponse, HttpResponse, HttpResponseForbidden
 from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
-from django.db import connection
+from django.db import connection, transaction
 from django.db.models import Q, Sum
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
@@ -32,7 +32,7 @@ import requests
 from django.views.decorators.http import require_POST
 from openpyxl import load_workbook
 
-from .forms import TorneoForm, OrganizadorForm, CategoriaForm, DocumentoForm, EquipoForm, EquipoDelegadoForm, JugadorForm, JugadorDelegadoForm, PartidoForm, AdminTorneoForm, AdminOrganizadorForm
+from .forms import TorneoForm, OrganizadorForm, CategoriaForm, DocumentoForm, EquipoForm, EquipoDelegadoForm, EquipoReinscripcionForm, JugadorForm, JugadorDelegadoForm, PartidoForm, AdminTorneoForm, AdminOrganizadorForm
 from .models import Torneo, Organizador, Categoria, Documento, Equipo, Partido, Gol, Tarjeta, Jugador, AlineacionPartido, SustitucionPartido, ReglaEdadCategoria, AdminTorneo, AdminOrganizador, RegistroActividad, limpiar_ruta_cloudinary
 from django.utils import timezone
 
@@ -3429,6 +3429,10 @@ def editor_partido_movil(request, partido_id):
         'posiciones_cancha': AlineacionPartido.POSICIONES_CANCHA,
         'sancionados_tarjetas': sancionados_tarjetas,
         'puede_editar_programacion': es_editor_torneo(request.user),
+        'ajuste_puntos_local_abs': abs(partido.ajuste_puntos_local or 0),
+        'ajuste_puntos_visitante_abs': abs(partido.ajuste_puntos_visitante or 0),
+        'ajuste_puntos_local_signo': '-' if (partido.ajuste_puntos_local or 0) < 0 else '+',
+        'ajuste_puntos_visitante_signo': '-' if (partido.ajuste_puntos_visitante or 0) < 0 else '+',
     })
 
 
@@ -5209,6 +5213,97 @@ def gestion_equipo_editar(request, equipo_id):
         "volver_url": "gestion_equipos",
         "cloudinary_images": listar_imagenes_cloudinary(),
         "cloudinary_label": "Seleccionar escudo existente de Cloudinary",
+    })
+
+
+@login_required
+@user_passes_test(es_editor_torneo)
+def gestion_equipo_reinscribir(request, equipo_id):
+    equipo = get_object_or_404(Equipo.objects.select_related("categoria", "categoria__torneo"), id=equipo_id)
+    if not puede_gestionar_torneo(request, equipo.categoria.torneo if equipo.categoria_id else None, "editar"):
+        return denegar_permiso_torneo()
+
+    jugadores = list(equipo.jugadores.order_by("estado", "dorsal", "nombres"))
+    form = EquipoReinscripcionForm(
+        request.POST or None,
+        user=request.user,
+        equipo_origen=equipo,
+    )
+
+    if request.method == "POST" and form.is_valid():
+        categoria_destino = form.cleaned_data["categoria_destino"]
+        if not puede_gestionar_torneo(request, categoria_destino.torneo, "editar"):
+            return denegar_permiso_torneo()
+
+        seleccionados = set(request.POST.getlist("jugadores"))
+        incluir_retirados = form.cleaned_data["copiar_jugadores_retirados"]
+        jugadores_a_copiar = [
+            jugador for jugador in jugadores
+            if str(jugador.id) in seleccionados and (incluir_retirados or jugador.estado != "RETIRADO")
+        ]
+
+        with transaction.atomic():
+            nuevo_equipo = Equipo.objects.create(
+                nombre=equipo.nombre,
+                categoria=categoria_destino,
+                responsable=equipo.responsable if form.cleaned_data["conservar_delegado"] else None,
+                acceso_delegado_hasta=equipo.acceso_delegado_hasta if form.cleaned_data["conservar_acceso_delegado"] else None,
+                delegado=equipo.delegado,
+                telefono=equipo.telefono,
+                director_tecnico=equipo.director_tecnico,
+                telefono_dt=equipo.telefono_dt,
+                asistente_tecnico=equipo.asistente_tecnico,
+                telefono_at=equipo.telefono_at,
+                escudo=equipo.escudo,
+                activo=True,
+            )
+            copiados = 0
+            omitidos = []
+            for jugador in jugadores_a_copiar:
+                nuevo_jugador = Jugador(
+                    equipo=nuevo_equipo,
+                    dorsal=jugador.dorsal,
+                    nombres=jugador.nombres,
+                    cedula=jugador.cedula,
+                    fecha_nacimiento=jugador.fecha_nacimiento,
+                    telefono=jugador.telefono,
+                    estado="ACTIVO" if jugador.estado == "RETIRADO" else jugador.estado,
+                    foto=jugador.foto,
+                    es_foraneo=jugador.es_foraneo,
+                )
+                try:
+                    nuevo_jugador.save()
+                    copiados += 1
+                except Exception as exc:
+                    omitidos.append(f"{jugador.nombres}: {exc}")
+
+        registrar_actividad(
+            request,
+            "REINSCRIBIR_EQUIPO",
+            nuevo_equipo,
+            torneo=categoria_destino.torneo,
+            descripcion=f"Reinscribio {equipo.nombre} desde {equipo.categoria.nombre} hacia {categoria_destino.nombre}. Jugadores copiados: {copiados}.",
+            datos={
+                "equipo_origen_id": equipo.id,
+                "equipo_nuevo_id": nuevo_equipo.id,
+                "categoria_destino_id": categoria_destino.id,
+                "jugadores_copiados": copiados,
+                "omitidos": omitidos[:20],
+            },
+        )
+        messages.success(request, f"Equipo reinscrito en {categoria_destino.nombre}. Jugadores copiados: {copiados}.")
+        for error in omitidos[:5]:
+            messages.warning(request, f"Omitido: {error}")
+        if len(omitidos) > 5:
+            messages.warning(request, f"Hay {len(omitidos) - 5} jugador(es) omitidos adicionales.")
+        return redirect("gestion_equipo_editar", equipo_id=nuevo_equipo.id)
+
+    return render(request, "gestion/equipo_reinscribir.html", {
+        "titulo": f"Reinscribir equipo: {equipo.nombre}",
+        "equipo": equipo,
+        "form": form,
+        "jugadores": jugadores,
+        "volver_url": "gestion_equipos",
     })
 
 
