@@ -17,9 +17,9 @@ LIGHT = "#F2F2F2"
 WHITE = "#FFFFFF"
 
 COL_WIDTHS = [
-    4.0, 5.83203125, 13.0, 13.0, 13.0, 13.0, 13.0, 13.0, 13.0,
-    13.0, 13.0, 13.0, 4.0, 3.5, 4.0, 5.83203125, 13.0, 13.0,
-    13.0, 13.0, 13.0, 13.0, 13.0, 13.0, 13.0, 6.0, 4.0,
+    4.5, 7.0, 15.0, 15.0, 15.0, 15.0, 7.0, 5.5, 5.5,
+    5.5, 5.5, 5.5, 5.5, 4.5, 4.5, 7.0, 15.0, 15.0,
+    15.0, 15.0, 7.0, 5.5, 5.5, 5.5, 5.5, 5.5, 5.5,
 ]
 ROW_HEIGHTS = [
     15, 15, 15, 13.5, 19.5, 15.75, 15.75, 15.75, 16.5, 20.1,
@@ -170,6 +170,21 @@ def _text(draw, box, text, font=FONT_NORMAL, align="center", valign="middle", bo
     draw.text((x, y), text, font=font, fill=BLACK)
 
 
+def _vertical_text(base, box, text, font=FONT_TINY_BOLD):
+    x1, y1, x2, y2 = [int(round(value)) for value in box]
+    text = _clean(text)
+    bbox = font.getbbox(text)
+    tw = bbox[2] - bbox[0]
+    th = bbox[3] - bbox[1]
+    label = Image.new("RGBA", (tw + 8, th + 8), (255, 255, 255, 0))
+    label_draw = ImageDraw.Draw(label)
+    label_draw.text((4 - bbox[0], 4 - bbox[1]), text, font=font, fill=BLACK)
+    label = label.rotate(90, expand=True)
+    x = x1 + (x2 - x1 - label.width) // 2
+    y = y1 + (y2 - y1 - label.height) // 2
+    base.paste(label, (x, y), label)
+
+
 def _cell(draw, col1, row1, col2=None, row2=None, text="", fill=WHITE, font=FONT_SMALL, align="center", valign="middle", width=1):
     col2 = col2 or col1
     row2 = row2 or row1
@@ -200,7 +215,7 @@ def _jugadores(equipo):
     return list(equipo.jugadores.filter(estado="ACTIVO").order_by("dorsal", "nombres"))[:30]
 
 
-def _draw_player_side(draw, start_col, team_title, jugadores, referencia):
+def _draw_player_side(img, draw, start_col, team_title, jugadores, referencia):
     name_start = start_col + 1
     if start_col == 1:
         name_end = 6
@@ -211,12 +226,15 @@ def _draw_player_side(draw, start_col, team_title, jugadores, referencia):
 
     _cell(draw, start_col, 10, start_col + 12, 10, team_title, fill=LIGHT, font=FONT_SMALL_BOLD, width=2)
     _cell(draw, amarilla_cols[0], 10, roja_col, 10, "Tarjetas", fill=LIGHT, font=FONT_SMALL_BOLD, width=2)
-    _cell(draw, start_col, 11, text="No", fill=LIGHT, font=FONT_TINY_BOLD, width=2)
+    _cell(draw, start_col, 11, text="Nº", fill=LIGHT, font=FONT_TINY_BOLD, width=2)
     _cell(draw, name_start, 11, name_end, 11, "NOMBRE Y APELLIDOS", fill=LIGHT, font=FONT_SMALL_BOLD, width=2)
     _cell(draw, number_col, 11, text="#", fill=LIGHT, font=FONT_TINY_BOLD, width=2)
-    _cell(draw, edad_col, 11, text="EDAD", fill=LIGHT, font=FONT_TINY_BOLD, width=2)
-    _cell(draw, inic_col, 11, text="INIC", fill=LIGHT, font=FONT_TINY_BOLD, width=2)
-    _cell(draw, sup_col, 11, text="SUP", fill=LIGHT, font=FONT_TINY_BOLD, width=2)
+    _cell(draw, edad_col, 11, fill=LIGHT, width=2)
+    _vertical_text(img, _box(edad_col, 11, edad_col, 11), "EDAD")
+    _cell(draw, inic_col, 11, fill=LIGHT, width=2)
+    _vertical_text(img, _box(inic_col, 11, inic_col, 11), "INICIA")
+    _cell(draw, sup_col, 11, fill=LIGHT, width=2)
+    _vertical_text(img, _box(sup_col, 11, sup_col, 11), "SUPLE")
     _cell(draw, amarilla_cols[0], 11, amarilla_cols[1], 11, "A", fill=LIGHT, font=FONT_TINY_BOLD, width=2)
     _cell(draw, roja_col, 11, text="R", fill=LIGHT, font=FONT_TINY_BOLD, width=2)
 
@@ -285,8 +303,8 @@ def generar_planilla_juego_pdf(partido):
     _label_value(draw, (15, 17), 9, (18, 27), "Equipo B:", partido.equipo_visitante.nombre.upper())
 
     referencia = partido.fecha or date.today()
-    _draw_player_side(draw, 1, "LISTADO DE JUGADORES - EQUIPO A", _jugadores(partido.equipo_local), referencia)
-    _draw_player_side(draw, 15, "LISTADO DE JUGADORES - EQUIPO B", _jugadores(partido.equipo_visitante), referencia)
+    _draw_player_side(img, draw, 1, "LISTADO DE JUGADORES - EQUIPO A", _jugadores(partido.equipo_local), referencia)
+    _draw_player_side(img, draw, 15, "LISTADO DE JUGADORES - EQUIPO B", _jugadores(partido.equipo_visitante), referencia)
 
     _draw_changes(draw, 1, 13)
     _draw_changes(draw, 15, 27)
