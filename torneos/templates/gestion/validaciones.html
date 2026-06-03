@@ -1,0 +1,73 @@
+{% extends "gestion/base.html" %}
+
+{% block title %}Validaciones{% endblock %}
+{% block heading %}Validaciones{% endblock %}
+
+{% block content %}
+<p>
+    <a class="btn secondary" href="{% url 'gestion_panel' %}">Gestion</a>
+</p>
+
+<form method="get">
+    <label for="estado">Estado</label>
+    <select id="estado" name="estado">
+        <option value="" {% if not estado %}selected{% endif %}>Todas</option>
+        {% for valor, etiqueta in estados %}
+            <option value="{{ valor }}" {% if estado == valor %}selected{% endif %}>{{ etiqueta }}</option>
+        {% endfor %}
+    </select>
+    <p>
+        <button class="btn" type="submit">Filtrar</button>
+        <a class="btn secondary" href="{% url 'gestion_validaciones' %}">Pendientes</a>
+    </p>
+</form>
+
+{% for solicitud in solicitudes %}
+<div class="row">
+    <div>
+        <div>{{ solicitud.titulo }}</div>
+        <div class="muted">
+            {{ solicitud.get_tipo_display }} - {{ solicitud.get_estado_display }}
+            {% if solicitud.torneo %} - {{ solicitud.torneo.nombre }}{% endif %}
+        </div>
+        <div class="muted">
+            Creado: {{ solicitud.creado_en|date:"d/m/Y H:i" }}
+            {% if solicitud.creado_por %} - Por: {{ solicitud.creado_por.get_full_name|default:solicitud.creado_por.username }}{% endif %}
+        </div>
+        {% if solicitud.descripcion %}
+        <div class="muted">{{ solicitud.descripcion }}</div>
+        {% endif %}
+        {% if solicitud.resuelto_en %}
+        <div class="muted">
+            Resuelto: {{ solicitud.resuelto_en|date:"d/m/Y H:i" }}
+            {% if solicitud.resuelto_por %} - Por: {{ solicitud.resuelto_por.get_full_name|default:solicitud.resuelto_por.username }}{% endif %}
+        </div>
+        {% endif %}
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        {% if solicitud.partido %}
+            <a class="btn secondary" href="{% url 'editor_partido_movil' solicitud.partido.id %}">Ver partido</a>
+        {% elif solicitud.equipo %}
+            <a class="btn secondary" href="{% url 'gestion_equipo_editar' solicitud.equipo.id %}">Ver equipo</a>
+        {% endif %}
+
+        {% if solicitud.estado == "PENDIENTE" %}
+        <form class="inline-form" method="post" action="{% url 'gestion_validacion_resolver' solicitud.id %}">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ request.get_full_path }}">
+            <input type="hidden" name="accion" value="validar">
+            <button class="btn" type="submit">Validar</button>
+        </form>
+        <form class="inline-form" method="post" action="{% url 'gestion_validacion_resolver' solicitud.id %}" onsubmit="return confirm('Rechazar esta solicitud?');">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ request.get_full_path }}">
+            <input type="hidden" name="accion" value="rechazar">
+            <button class="btn danger" type="submit">Rechazar</button>
+        </form>
+        {% endif %}
+    </div>
+</div>
+{% empty %}
+<div class="card">No hay validaciones para mostrar.</div>
+{% endfor %}
+{% endblock %}

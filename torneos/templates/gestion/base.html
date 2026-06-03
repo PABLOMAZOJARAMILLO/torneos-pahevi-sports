@@ -26,6 +26,35 @@
             gap: 12px;
             margin-bottom: 18px;
         }
+        .topbar-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .bell {
+            position: relative;
+            min-width: 48px;
+            border-radius: 999px;
+            font-size: 20px;
+        }
+        .bell-count {
+            position: absolute;
+            top: -6px;
+            right: -4px;
+            min-width: 22px;
+            height: 22px;
+            padding: 0 6px;
+            border-radius: 999px;
+            background: #ef4444;
+            color: #ffffff;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 1000;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.35);
+        }
         h1 {
             margin: 0;
             color: #00ff66;
@@ -132,7 +161,15 @@
 <main class="shell">
     <div class="topbar">
         <h1>{% block heading %}Gestión{% endblock %}</h1>
-        <a class="btn secondary" href="{% url 'panel' %}">Volver al panel</a>
+        <div class="topbar-actions">
+            <a class="btn secondary bell" href="{% url 'gestion_validaciones' %}" aria-label="Validaciones pendientes">
+                &#128276;
+                {% if validaciones_pendientes_count %}
+                <span class="bell-count">{{ validaciones_pendientes_count }}</span>
+                {% endif %}
+            </a>
+            <a class="btn secondary" href="{% url 'panel' %}">Volver al panel</a>
+        </div>
     </div>
 
     {% if messages %}

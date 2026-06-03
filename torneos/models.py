@@ -176,6 +176,45 @@ class RegistroActividad(models.Model):
         return f"{self.creado_en:%Y-%m-%d %H:%M} - {usuario} - {self.accion}"
 
 
+class SolicitudValidacion(models.Model):
+    TIPOS = [
+        ("ESTADISTICAS", "Estadisticas de partido"),
+        ("EQUIPO", "Edicion de equipo"),
+        ("JUGADOR", "Edicion de jugador"),
+    ]
+    ESTADOS = [
+        ("PENDIENTE", "Pendiente"),
+        ("VALIDADO", "Validado"),
+        ("RECHAZADO", "Rechazado"),
+    ]
+
+    tipo = models.CharField(max_length=30, choices=TIPOS)
+    estado = models.CharField(max_length=20, choices=ESTADOS, default="PENDIENTE")
+    torneo = models.ForeignKey("Torneo", on_delete=models.CASCADE, blank=True, null=True, related_name="solicitudes_validacion")
+    partido = models.ForeignKey("Partido", on_delete=models.CASCADE, blank=True, null=True, related_name="solicitudes_validacion")
+    equipo = models.ForeignKey("Equipo", on_delete=models.CASCADE, blank=True, null=True, related_name="solicitudes_validacion")
+    jugador = models.ForeignKey("Jugador", on_delete=models.SET_NULL, blank=True, null=True, related_name="solicitudes_validacion")
+    creado_por = models.ForeignKey(User, on_delete=models.SET_NULL, blank=True, null=True, related_name="solicitudes_validacion_creadas")
+    titulo = models.CharField(max_length=180)
+    descripcion = models.TextField(blank=True)
+    datos = models.JSONField(default=dict, blank=True)
+    creado_en = models.DateTimeField(auto_now_add=True)
+    resuelto_por = models.ForeignKey(User, on_delete=models.SET_NULL, blank=True, null=True, related_name="solicitudes_validacion_resueltas")
+    resuelto_en = models.DateTimeField(blank=True, null=True)
+
+    class Meta:
+        verbose_name = "Solicitud de validacion"
+        verbose_name_plural = "Solicitudes de validacion"
+        ordering = ["-creado_en"]
+        indexes = [
+            models.Index(fields=["estado", "tipo"]),
+            models.Index(fields=["torneo", "estado"]),
+        ]
+
+    def __str__(self):
+        return f"{self.get_tipo_display()} - {self.titulo}"
+
+
 class Categoria(models.Model):
     nombre = models.CharField(max_length=100, verbose_name='Nombre de la categoría')
     descripcion = models.TextField(blank=True, null=True, verbose_name='Descripción')

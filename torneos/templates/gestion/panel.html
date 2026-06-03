@@ -37,6 +37,11 @@
         <p class="muted">{{ total_partidos }} registrados</p>
     </a>
 
+    <a class="card" href="{% url 'gestion_validaciones' %}">
+        <h2>Validaciones</h2>
+        <p class="muted">{{ validaciones_pendientes_count }} pendientes por revisar</p>
+    </a>
+
     <a class="card" href="{% url 'gestion_generar_fixture' %}">
         <h2>Generar fixture</h2>
         <p class="muted">Armar grupos con cabezas de serie</p>

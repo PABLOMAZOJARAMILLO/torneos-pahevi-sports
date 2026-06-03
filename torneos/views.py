@@ -33,7 +33,7 @@ from django.views.decorators.http import require_POST
 from openpyxl import load_workbook
 
 from .forms import TorneoForm, OrganizadorForm, CategoriaForm, DocumentoForm, EquipoForm, EquipoDelegadoForm, EquipoReinscripcionForm, JugadorForm, JugadorDelegadoForm, PartidoForm, AdminTorneoForm, AdminOrganizadorForm
-from .models import Torneo, Organizador, Categoria, Documento, Equipo, Partido, Gol, Tarjeta, Jugador, AlineacionPartido, SustitucionPartido, ReglaEdadCategoria, AdminTorneo, AdminOrganizador, RegistroActividad, limpiar_ruta_cloudinary
+from .models import Torneo, Organizador, Categoria, Documento, Equipo, Partido, Gol, Tarjeta, Jugador, AlineacionPartido, SustitucionPartido, ReglaEdadCategoria, AdminTorneo, AdminOrganizador, RegistroActividad, SolicitudValidacion, limpiar_ruta_cloudinary
 from django.utils import timezone
 
 def es_editor_torneo(user):
@@ -357,6 +357,85 @@ def puede_gestionar_torneo(request, torneo, permiso="editar"):
     if permiso == "programar":
         return usuario_puede_programar_torneo(request.user, torneo)
     return usuario_puede_editar_torneo(request.user, torneo)
+
+
+def solicitudes_validacion_para_usuario(user, estado="PENDIENTE"):
+    if not tabla_disponible("torneos_solicitudvalidacion"):
+        return SolicitudValidacion.objects.none()
+    solicitudes = SolicitudValidacion.objects.select_related(
+        "torneo",
+        "partido",
+        "partido__equipo_local",
+        "partido__equipo_visitante",
+        "equipo",
+        "jugador",
+        "creado_por",
+    ).order_by("-creado_en")
+    if estado:
+        solicitudes = solicitudes.filter(estado=estado)
+    if user.is_superuser:
+        return solicitudes
+    if not user.is_staff or not tabla_disponible("torneos_admintorneo"):
+        return solicitudes.none()
+
+    filtro = Q(torneo__admins_asignados__usuario=user, torneo__admins_asignados__activo=True, torneo__admins_asignados__puede_validar=True)
+    if tabla_disponible("torneos_adminorganizador"):
+        filtro |= Q(torneo__organizador__admins_asignados__usuario=user, torneo__organizador__admins_asignados__activo=True, torneo__organizador__admins_asignados__puede_validar=True)
+    return solicitudes.filter(filtro).distinct()
+
+
+def crear_solicitud_validacion(tipo, titulo, descripcion="", user=None, torneo=None, partido=None, equipo=None, jugador=None, datos=None):
+    if not tabla_disponible("torneos_solicitudvalidacion"):
+        return None
+    if not torneo:
+        if partido and partido.categoria_id:
+            torneo = partido.categoria.torneo
+        elif equipo and equipo.categoria_id:
+            torneo = equipo.categoria.torneo
+
+    filtros = {"tipo": tipo, "estado": "PENDIENTE"}
+    if partido:
+        filtros["partido"] = partido
+    elif jugador:
+        filtros["jugador"] = jugador
+    elif equipo:
+        filtros["equipo"] = equipo
+
+    solicitud = SolicitudValidacion.objects.filter(**filtros).first()
+    if solicitud:
+        solicitud.titulo = titulo
+        solicitud.descripcion = descripcion
+        solicitud.creado_por = user if getattr(user, "is_authenticated", False) else solicitud.creado_por
+        solicitud.torneo = torneo
+        solicitud.partido = partido
+        solicitud.equipo = equipo
+        solicitud.jugador = jugador
+        solicitud.datos = datos or solicitud.datos
+        solicitud.creado_en = timezone.now()
+        solicitud.save(update_fields=[
+            "titulo",
+            "descripcion",
+            "creado_por",
+            "torneo",
+            "partido",
+            "equipo",
+            "jugador",
+            "datos",
+            "creado_en",
+        ])
+        return solicitud
+
+    return SolicitudValidacion.objects.create(
+        tipo=tipo,
+        titulo=titulo,
+        descripcion=descripcion,
+        creado_por=user if getattr(user, "is_authenticated", False) else None,
+        torneo=torneo,
+        partido=partido,
+        equipo=equipo,
+        jugador=jugador,
+        datos=datos or {},
+    )
 
 
 def ip_cliente(request):
@@ -1192,6 +1271,15 @@ def _marcar_estadisticas_pendientes(partido, user=None):
         "estadisticas_validadas_en",
         "estadisticas_validadas_por",
     ])
+    crear_solicitud_validacion(
+        "ESTADISTICAS",
+        f"Validar estadisticas: {partido.equipo_local} vs {partido.equipo_visitante}",
+        descripcion="Las acciones del partido fueron modificadas y deben validarse antes de quedar oficiales en estadisticas.",
+        user=user,
+        partido=partido,
+        equipo=partido.equipo_local,
+        datos={"partido_id": partido.id},
+    )
 
 
 def _validar_estadisticas_partido(partido, user):
@@ -1203,6 +1291,16 @@ def _validar_estadisticas_partido(partido, user):
         "estadisticas_validadas_en",
         "estadisticas_validadas_por",
     ])
+    if tabla_disponible("torneos_solicitudvalidacion"):
+        SolicitudValidacion.objects.filter(
+            tipo="ESTADISTICAS",
+            partido=partido,
+            estado="PENDIENTE",
+        ).update(
+            estado="VALIDADO",
+            resuelto_por=user,
+            resuelto_en=timezone.now(),
+        )
 
 
 def construir_estadisticas_foraneos(categoria):
@@ -3819,6 +3917,14 @@ def delegado_equipo_editar(request, equipo_id):
     if request.method == "POST" and form.is_valid():
         equipo = form.save(commit=False)
         equipo.save()
+        crear_solicitud_validacion(
+            "EQUIPO",
+            f"Validar cambios del equipo {equipo.nombre}",
+            descripcion=f"El delegado actualizo datos generales del equipo {equipo.nombre}.",
+            user=request.user,
+            equipo=equipo,
+            datos={"equipo_id": equipo.id},
+        )
         messages.success(request, "Equipo actualizado correctamente.")
         return redirect("delegado_equipo_editar", equipo_id=equipo.id)
 
@@ -3958,6 +4064,15 @@ def delegado_jugador_nuevo(request, equipo_id):
         jugador.equipo = equipo
         jugador.nombres = jugador.nombres.upper()
         jugador.save()
+        crear_solicitud_validacion(
+            "JUGADOR",
+            f"Validar jugador nuevo: {jugador.nombres}",
+            descripcion=f"El delegado agrego a {jugador.nombres} en {equipo.nombre}.",
+            user=request.user,
+            equipo=equipo,
+            jugador=jugador,
+            datos={"equipo_id": equipo.id, "jugador_id": jugador.id, "accion": "CREAR"},
+        )
         messages.success(request, "Jugador agregado correctamente.")
         return redirect("delegado_equipo_editar", equipo_id=equipo.id)
 
@@ -3983,6 +4098,15 @@ def delegado_jugador_editar(request, jugador_id):
         jugador = form.save(commit=False)
         jugador.nombres = jugador.nombres.upper()
         jugador.save()
+        crear_solicitud_validacion(
+            "JUGADOR",
+            f"Validar cambios de jugador: {jugador.nombres}",
+            descripcion=f"El delegado actualizo datos de {jugador.nombres} en {jugador.equipo.nombre}.",
+            user=request.user,
+            equipo=jugador.equipo,
+            jugador=jugador,
+            datos={"equipo_id": jugador.equipo_id, "jugador_id": jugador.id, "accion": "EDITAR"},
+        )
         messages.success(request, "Jugador actualizado correctamente.")
         return redirect("delegado_equipo_editar", equipo_id=jugador.equipo_id)
 
@@ -4006,6 +4130,15 @@ def delegado_jugador_eliminar(request, jugador_id):
         return HttpResponseForbidden("No tienes permiso para eliminar este jugador.")
 
     nombre = jugador.nombres
+    equipo = jugador.equipo
+    crear_solicitud_validacion(
+        "JUGADOR",
+        f"Validar eliminacion de jugador: {nombre}",
+        descripcion=f"El delegado elimino a {nombre} del equipo {equipo.nombre}.",
+        user=request.user,
+        equipo=equipo,
+        datos={"equipo_id": equipo.id, "jugador_id": jugador.id, "accion": "ELIMINAR", "jugador": nombre},
+    )
     jugador.delete()
     messages.success(request, f"Jugador eliminado: {nombre}.")
     return redirect("delegado_equipo_editar", equipo_id=equipo_id)
@@ -4142,6 +4275,60 @@ def gestion_actividad(request):
         "usuario_id": usuario_id,
         "accion": accion,
     })
+
+
+@login_required
+@user_passes_test(es_editor_torneo)
+def gestion_validaciones(request):
+    if not tabla_disponible("torneos_solicitudvalidacion"):
+        messages.error(request, "La tabla de validaciones todavia no esta creada. Espera que Render termine de aplicar las migraciones.")
+        return redirect("gestion_panel")
+    estado = (request.GET.get("estado") or "PENDIENTE").strip().upper()
+    if estado not in {"PENDIENTE", "VALIDADO", "RECHAZADO", ""}:
+        estado = "PENDIENTE"
+    solicitudes = solicitudes_validacion_para_usuario(request.user, estado or None)
+    return render(request, "gestion/validaciones.html", {
+        "solicitudes": solicitudes[:300],
+        "estado": estado,
+        "estados": SolicitudValidacion.ESTADOS,
+    })
+
+
+@login_required
+@user_passes_test(es_editor_torneo)
+@require_POST
+def gestion_validacion_resolver(request, solicitud_id):
+    if not tabla_disponible("torneos_solicitudvalidacion"):
+        messages.error(request, "La tabla de validaciones todavia no esta creada.")
+        return redirect("gestion_panel")
+    solicitud = get_object_or_404(SolicitudValidacion.objects.select_related("torneo", "partido"), id=solicitud_id)
+    if not puede_gestionar_torneo(request, solicitud.torneo, "validar"):
+        return denegar_permiso_torneo()
+
+    accion = request.POST.get("accion")
+    if accion == "validar":
+        solicitud.estado = "VALIDADO"
+        if solicitud.tipo == "ESTADISTICAS" and solicitud.partido_id:
+            _validar_estadisticas_partido(solicitud.partido, request.user)
+    elif accion == "rechazar":
+        solicitud.estado = "RECHAZADO"
+    else:
+        messages.error(request, "Accion no valida.")
+        return redirect("gestion_validaciones")
+
+    solicitud.resuelto_por = request.user
+    solicitud.resuelto_en = timezone.now()
+    solicitud.save(update_fields=["estado", "resuelto_por", "resuelto_en"])
+    registrar_actividad(
+        request,
+        f"VALIDACION_{solicitud.estado}",
+        solicitud,
+        torneo=solicitud.torneo,
+        descripcion=f"{solicitud.get_estado_display()}: {solicitud.titulo}.",
+        datos={"solicitud_id": solicitud.id, "tipo": solicitud.tipo},
+    )
+    messages.success(request, f"Solicitud {solicitud.get_estado_display().lower()}: {solicitud.titulo}.")
+    return redirect(request.POST.get("next") or "gestion_validaciones")
 
 
 @login_required
