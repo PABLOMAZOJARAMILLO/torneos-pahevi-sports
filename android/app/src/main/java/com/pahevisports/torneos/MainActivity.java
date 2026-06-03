@@ -1,12 +1,17 @@
 package com.pahevisports.torneos;
 
+import android.app.DownloadManager;
+import android.content.Context;
 import android.content.ContentValues;
 import android.net.Uri;
+import android.os.Environment;
 import android.os.Bundle;
 import android.provider.MediaStore;
 import android.util.Base64;
+import android.webkit.CookieManager;
 import android.webkit.WebSettings;
 import android.webkit.JavascriptInterface;
+import android.webkit.URLUtil;
 import android.widget.Toast;
 
 import com.getcapacitor.BridgeActivity;
@@ -24,7 +29,9 @@ public class MainActivity extends BridgeActivity {
         getBridge().getWebView().setDownloadListener((url, userAgent, contentDisposition, mimetype, contentLength) -> {
             if (url != null && url.startsWith("data:image/png;base64,")) {
                 guardarImagenBase64(url, "");
+                return;
             }
+            descargarArchivo(url, userAgent, contentDisposition, mimetype);
         });
 
         getBridge().getWebView().addJavascriptInterface(new AndroidDownloader(), "AndroidDownloader");
@@ -73,6 +80,62 @@ public class MainActivity extends BridgeActivity {
         }
 
         return nombre.toLowerCase().endsWith(".png") ? nombre : nombre + ".png";
+    }
+
+    private void descargarArchivo(String url, String userAgent, String contentDisposition, String mimetype) {
+        try {
+            if (url == null || url.trim().isEmpty()) {
+                Toast.makeText(this, "No se pudo iniciar la descarga", Toast.LENGTH_LONG).show();
+                return;
+            }
+
+            String nombre = URLUtil.guessFileName(url, contentDisposition, mimetype);
+            nombre = limpiarNombreDescarga(nombre, mimetype);
+            String tipoArchivo = mimetype == null || mimetype.trim().isEmpty()
+                ? (nombre.toLowerCase().endsWith(".zip") ? "application/zip" : "application/pdf")
+                : mimetype;
+
+            DownloadManager.Request request = new DownloadManager.Request(Uri.parse(url));
+            request.setMimeType(tipoArchivo);
+            request.addRequestHeader("User-Agent", userAgent);
+
+            String cookies = CookieManager.getInstance().getCookie(url);
+            if (cookies != null) {
+                request.addRequestHeader("Cookie", cookies);
+            }
+
+            request.setTitle(nombre);
+            request.setDescription("Descargando planilla");
+            request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
+            request.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, nombre);
+
+            DownloadManager manager = (DownloadManager) getSystemService(Context.DOWNLOAD_SERVICE);
+            if (manager == null) {
+                Toast.makeText(this, "No se pudo acceder al gestor de descargas", Toast.LENGTH_LONG).show();
+                return;
+            }
+
+            manager.enqueue(request);
+            Toast.makeText(this, "Descarga iniciada en Descargas", Toast.LENGTH_LONG).show();
+        } catch (Exception e) {
+            Toast.makeText(this, "No se pudo descargar el archivo", Toast.LENGTH_LONG).show();
+        }
+    }
+
+    private String limpiarNombreDescarga(String nombreArchivo, String mimetype) {
+        String nombre = nombreArchivo == null ? "" : nombreArchivo.trim().replaceAll("[\\\\/:*?\"<>|]", "_");
+        if (nombre.isEmpty()) {
+            nombre = "planilla_pahevi_sports_" + System.currentTimeMillis();
+        }
+
+        String nombreMinuscula = nombre.toLowerCase();
+        if (nombreMinuscula.endsWith(".pdf") || nombreMinuscula.endsWith(".zip")) {
+            return nombre;
+        }
+        if ("application/zip".equalsIgnoreCase(mimetype)) {
+            return nombre + ".zip";
+        }
+        return nombre + ".pdf";
     }
 
     public class AndroidDownloader {
