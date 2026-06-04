@@ -84,10 +84,17 @@ def _fecha(value):
     return value.strftime("%d/%m/%Y")
 
 
+def _fecha_con_dia(value):
+    if not value:
+        return ""
+    dias = ["LUNES", "MARTES", "MIERCOLES", "JUEVES", "VIERNES", "SABADO", "DOMINGO"]
+    return f"{dias[value.weekday()]} {value.day}/{value.month:02d}/{value.year}"
+
+
 def _hora(value):
     if not value:
         return ""
-    return value.strftime("%I:%M:%S %p").lower().replace("am", "a. m.").replace("pm", "p. m.")
+    return value.strftime("%I:%M %p").lower().replace("am", "a. m.").replace("pm", "p. m.")
 
 
 def _edad(fecha_nacimiento, referencia=None):
@@ -211,6 +218,24 @@ def _label_value(draw, label_cols, row, value_cols, label, value):
     _cell(draw, value_cols[0], row, value_cols[1], row, text=value, font=FONT_SMALL_BOLD, align="left", width=2)
 
 
+def _draw_fecha_hora(draw, partido):
+    x1, y1, x2, y2 = _box(15, 6, 27, 6)
+    total_w = x2 - x1
+    widths = [total_w * 0.17, total_w * 0.43, total_w * 0.15, total_w * 0.25]
+    labels = [
+        ("FECHA", FONT_SMALL_BOLD, "center", LIGHT),
+        (_fecha_con_dia(partido.fecha), FONT_TINY_BOLD, "left", WHITE),
+        ("HORA", FONT_SMALL_BOLD, "center", LIGHT),
+        (_hora(partido.hora), FONT_TINY_BOLD, "left", WHITE),
+    ]
+    current = x1
+    for width, (text, font, align, fill) in zip(widths, labels):
+        box = [current, y1, current + width, y2]
+        draw.rectangle(box, outline=BORDER, width=2, fill=fill)
+        _text(draw, box, text, font=font, align=align)
+        current += width
+
+
 def _jugadores(equipo):
     return list(equipo.jugadores.filter(estado="ACTIVO").order_by("dorsal", "nombres"))[:30]
 
@@ -241,6 +266,9 @@ def _draw_player_side(img, draw, start_col, team_title, jugadores, referencia):
     for index in range(30):
         row = 12 + index
         jugador = jugadores[index] if index < len(jugadores) else None
+        nombre = _clean(getattr(jugador, "nombres", "")).title() if jugador else ""
+        if jugador and getattr(jugador, "es_foraneo", False):
+            nombre = f"{nombre} (F)"
         _cell(draw, start_col, row, text=str(index + 1), font=FONT_TINY)
         _cell(
             draw,
@@ -248,7 +276,7 @@ def _draw_player_side(img, draw, start_col, team_title, jugadores, referencia):
             row,
             name_end,
             row,
-            _clean(getattr(jugador, "nombres", "")).title() if jugador else "",
+            nombre,
             font=FONT_SMALL,
             align="left",
         )
@@ -290,11 +318,19 @@ def _draw_changes(draw, col1, col2):
 
 def _draw_goals(draw, col1, col2):
     _cell(draw, col1 + 1, 50, col2 - 1, 50, "GOLES", fill=LIGHT, font=FONT_SMALL_BOLD, width=2)
+    side_x1, _, side_x2, _ = _box(col1 + 1, 51, col2 - 1, 54)
+    cell_w = (side_x2 - side_x1) / 6
     goal = 1
     for row_label, row_number in [(51, 52), (53, 54)]:
-        for col in range(col1 + 1, col2, 2):
-            _cell(draw, col, row_label, col + 1, row_label, f"GOL {goal}", fill=LIGHT, font=FONT_TINY_BOLD)
-            _cell(draw, col, row_number, col + 1, row_number, "#", font=FONT_SMALL_BOLD, align="left")
+        for index in range(6):
+            x1 = side_x1 + index * cell_w
+            x2 = x1 + cell_w
+            label_box = [x1, Y[row_label - 1], x2, Y[row_label]]
+            number_box = [x1, Y[row_number - 1], x2, Y[row_number]]
+            draw.rectangle(label_box, outline=BORDER, width=1, fill=LIGHT)
+            _text(draw, label_box, f"GOL {goal}", font=FONT_TINY_BOLD)
+            draw.rectangle(number_box, outline=BORDER, width=1, fill=WHITE)
+            _text(draw, number_box, "#", font=FONT_SMALL_BOLD, align="left")
             goal += 1
 
 
@@ -309,8 +345,7 @@ def generar_planilla_juego_pdf(partido):
     _cell(draw, 1, 5, 27, 5, "PLANILLA DE JUEGO TORNEO VERANERO: SENIOR MASTER, PLUS 50 E INTERBARRIOS", fill=WHITE, font=FONT_TITLE, width=2)
 
     _label_value(draw, (1, 4), 6, (5, 13), "FECHAS:", _fase(partido))
-    _label_value(draw, (15, 17), 6, (18, 21), "FECHA", _fecha(partido.fecha))
-    _label_value(draw, (22, 23), 6, (24, 27), "HORA", _hora(partido.hora))
+    _draw_fecha_hora(draw, partido)
     _label_value(draw, (1, 4), 7, (5, 13), "CATEGORIA", partido.categoria.nombre.upper())
     _label_value(draw, (15, 17), 7, (18, 27), "ARBITRO", "")
     _label_value(draw, (1, 4), 8, (5, 13), "CANCHA", _clean(partido.cancha, "").upper())
