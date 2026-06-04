@@ -16,15 +16,15 @@ admin.site.register(Organizador)
 
 @admin.register(AdminTorneo)
 class AdminTorneoAdmin(admin.ModelAdmin):
-    list_display = ("usuario", "torneo", "puede_editar", "puede_validar", "puede_programar", "activo", "creado_en")
-    list_filter = ("torneo", "activo", "puede_editar", "puede_validar", "puede_programar")
+    list_display = ("usuario", "torneo", "puede_editar", "puede_validar", "puede_programar", "puede_descargar_planillas", "activo", "creado_en")
+    list_filter = ("torneo", "activo", "puede_editar", "puede_validar", "puede_programar", "puede_descargar_planillas")
     search_fields = ("usuario__username", "usuario__first_name", "usuario__last_name", "torneo__nombre")
 
 
 @admin.register(AdminOrganizador)
 class AdminOrganizadorAdmin(admin.ModelAdmin):
-    list_display = ("usuario", "organizador", "puede_editar", "puede_validar", "puede_programar", "activo", "creado_en")
-    list_filter = ("organizador", "activo", "puede_editar", "puede_validar", "puede_programar")
+    list_display = ("usuario", "organizador", "puede_editar", "puede_validar", "puede_programar", "puede_descargar_planillas", "activo", "creado_en")
+    list_filter = ("organizador", "activo", "puede_editar", "puede_validar", "puede_programar", "puede_descargar_planillas")
     search_fields = ("usuario__username", "usuario__first_name", "usuario__last_name", "organizador__nombre")
 
 
