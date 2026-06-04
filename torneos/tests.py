@@ -519,6 +519,14 @@ class PlanilleroPartidoTests(TestCase):
 
         self.assertContains(respuesta, "Acceso exitoso. Ya puedes diligenciar tus partidos asignados.")
 
+    def test_login_no_precarga_usuario_y_desactiva_autocompletado(self):
+        respuesta = self.client.get("/ingresar/")
+
+        self.assertContains(respuesta, 'name="username"')
+        self.assertContains(respuesta, 'autocomplete="off"')
+        self.assertContains(respuesta, 'autocomplete="new-password"')
+        self.assertNotContains(respuesta, 'value="pablo"')
+
     def test_usuario_no_asignado_no_puede_abrir_editor(self):
         self.client.force_login(self.otro_usuario)
 
