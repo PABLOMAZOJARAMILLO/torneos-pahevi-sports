@@ -45,10 +45,8 @@ def es_editor_torneo(user):
         return False
     if user.is_superuser:
         return True
-    if not user.is_staff:
-        return False
     if not tabla_disponible("torneos_admintorneo"):
-        return True
+        return user.is_staff
     tiene_torneos = AdminTorneo.objects.filter(usuario=user, activo=True).exists()
     tiene_organizadores = (
         tabla_disponible("torneos_adminorganizador")
@@ -295,11 +293,13 @@ def torneos_para_usuario(request):
     if usuario.is_superuser:
         return torneos
 
-    if usuario.is_staff and tabla_disponible("torneos_admintorneo"):
+    if tabla_disponible("torneos_admintorneo"):
         filtro = Q(admins_asignados__usuario=usuario, admins_asignados__activo=True)
         if tabla_disponible("torneos_adminorganizador"):
             filtro |= Q(organizador__admins_asignados__usuario=usuario, organizador__admins_asignados__activo=True)
-        return torneos.filter(filtro).distinct()
+        torneos_asignados = torneos.filter(filtro).distinct()
+        if torneos_asignados.exists() or usuario.is_staff:
+            return torneos_asignados
 
     return torneos
 
@@ -315,7 +315,7 @@ def permisos_torneo_usuario(user, torneo):
             puede_descargar_planillas=True,
             activo=True,
         )
-    if not user.is_staff or not torneo or not tabla_disponible("torneos_admintorneo"):
+    if not torneo or not tabla_disponible("torneos_admintorneo"):
         return None
     permiso_torneo = AdminTorneo.objects.filter(usuario=user, torneo=torneo, activo=True).first()
     permiso_organizador = None

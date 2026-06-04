@@ -746,7 +746,7 @@ class AdminTorneoPermisosTests(TestCase):
         self.assertContains(respuesta, "Equipo Futuro")
 
     def test_admin_torneo_solo_planillas_entra_a_gestion_al_ingresar(self):
-        admin = User.objects.create_user("admin-planillas", password="test", is_staff=True)
+        admin = User.objects.create_user("admin-planillas", password="test")
         AdminTorneo.objects.create(
             usuario=admin,
             torneo=self.torneo,
@@ -765,6 +765,24 @@ class AdminTorneoPermisosTests(TestCase):
         )
 
         self.assertRedirects(respuesta, "/gestion/", fetch_redirect_response=False)
+
+    def test_admin_torneo_no_staff_solo_planillas_puede_ver_gestion(self):
+        admin = User.objects.create_user("admin-planillas-no-staff", password="test")
+        AdminTorneo.objects.create(
+            usuario=admin,
+            torneo=self.torneo,
+            puede_editar=False,
+            puede_validar=False,
+            puede_programar=False,
+            puede_descargar_planillas=True,
+        )
+        self.client.force_login(admin)
+
+        respuesta = self.client.get("/gestion/")
+
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertContains(respuesta, "Partidos")
+        self.assertContains(respuesta, "Descargar planillas de impresion")
 
 
 class FixtureProgramacionBalanceadaTests(TestCase):
