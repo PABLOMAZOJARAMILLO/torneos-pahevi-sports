@@ -252,6 +252,8 @@ class IngresoTorneosView(LoginView):
         return response
 
     def get_default_redirect_url(self):
+        if self.request.user.is_authenticated and es_editor_torneo(self.request.user):
+            return reverse("gestion_panel")
         if (
             self.request.user.is_authenticated
             and not es_editor_torneo(self.request.user)
