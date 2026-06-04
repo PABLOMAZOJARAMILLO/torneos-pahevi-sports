@@ -263,13 +263,29 @@ def _draw_player_side(img, draw, start_col, team_title, jugadores, referencia):
 
 def _draw_changes(draw, col1, col2):
     _cell(draw, col1, 42, col2, 42, "CONTROL DE CAMBIOS", fill=LIGHT, font=FONT_SMALL_BOLD, width=2)
-    groups = [(col1 + 1, col1 + 3), (col1 + 5, col1 + 7), (col1 + 9, col1 + 11)]
-    for group in groups:
-        _cell(draw, group[0], 43, group[1], 49, "", width=2)
-        for col, label in zip(group, ["E", "S", "MIN"]):
-            _cell(draw, col, 43, text=label, fill=LIGHT, font=FONT_TINY_BOLD, width=2)
+    side_x1, _, side_x2, _ = _box(col1, 43, col2, 49)
+    side_w = side_x2 - side_x1
+    margin = side_w * 0.055
+    gap = side_w * 0.085
+    block_w = (side_w - (margin * 2) - (gap * 2)) / 3
+    header_y1 = Y[42]
+    header_y2 = Y[43]
+    bottom_y = Y[49]
+    labels = ["E", "S", "MIN"]
+
+    for index in range(3):
+        x1 = side_x1 + margin + index * (block_w + gap)
+        x2 = x1 + block_w
+        cell_w = block_w / 3
+        draw.rectangle([x1, header_y1, x2, bottom_y], outline=BORDER, width=2, fill=WHITE)
+
+        for col_index, label in enumerate(labels):
+            cx1 = x1 + col_index * cell_w
+            cx2 = cx1 + cell_w
+            draw.rectangle([cx1, header_y1, cx2, header_y2], outline=BORDER, width=1, fill=LIGHT)
+            _text(draw, [cx1, header_y1, cx2, header_y2], label, font=FONT_TINY_BOLD)
             for row in range(44, 50):
-                _cell(draw, col, row)
+                draw.rectangle([cx1, Y[row - 1], cx2, Y[row]], outline=BORDER, width=1, fill=WHITE)
 
 
 def _draw_goals(draw, col1, col2):
