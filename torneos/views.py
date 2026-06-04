@@ -306,7 +306,13 @@ def permisos_torneo_usuario(user, torneo):
     if not user.is_authenticated:
         return None
     if user.is_superuser:
-        return SimpleNamespace(puede_editar=True, puede_validar=True, puede_programar=True, activo=True)
+        return SimpleNamespace(
+            puede_editar=True,
+            puede_validar=True,
+            puede_programar=True,
+            puede_descargar_planillas=True,
+            activo=True,
+        )
     if not user.is_staff or not torneo or not tabla_disponible("torneos_admintorneo"):
         return None
     permiso_torneo = AdminTorneo.objects.filter(usuario=user, torneo=torneo, activo=True).first()
@@ -326,6 +332,10 @@ def permisos_torneo_usuario(user, torneo):
             puede_editar=permiso_torneo.puede_editar or permiso_organizador.puede_editar,
             puede_validar=permiso_torneo.puede_validar or permiso_organizador.puede_validar,
             puede_programar=permiso_torneo.puede_programar or permiso_organizador.puede_programar,
+            puede_descargar_planillas=(
+                getattr(permiso_torneo, "puede_descargar_planillas", False)
+                or getattr(permiso_organizador, "puede_descargar_planillas", False)
+            ),
             activo=True,
         )
 
@@ -347,6 +357,22 @@ def usuario_puede_programar_torneo(user, torneo):
     return bool(permisos and permisos.puede_programar)
 
 
+def usuario_puede_descargar_planillas_torneo(user, torneo):
+    permisos = permisos_torneo_usuario(user, torneo)
+    return bool(permisos and getattr(permisos, "puede_descargar_planillas", False))
+
+
+def usuario_solo_descarga_planillas(user, torneo):
+    permisos = permisos_torneo_usuario(user, torneo)
+    return bool(
+        permisos
+        and getattr(permisos, "puede_descargar_planillas", False)
+        and not permisos.puede_editar
+        and not permisos.puede_validar
+        and not permisos.puede_programar
+    )
+
+
 def denegar_permiso_torneo():
     return HttpResponseForbidden("No tienes permiso para manipular este torneo.")
 
@@ -360,6 +386,8 @@ def puede_gestionar_torneo(request, torneo, permiso="editar"):
         return usuario_puede_validar_torneo(request.user, torneo)
     if permiso == "programar":
         return usuario_puede_programar_torneo(request.user, torneo)
+    if permiso == "descargar_planillas":
+        return usuario_puede_descargar_planillas_torneo(request.user, torneo)
     return usuario_puede_editar_torneo(request.user, torneo)
 
 
@@ -4218,6 +4246,11 @@ def gestion_probar_storage(request):
 @user_passes_test(es_editor_torneo)
 def gestion_panel(request):
     torneo = torneo_actual(request)
+    permisos = permisos_torneo_usuario(request.user, torneo)
+    puede_editar = bool(permisos and permisos.puede_editar)
+    puede_validar = bool(permisos and permisos.puede_validar)
+    puede_programar = bool(permisos and permisos.puede_programar)
+    puede_descargar_planillas = bool(permisos and getattr(permisos, "puede_descargar_planillas", False))
     organizadores = Organizador.objects.all() if tabla_disponible("torneos_organizador") else None
     categorias = Categoria.objects.all()
     equipos = Equipo.objects.all()
@@ -4240,12 +4273,18 @@ def gestion_panel(request):
         "total_jugadores": jugadores.count(),
         "total_partidos": partidos.count(),
         "total_documentos": documentos.count(),
+        "puede_editar": puede_editar,
+        "puede_validar": puede_validar,
+        "puede_programar": puede_programar,
+        "puede_descargar_planillas": puede_descargar_planillas,
     })
 
 
 @login_required
 @user_passes_test(es_editor_torneo)
 def gestion_actividad(request):
+    if usuario_solo_descarga_planillas(request.user, torneo_actual(request)):
+        return denegar_permiso_torneo()
     if not tabla_disponible("torneos_registroactividad"):
         messages.error(request, "La tabla de actividad todavia no esta creada. Ejecuta las migraciones.")
         return redirect("gestion_panel")
@@ -4284,6 +4323,8 @@ def gestion_actividad(request):
 @login_required
 @user_passes_test(es_editor_torneo)
 def gestion_validaciones(request):
+    if not puede_gestionar_torneo(request, torneo_actual(request), "validar"):
+        return denegar_permiso_torneo()
     if not tabla_disponible("torneos_solicitudvalidacion"):
         messages.error(request, "La tabla de validaciones todavia no esta creada. Espera que Render termine de aplicar las migraciones.")
         return redirect("gestion_panel")
@@ -4402,6 +4443,7 @@ def gestion_organizador_admins(request, organizador_id):
             existente.puede_editar = asignacion.puede_editar
             existente.puede_validar = asignacion.puede_validar
             existente.puede_programar = asignacion.puede_programar
+            existente.puede_descargar_planillas = asignacion.puede_descargar_planillas
             existente.activo = asignacion.activo
             existente.save()
             asignacion = existente
@@ -4421,6 +4463,7 @@ def gestion_organizador_admins(request, organizador_id):
                 "puede_editar": asignacion.puede_editar,
                 "puede_validar": asignacion.puede_validar,
                 "puede_programar": asignacion.puede_programar,
+                "puede_descargar_planillas": asignacion.puede_descargar_planillas,
                 "activo": asignacion.activo,
             },
         )
@@ -4457,6 +4500,8 @@ def gestion_organizador_admin_eliminar(request, asignacion_id):
 @login_required
 @user_passes_test(es_editor_torneo)
 def gestion_torneos(request):
+    if usuario_solo_descarga_planillas(request.user, torneo_actual(request)):
+        return denegar_permiso_torneo()
     torneos = torneos_para_usuario(request)
 
     return render(request, "gestion/torneos.html", {
@@ -4526,6 +4571,7 @@ def gestion_torneo_admins(request, torneo_id):
             existente.puede_editar = asignacion.puede_editar
             existente.puede_validar = asignacion.puede_validar
             existente.puede_programar = asignacion.puede_programar
+            existente.puede_descargar_planillas = asignacion.puede_descargar_planillas
             existente.activo = asignacion.activo
             existente.save()
             asignacion = existente
@@ -4544,6 +4590,7 @@ def gestion_torneo_admins(request, torneo_id):
                 "puede_editar": asignacion.puede_editar,
                 "puede_validar": asignacion.puede_validar,
                 "puede_programar": asignacion.puede_programar,
+                "puede_descargar_planillas": asignacion.puede_descargar_planillas,
                 "activo": asignacion.activo,
             },
         )
@@ -4598,6 +4645,8 @@ def gestion_torneo_eliminar(request, torneo_id):
 @user_passes_test(es_editor_torneo)
 def gestion_categorias(request):
     torneo = torneo_actual(request)
+    if usuario_solo_descarga_planillas(request.user, torneo):
+        return denegar_permiso_torneo()
     categorias = Categoria.objects.select_related("torneo").order_by("nombre")
     if torneo:
         categorias = categorias.filter(torneo=torneo)
@@ -4681,6 +4730,8 @@ def gestion_categoria_eliminar(request, categoria_id):
 @user_passes_test(es_editor_torneo)
 def gestion_documentos(request):
     torneo = torneo_actual(request)
+    if usuario_solo_descarga_planillas(request.user, torneo):
+        return denegar_permiso_torneo()
     documentos = Documento.objects.order_by("tipo", "-creado_en", "titulo")
     if torneo:
         documentos = documentos.filter(Q(torneo=torneo) | Q(torneo__isnull=True))
@@ -5144,6 +5195,8 @@ def gestion_generar_fixture(request):
 @user_passes_test(es_editor_torneo)
 def gestion_equipos(request):
     torneo = torneo_actual(request)
+    if usuario_solo_descarga_planillas(request.user, torneo):
+        return denegar_permiso_torneo()
     categorias = Categoria.objects.order_by("nombre")
     equipos = equipos_gestion_filtrados(torneo, request.GET.get("q", ""), request.GET.get("categoria", ""))
     if torneo:
@@ -5598,6 +5651,8 @@ def gestion_equipo_eliminar(request, equipo_id):
 @user_passes_test(es_editor_torneo)
 def gestion_jugadores(request):
     torneo = torneo_actual(request)
+    if usuario_solo_descarga_planillas(request.user, torneo):
+        return denegar_permiso_torneo()
     categorias = Categoria.objects.order_by("nombre")
     equipos = Equipo.objects.select_related("categoria").order_by("categoria__nombre", "nombre")
     jugadores = Jugador.objects.select_related("equipo", "equipo__categoria").order_by(
@@ -5868,6 +5923,10 @@ def gestion_importar_planilla(request):
 @user_passes_test(es_editor_torneo)
 def gestion_partidos(request):
     torneo = torneo_actual(request)
+    permisos = permisos_torneo_usuario(request.user, torneo)
+    puede_programar = bool(permisos and permisos.puede_programar)
+    puede_validar = bool(permisos and permisos.puede_validar)
+    puede_descargar_planillas = bool(permisos and getattr(permisos, "puede_descargar_planillas", False))
     categorias = Categoria.objects.order_by("nombre")
     if torneo:
         categorias = categorias.filter(torneo=torneo)
@@ -5906,6 +5965,9 @@ def gestion_partidos(request):
         "q": q,
         "categoria_id": categoria_id,
         "estado": estado,
+        "puede_programar": puede_programar,
+        "puede_validar": puede_validar,
+        "puede_descargar_planillas": puede_descargar_planillas,
     })
 
 
@@ -6534,7 +6596,7 @@ def descargar_planilla_juego_partido(request, partido_id):
         partidos_para_planillas(None),
         id=partido_id,
     )
-    if not puede_gestionar_torneo(request, partido.categoria.torneo if partido.categoria_id else None, "editar"):
+    if not puede_gestionar_torneo(request, partido.categoria.torneo if partido.categoria_id else None, "descargar_planillas"):
         return denegar_permiso_torneo()
     if request.GET.get("app") == "1":
         return respuesta_archivo_descarga_app(
@@ -6574,7 +6636,7 @@ def respuesta_zip_planillas(partidos, nombre_zip):
 def descargar_planillas_juego_categoria(request, categoria_id):
     torneo = torneo_actual(request)
     categoria = get_object_or_404(Categoria, id=categoria_id)
-    if not puede_gestionar_torneo(request, categoria.torneo, "editar"):
+    if not puede_gestionar_torneo(request, categoria.torneo, "descargar_planillas"):
         return HttpResponseForbidden("No tienes permiso para esta categoria.")
     partidos = list(partidos_para_planillas(torneo, categoria_id=categoria.id))
     if not partidos:
@@ -6597,6 +6659,8 @@ def descargar_planillas_juego_categoria(request, categoria_id):
 @user_passes_test(es_editor_torneo)
 def descargar_planillas_juego_torneo(request):
     torneo = torneo_actual(request)
+    if not puede_gestionar_torneo(request, torneo, "descargar_planillas"):
+        return denegar_permiso_torneo()
     partidos = list(partidos_para_planillas(torneo))
     if not partidos:
         messages.warning(request, "No hay partidos para generar planillas.")

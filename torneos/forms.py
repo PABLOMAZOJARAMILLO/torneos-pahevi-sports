@@ -51,6 +51,7 @@ class AdminTorneoForm(forms.ModelForm):
             "puede_editar",
             "puede_validar",
             "puede_programar",
+            "puede_descargar_planillas",
             "activo",
         ]
 
@@ -68,6 +69,7 @@ class AdminOrganizadorForm(forms.ModelForm):
             "puede_editar",
             "puede_validar",
             "puede_programar",
+            "puede_descargar_planillas",
             "activo",
         ]
 

@@ -41,13 +41,17 @@
 </style>
 
 <div class="partidos-actions">
+    {% if puede_programar %}
     <a class="btn" href="{% url 'gestion_partido_nuevo' %}">Nuevo partido</a>
     <a class="btn" href="{% url 'gestion_importar_partidos' %}">Importar partidos</a>
+    {% endif %}
+    {% if puede_descargar_planillas %}
     <a class="btn btn-wide descarga-apk" href="{% url 'descargar_planillas_juego_torneo' %}" data-app-href="{% url 'descargar_planillas_juego_torneo' %}?app=1&volver={{ request.get_full_path|urlencode }}">
         <span class="label-desktop">Planillas PDF programadas</span>
         <span class="label-mobile">PDF programadas</span>
     </a>
     {% if categoria_id %}<a class="btn secondary descarga-apk" href="{% url 'descargar_planillas_juego_categoria' categoria_id %}" data-app-href="{% url 'descargar_planillas_juego_categoria' categoria_id %}?app=1&volver={{ request.get_full_path|urlencode }}">PDF categoria</a>{% endif %}
+    {% endif %}
     <a class="btn secondary" href="{% url 'gestion_panel' %}">Gestion</a>
 </div>
 
@@ -100,10 +104,15 @@
         </div>
     </div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        {% if puede_programar %}
         <a class="btn secondary" href="{% url 'editor_partido_movil' partido.id %}">Editor juego</a>
+        {% endif %}
         {% if partido.estado == "PROGRAMADO" and partido.estado_programacion != "SUGERIDA" and partido.cancha %}
+        {% if puede_descargar_planillas %}
         <a class="btn secondary descarga-apk" href="{% url 'descargar_planilla_juego_partido' partido.id %}" data-app-href="{% url 'descargar_planilla_juego_partido' partido.id %}?app=1&volver={{ request.get_full_path|urlencode }}">Planilla PDF</a>
         {% endif %}
+        {% endif %}
+        {% if puede_programar %}
         <a class="btn" href="{% url 'gestion_partido_editar' partido.id %}">Programar</a>
         {% if partido.estado_programacion == "SUGERIDA" %}
         <form class="inline-form" method="post" action="{% url 'gestion_partido_confirmar_programacion' partido.id %}">
@@ -112,7 +121,8 @@
             <button class="btn" type="submit">Confirmar programacion</button>
         </form>
         {% endif %}
-        {% if not partido.estadisticas_validadas %}
+        {% endif %}
+        {% if puede_validar and not partido.estadisticas_validadas %}
         <form class="inline-form" method="post" action="{% url 'gestion_partido_validar_estadisticas' partido.id %}">
             {% csrf_token %}
             <input type="hidden" name="next" value="{{ request.get_full_path }}">

@@ -171,6 +171,9 @@
                 line-height: 1.1;
                 white-space: normal;
             }
+            .topbar-actions .btn:only-child {
+                grid-column: 1 / -1;
+            }
             .topbar-actions .bell {
                 min-width: 0;
                 width: 52px;
@@ -186,12 +189,14 @@
     <div class="topbar">
         <h1>{% block heading %}Gestión{% endblock %}</h1>
         <div class="topbar-actions">
+            {% if request.user.is_superuser or puede_validar %}
             <a class="btn secondary bell" href="{% url 'gestion_validaciones' %}" aria-label="Validaciones pendientes">
                 &#128276;
                 {% if validaciones_pendientes_count %}
                 <span class="bell-count">{{ validaciones_pendientes_count }}</span>
                 {% endif %}
             </a>
+            {% endif %}
             <a class="btn secondary" href="{% url 'panel' %}">Volver al panel</a>
         </div>
     </div>

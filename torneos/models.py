@@ -121,6 +121,7 @@ class AdminTorneo(models.Model):
     puede_editar = models.BooleanField(default=True)
     puede_validar = models.BooleanField(default=True)
     puede_programar = models.BooleanField(default=True)
+    puede_descargar_planillas = models.BooleanField(default=False, verbose_name="Puede descargar planillas")
     activo = models.BooleanField(default=True)
     creado_en = models.DateTimeField(auto_now_add=True)
 
@@ -140,6 +141,7 @@ class AdminOrganizador(models.Model):
     puede_editar = models.BooleanField(default=True)
     puede_validar = models.BooleanField(default=True)
     puede_programar = models.BooleanField(default=True)
+    puede_descargar_planillas = models.BooleanField(default=False, verbose_name="Puede descargar planillas")
     activo = models.BooleanField(default=True)
     creado_en = models.DateTimeField(auto_now_add=True)
 

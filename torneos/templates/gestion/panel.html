@@ -12,11 +12,14 @@
     </a>
     {% endif %}
 
+    {% if puede_editar or puede_programar or puede_validar %}
     <a class="card" href="{% url 'gestion_torneos' %}">
         <h2>Torneos</h2>
         <p class="muted">{% if torneo_seleccionado %}Activo: {{ torneo_seleccionado.nombre }}{% else %}Crear y administrar torneos{% endif %}</p>
     </a>
+    {% endif %}
 
+    {% if puede_editar %}
     <a class="card" href="{% url 'gestion_categorias' %}">
         <h2>Categorías</h2>
         <p class="muted">{{ total_categorias }} registradas</p>
@@ -31,22 +34,30 @@
         <h2>Jugadores</h2>
         <p class="muted">{{ total_jugadores }} registrados</p>
     </a>
+    {% endif %}
 
+    {% if puede_programar or puede_validar or puede_descargar_planillas %}
     <a class="card" href="{% url 'gestion_partidos' %}">
         <h2>Partidos</h2>
-        <p class="muted">{{ total_partidos }} registrados</p>
+        <p class="muted">{% if puede_descargar_planillas and not puede_programar and not puede_validar %}Descargar planillas de impresion{% else %}{{ total_partidos }} registrados{% endif %}</p>
     </a>
+    {% endif %}
 
+    {% if puede_validar %}
     <a class="card" href="{% url 'gestion_validaciones' %}">
         <h2>Validaciones</h2>
         <p class="muted">{{ validaciones_pendientes_count }} pendientes por revisar</p>
     </a>
+    {% endif %}
 
+    {% if puede_programar %}
     <a class="card" href="{% url 'gestion_generar_fixture' %}">
         <h2>Generar fixture</h2>
         <p class="muted">Armar grupos con cabezas de serie</p>
     </a>
+    {% endif %}
 
+    {% if puede_editar %}
     <a class="card" href="{% url 'gestion_biblioteca_cloudinary' %}">
         <h2>Biblioteca Cloudinary</h2>
         <p class="muted">Reutilizar fotos y escudos cargados</p>
@@ -61,5 +72,6 @@
         <h2>Actividad</h2>
         <p class="muted">Historial de movimientos de admins</p>
     </a>
+    {% endif %}
 </div>
 {% endblock %}
