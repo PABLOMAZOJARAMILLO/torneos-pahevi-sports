@@ -238,7 +238,7 @@ class ReglasEdadCategoriaTests(TestCase):
             etiqueta="+40",
             edad_minima=40,
             edad_maxima=44,
-            minimo_titulares=4,
+            maximo_titulares=4,
             orden=1,
         )
         ReglaEdadCategoria.objects.create(
@@ -271,13 +271,47 @@ class ReglasEdadCategoriaTests(TestCase):
 
         self.assertEqual(etiqueta_edad_jugador(jugador, self.categoria, self.partido.fecha), "+40")
 
-    def test_valida_minimos_de_titulares_por_regla(self):
+    def test_valida_reglas_senior_master_con_reemplazos(self):
+        jugadores = []
+        for indice in range(1, 4):
+            jugadores.append(self.crear_jugador(indice, date(1983, 1, 1)))
+        for indice in range(4, 8):
+            jugadores.append(self.crear_jugador(indice, date(1978, 1, 1)))
+        for indice in range(8, 12):
+            jugadores.append(self.crear_jugador(indice, date(1970, 1, 1)))
+
+        errores = validar_reglas_edad_titulares(
+            self.partido,
+            self.equipo,
+            [str(jugador.id) for jugador in jugadores],
+        )
+
+        self.assertEqual(errores, [])
+
+    def test_reporta_maximo_de_cuarenta_en_cancha(self):
+        jugadores = []
+        for indice in range(1, 6):
+            jugadores.append(self.crear_jugador(indice, date(1983, 1, 1)))
+        for indice in range(6, 9):
+            jugadores.append(self.crear_jugador(indice, date(1978, 1, 1)))
+        for indice in range(9, 12):
+            jugadores.append(self.crear_jugador(indice, date(1970, 1, 1)))
+
+        errores = validar_reglas_edad_titulares(
+            self.partido,
+            self.equipo,
+            [str(jugador.id) for jugador in jugadores],
+        )
+
+        self.assertTrue(any("+40" in error and "maximo 4" in error for error in errores))
+
+    def test_cincuenta_reemplaza_cupo_de_cuarenta_y_cinco(self):
         jugadores = []
         for indice in range(1, 5):
             jugadores.append(self.crear_jugador(indice, date(1983, 1, 1)))
-        for indice in range(5, 9):
+        for indice in range(5, 8):
             jugadores.append(self.crear_jugador(indice, date(1978, 1, 1)))
-        for indice in range(9, 12):
+        for indice in range(8, 12):
             jugadores.append(self.crear_jugador(indice, date(1970, 1, 1)))
 
         errores = validar_reglas_edad_titulares(
@@ -292,8 +326,12 @@ class ReglasEdadCategoriaTests(TestCase):
         jugadores = []
         for indice in range(1, 5):
             jugadores.append(self.crear_jugador(indice, date(1983, 1, 1)))
-        for indice in range(5, 12):
+        for indice in range(5, 7):
+            jugadores.append(self.crear_jugador(indice, date(1978, 1, 1)))
+        for indice in range(7, 10):
             jugadores.append(self.crear_jugador(indice, date(1970, 1, 1)))
+        for indice in range(10, 12):
+            jugadores.append(self.crear_jugador(indice, date(1988, 1, 1)))
 
         errores = validar_reglas_edad_titulares(
             self.partido,

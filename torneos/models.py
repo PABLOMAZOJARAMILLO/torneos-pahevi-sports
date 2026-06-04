@@ -242,6 +242,7 @@ class ReglaEdadCategoria(models.Model):
     edad_minima = models.PositiveIntegerField(verbose_name='Edad minima')
     edad_maxima = models.PositiveIntegerField(blank=True, null=True, verbose_name='Edad maxima')
     minimo_titulares = models.PositiveIntegerField(default=0, verbose_name='Minimo en cancha')
+    maximo_titulares = models.PositiveIntegerField(blank=True, null=True, verbose_name='Maximo en cancha')
     orden = models.PositiveIntegerField(default=0)
     activa = models.BooleanField(default=True)
 

@@ -2103,7 +2103,10 @@ def texto_edad_jugador(jugador, categoria=None, fecha_referencia=None):
 
 
 def validar_reglas_edad_titulares(partido, equipo, titulares_ids):
-    reglas = [regla for regla in reglas_edad_categoria(partido.categoria) if regla.minimo_titulares]
+    reglas = [
+        regla for regla in reglas_edad_categoria(partido.categoria)
+        if regla.minimo_titulares or regla.maximo_titulares is not None
+    ]
     if not reglas or len(titulares_ids) < 11:
         return []
 
@@ -2115,12 +2118,22 @@ def validar_reglas_edad_titulares(partido, equipo, titulares_ids):
             conteos[regla.id] += 1
 
     errores = []
+    reglas_ordenadas = sorted(reglas, key=lambda regla: (regla.edad_minima, regla.id))
     for regla in reglas:
         cantidad = conteos.get(regla.id, 0)
-        if cantidad < regla.minimo_titulares:
+        if regla.maximo_titulares is not None and cantidad > regla.maximo_titulares:
+            errores.append(
+                f"{regla.etiqueta}: maximo {regla.maximo_titulares} en cancha, tienes {cantidad}."
+            )
+
+    sobrantes_mayores = 0
+    for regla in reversed(reglas_ordenadas):
+        cantidad = conteos.get(regla.id, 0) + sobrantes_mayores
+        if regla.minimo_titulares and cantidad < regla.minimo_titulares:
             errores.append(
                 f"{regla.etiqueta}: minimo {regla.minimo_titulares} en cancha, tienes {cantidad}."
             )
+        sobrantes_mayores = max(0, cantidad - regla.minimo_titulares)
     return errores
 
 

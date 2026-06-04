@@ -317,7 +317,7 @@ class TarjetaResource(resources.ModelResource):
 class ReglaEdadCategoriaInline(admin.TabularInline):
     model = ReglaEdadCategoria
     extra = 1
-    fields = ('etiqueta', 'edad_minima', 'edad_maxima', 'minimo_titulares', 'orden', 'activa')
+    fields = ('etiqueta', 'edad_minima', 'edad_maxima', 'minimo_titulares', 'maximo_titulares', 'orden', 'activa')
     ordering = ('orden', 'edad_minima')
 
 
@@ -429,7 +429,7 @@ class AlineacionPartidoAdmin(admin.ModelAdmin):
 
 @admin.register(ReglaEdadCategoria)
 class ReglaEdadCategoriaAdmin(admin.ModelAdmin):
-    list_display = ('categoria', 'etiqueta', 'edad_minima', 'edad_maxima', 'minimo_titulares', 'orden', 'activa')
+    list_display = ('categoria', 'etiqueta', 'edad_minima', 'edad_maxima', 'minimo_titulares', 'maximo_titulares', 'orden', 'activa')
     list_filter = ('categoria__torneo', 'categoria', 'activa')
     search_fields = ('categoria__nombre', 'etiqueta')
     ordering = ('categoria__nombre', 'orden', 'edad_minima')
