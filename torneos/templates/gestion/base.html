@@ -151,7 +151,31 @@
         }
         @media (max-width: 640px) {
             body { padding: 12px; }
-            .topbar { align-items: flex-start; flex-direction: column; }
+            .topbar {
+                align-items: flex-start;
+                flex-direction: column;
+                gap: 10px;
+                margin-bottom: 14px;
+            }
+            .topbar-actions {
+                width: 100%;
+                display: grid;
+                grid-template-columns: 52px minmax(0, 1fr);
+                gap: 8px;
+            }
+            .topbar-actions .btn {
+                min-height: 40px;
+                padding: 8px 12px;
+                border-radius: 18px;
+                font-size: 15px;
+                line-height: 1.1;
+                white-space: normal;
+            }
+            .topbar-actions .bell {
+                min-width: 0;
+                width: 52px;
+                font-size: 18px;
+            }
             .row { align-items: flex-start; flex-direction: column; }
             .row .btn { width: 100%; }
         }
