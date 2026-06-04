@@ -195,5 +195,10 @@ public class MainActivity extends BridgeActivity {
         public void guardarArchivo(String dataUrl, String nombreArchivo, String mimetype) {
             runOnUiThread(() -> guardarArchivoBase64(dataUrl, nombreArchivo, mimetype));
         }
+
+        @JavascriptInterface
+        public void descargarUrl(String url, String nombreArchivo, String mimetype) {
+            runOnUiThread(() -> descargarArchivo(url, getBridge().getWebView().getSettings().getUserAgentString(), "attachment; filename=\"" + nombreArchivo + "\"", mimetype));
+        }
     }
 }

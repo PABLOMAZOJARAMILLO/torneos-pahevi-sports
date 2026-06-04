@@ -6516,13 +6516,14 @@ def respuesta_pdf_planilla(partido):
     return response
 
 
-def respuesta_archivo_descarga_app(request, contenido, nombre_archivo, content_type, volver_url):
+def respuesta_archivo_descarga_app(request, contenido, nombre_archivo, content_type, volver_url, archivo_url):
     data_url = f"data:{content_type};base64,{base64.b64encode(contenido).decode('ascii')}"
     return render(request, "descargas/archivo_descarga.html", {
         "data_url": data_url,
         "nombre_archivo": nombre_archivo,
         "content_type": content_type,
         "volver_url": volver_url,
+        "archivo_url": archivo_url,
     })
 
 
@@ -6542,6 +6543,7 @@ def descargar_planilla_juego_partido(request, partido_id):
             nombre_archivo_planilla(partido),
             "application/pdf",
             request.GET.get("volver") or reverse("gestion_partidos"),
+            request.build_absolute_uri(reverse("descargar_planilla_juego_partido", args=[partido.id])),
         )
     return respuesta_pdf_planilla(partido)
 
@@ -6586,6 +6588,7 @@ def descargar_planillas_juego_categoria(request, categoria_id):
             nombre_zip,
             "application/zip",
             request.GET.get("volver") or reverse("gestion_partidos"),
+            request.build_absolute_uri(reverse("descargar_planillas_juego_categoria", args=[categoria.id])),
         )
     return respuesta_zip_planillas(partidos, nombre_zip)
 
@@ -6607,5 +6610,6 @@ def descargar_planillas_juego_torneo(request):
             nombre_zip,
             "application/zip",
             request.GET.get("volver") or reverse("gestion_partidos"),
+            request.build_absolute_uri(reverse("descargar_planillas_juego_torneo")),
         )
     return respuesta_zip_planillas(partidos, nombre_zip)

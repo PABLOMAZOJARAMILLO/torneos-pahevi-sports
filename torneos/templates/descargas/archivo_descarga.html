@@ -45,6 +45,7 @@ body {
 
 <script>
 const dataUrl = "{{ data_url|escapejs }}";
+const archivoUrl = "{{ archivo_url|escapejs }}";
 const nombreArchivo = "{{ nombre_archivo|escapejs }}";
 const contentType = "{{ content_type|escapejs }}";
 const volverUrl = "{{ volver_url|escapejs }}";
@@ -58,6 +59,13 @@ function volver() {
 window.onload = function() {
     const estado = document.getElementById("estado");
 
+    if (window.AndroidDownloader && typeof window.AndroidDownloader.descargarUrl === "function") {
+        window.AndroidDownloader.descargarUrl(archivoUrl, nombreArchivo, contentType);
+        estado.innerText = "Descarga iniciada en Descargas";
+        volver();
+        return;
+    }
+
     if (window.AndroidDownloader && typeof window.AndroidDownloader.guardarArchivo === "function") {
         window.AndroidDownloader.guardarArchivo(dataUrl, nombreArchivo, contentType);
         estado.innerText = "Descarga iniciada en Descargas";
@@ -66,9 +74,8 @@ window.onload = function() {
     }
 
     const enlace = document.getElementById("descarga");
-    enlace.click();
-    estado.innerText = "Archivo generado. Si no descarga, toca el boton.";
-    volver();
+    enlace.href = archivoUrl || dataUrl;
+    estado.innerText = "Tu APK no tiene el descargador actualizado. Toca el boton para intentar abrir el archivo.";
 };
 </script>
 </body>
