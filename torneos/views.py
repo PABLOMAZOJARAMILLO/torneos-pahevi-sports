@@ -35,7 +35,7 @@ import requests
 from django.views.decorators.http import require_POST
 from openpyxl import load_workbook
 
-from .forms import TorneoForm, OrganizadorForm, CategoriaForm, DocumentoForm, EquipoForm, EquipoDelegadoForm, EquipoReinscripcionForm, JugadorForm, JugadorDelegadoForm, PartidoForm, AdminTorneoForm, AdminOrganizadorForm
+from .forms import TorneoForm, OrganizadorForm, CategoriaForm, DocumentoForm, EquipoForm, EquipoDelegadoForm, EquipoReinscripcionForm, JugadorForm, JugadorDelegadoForm, PartidoForm, PartidoProgramacionForm, AdminTorneoForm, AdminOrganizadorForm
 from .models import Torneo, Organizador, Categoria, Documento, Equipo, Partido, Gol, Tarjeta, Jugador, AlineacionPartido, SustitucionPartido, ReglaEdadCategoria, AdminTorneo, AdminOrganizador, RegistroActividad, SolicitudValidacion, limpiar_ruta_cloudinary
 from .planillas_pdf import generar_planilla_juego_pdf, nombre_archivo_planilla
 from django.utils import timezone
@@ -5939,6 +5939,7 @@ def gestion_importar_planilla(request):
 def gestion_partidos(request):
     torneo = torneo_actual(request)
     permisos = permisos_torneo_usuario(request.user, torneo)
+    puede_editar = bool(permisos and permisos.puede_editar)
     puede_programar = bool(permisos and permisos.puede_programar)
     puede_validar = bool(permisos and permisos.puede_validar)
     puede_descargar_planillas = bool(permisos and getattr(permisos, "puede_descargar_planillas", False))
@@ -5980,6 +5981,7 @@ def gestion_partidos(request):
         "q": q,
         "categoria_id": categoria_id,
         "estado": estado,
+        "puede_editar": puede_editar,
         "puede_programar": puede_programar,
         "puede_validar": puede_validar,
         "puede_descargar_planillas": puede_descargar_planillas,
@@ -5992,7 +5994,7 @@ def gestion_partido_nuevo(request):
     torneo = torneo_actual(request)
     if not puede_gestionar_torneo(request, torneo, "programar"):
         return denegar_permiso_torneo()
-    form = PartidoForm(request.POST or None, torneo=torneo)
+    form = PartidoProgramacionForm(request.POST or None, torneo=torneo)
 
     if request.method == "POST" and form.is_valid():
         partido = form.save()
@@ -6022,21 +6024,19 @@ def gestion_partido_editar(request, partido_id):
     if torneo:
         partidos = partidos.filter(categoria__torneo=torneo)
     partido = get_object_or_404(partidos, id=partido_id)
-    form = PartidoForm(request.POST or None, instance=partido, torneo=torneo)
+    form = PartidoProgramacionForm(request.POST or None, instance=partido, torneo=torneo)
 
     if request.method == "POST" and form.is_valid():
         partido = form.save()
         if partido.estado_programacion == "SUGERIDA":
             partido.estado_programacion = "OFICIAL"
             partido.save(update_fields=["estado_programacion"])
-        if partido.estadisticas_validadas and not partido.estadisticas_validadas_en:
-            _validar_estadisticas_partido(partido, request.user)
-        registrar_actividad(request, "EDITAR", partido, descripcion=f"Actualizo partido {partido.equipo_local} vs {partido.equipo_visitante}.")
-        messages.success(request, "Partido actualizado correctamente.")
+        registrar_actividad(request, "PROGRAMAR", partido, descripcion=f"Programo partido {partido.equipo_local} vs {partido.equipo_visitante}.")
+        messages.success(request, "Programacion actualizada correctamente.")
         return redirect("gestion_partidos")
 
     return render(request, "gestion/formulario.html", {
-        "titulo": f"Editar partido: {partido.equipo_local} vs {partido.equipo_visitante}",
+        "titulo": f"Programar partido: {partido.equipo_local} vs {partido.equipo_visitante}",
         "form": form,
         "volver_url": "gestion_partidos",
     })

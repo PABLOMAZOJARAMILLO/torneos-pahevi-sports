@@ -345,3 +345,21 @@ class PartidoForm(forms.ModelForm):
             self.add_error("equipo_visitante", "El visitante debe ser diferente al local.")
 
         return cleaned_data
+
+
+class PartidoProgramacionForm(PartidoForm):
+    class Meta(PartidoForm.Meta):
+        fields = [
+            "categoria",
+            "equipo_local",
+            "equipo_visitante",
+            "planilleros",
+            "fecha",
+            "hora",
+            "estado",
+            "numero_fecha",
+            "grupo",
+            "cancha",
+            "estado_programacion",
+            "fase",
+        ]

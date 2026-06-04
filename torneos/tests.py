@@ -784,6 +784,62 @@ class AdminTorneoPermisosTests(TestCase):
         self.assertContains(respuesta, "Partidos")
         self.assertContains(respuesta, "Descargar planillas de impresion")
 
+    def test_admin_programador_no_ve_editor_juego_en_partidos(self):
+        admin = User.objects.create_user("admin-programa", password="test")
+        AdminTorneo.objects.create(
+            usuario=admin,
+            torneo=self.torneo,
+            puede_editar=False,
+            puede_validar=False,
+            puede_programar=True,
+            puede_descargar_planillas=True,
+        )
+        Partido.objects.create(
+            categoria=self.categoria,
+            equipo_local=self.equipo,
+            equipo_visitante=Equipo.objects.create(nombre="Rival", categoria=self.categoria),
+            fecha=date(2026, 5, 1),
+            hora=time(15, 0),
+            estado="PROGRAMADO",
+        )
+        self.client.force_login(admin)
+
+        respuesta = self.client.get("/gestion/partidos/")
+
+        self.assertContains(respuesta, "Programar")
+        self.assertNotContains(respuesta, "Editor juego")
+
+    def test_programar_partido_no_muestra_campos_de_resultado(self):
+        admin = User.objects.create_user("admin-programa-form", password="test")
+        AdminTorneo.objects.create(
+            usuario=admin,
+            torneo=self.torneo,
+            puede_editar=False,
+            puede_validar=False,
+            puede_programar=True,
+            puede_descargar_planillas=True,
+        )
+        partido = Partido.objects.create(
+            categoria=self.categoria,
+            equipo_local=self.equipo,
+            equipo_visitante=Equipo.objects.create(nombre="Rival Form", categoria=self.categoria),
+            fecha=date(2026, 5, 1),
+            hora=time(15, 0),
+            estado="PROGRAMADO",
+        )
+        self.client.force_login(admin)
+
+        respuesta = self.client.get(f"/gestion/partidos/{partido.id}/editar/")
+
+        self.assertContains(respuesta, "Programar partido")
+        self.assertNotContains(respuesta, 'name="goles_local"')
+        self.assertNotContains(respuesta, 'name="goles_visitante"')
+        self.assertNotContains(respuesta, 'name="ajuste_puntos_local"')
+        self.assertNotContains(respuesta, 'name="ajuste_puntos_visitante"')
+        self.assertNotContains(respuesta, 'name="goles_local_penales"')
+        self.assertNotContains(respuesta, 'name="goles_visitante_penales"')
+        self.assertNotContains(respuesta, 'name="estadisticas_validadas"')
+
 
 class FixtureProgramacionBalanceadaTests(TestCase):
     def setUp(self):
