@@ -272,11 +272,11 @@ class ReglasEdadCategoriaTests(TestCase):
 
         self.assertEqual(etiqueta_edad_jugador(jugador, self.categoria, self.partido.fecha), "+40")
 
-    def test_edad_planilla_se_calcula_con_fecha_actual(self):
-        hoy = date.today()
-        nacimiento = hoy.replace(year=hoy.year - 41)
+    def test_edad_planilla_se_calcula_con_fecha_programada(self):
+        fecha_programada = date(2026, 6, 7)
+        nacimiento = date(1985, 6, 6)
 
-        self.assertEqual(_edad(nacimiento), "41")
+        self.assertEqual(_edad(nacimiento, fecha_programada), "41")
 
     def test_valida_reglas_senior_master_con_reemplazos(self):
         jugadores = []

@@ -353,7 +353,7 @@ def generar_planilla_juego_pdf(partido):
     _label_value(draw, (1, 4), 9, (5, 13), "Equipo A:", partido.equipo_local.nombre.upper())
     _label_value(draw, (15, 17), 9, (18, 27), "Equipo B:", partido.equipo_visitante.nombre.upper())
 
-    referencia = date.today()
+    referencia = partido.fecha or date.today()
     _draw_player_side(img, draw, 1, "LISTADO DE JUGADORES - EQUIPO A", _jugadores(partido.equipo_local), referencia)
     _draw_player_side(img, draw, 15, "LISTADO DE JUGADORES - EQUIPO B", _jugadores(partido.equipo_visitante), referencia)
 
