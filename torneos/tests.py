@@ -12,6 +12,7 @@ from openpyxl import Workbook
 
 from .forms import JugadorForm, PartidoForm
 from .models import AlineacionPartido, AdminOrganizador, AdminTorneo, Categoria, Equipo, Gol, Jugador, Organizador, Partido, ReglaEdadCategoria, RegistroActividad, SustitucionPartido, Tarjeta, Torneo
+from .planillas_pdf import _edad
 from .views import buscar_planilleros_excel, construir_estructura, construir_estadisticas_foraneos, construir_partidos_portada, construir_partidos_programacion, _clave_orden_evento_resumen, _minuto_evento_en_vivo, _sincronizar_no_disponibles_por_tarjetas, etiqueta_edad_jugador, texto_edad_jugador, validar_reglas_edad_titulares
 
 
@@ -271,6 +272,12 @@ class ReglasEdadCategoriaTests(TestCase):
 
         self.assertEqual(etiqueta_edad_jugador(jugador, self.categoria, self.partido.fecha), "+40")
 
+    def test_edad_planilla_se_calcula_con_fecha_actual(self):
+        hoy = date.today()
+        nacimiento = hoy.replace(year=hoy.year - 41)
+
+        self.assertEqual(_edad(nacimiento), "41")
+
     def test_valida_reglas_senior_master_con_reemplazos(self):
         jugadores = []
         for indice in range(1, 4):
@@ -501,6 +508,43 @@ class PlanilleroPartidoTests(TestCase):
         respuesta = self.client.get(f"/partido/{self.partido.id}/editor-movil/")
 
         self.assertContains(respuesta, "36 años")
+
+    @override_settings(STORAGES={
+        "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+        "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
+    })
+    def test_editor_movil_actualiza_edad_despues_del_cumpleanos(self):
+        hoy = date.today()
+        self.jugador.fecha_nacimiento = hoy.replace(year=hoy.year - 41)
+        self.jugador.save(update_fields=["fecha_nacimiento"])
+        self.partido.fecha = hoy - timedelta(days=1)
+        self.partido.save(update_fields=["fecha"])
+        self.client.force_login(self.planillero)
+
+        respuesta = self.client.get(f"/partido/{self.partido.id}/editor-movil/")
+
+        self.assertContains(respuesta, "41 a")
+
+    @override_settings(STORAGES={
+        "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+        "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
+    })
+    def test_editor_movil_muestra_rango_edad_en_selector_y_cancha(self):
+        hoy = date.today()
+        self.jugador.fecha_nacimiento = hoy.replace(year=hoy.year - 41)
+        self.jugador.save(update_fields=["fecha_nacimiento"])
+        ReglaEdadCategoria.objects.create(
+            categoria=self.categoria,
+            etiqueta="+40",
+            edad_minima=40,
+            edad_maxima=44,
+        )
+        self.client.force_login(self.planillero)
+
+        respuesta = self.client.get(f"/partido/{self.partido.id}/editor-movil/")
+
+        self.assertContains(respuesta, "(+40)")
+        self.assertContains(respuesta, "return rango ? corto")
 
     @override_settings(STORAGES={
         "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
@@ -839,6 +883,31 @@ class AdminTorneoPermisosTests(TestCase):
         self.assertNotContains(respuesta, 'name="goles_local_penales"')
         self.assertNotContains(respuesta, 'name="goles_visitante_penales"')
         self.assertNotContains(respuesta, 'name="estadisticas_validadas"')
+
+    @override_settings(STORAGES={
+        "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+        "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
+    })
+    def test_admin_asignado_regresa_del_panel_a_gestion_sin_nuevo_login(self):
+        admin = User.objects.create_user("admin-regresa", password="test")
+        AdminTorneo.objects.create(
+            usuario=admin,
+            torneo=self.torneo,
+            puede_editar=False,
+            puede_validar=False,
+            puede_programar=True,
+            puede_descargar_planillas=True,
+        )
+        self.client.force_login(admin)
+        session = self.client.session
+        session["torneo_id"] = self.torneo.id
+        session.save()
+
+        respuesta = self.client.get("/")
+
+        self.assertContains(respuesta, 'href="/gestion/"')
+        self.assertNotContains(respuesta, "Ingresar admin")
+        self.assertIn("_auth_user_id", self.client.session)
 
 
 class FixtureProgramacionBalanceadaTests(TestCase):
@@ -1293,6 +1362,21 @@ class DelegadoEquipoTests(TestCase):
         )
 
         self.assertContains(respuesta, "Acceso exitoso. Bienvenido al portal de delegados.")
+
+    @override_settings(STORAGES={
+        "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+        "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
+    })
+    def test_delegado_regresa_del_panel_a_mis_equipos_sin_nuevo_login(self):
+        self.client.force_login(self.delegado)
+        session = self.client.session
+        session["torneo_id"] = self.torneo.id
+        session.save()
+
+        respuesta = self.client.get("/")
+
+        self.assertContains(respuesta, f'href="/delegado/equipos/"')
+        self.assertIn("_auth_user_id", self.client.session)
 
     def test_delegado_con_next_de_admin_entra_a_mis_equipos(self):
         respuesta = self.client.post(

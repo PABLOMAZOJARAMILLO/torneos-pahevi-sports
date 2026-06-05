@@ -1090,9 +1090,11 @@ function actualizarSelectoresPosicion(panel) {
 
 function nombreCorto(nombre) {
     if (!nombre) return '';
-    const partes = nombre.trim().split(/\s+/).filter(Boolean);
-    if (partes.length <= 2) return partes.join(' ');
-    return (partes[0] + ' ' + partes[1]).toUpperCase();
+    const rango = nombre.match(/\((\+\d+)\)\s*$/);
+    const nombreSinRango = nombre.replace(/\s*\(\+\d+\)\s*$/, '');
+    const partes = nombreSinRango.trim().split(/\s+/).filter(Boolean);
+    const corto = partes.length <= 2 ? partes.join(' ') : (partes[0] + ' ' + partes[1]).toUpperCase();
+    return rango ? corto + ' (' + rango[1] + ')' : corto;
 }
 
 function pintarSlot(slot, option) {

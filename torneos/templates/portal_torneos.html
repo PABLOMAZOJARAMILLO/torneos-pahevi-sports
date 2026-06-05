@@ -190,8 +190,10 @@
 
     <main class="portal-main" id="torneos">
         <div class="portal-superior">
-            {% if request.user.is_staff %}
+            {% if tiene_gestion_torneo %}
                 <a class="portal-admin" href="{% url 'gestion_panel' %}">Gestion</a>
+            {% elif tiene_equipos_delegado %}
+                <a class="portal-admin" href="{% url 'delegado_mis_equipos' %}">Mis equipos</a>
             {% else %}
                 <a class="portal-admin" href="{% url 'login' %}?next={% url 'gestion_panel' %}">Ingresar</a>
             {% endif %}

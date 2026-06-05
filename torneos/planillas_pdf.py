@@ -251,7 +251,7 @@ def _draw_player_side(img, draw, start_col, team_title, jugadores, referencia):
 
     _cell(draw, start_col, 10, start_col + 12, 10, team_title, fill=LIGHT, font=FONT_SMALL_BOLD, width=2)
     _cell(draw, amarilla_cols[0], 10, roja_col, 10, "Tarjetas", fill=LIGHT, font=FONT_SMALL_BOLD, width=2)
-    _cell(draw, start_col, 11, text="Nº", fill=LIGHT, font=FONT_TINY_BOLD, width=2)
+    _cell(draw, start_col, 11, text="N°", fill=LIGHT, font=FONT_TINY_BOLD, width=2)
     _cell(draw, name_start, 11, name_end, 11, "NOMBRE Y APELLIDOS", fill=LIGHT, font=FONT_SMALL_BOLD, width=2)
     _cell(draw, number_col, 11, text="#", fill=LIGHT, font=FONT_TINY_BOLD, width=2)
     _cell(draw, edad_col, 11, fill=LIGHT, width=2)
@@ -353,7 +353,7 @@ def generar_planilla_juego_pdf(partido):
     _label_value(draw, (1, 4), 9, (5, 13), "Equipo A:", partido.equipo_local.nombre.upper())
     _label_value(draw, (15, 17), 9, (18, 27), "Equipo B:", partido.equipo_visitante.nombre.upper())
 
-    referencia = partido.fecha or date.today()
+    referencia = date.today()
     _draw_player_side(img, draw, 1, "LISTADO DE JUGADORES - EQUIPO A", _jugadores(partido.equipo_local), referencia)
     _draw_player_side(img, draw, 15, "LISTADO DE JUGADORES - EQUIPO B", _jugadores(partido.equipo_visitante), referencia)
 

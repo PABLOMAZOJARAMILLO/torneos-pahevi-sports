@@ -2303,6 +2303,8 @@ def panel_principal(request):
             "torneos_menu": torneos_portal,
             "organizadores_portal": organizadores_para_portal(torneos_menu),
             "organizador_actual": organizador_actual,
+            "tiene_gestion_torneo": es_editor_torneo(request.user),
+            "tiene_equipos_delegado": equipos_delegado_asignados(request.user).exists(),
             "logo_alcaldia": logos["logo_alcaldia"],
             "logo_app": logos["logo_app"],
             "logo_torneo": logos["logo_torneo"],
@@ -2419,6 +2421,8 @@ def panel_principal(request):
         "logo_alcaldia": logos["logo_alcaldia"],
         "logo_torneo": logos["logo_torneo"],
         "logo_imcred": logos["logo_imcred"],
+        "tiene_gestion_torneo": es_editor_torneo(request.user),
+        "tiene_equipos_delegado": equipos_delegado_asignados(request.user).exists(),
     })
 
 
@@ -3435,12 +3439,12 @@ def _marcar_roles_alineacion(jugadores, alineaciones_por_jugador, partido=None):
         jugador.etiqueta_edad = etiqueta_edad_jugador(
             jugador,
             partido.categoria if partido else None,
-            partido.fecha if partido else None,
+            date.today(),
         )
         jugador.texto_edad = texto_edad_jugador(
             jugador,
             partido.categoria if partido else None,
-            partido.fecha if partido else None,
+            date.today(),
         )
     return jugadores
 

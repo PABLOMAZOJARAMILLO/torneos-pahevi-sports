@@ -5092,7 +5092,7 @@ body.solo-lectura .menu-principal{top:96px!important}
     <p class="subtitulo-app">Selecciona una categoría</p>
 
     <div class="acciones-portada">
-    {% if request.user.is_staff %}
+    {% if tiene_gestion_torneo %}
     <a class="boton" href="{% url 'descargar_programacion_general' %}?volver={{ request.get_full_path|urlencode }}">
         <span class="texto-largo">Descargar programación completa</span>
         <span class="texto-corto">Descargar programación</span>
@@ -5180,10 +5180,13 @@ body.solo-lectura .menu-principal{top:96px!important}
 
                     <div class="submenu-panel" data-submenu="admin">
                         <div class="submenu-ayuda">Opciones administrativas</div>
-                        {% if request.user.is_staff %}
+                        {% if tiene_gestion_torneo %}
                             <button type="button" class="submenu-boton" onclick="accionAdmin('descargar')">Descargar programación</button>
                             <button type="button" class="submenu-boton" onclick="accionAdmin('gestion')">Gestión torneo</button>
                             <button type="button" class="submenu-boton" onclick="accionAdmin('salir')">Cerrar sesión</button>
+                        {% elif tiene_equipos_delegado %}
+                            <button type="button" class="submenu-boton" onclick="window.location.href='{% url 'delegado_mis_equipos' %}'">Mis equipos</button>
+                            <button type="button" class="submenu-boton" onclick="accionAdmin('salir')">Cerrar sesion</button>
                         {% else %}
                             <button type="button" class="submenu-boton" onclick="accionAdmin('login')">Ingresar admin</button>
                         {% endif %}
