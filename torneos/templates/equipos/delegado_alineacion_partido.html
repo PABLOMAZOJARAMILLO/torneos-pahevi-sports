@@ -22,6 +22,18 @@
         margin: 12px 0;
         color: #bbf7d0;
     }
+    .alineacion-alerta-edad {
+        display: none;
+        margin: 0 0 12px;
+        padding: 10px;
+        border: 1px solid rgba(249,115,22,.65);
+        border-radius: 10px;
+        background: rgba(249,115,22,.16);
+        color: #ffedd5;
+        font-size: 12px;
+        font-weight: 800;
+        line-height: 1.35;
+    }
     .cancha-delegado {
         position: relative;
         height: clamp(560px, 112vw, 650px);
@@ -257,6 +269,7 @@
             <strong>Titulares en cancha</strong>
             <span><b data-titulares-count>0</b>/11</span>
         </div>
+        <div class="alineacion-alerta-edad" data-alineacion-alerta-edad></div>
 
         <div class="cancha-delegado">
             <span class="linea-cancha-delegado area-superior"></span>
@@ -320,6 +333,7 @@
 
         const selects = Array.from(form.querySelectorAll('[data-cancha-select]'));
         const counter = form.querySelector('[data-titulares-count]');
+        const ageAlert = form.querySelector('[data-alineacion-alerta-edad]');
 
         function shortName(name) {
             const parts = (name || '').trim().split(/\s+/).filter(Boolean);
@@ -383,6 +397,23 @@
             }
             selects.forEach(paintSlot);
             syncBenchRoles();
+            syncAgeAlert();
+        }
+
+        function syncAgeAlert() {
+            if (!ageAlert) return;
+            const seleccionados = selects.filter((select) => select.value);
+            const conteos = {'+40': 0, '+45': 0, '+50': 0};
+            seleccionados.forEach((select) => {
+                const edad = (select.selectedOptions[0]?.dataset.edad || '').trim();
+                if (Object.prototype.hasOwnProperty.call(conteos, edad)) conteos[edad] += 1;
+            });
+            const advertencias = [];
+            if (conteos['+40'] > 4) advertencias.push('+40: maximo 4, tienes ' + conteos['+40'] + '.');
+            if (conteos['+45'] > 8) advertencias.push('+45: maximo 8, tienes ' + conteos['+45'] + '.');
+            if (seleccionados.length === 11 && conteos['+50'] < 3) advertencias.push('+50: minimo 3, tienes ' + conteos['+50'] + '.');
+            ageAlert.textContent = advertencias.length ? 'Advertencia de edades: ' + advertencias.join(' ') : '';
+            ageAlert.style.display = advertencias.length ? 'block' : 'none';
         }
 
         function clearPlayerFromField(playerId) {

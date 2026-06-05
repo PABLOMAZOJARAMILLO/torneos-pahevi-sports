@@ -2123,9 +2123,12 @@ def validar_reglas_edad_titulares(partido, equipo, titulares_ids):
     reglas_ordenadas = sorted(reglas, key=lambda regla: (regla.edad_minima, regla.id))
     for regla in reglas:
         cantidad = conteos.get(regla.id, 0)
-        if regla.maximo_titulares is not None and cantidad > regla.maximo_titulares:
+        maximo_titulares = regla.maximo_titulares
+        if maximo_titulares is None and regla.etiqueta.strip().upper() == "+45":
+            maximo_titulares = 8
+        if maximo_titulares is not None and cantidad > maximo_titulares:
             errores.append(
-                f"{regla.etiqueta}: maximo {regla.maximo_titulares} en cancha, tienes {cantidad}."
+                f"{regla.etiqueta}: maximo {maximo_titulares} en cancha, tienes {cantidad}."
             )
 
     sobrantes_mayores = 0
