@@ -513,6 +513,17 @@ class PlanilleroPartidoTests(TestCase):
         "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
         "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
     })
+    def test_editor_movil_muestra_selector_de_equipos_debajo_de_cada_cancha(self):
+        self.client.force_login(self.planillero)
+
+        respuesta = self.client.get(f"/partido/{self.partido.id}/editor-movil/")
+
+        self.assertContains(respuesta, "Cambiar equipo debajo de la cancha", count=2)
+
+    @override_settings(STORAGES={
+        "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+        "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
+    })
     def test_editor_movil_actualiza_edad_despues_del_cumpleanos(self):
         hoy = date.today()
         self.jugador.fecha_nacimiento = hoy.replace(year=hoy.year - 41)

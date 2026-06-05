@@ -272,6 +272,11 @@
             background: linear-gradient(135deg, #00ff66, #00b94f);
             color: #07111f;
         }
+        .alineacion-equipo-tabs.debajo-cancha {
+            margin: -4px 0 14px;
+            padding-top: 8px;
+            border-top: 1px solid rgba(0, 255, 102, .25);
+        }
         .alineacion-equipo-panel[hidden] { display: none; }
         .alineacion-resumen {
             display: flex;
@@ -897,6 +902,10 @@
                     {% endfor %}
                     <img class="cancha-watermark-editor" src="{% static 'torneos/img/logo_app.png' %}" alt="Pahevi Sports">
                 </div>
+                <div class="alineacion-equipo-tabs debajo-cancha" aria-label="Cambiar equipo debajo de la cancha">
+                    <button type="button" class="active" data-alineacion-equipo="local">{{ partido.equipo_local.nombre }}</button>
+                    <button type="button" data-alineacion-equipo="visitante">{{ partido.equipo_visitante.nombre }}</button>
+                </div>
                 {% for j in jugadores_local %}
                 <div class="jugador-lineup-row" data-jugador-id="{{ j.id }}" data-edad="{{ j.texto_edad }}" data-nombre="{{ j.nombres|texto_limpio }}" data-dorsal="{% if j.dorsal %}{{ j.dorsal }}{% endif %}" data-foto="{{ j.foto_alineacion }}" data-iniciales="{{ j.iniciales_alineacion }}">
                     <div class="jugador-lineup-head">
@@ -955,6 +964,10 @@
                     </div>
                     {% endfor %}
                     <img class="cancha-watermark-editor" src="{% static 'torneos/img/logo_app.png' %}" alt="Pahevi Sports">
+                </div>
+                <div class="alineacion-equipo-tabs debajo-cancha" aria-label="Cambiar equipo debajo de la cancha">
+                    <button type="button" data-alineacion-equipo="local">{{ partido.equipo_local.nombre }}</button>
+                    <button type="button" class="active" data-alineacion-equipo="visitante">{{ partido.equipo_visitante.nombre }}</button>
                 </div>
                 {% for j in jugadores_visitante %}
                 <div class="jugador-lineup-row" data-jugador-id="{{ j.id }}" data-edad="{{ j.texto_edad }}" data-nombre="{{ j.nombres|texto_limpio }}" data-dorsal="{% if j.dorsal %}{{ j.dorsal }}{% endif %}" data-foto="{{ j.foto_alineacion }}" data-iniciales="{{ j.iniciales_alineacion }}">
