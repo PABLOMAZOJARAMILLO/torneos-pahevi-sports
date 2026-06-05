@@ -24,88 +24,148 @@
     }
     .cancha-delegado {
         position: relative;
-        min-height: 660px;
-        max-width: 520px;
+        height: clamp(560px, 112vw, 650px);
+        max-width: 620px;
         margin: 0 auto 18px;
-        border: 2px solid rgba(255,255,255,.82);
-        border-radius: 20px;
+        border-radius: 8px;
         overflow: hidden;
-        background:
-            linear-gradient(rgba(255,255,255,.22), rgba(255,255,255,.22)) 50% 50% / 100% 2px no-repeat,
-            repeating-linear-gradient(90deg, #166534 0 46px, #15803d 46px 92px);
-        box-shadow: inset 0 0 0 4px rgba(255,255,255,.16), 0 20px 40px rgba(0,0,0,.28);
+        background: #206f32;
+        clip-path: polygon(14% 0, 86% 0, 100% 31%, 100% 100%, 0 100%, 0 31%);
+        box-shadow: inset 0 0 0 1px rgba(255,255,255,.16), 0 18px 34px rgba(0,0,0,.22);
     }
     .cancha-delegado::before {
         content: "";
         position: absolute;
-        left: 50%;
-        top: 50%;
-        width: 118px;
-        height: 118px;
-        border: 2px solid rgba(255,255,255,.72);
-        border-radius: 50%;
-        transform: translate(-50%, -50%);
+        inset: 0;
+        background: linear-gradient(90deg,
+            rgba(13, 96, 44, .92) 0 12.5%, rgba(42, 142, 64, .9) 12.5% 25%,
+            rgba(25, 118, 51, .92) 25% 37.5%, rgba(45, 151, 70, .9) 37.5% 50%,
+            rgba(27, 126, 54, .92) 50% 62.5%, rgba(47, 151, 70, .9) 62.5% 75%,
+            rgba(28, 119, 52, .92) 75% 87.5%, rgba(39, 139, 65, .9) 87.5% 100%);
+        pointer-events: none;
     }
+    .cancha-delegado::after {
+        content: "";
+        position: absolute;
+        inset: 5% 3.6% 7%;
+        border: 2px solid rgba(255,255,255,.34);
+        background:
+            linear-gradient(0deg, transparent 50.1%, rgba(255,255,255,.28) 50.1% 50.7%, transparent 50.7%),
+            radial-gradient(ellipse at 50% 50%, transparent 0 12.3%, rgba(255,255,255,.32) 12.7% 13.2%, transparent 13.6%);
+        clip-path: polygon(11% 0, 89% 0, 100% 30%, 100% 100%, 0 100%, 0 30%);
+        pointer-events: none;
+    }
+    .linea-cancha-delegado {
+        position: absolute;
+        z-index: 1;
+        pointer-events: none;
+        border-color: rgba(255,255,255,.36);
+        border-style: solid;
+    }
+    .linea-cancha-delegado.area-superior { left: 34%; top: 5%; width: 32%; height: 18%; border-width: 0 2px 2px; }
+    .linea-cancha-delegado.area-inferior { left: 28%; bottom: 7%; width: 44%; height: 19%; border-width: 2px 2px 0; }
+    .linea-cancha-delegado.area-chica-superior { left: 42%; top: 5%; width: 16%; height: 8%; border-width: 0 2px 2px; }
+    .linea-cancha-delegado.area-chica-inferior { left: 39%; bottom: 7%; width: 22%; height: 9%; border-width: 2px 2px 0; }
+    .linea-cancha-delegado.arco-superior { left: 45%; top: 1.5%; width: 10%; height: 3.5%; border-width: 2px 2px 0; }
+    .linea-cancha-delegado.arco-inferior { left: 43%; bottom: 3.5%; width: 14%; height: 3.5%; border-width: 0 2px 2px; }
     .cancha-slot {
         position: absolute;
-        width: 104px;
+        width: 96px;
         transform: translate(-50%, -50%);
         z-index: 2;
+        text-align: center;
     }
-    .cancha-slot.posicion-POR { left: 50%; top: 88%; }
-    .cancha-slot.posicion-LI { left: 13%; top: 68%; }
-    .cancha-slot.posicion-DFC1 { left: 37%; top: 70%; }
-    .cancha-slot.posicion-DFC2 { left: 63%; top: 70%; }
-    .cancha-slot.posicion-LD { left: 87%; top: 68%; }
-    .cancha-slot.posicion-MC1 { left: 25%; top: 48%; }
-    .cancha-slot.posicion-MC2 { left: 50%; top: 46%; }
-    .cancha-slot.posicion-MC3 { left: 75%; top: 48%; }
-    .cancha-slot.posicion-EI { left: 22%; top: 25%; }
-    .cancha-slot.posicion-DC { left: 50%; top: 21%; }
-    .cancha-slot.posicion-ED { left: 78%; top: 25%; }
+    .cancha-slot.posicion-POR { left: 50%; top: 86%; }
+    .cancha-slot.posicion-LI { left: 13%; top: 64%; }
+    .cancha-slot.posicion-DFC1 { left: 36%; top: 68%; }
+    .cancha-slot.posicion-DFC2 { left: 64%; top: 68%; }
+    .cancha-slot.posicion-LD { left: 87%; top: 64%; }
+    .cancha-slot.posicion-MC1 { left: 22%; top: 43%; }
+    .cancha-slot.posicion-MC2 { left: 50%; top: 48%; }
+    .cancha-slot.posicion-MC3 { left: 78%; top: 43%; }
+    .cancha-slot.posicion-EI { left: 23%; top: 22%; }
+    .cancha-slot.posicion-DC { left: 50%; top: 17%; }
+    .cancha-slot.posicion-ED { left: 77%; top: 22%; }
     .slot-codigo {
-        display: inline-flex;
+        position: absolute;
+        left: 50%;
+        top: -12px;
+        z-index: 4;
+        display: flex;
         align-items: center;
         justify-content: center;
-        justify-self: center;
-        min-width: 40px;
-        height: 28px;
+        transform: translateX(-50%);
+        min-width: 28px;
+        height: 18px;
+        padding: 0 5px;
         border-radius: 999px;
-        background: #07111f;
-        color: #00ff66;
-        font-size: 12px;
-        box-shadow: 0 6px 14px rgba(0,0,0,.25);
+        background: #facc15;
+        color: #07111f;
+        font-size: 9px;
+        font-weight: 1000;
     }
     .slot-player {
         position: relative;
+    }
+    .slot-player-avatar {
+        width: 52px;
+        height: 52px;
+        margin: 0 auto 4px;
+        border: 2px solid #fff;
+        border-radius: 50%;
+        background: #fff;
+        color: #0f172a;
         display: grid;
         place-items: center;
-        gap: 2px;
-        min-height: 62px;
-        padding: 7px 5px;
-        border: 1px solid rgba(255,255,255,.75);
-        border-radius: 12px;
-        background: rgba(7,17,31,.92);
-        color: #fff;
-        text-align: center;
-        box-shadow: 0 7px 15px rgba(0,0,0,.3);
+        overflow: hidden;
+        font-size: 12px;
+        font-weight: 1000;
+        box-shadow: 0 4px 10px rgba(0,0,0,.28);
+    }
+    .slot-player-avatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+    .slot-player-dorsal {
+        position: absolute;
+        left: 13px;
+        top: -5px;
+        z-index: 5;
+        display: none;
+        min-width: 21px;
+        height: 21px;
+        padding: 0 4px;
+        place-items: center;
+        border-radius: 999px;
+        background: #fff;
+        color: #111827;
+        font-size: 9px;
+        font-weight: 1000;
+        box-shadow: 0 2px 6px rgba(0,0,0,.25);
     }
     .slot-player-name {
-        width: 100%;
-        min-width: 0;
-        overflow: hidden;
+        display: block;
+        min-height: 22px;
         color: #fff;
         font-size: 10px;
-        font-weight: 900;
-        line-height: 1.12;
-        text-overflow: ellipsis;
-        white-space: nowrap;
+        font-weight: 1000;
+        line-height: 1.08;
+        overflow-wrap: anywhere;
+        text-shadow: 0 1px 2px rgba(0,0,0,.58);
     }
     .slot-player-age {
-        min-height: 14px;
-        color: #00ff66;
-        font-size: 10px;
-        font-weight: 900;
+        display: none;
+        width: max-content;
+        min-width: 28px;
+        margin: 2px auto 0;
+        padding: 2px 6px;
+        border-radius: 999px;
+        background: #0ea5e9;
+        color: #fff;
+        font-size: 9px;
+        font-weight: 1000;
+        line-height: 1;
     }
     .cancha-slot select {
         position: absolute;
@@ -171,17 +231,16 @@
     }
     @media (max-width: 560px) {
         .cancha-delegado {
-            min-height: 620px;
+            height: 580px;
         }
         .cancha-slot {
-            width: 84px;
+            width: 82px;
         }
-        .slot-player {
-            min-height: 58px;
-            padding: 6px 4px;
+        .slot-player-avatar {
+            width: 46px;
+            height: 46px;
         }
-        .slot-player-name,
-        .slot-player-age {
+        .slot-player-name {
             font-size: 9px;
         }
         .rol-switch {
@@ -200,17 +259,25 @@
         </div>
 
         <div class="cancha-delegado">
+            <span class="linea-cancha-delegado area-superior"></span>
+            <span class="linea-cancha-delegado area-inferior"></span>
+            <span class="linea-cancha-delegado area-chica-superior"></span>
+            <span class="linea-cancha-delegado area-chica-inferior"></span>
+            <span class="linea-cancha-delegado arco-superior"></span>
+            <span class="linea-cancha-delegado arco-inferior"></span>
             {% for codigo, nombre in posiciones_cancha %}
             <div class="cancha-slot posicion-{{ codigo }}">
                 <span class="slot-codigo">{{ codigo }}</span>
                 <div class="slot-player">
+                    <span class="slot-player-dorsal" data-slot-player-dorsal></span>
+                    <span class="slot-player-avatar" data-slot-player-avatar>{{ codigo }}</span>
                     <span class="slot-player-name" data-slot-player-name>Seleccionar</span>
                     <span class="slot-player-age" data-slot-player-age></span>
                 </div>
                 <select name="cancha_{{ codigo }}" data-cancha-select aria-label="{{ nombre }}">
                     <option value="">{{ codigo }}</option>
                     {% for jugador in jugadores %}
-                        <option value="{{ jugador.id }}" data-nombre="{{ jugador.nombres|texto_limpio }}" data-dorsal="{% if jugador.dorsal %}#{{ jugador.dorsal }}{% endif %}" data-edad="{{ jugador.texto_edad }}" {% if jugador.rol_alineacion == "TITULAR" and jugador.posicion_alineacion == codigo %}selected{% endif %}>
+                        <option value="{{ jugador.id }}" data-nombre="{{ jugador.nombres|texto_limpio }}" data-dorsal="{% if jugador.dorsal %}{{ jugador.dorsal }}{% endif %}" data-edad="{{ jugador.texto_edad }}" data-foto="{{ jugador.foto_alineacion }}" data-iniciales="{{ jugador.iniciales_alineacion }}" {% if jugador.rol_alineacion == "TITULAR" and jugador.posicion_alineacion == codigo %}selected{% endif %}>
                             {% if jugador.dorsal %}#{{ jugador.dorsal }} - {% endif %}{{ jugador.nombres|texto_limpio }}{% if jugador.texto_edad %} ({{ jugador.texto_edad }}){% endif %}
                         </option>
                     {% endfor %}
@@ -256,7 +323,7 @@
 
         function shortName(name) {
             const parts = (name || '').trim().split(/\s+/).filter(Boolean);
-            return parts.length > 1 ? parts[0] + ' ' + parts[1] : (parts[0] || 'Seleccionar');
+            return (parts.length > 1 ? parts[0] + ' ' + parts[1] : (parts[0] || 'Seleccionar')).toUpperCase();
         }
 
         function paintSlot(select) {
@@ -264,13 +331,25 @@
             const option = select.selectedOptions[0];
             const name = slot.querySelector('[data-slot-player-name]');
             const age = slot.querySelector('[data-slot-player-age]');
+            const avatar = slot.querySelector('[data-slot-player-avatar]');
+            const dorsal = slot.querySelector('[data-slot-player-dorsal]');
+            const codigo = select.name.replace('cancha_', '');
             if (!option || !option.value) {
                 name.textContent = 'Seleccionar';
                 age.textContent = '';
+                age.style.display = 'none';
+                avatar.textContent = codigo;
+                dorsal.textContent = '';
+                dorsal.style.display = 'none';
                 return;
             }
-            name.textContent = [option.dataset.dorsal, shortName(option.dataset.nombre)].filter(Boolean).join(' - ');
+            const foto = option.dataset.foto || '';
+            avatar.innerHTML = foto ? '<img src="' + foto + '" alt="">' : (option.dataset.iniciales || codigo);
+            dorsal.textContent = option.dataset.dorsal || '';
+            dorsal.style.display = option.dataset.dorsal ? 'grid' : 'none';
+            name.textContent = shortName(option.dataset.nombre);
             age.textContent = option.dataset.edad || '';
+            age.style.display = option.dataset.edad ? 'block' : 'none';
         }
 
         function syncBenchRoles() {

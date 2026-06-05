@@ -544,7 +544,9 @@ class PlanilleroPartidoTests(TestCase):
         respuesta = self.client.get(f"/partido/{self.partido.id}/editor-movil/")
 
         self.assertContains(respuesta, "(+40)")
-        self.assertContains(respuesta, "return rango ? corto")
+        self.assertContains(respuesta, 'data-slot-edad')
+        self.assertContains(respuesta, 'data-slot-dorsal')
+        self.assertContains(respuesta, 'data-edad="+40"')
 
     @override_settings(STORAGES={
         "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},

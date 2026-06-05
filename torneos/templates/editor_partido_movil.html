@@ -387,51 +387,74 @@
         }
         .cancha-selector {
             position: relative;
-            width: min(520px, 100%);
-            aspect-ratio: 1.18 / 1;
-            min-height: 380px;
+            width: min(620px, 100%);
+            height: clamp(560px, 112vw, 650px);
             margin: 12px auto 16px;
-            border-radius: 18px;
+            border-radius: 8px;
             overflow: hidden;
-            background: linear-gradient(180deg, #2f9746 0%, #207c39 55%, #1f7434 100%);
-            clip-path: polygon(12% 0, 88% 0, 100% 32%, 100% 100%, 0 100%, 0 32%);
+            background: #206f32;
+            clip-path: polygon(14% 0, 86% 0, 100% 31%, 100% 100%, 0 100%, 0 31%);
             box-shadow: inset 0 0 0 1px rgba(255,255,255,0.16), 0 14px 28px rgba(0,0,0,0.22);
         }
         .cancha-selector::before {
             content: "";
             position: absolute;
-            inset: 6% 5% 4%;
-            border: 2px solid rgba(255,255,255,0.28);
             background:
-                repeating-linear-gradient(0deg, rgba(255,255,255,0.025) 0 42px, rgba(0,0,0,0.025) 42px 84px),
-                linear-gradient(90deg, transparent 49.7%, rgba(255,255,255,0.22) 49.7% 50.3%, transparent 50.3%),
-                radial-gradient(circle at 50% 49%, transparent 0 13%, rgba(255,255,255,0.24) 13.4% 14%, transparent 14.4%),
-                linear-gradient(to bottom, transparent 0 15%, rgba(255,255,255,0.2) 15% 15.5%, transparent 15.5% 83%, rgba(255,255,255,0.2) 83% 83.5%, transparent 83.5%);
-            clip-path: polygon(9% 0, 91% 0, 100% 30%, 100% 100%, 0 100%, 0 30%);
+                linear-gradient(90deg,
+                    rgba(13, 96, 44, .92) 0 12.5%, rgba(42, 142, 64, .9) 12.5% 25%,
+                    rgba(25, 118, 51, .92) 25% 37.5%, rgba(45, 151, 70, .9) 37.5% 50%,
+                    rgba(27, 126, 54, .92) 50% 62.5%, rgba(47, 151, 70, .9) 62.5% 75%,
+                    rgba(28, 119, 52, .92) 75% 87.5%, rgba(39, 139, 65, .9) 87.5% 100%);
+            inset: 0;
             pointer-events: none;
         }
+        .cancha-selector::after {
+            content: "";
+            position: absolute;
+            inset: 5% 3.6% 7%;
+            border: 2px solid rgba(255,255,255,.34);
+            background:
+                linear-gradient(0deg, transparent 50.1%, rgba(255,255,255,.28) 50.1% 50.7%, transparent 50.7%),
+                radial-gradient(ellipse at 50% 50%, transparent 0 12.3%, rgba(255,255,255,.32) 12.7% 13.2%, transparent 13.6%);
+            clip-path: polygon(11% 0, 89% 0, 100% 30%, 100% 100%, 0 100%, 0 30%);
+            pointer-events: none;
+        }
+        .linea-cancha-editor {
+            position: absolute;
+            z-index: 1;
+            pointer-events: none;
+            border-color: rgba(255,255,255,.36);
+            border-style: solid;
+        }
+        .linea-cancha-editor.area-superior { left: 34%; top: 5%; width: 32%; height: 18%; border-width: 0 2px 2px; }
+        .linea-cancha-editor.area-inferior { left: 28%; bottom: 7%; width: 44%; height: 19%; border-width: 2px 2px 0; }
+        .linea-cancha-editor.area-chica-superior { left: 42%; top: 5%; width: 16%; height: 8%; border-width: 0 2px 2px; }
+        .linea-cancha-editor.area-chica-inferior { left: 39%; bottom: 7%; width: 22%; height: 9%; border-width: 2px 2px 0; }
+        .linea-cancha-editor.arco-superior { left: 45%; top: 1.5%; width: 10%; height: 3.5%; border-width: 2px 2px 0; }
+        .linea-cancha-editor.arco-inferior { left: 43%; bottom: 3.5%; width: 14%; height: 3.5%; border-width: 0 2px 2px; }
         .cancha-slot {
             position: absolute;
             z-index: 2;
-            width: 82px;
+            width: 96px;
             transform: translate(-50%, -50%);
             text-align: center;
         }
         .cancha-slot.posicion-POR { left: 50%; top: 86%; }
-        .cancha-slot.posicion-LI { left: 18%; top: 66%; }
-        .cancha-slot.posicion-DFC1 { left: 39%; top: 68%; }
-        .cancha-slot.posicion-DFC2 { left: 61%; top: 68%; }
-        .cancha-slot.posicion-LD { left: 82%; top: 66%; }
-        .cancha-slot.posicion-MC1 { left: 30%; top: 46%; }
-        .cancha-slot.posicion-MC2 { left: 50%; top: 45%; }
-        .cancha-slot.posicion-MC3 { left: 70%; top: 46%; }
-        .cancha-slot.posicion-EI { left: 27%; top: 23%; }
-        .cancha-slot.posicion-DC { left: 50%; top: 20%; }
-        .cancha-slot.posicion-ED { left: 73%; top: 23%; }
+        .cancha-slot.posicion-LI { left: 13%; top: 64%; }
+        .cancha-slot.posicion-DFC1 { left: 36%; top: 68%; }
+        .cancha-slot.posicion-DFC2 { left: 64%; top: 68%; }
+        .cancha-slot.posicion-LD { left: 87%; top: 64%; }
+        .cancha-slot.posicion-MC1 { left: 22%; top: 43%; }
+        .cancha-slot.posicion-MC2 { left: 50%; top: 48%; }
+        .cancha-slot.posicion-MC3 { left: 78%; top: 43%; }
+        .cancha-slot.posicion-EI { left: 23%; top: 22%; }
+        .cancha-slot.posicion-DC { left: 50%; top: 17%; }
+        .cancha-slot.posicion-ED { left: 77%; top: 22%; }
         .slot-avatar {
-            width: 46px;
-            height: 46px;
-            margin: 0 auto 3px;
+            position: relative;
+            width: 52px;
+            height: 52px;
+            margin: 0 auto 4px;
             border-radius: 50%;
             border: 2px solid white;
             background: #ffffff;
@@ -449,9 +472,13 @@
             object-fit: cover;
         }
         .slot-posicion {
-            display: inline-block;
-            min-width: 25px;
-            padding: 2px 5px;
+            position: absolute;
+            left: 50%;
+            top: -13px;
+            z-index: 3;
+            transform: translateX(-50%);
+            min-width: 28px;
+            padding: 3px 6px;
             border-radius: 999px;
             background: #facc15;
             color: #07111f;
@@ -459,15 +486,47 @@
             font-weight: 1000;
             line-height: 1;
         }
+        .slot-dorsal {
+            position: absolute;
+            left: 13px;
+            top: -5px;
+            z-index: 4;
+            display: none;
+            min-width: 21px;
+            height: 21px;
+            padding: 0 4px;
+            place-items: center;
+            border-radius: 999px;
+            background: #fff;
+            color: #111827;
+            font-size: 9px;
+            font-weight: 1000;
+            box-shadow: 0 2px 6px rgba(0,0,0,.25);
+        }
         .slot-nombre {
             margin-top: 2px;
             color: white;
+            font-size: 10px;
+            font-weight: 1000;
+            line-height: 1.08;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.58);
+            min-height: 22px;
+            text-transform: uppercase;
+            overflow-wrap: anywhere;
+        }
+        .slot-edad {
+            display: none;
+            width: max-content;
+            min-width: 28px;
+            margin: 2px auto 0;
+            padding: 2px 6px;
+            border-radius: 999px;
+            background: #0ea5e9;
+            color: #fff;
             font-size: 9px;
             font-weight: 1000;
-            line-height: 1.05;
-            text-shadow: 0 1px 2px rgba(0,0,0,0.58);
-            min-height: 18px;
-            text-transform: uppercase;
+            line-height: 1;
+            box-shadow: 0 2px 7px rgba(15,23,42,.25);
         }
         .slot-select {
             position: absolute;
@@ -493,6 +552,19 @@
             pointer-events: none;
         }
         @media (max-width: 430px) {
+            .cancha-selector {
+                height: 580px;
+            }
+            .cancha-slot {
+                width: 82px;
+            }
+            .slot-avatar {
+                width: 46px;
+                height: 46px;
+            }
+            .slot-nombre {
+                font-size: 8px;
+            }
             .cronometro-card .grid-2 {
                 grid-template-columns: repeat(3, minmax(0, 1fr));
             }
@@ -800,15 +872,23 @@
                 </div>
                 <p class="cancha-ayuda">Toca una cara de la cancha y escoge el jugador. Queda como titular y con esa posicion automaticamente.</p>
                 <div class="cancha-selector" data-cancha-selector>
+                    <span class="linea-cancha-editor area-superior"></span>
+                    <span class="linea-cancha-editor area-inferior"></span>
+                    <span class="linea-cancha-editor area-chica-superior"></span>
+                    <span class="linea-cancha-editor area-chica-inferior"></span>
+                    <span class="linea-cancha-editor arco-superior"></span>
+                    <span class="linea-cancha-editor arco-inferior"></span>
                     {% for codigo, nombre in posiciones_cancha %}
                     <div class="cancha-slot posicion-{{ codigo }}" data-slot="{{ codigo }}">
+                        <span class="slot-dorsal" data-slot-dorsal></span>
                         <div class="slot-avatar" data-slot-avatar>{{ codigo }}</div>
                         <span class="slot-posicion">{{ codigo }}</span>
                         <div class="slot-nombre" data-slot-nombre>{{ nombre }}</div>
+                        <span class="slot-edad" data-slot-edad></span>
                         <select class="slot-select" data-slot-select data-posicion-slot="{{ codigo }}" aria-label="Asignar {{ nombre }}">
                         <option value="">{{ codigo }}</option>
                         {% for j in jugadores_local %}
-                            <option value="{{ j.id }}" data-nombre="{{ j.nombres|texto_limpio }}{% if j.texto_edad %} ({{ j.texto_edad }}){% endif %}" data-dorsal="{% if j.dorsal %}{{ j.dorsal }}{% endif %}" data-foto="{{ j.foto_alineacion }}" data-iniciales="{{ j.iniciales_alineacion }}" {% if j.posicion_alineacion == codigo and j.rol_alineacion == "TITULAR" %}selected{% endif %}>
+                            <option value="{{ j.id }}" data-nombre="{{ j.nombres|texto_limpio }}" data-edad="{{ j.texto_edad }}" data-dorsal="{% if j.dorsal %}{{ j.dorsal }}{% endif %}" data-foto="{{ j.foto_alineacion }}" data-iniciales="{{ j.iniciales_alineacion }}" {% if j.posicion_alineacion == codigo and j.rol_alineacion == "TITULAR" %}selected{% endif %}>
                                 {% if j.dorsal %}#{{ j.dorsal }} - {% endif %}{{ j.nombres|texto_limpio }}{% if j.texto_edad %} ({{ j.texto_edad }}){% endif %}
                             </option>
                         {% endfor %}
@@ -851,15 +931,23 @@
                 </div>
                 <p class="cancha-ayuda">Toca una cara de la cancha y escoge el jugador. Queda como titular y con esa posicion automaticamente.</p>
                 <div class="cancha-selector" data-cancha-selector>
+                    <span class="linea-cancha-editor area-superior"></span>
+                    <span class="linea-cancha-editor area-inferior"></span>
+                    <span class="linea-cancha-editor area-chica-superior"></span>
+                    <span class="linea-cancha-editor area-chica-inferior"></span>
+                    <span class="linea-cancha-editor arco-superior"></span>
+                    <span class="linea-cancha-editor arco-inferior"></span>
                     {% for codigo, nombre in posiciones_cancha %}
                     <div class="cancha-slot posicion-{{ codigo }}" data-slot="{{ codigo }}">
+                        <span class="slot-dorsal" data-slot-dorsal></span>
                         <div class="slot-avatar" data-slot-avatar>{{ codigo }}</div>
                         <span class="slot-posicion">{{ codigo }}</span>
                         <div class="slot-nombre" data-slot-nombre>{{ nombre }}</div>
+                        <span class="slot-edad" data-slot-edad></span>
                         <select class="slot-select" data-slot-select data-posicion-slot="{{ codigo }}" aria-label="Asignar {{ nombre }}">
                         <option value="">{{ codigo }}</option>
                         {% for j in jugadores_visitante %}
-                            <option value="{{ j.id }}" data-nombre="{{ j.nombres|texto_limpio }}{% if j.texto_edad %} ({{ j.texto_edad }}){% endif %}" data-dorsal="{% if j.dorsal %}{{ j.dorsal }}{% endif %}" data-foto="{{ j.foto_alineacion }}" data-iniciales="{{ j.iniciales_alineacion }}" {% if j.posicion_alineacion == codigo and j.rol_alineacion == "TITULAR" %}selected{% endif %}>
+                            <option value="{{ j.id }}" data-nombre="{{ j.nombres|texto_limpio }}" data-edad="{{ j.texto_edad }}" data-dorsal="{% if j.dorsal %}{{ j.dorsal }}{% endif %}" data-foto="{{ j.foto_alineacion }}" data-iniciales="{{ j.iniciales_alineacion }}" {% if j.posicion_alineacion == codigo and j.rol_alineacion == "TITULAR" %}selected{% endif %}>
                                 {% if j.dorsal %}#{{ j.dorsal }} - {% endif %}{{ j.nombres|texto_limpio }}{% if j.texto_edad %} ({{ j.texto_edad }}){% endif %}
                             </option>
                         {% endfor %}
@@ -1090,30 +1178,36 @@ function actualizarSelectoresPosicion(panel) {
 
 function nombreCorto(nombre) {
     if (!nombre) return '';
-    const rango = nombre.match(/\((\+\d+)\)\s*$/);
-    const nombreSinRango = nombre.replace(/\s*\(\+\d+\)\s*$/, '');
-    const partes = nombreSinRango.trim().split(/\s+/).filter(Boolean);
-    const corto = partes.length <= 2 ? partes.join(' ') : (partes[0] + ' ' + partes[1]).toUpperCase();
-    return rango ? corto + ' (' + rango[1] + ')' : corto;
+    const partes = nombre.trim().split(/\s+/).filter(Boolean);
+    return (partes.length <= 2 ? partes.join(' ') : partes[0] + ' ' + partes[1]).toUpperCase();
 }
 
 function pintarSlot(slot, option) {
     const avatar = slot.querySelector('[data-slot-avatar]');
     const nombre = slot.querySelector('[data-slot-nombre]');
+    const dorsal = slot.querySelector('[data-slot-dorsal]');
+    const edad = slot.querySelector('[data-slot-edad]');
     const codigo = slot.dataset.slot || '';
-    if (!avatar || !nombre) return;
+    if (!avatar || !nombre || !dorsal || !edad) return;
 
     if (!option || !option.value) {
         avatar.innerHTML = codigo;
         nombre.textContent = slot.querySelector('[data-slot-select]')?.getAttribute('aria-label')?.replace('Asignar ', '') || codigo;
+        dorsal.textContent = '';
+        dorsal.style.display = 'none';
+        edad.textContent = '';
+        edad.style.display = 'none';
         return;
     }
 
     const foto = option.dataset.foto || '';
     const iniciales = option.dataset.iniciales || 'J';
-    const dorsal = option.dataset.dorsal ? '#' + option.dataset.dorsal : '';
     avatar.innerHTML = foto ? '<img src="' + foto + '" alt="">' : iniciales;
-    nombre.textContent = [dorsal, nombreCorto(option.dataset.nombre || option.textContent)].filter(Boolean).join(' ');
+    nombre.textContent = nombreCorto(option.dataset.nombre || option.textContent);
+    dorsal.textContent = option.dataset.dorsal || '';
+    dorsal.style.display = option.dataset.dorsal ? 'grid' : 'none';
+    edad.textContent = option.dataset.edad || '';
+    edad.style.display = option.dataset.edad ? 'block' : 'none';
 }
 
 function sincronizarCanchaDesdeFilas(panel) {
