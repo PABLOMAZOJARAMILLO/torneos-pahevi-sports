@@ -1586,6 +1586,35 @@ class DelegadoEquipoTests(TestCase):
         respuesta = self.client.get(f"/delegado/equipos/{self.equipo.id}/partidos/{partido.id}/alineacion/")
 
         self.assertContains(respuesta, texto_edad_jugador(self.jugador, self.categoria, partido.fecha))
+        self.assertContains(respuesta, 'data-slot-player-age')
+        self.assertContains(respuesta, f'data-edad="{texto_edad_jugador(self.jugador, self.categoria)}"')
+
+    def test_delegado_ve_titular_marcado_en_lista_de_estados(self):
+        ahora_local = timezone.localtime()
+        partido = Partido.objects.create(
+            categoria=self.categoria,
+            equipo_local=self.equipo,
+            equipo_visitante=self.otro_equipo,
+            fecha=(ahora_local - timedelta(hours=1)).date(),
+            hora=(ahora_local - timedelta(hours=1)).time(),
+            estado="PROGRAMADO",
+        )
+        AlineacionPartido.objects.create(
+            partido=partido,
+            equipo=self.equipo,
+            jugador=self.jugador,
+            rol="TITULAR",
+            posicion_cancha="DC",
+        )
+        self.client.force_login(self.delegado)
+
+        respuesta = self.client.get(f"/delegado/equipos/{self.equipo.id}/partidos/{partido.id}/alineacion/")
+
+        self.assertContains(respuesta, 'value="TITULAR" data-titular-banco checked')
+        self.assertNotContains(
+            respuesta,
+            f'name="rol_{self.jugador.id}" value="" checked',
+        )
 
     def test_delegado_no_puede_guardar_alineacion_antes_de_hora_programada(self):
         ahora_local = timezone.localtime()
