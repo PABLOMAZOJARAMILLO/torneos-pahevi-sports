@@ -13,7 +13,7 @@ from openpyxl import Workbook
 from .forms import JugadorForm, PartidoForm
 from .models import AlineacionPartido, AdminOrganizador, AdminTorneo, Categoria, Equipo, Gol, Jugador, Organizador, Partido, ReglaEdadCategoria, RegistroActividad, SustitucionPartido, Tarjeta, Torneo
 from .planillas_pdf import _edad
-from .views import buscar_planilleros_excel, construir_estructura, construir_estadisticas_foraneos, construir_partidos_portada, construir_partidos_programacion, _clave_orden_evento_resumen, _minuto_evento_en_vivo, _sincronizar_no_disponibles_por_tarjetas, etiqueta_edad_jugador, texto_edad_jugador, validar_reglas_edad_titulares
+from .views import buscar_planilleros_excel, construir_estructura, construir_estadisticas_foraneos, construir_partidos_portada, construir_partidos_programacion, _clave_orden_evento_resumen, _minuto_evento_en_vivo, _sincronizar_no_disponibles_por_tarjetas, etiqueta_edad_jugador, puede_descargar_programacion, texto_edad_jugador, validar_reglas_edad_titulares
 
 
 class SancionesTarjetasTests(TestCase):
@@ -910,6 +910,42 @@ class AdminTorneoPermisosTests(TestCase):
         self.assertContains(respuesta, 'href="/gestion/"')
         self.assertNotContains(respuesta, "Ingresar admin")
         self.assertIn("_auth_user_id", self.client.session)
+
+    @override_settings(STORAGES={
+        "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+        "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
+    })
+    def test_admin_torneo_no_puede_descargar_programacion(self):
+        self.client.force_login(self.admin)
+        session = self.client.session
+        session["torneo_id"] = self.torneo.id
+        session.save()
+
+        panel = self.client.get("/")
+        descarga_general = self.client.get("/descargar/programacion-general/")
+        descarga_categoria = self.client.get("/descargar/programacion/Senior/")
+
+        self.assertFalse(puede_descargar_programacion(self.admin))
+        self.assertNotContains(panel, "Descargar programación")
+        self.assertEqual(descarga_general.status_code, 302)
+        self.assertEqual(descarga_categoria.status_code, 302)
+
+    @override_settings(STORAGES={
+        "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+        "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
+    })
+    def test_admin_organizador_conserva_opcion_descargar_programacion(self):
+        admin = User.objects.create_user("admin-organizador-descargas", password="test", is_staff=True)
+        AdminOrganizador.objects.create(usuario=admin, organizador=self.organizador)
+        self.client.force_login(admin)
+        session = self.client.session
+        session["torneo_id"] = self.torneo.id
+        session.save()
+
+        respuesta = self.client.get("/")
+
+        self.assertTrue(puede_descargar_programacion(admin))
+        self.assertContains(respuesta, "Descargar programación")
 
 
 class FixtureProgramacionBalanceadaTests(TestCase):

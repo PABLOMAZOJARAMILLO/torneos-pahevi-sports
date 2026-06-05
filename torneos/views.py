@@ -59,6 +59,17 @@ def es_superadmin(user):
     return user.is_authenticated and user.is_superuser
 
 
+def puede_descargar_programacion(user):
+    if not user.is_authenticated:
+        return False
+    if user.is_superuser:
+        return True
+    return (
+        tabla_disponible("torneos_adminorganizador")
+        and AdminOrganizador.objects.filter(usuario=user, activo=True).exists()
+    )
+
+
 def puede_diligenciar_partido(user, partido):
     if user.is_authenticated and user.is_superuser:
         return True
@@ -2425,6 +2436,7 @@ def panel_principal(request):
         "logo_torneo": logos["logo_torneo"],
         "logo_imcred": logos["logo_imcred"],
         "tiene_gestion_torneo": es_editor_torneo(request.user),
+        "puede_descargar_programacion": puede_descargar_programacion(request.user),
         "tiene_equipos_delegado": equipos_delegado_asignados(request.user).exists(),
     })
 
@@ -3214,7 +3226,7 @@ def medidas_programacion(cantidad):
 
 
 @login_required
-@user_passes_test(es_editor_torneo)
+@user_passes_test(puede_descargar_programacion)
 def descargar_programacion_categoria(request, categoria):
     torneo = torneo_actual(request)
     categorias = Categoria.objects.filter(nombre=categoria)
@@ -3254,7 +3266,7 @@ def descargar_programacion_categoria(request, categoria):
 
 
 @login_required
-@user_passes_test(es_editor_torneo)
+@user_passes_test(puede_descargar_programacion)
 def descargar_programacion_general(request):
     torneo = torneo_actual(request)
     partidos_programacion = construir_partidos_programacion(request)
