@@ -12,7 +12,7 @@ from openpyxl import Workbook
 
 from .forms import JugadorForm, PartidoForm
 from .models import AlineacionPartido, AdminOrganizador, AdminTorneo, Categoria, Equipo, Gol, Jugador, Organizador, Partido, ReglaEdadCategoria, RegistroActividad, SustitucionPartido, Tarjeta, Torneo
-from .planillas_pdf import _edad
+from .planillas_pdf import _edad, _header_image_sources
 from .views import buscar_planilleros_excel, construir_estructura, construir_estadisticas_foraneos, construir_partidos_portada, construir_partidos_programacion, _clave_orden_evento_resumen, _minuto_evento_en_vivo, _sincronizar_no_disponibles_por_tarjetas, etiqueta_edad_jugador, puede_descargar_programacion, texto_edad_jugador, validar_reglas_edad_titulares
 
 
@@ -347,6 +347,34 @@ class ReglasEdadCategoriaTests(TestCase):
         )
 
         self.assertTrue(any("+45" in error for error in errores))
+
+
+class PlanillasPDFTests(TestCase):
+    def test_planilla_usa_logos_del_torneo_en_el_encabezado(self):
+        torneo = Torneo.objects.create(
+            nombre="Veranero",
+            fecha_inicio=date(2026, 1, 1),
+            logo_izquierdo="torneos/veranero/logo_izquierdo.png",
+            imagen_central="torneos/veranero/imagen_central.png",
+            logo_derecho="torneos/veranero/logo_derecho.png",
+        )
+        categoria = Categoria.objects.create(
+            nombre="Senior",
+            edad_minima=40,
+            edad_maxima=80,
+            torneo=torneo,
+        )
+        partido = Partido(
+            categoria=categoria,
+            equipo_local=Equipo(nombre="Local", categoria=categoria),
+            equipo_visitante=Equipo(nombre="Visitante", categoria=categoria),
+        )
+
+        sources = [source for *_, source in _header_image_sources(partido)]
+
+        self.assertEqual(sources[0].name, "torneos/veranero/logo_izquierdo.png")
+        self.assertEqual(sources[1].name, "torneos/veranero/imagen_central.png")
+        self.assertEqual(sources[2].name, "torneos/veranero/logo_derecho.png")
 
 
 class ForaneosTests(TestCase):

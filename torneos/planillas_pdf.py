@@ -4,6 +4,7 @@ from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFont
 from django.utils.text import slugify
+import requests
 
 PAGE_W = 2148
 PAGE_H = 3038
@@ -65,10 +66,10 @@ FONT_TINY = _font(31)
 FONT_TINY_BOLD = _font(31, True)
 
 STATIC_IMG_DIR = Path(__file__).resolve().parent / "static" / "torneos" / "img"
-HEADER_IMAGES = [
-    (1, 1, 7, 4, STATIC_IMG_DIR / "planilla_header_left.png"),
-    (8, 1, 17, 4, STATIC_IMG_DIR / "planilla_header_center.png"),
-    (18, 1, 27, 4, STATIC_IMG_DIR / "planilla_header_right.png"),
+HEADER_IMAGE_SLOTS = [
+    (1, 1, 7, 4, "logo_izquierdo", STATIC_IMG_DIR / "planilla_header_left.png"),
+    (8, 1, 17, 4, "imagen_central", STATIC_IMG_DIR / "planilla_header_center.png"),
+    (18, 1, 27, 4, "logo_derecho", STATIC_IMG_DIR / "planilla_header_right.png"),
 ]
 
 
@@ -201,16 +202,54 @@ def _cell(draw, col1, row1, col2=None, row2=None, text="", fill=WHITE, font=FONT
         _text(draw, box, text, font=font, align=align, valign=valign)
 
 
-def _draw_image_fit(base, path, box):
-    if not path.exists():
+def _image_from_source(source):
+    if not source:
+        return None
+
+    if isinstance(source, Path):
+        if not source.exists():
+            return None
+        return Image.open(source)
+
+    try:
+        if hasattr(source, "open"):
+            source.open("rb")
+            return Image.open(source)
+    except Exception:
+        pass
+
+    url = getattr(source, "url", None) or str(source)
+    if url.startswith(("http://", "https://")):
+        try:
+            response = requests.get(url, timeout=8)
+            response.raise_for_status()
+            return Image.open(BytesIO(response.content))
+        except Exception:
+            return None
+
+    return None
+
+
+def _draw_image_fit(base, source, box):
+    image = _image_from_source(source)
+    if image is None:
         return
     x1, y1, x2, y2 = [int(round(value)) for value in box]
-    with Image.open(path) as image:
+    with image:
         image = image.convert("RGBA")
         image.thumbnail((max(1, x2 - x1 - 8), max(1, y2 - y1 - 8)), Image.Resampling.LANCZOS)
         canvas = Image.new("RGBA", (x2 - x1, y2 - y1), (255, 255, 255, 255))
         canvas.paste(image, ((canvas.width - image.width) // 2, (canvas.height - image.height) // 2), image)
         base.paste(canvas.convert("RGB"), (x1, y1))
+
+
+def _header_image_sources(partido):
+    torneo = getattr(getattr(partido, "categoria", None), "torneo", None)
+    sources = []
+    for col1, row1, col2, row2, field_name, fallback in HEADER_IMAGE_SLOTS:
+        source = getattr(torneo, field_name, None) if torneo else None
+        sources.append((col1, row1, col2, row2, source or fallback))
+    return sources
 
 
 def _label_value(draw, label_cols, row, value_cols, label, value):
@@ -338,9 +377,9 @@ def generar_planilla_juego_pdf(partido):
     img = Image.new("RGB", (PAGE_W, PAGE_H), WHITE)
     draw = ImageDraw.Draw(img)
 
-    for col1, row1, col2, row2, path in HEADER_IMAGES:
+    for col1, row1, col2, row2, source in _header_image_sources(partido):
         _cell(draw, col1, row1, col2, row2, fill=WHITE, width=2)
-        _draw_image_fit(img, path, _box(col1, row1, col2, row2))
+        _draw_image_fit(img, source, _box(col1, row1, col2, row2))
 
     _cell(draw, 1, 5, 27, 5, "PLANILLA DE JUEGO TORNEO VERANERO: SENIOR MASTER, PLUS 50 E INTERBARRIOS", fill=WHITE, font=FONT_TITLE, width=2)
 
