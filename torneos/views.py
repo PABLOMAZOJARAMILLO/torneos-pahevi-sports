@@ -5,6 +5,7 @@ from types import SimpleNamespace
 from datetime import date, datetime, time, timedelta
 from concurrent.futures import ThreadPoolExecutor, TimeoutError
 import os
+import random
 import re
 import uuid
 import zipfile
@@ -2710,6 +2711,94 @@ def descargar_imagen(request, categoria):
     return crear_imagen_desde_html(html, nombre, 1600, 2800, url_retorno_descarga(request))
 
 
+def es_fixture_mata_mata_ida_vuelta(categoria):
+    return Partido.objects.filter(
+        categoria=categoria,
+        fase="GRUPOS",
+        grupo__startswith="MATA ",
+    ).exists()
+
+
+def tabla_general_mata_mata_ida_vuelta(categoria):
+    partidos = Partido.objects.filter(
+        categoria=categoria,
+        fase="GRUPOS",
+        grupo__startswith="MATA ",
+    ).select_related("equipo_local", "equipo_visitante")
+
+    if not partidos.exists():
+        return []
+
+    if partidos.exclude(estado__in=ESTADOS_PARTIDO_CERRADO).exists():
+        return []
+
+    tabla = {}
+
+    def fila(equipo):
+        return tabla.setdefault(equipo.id, {
+            "id": equipo.id,
+            "equipo": equipo.nombre,
+            "pj": 0,
+            "pg": 0,
+            "pe": 0,
+            "pp": 0,
+            "gf": 0,
+            "gc": 0,
+            "dg": 0,
+            "pts": 0,
+        })
+
+    for partido in partidos:
+        local = fila(partido.equipo_local)
+        visitante = fila(partido.equipo_visitante)
+        gl = partido.goles_local or 0
+        gv = partido.goles_visitante or 0
+        local["pj"] += 1
+        visitante["pj"] += 1
+        local["gf"] += gl
+        local["gc"] += gv
+        visitante["gf"] += gv
+        visitante["gc"] += gl
+
+        if gl > gv:
+            local["pg"] += 1
+            visitante["pp"] += 1
+            local["pts"] += 3
+        elif gv > gl:
+            visitante["pg"] += 1
+            local["pp"] += 1
+            visitante["pts"] += 3
+        else:
+            local["pe"] += 1
+            visitante["pe"] += 1
+            local["pts"] += 1
+            visitante["pts"] += 1
+
+    for item in tabla.values():
+        item["dg"] = item["gf"] - item["gc"]
+
+    return sorted(
+        tabla.values(),
+        key=lambda item: (item["pts"], item["dg"], item["gf"], item["equipo"]),
+        reverse=True,
+    )
+
+
+def crear_partidos_mata_mata_ida_vuelta(categoria, equipos):
+    equipos_sorteados = list(equipos)
+    random.shuffle(equipos_sorteados)
+    partidos = []
+
+    for indice in range(0, len(equipos_sorteados), 2):
+        local = equipos_sorteados[indice]
+        visitante = equipos_sorteados[indice + 1]
+        grupo = f"MATA {indice // 2 + 1}"
+        partidos.append((grupo, "1", local, visitante))
+        partidos.append((grupo, "2", visitante, local))
+
+    return partidos
+
+
 def grupo_completo(categoria, grupo):
     partidos = Partido.objects.filter(
         categoria=categoria,
@@ -2793,6 +2882,34 @@ def generar_llaves_cuartos(request, categoria):
 
     if not categoria_obj:
         messages.error(request, "Categoría no encontrada.")
+        return redirect("panel")
+
+    if es_fixture_mata_mata_ida_vuelta(categoria_obj):
+        tabla_general = tabla_general_mata_mata_ida_vuelta(categoria_obj)
+
+        if not tabla_general:
+            messages.error(request, "La primera ronda mata-mata todavia tiene partidos pendientes.")
+            return redirect("panel")
+
+        if len(tabla_general) < 8:
+            messages.error(request, "Se necesitan al menos 8 equipos clasificados para generar los cuartos.")
+            return redirect("panel")
+
+        clasificados = tabla_general[:8]
+        equipos_clasificados = {
+            equipo.id: equipo
+            for equipo in Equipo.objects.filter(
+                categoria=categoria_obj,
+                id__in=[fila["id"] for fila in clasificados],
+            )
+        }
+
+        crear_o_actualizar_cuarto(categoria_obj, 1, equipos_clasificados[clasificados[0]["id"]], equipos_clasificados[clasificados[7]["id"]])
+        crear_o_actualizar_cuarto(categoria_obj, 2, equipos_clasificados[clasificados[1]["id"]], equipos_clasificados[clasificados[6]["id"]])
+        crear_o_actualizar_cuarto(categoria_obj, 3, equipos_clasificados[clasificados[2]["id"]], equipos_clasificados[clasificados[5]["id"]])
+        crear_o_actualizar_cuarto(categoria_obj, 4, equipos_clasificados[clasificados[3]["id"]], equipos_clasificados[clasificados[4]["id"]])
+
+        messages.success(request, f"Llaves mata-mata generadas para {categoria}: 1 vs 8, 2 vs 7, 3 vs 6 y 4 vs 5.")
         return redirect("panel")
 
     # PLUS 50: un solo grupo
@@ -5037,6 +5154,9 @@ def gestion_generar_fixture(request):
     categoria = None
     equipos = Equipo.objects.none()
     cantidad_grupos = 2
+    tipo_fixture = request.GET.get("tipo_fixture") or request.POST.get("tipo_fixture") or "GRUPOS"
+    if tipo_fixture not in {"GRUPOS", "MATA_MATA_IDA_VUELTA"}:
+        tipo_fixture = "GRUPOS"
     grupos_generados = None
     resumen_programacion = None
     advertencias_programacion = []
@@ -5074,40 +5194,61 @@ def gestion_generar_fixture(request):
 
         if existentes and not reemplazar:
             messages.error(request, "Esta categoría ya tiene partidos de grupos. Marca reemplazar fixture para generarlo de nuevo.")
-            return redirect(f"{request.path}?categoria={categoria.id}&grupos={cantidad_grupos}")
+            return redirect(f"{request.path}?categoria={categoria.id}&grupos={cantidad_grupos}&tipo_fixture={tipo_fixture}")
 
-        cabezas = []
+        partidos_a_crear = []
 
-        for indice in range(cantidad_grupos):
-            cabeza_id = request.POST.get(f"cabeza_{indice}")
-            cabeza = equipos.filter(id=cabeza_id).first() if cabeza_id else None
-            cabezas.append(cabeza)
+        if tipo_fixture == "MATA_MATA_IDA_VUELTA":
+            equipos_mata_mata = list(equipos)
 
-        grupos_generados, sin_asignar = armar_grupos_desde_formulario(equipos, cabezas, request.POST, cantidad_grupos)
+            if len(equipos_mata_mata) < 8:
+                messages.error(request, "El torneo mata-mata necesita minimo 8 equipos activos para poder formar los cuartos.")
+                return redirect(f"{request.path}?categoria={categoria.id}&grupos={cantidad_grupos}&tipo_fixture={tipo_fixture}")
 
-        if sin_asignar:
-            nombres_sin_asignar = ", ".join(equipo.nombre for equipo in sin_asignar)
-            messages.error(request, f"Faltan equipos por asignar a un grupo: {nombres_sin_asignar}.")
-            return redirect(f"{request.path}?categoria={categoria.id}&grupos={cantidad_grupos}")
+            if len(equipos_mata_mata) % 2 != 0:
+                messages.error(request, "El torneo mata-mata por parejas ida y vuelta necesita un numero par de equipos.")
+                return redirect(f"{request.path}?categoria={categoria.id}&grupos={cantidad_grupos}&tipo_fixture={tipo_fixture}")
 
-        grupos_vacios = [nombre for nombre, equipos_grupo in grupos_generados.items() if len(equipos_grupo) < 2]
+            partidos_a_crear = crear_partidos_mata_mata_ida_vuelta(categoria, equipos_mata_mata)
+            grupos_generados = {}
+            for grupo_nombre, _, local, visitante in partidos_a_crear:
+                grupos_generados.setdefault(grupo_nombre, [])
+                if local not in grupos_generados[grupo_nombre]:
+                    grupos_generados[grupo_nombre].append(local)
+                if visitante not in grupos_generados[grupo_nombre]:
+                    grupos_generados[grupo_nombre].append(visitante)
+        else:
+            cabezas = []
 
-        if grupos_vacios:
-            messages.error(request, f"Cada grupo debe tener al menos 2 equipos. Revisa: {', '.join(grupos_vacios)}.")
-            return redirect(f"{request.path}?categoria={categoria.id}&grupos={cantidad_grupos}")
+            for indice in range(cantidad_grupos):
+                cabeza_id = request.POST.get(f"cabeza_{indice}")
+                cabeza = equipos.filter(id=cabeza_id).first() if cabeza_id else None
+                cabezas.append(cabeza)
+
+            grupos_generados, sin_asignar = armar_grupos_desde_formulario(equipos, cabezas, request.POST, cantidad_grupos)
+
+            if sin_asignar:
+                nombres_sin_asignar = ", ".join(equipo.nombre for equipo in sin_asignar)
+                messages.error(request, f"Faltan equipos por asignar a un grupo: {nombres_sin_asignar}.")
+                return redirect(f"{request.path}?categoria={categoria.id}&grupos={cantidad_grupos}&tipo_fixture={tipo_fixture}")
+
+            grupos_vacios = [nombre for nombre, equipos_grupo in grupos_generados.items() if len(equipos_grupo) < 2]
+
+            if grupos_vacios:
+                messages.error(request, f"Cada grupo debe tener al menos 2 equipos. Revisa: {', '.join(grupos_vacios)}.")
+                return redirect(f"{request.path}?categoria={categoria.id}&grupos={cantidad_grupos}&tipo_fixture={tipo_fixture}")
+
+            for grupo_nombre, equipos_grupo in grupos_generados.items():
+                calendario = generar_fixture_grupo(equipos_grupo)
+
+                for indice_fecha, partidos_fecha in enumerate(calendario, start=1):
+                    for local, visitante in partidos_fecha:
+                        partidos_a_crear.append((grupo_nombre, indice_fecha, local, visitante))
 
         if reemplazar:
             Partido.objects.filter(categoria=categoria, fase="GRUPOS").delete()
 
         creados = 0
-        partidos_a_crear = []
-
-        for grupo_nombre, equipos_grupo in grupos_generados.items():
-            calendario = generar_fixture_grupo(equipos_grupo)
-
-            for indice_fecha, partidos_fecha in enumerate(calendario, start=1):
-                for local, visitante in partidos_fecha:
-                    partidos_a_crear.append((grupo_nombre, indice_fecha, local, visitante))
 
         cupos = []
         conteos = {"cancha": {}, "franjas": {}, "fechas": {}}
@@ -5116,7 +5257,7 @@ def gestion_generar_fixture(request):
         if generar_programacion:
             if not fecha_inicio_programacion:
                 messages.error(request, "Para generar programacion automatica debes indicar la fecha de inicio.")
-                return redirect(f"{request.path}?categoria={categoria.id}&grupos={cantidad_grupos}")
+                return redirect(f"{request.path}?categoria={categoria.id}&grupos={cantidad_grupos}&tipo_fixture={tipo_fixture}")
 
             cupos = cupos_programacion_fixture(
                 fecha_inicio_programacion,
@@ -5210,6 +5351,7 @@ def gestion_generar_fixture(request):
                 "grupos": cantidad_grupos,
                 "programacion_automatica": generar_programacion,
                 "cancha_obligatoria": cancha_obligatoria if generar_programacion else "",
+                "tipo_fixture": tipo_fixture,
             },
         )
 
@@ -5218,6 +5360,7 @@ def gestion_generar_fixture(request):
         "categoria": categoria,
         "equipos": equipos,
         "cantidad_grupos": cantidad_grupos,
+        "tipo_fixture": tipo_fixture,
         "letras_grupos": letras_grupos,
         "grupos_generados": grupos_generados,
         "franjas_programacion": FRANJAS_PROGRAMACION_FIXTURE,

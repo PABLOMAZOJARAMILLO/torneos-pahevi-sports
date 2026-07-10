@@ -15,6 +15,12 @@
         {% endfor %}
     </select>
 
+    <label for="tipo_fixture">Tipo de fixture</label>
+    <select id="tipo_fixture" name="tipo_fixture">
+        <option value="GRUPOS" {% if tipo_fixture == "GRUPOS" %}selected{% endif %}>Fase de grupos normal</option>
+        <option value="MATA_MATA_IDA_VUELTA" {% if tipo_fixture == "MATA_MATA_IDA_VUELTA" %}selected{% endif %}>Mata-mata ida/vuelta por sorteo</option>
+    </select>
+
     <label for="grupos">Cantidad de grupos</label>
     <select id="grupos" name="grupos">
         {% for numero in "12345678" %}
@@ -30,12 +36,21 @@
     {% csrf_token %}
     <input type="hidden" name="categoria" value="{{ categoria.id }}">
     <input type="hidden" name="grupos" value="{{ cantidad_grupos }}">
+    <input type="hidden" name="tipo_fixture" value="{{ tipo_fixture }}">
 
     <div class="card">
         <h2>{{ categoria.nombre }}</h2>
         <p class="muted">{{ equipos|length }} equipos activos disponibles.</p>
     </div>
 
+    {% if tipo_fixture == "MATA_MATA_IDA_VUELTA" %}
+    <div class="card">
+        <h2>Mata-mata ida/vuelta por sorteo</h2>
+        <p class="muted">La primera ronda sortea parejas de dos equipos. Cada pareja juega ida y vuelta.</p>
+        <p class="muted">Cuando se cierren esos partidos, se genera una tabla general y clasifican los primeros 8 equipos.</p>
+        <p class="muted">Cuartos: 1 vs 8, 2 vs 7, 3 vs 6 y 4 vs 5. Semifinal: ganador 1 vs ganador 4, y ganador 2 vs ganador 3.</p>
+    </div>
+    {% else %}
     <div class="grid">
         {% for grupo in letras_grupos %}
         <div class="card">
@@ -58,6 +73,7 @@
         </div>
         {% endfor %}
     </div>
+    {% endif %}
 
     <label>
         <input type="checkbox" name="reemplazar">

@@ -13,7 +13,7 @@ from openpyxl import Workbook
 from .forms import JugadorForm, PartidoForm
 from .models import AlineacionPartido, AdminOrganizador, AdminTorneo, Categoria, Equipo, Gol, Jugador, Organizador, Partido, ReglaEdadCategoria, RegistroActividad, SustitucionPartido, Tarjeta, Torneo
 from .planillas_pdf import _edad, _header_image_sources
-from .views import buscar_planilleros_excel, construir_estructura, construir_estadisticas_foraneos, construir_partidos_portada, construir_partidos_programacion, _clave_orden_evento_resumen, _minuto_evento_en_vivo, _sincronizar_no_disponibles_por_tarjetas, etiqueta_edad_jugador, puede_descargar_programacion, texto_edad_jugador, validar_reglas_edad_titulares
+from .views import buscar_planilleros_excel, construir_estructura, construir_estadisticas_foraneos, construir_partidos_portada, construir_partidos_programacion, _clave_orden_evento_resumen, _minuto_evento_en_vivo, _sincronizar_no_disponibles_por_tarjetas, etiqueta_edad_jugador, puede_descargar_programacion, texto_edad_jugador, tabla_general_mata_mata_ida_vuelta, validar_reglas_edad_titulares
 
 
 class SancionesTarjetasTests(TestCase):
@@ -1102,6 +1102,70 @@ class FixtureProgramacionBalanceadaTests(TestCase):
         self.assertEqual(respuesta.status_code, 302)
         partido.refresh_from_db()
         self.assertEqual(partido.estado_programacion, "OFICIAL")
+
+
+    def datos_fixture_mata_mata(self):
+        while len(self.equipos) < 10:
+            indice = len(self.equipos) + 1
+            self.equipos.append(Equipo.objects.create(nombre=f"Equipo {indice}", categoria=self.categoria))
+
+        return {
+            "categoria": self.categoria.id,
+            "tipo_fixture": "MATA_MATA_IDA_VUELTA",
+            "grupos": 1,
+            "reemplazar": "on",
+        }
+
+    def test_fixture_mata_mata_crea_parejas_ida_vuelta_por_sorteo(self):
+        self.client.force_login(self.admin)
+
+        respuesta = self.client.post("/gestion/generar-fixture/", self.datos_fixture_mata_mata())
+
+        self.assertEqual(respuesta.status_code, 200)
+        partidos = Partido.objects.filter(categoria=self.categoria, fase="GRUPOS")
+        self.assertEqual(partidos.count(), 10)
+        self.assertEqual(partidos.values("grupo").distinct().count(), 5)
+
+        for grupo in partidos.values_list("grupo", flat=True).distinct():
+            partidos_grupo = list(partidos.filter(grupo=grupo).order_by("numero_fecha"))
+            self.assertEqual(len(partidos_grupo), 2)
+            self.assertEqual(partidos_grupo[0].equipo_local, partidos_grupo[1].equipo_visitante)
+            self.assertEqual(partidos_grupo[0].equipo_visitante, partidos_grupo[1].equipo_local)
+
+    def test_mata_mata_genera_cuartos_con_sistema_oreja(self):
+        self.client.force_login(self.admin)
+        self.client.post("/gestion/generar-fixture/", self.datos_fixture_mata_mata())
+
+        orden = {equipo.id: indice for indice, equipo in enumerate(self.equipos, start=1)}
+        for partido in Partido.objects.filter(categoria=self.categoria, fase="GRUPOS"):
+            if orden[partido.equipo_local_id] < orden[partido.equipo_visitante_id]:
+                partido.goles_local = 3
+                partido.goles_visitante = 0
+            else:
+                partido.goles_local = 0
+                partido.goles_visitante = 3
+            partido.estado = "FINALIZADO"
+            partido.save(update_fields=["goles_local", "goles_visitante", "estado"])
+
+        tabla = tabla_general_mata_mata_ida_vuelta(self.categoria)
+        clasificados = tabla[:8]
+
+        respuesta = self.client.get(f"/generar-llaves/{self.categoria.nombre}/")
+
+        self.assertEqual(respuesta.status_code, 302)
+        cuartos = {
+            partido.numero_fecha: partido
+            for partido in Partido.objects.filter(categoria=self.categoria, fase="CUARTOS")
+        }
+        self.assertEqual(cuartos["CUARTOS #1"].equipo_local_id, clasificados[0]["id"])
+        self.assertEqual(cuartos["CUARTOS #1"].equipo_visitante_id, clasificados[7]["id"])
+        self.assertEqual(cuartos["CUARTOS #2"].equipo_local_id, clasificados[1]["id"])
+        self.assertEqual(cuartos["CUARTOS #2"].equipo_visitante_id, clasificados[6]["id"])
+        self.assertEqual(cuartos["CUARTOS #3"].equipo_local_id, clasificados[2]["id"])
+        self.assertEqual(cuartos["CUARTOS #3"].equipo_visitante_id, clasificados[5]["id"])
+        self.assertEqual(cuartos["CUARTOS #4"].equipo_local_id, clasificados[3]["id"])
+        self.assertEqual(cuartos["CUARTOS #4"].equipo_visitante_id, clasificados[4]["id"])
+
 
 
 class ImportacionPartidosPlanillerosTests(TestCase):
