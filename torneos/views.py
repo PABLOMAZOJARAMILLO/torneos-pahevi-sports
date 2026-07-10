@@ -2145,6 +2145,19 @@ def texto_edad_jugador(jugador, categoria=None, fecha_referencia=None):
     return f"{edad} años"
 
 
+def reglas_edad_para_frontend(categoria):
+    return [
+        {
+            "etiqueta": regla.etiqueta,
+            "edad_minima": regla.edad_minima,
+            "minimo": regla.minimo_titulares or 0,
+            "maximo": regla.maximo_titulares,
+        }
+        for regla in reglas_edad_categoria(categoria)
+        if regla.minimo_titulares or regla.maximo_titulares is not None
+    ]
+
+
 def validar_reglas_edad_titulares(partido, equipo, titulares_ids):
     reglas = [
         regla for regla in reglas_edad_categoria(partido.categoria)
@@ -3648,15 +3661,16 @@ def _marcar_roles_alineacion(jugadores, alineaciones_por_jugador, partido=None):
         jugador.documento_validado_alineacion = bool(alineacion and alineacion.documento_validado)
         jugador.foto_alineacion = foto_jugador_url(jugador)
         jugador.iniciales_alineacion = iniciales_jugador(jugador)
+        fecha_referencia = partido.fecha if partido else date.today()
         jugador.etiqueta_edad = etiqueta_edad_jugador(
             jugador,
             partido.categoria if partido else None,
-            date.today(),
+            fecha_referencia,
         )
         jugador.texto_edad = texto_edad_jugador(
             jugador,
             partido.categoria if partido else None,
-            date.today(),
+            fecha_referencia,
         )
     return jugadores
 
@@ -3833,6 +3847,7 @@ def editor_partido_movil(request, partido_id):
         ),
         'fases_partido': Partido.FASES,
         'posiciones_cancha': AlineacionPartido.POSICIONES_CANCHA,
+        'reglas_edad_alineacion': reglas_edad_para_frontend(partido.categoria),
         'sancionados_tarjetas': sancionados_tarjetas,
         'puede_editar_programacion': es_editor_torneo(request.user),
         'ajuste_puntos_local_abs': abs(partido.ajuste_puntos_local or 0),
@@ -4382,6 +4397,7 @@ def delegado_alineacion_partido(request, equipo_id, partido_id):
         "partido": partido,
         "jugadores": jugadores,
         "posiciones_cancha": AlineacionPartido.POSICIONES_CANCHA,
+        "reglas_edad_alineacion": reglas_edad_para_frontend(partido.categoria),
         "sancionados_tarjetas": sancionados_equipo,
     })
 

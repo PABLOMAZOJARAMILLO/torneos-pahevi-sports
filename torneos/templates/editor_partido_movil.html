@@ -610,6 +610,7 @@
     </style>
 </head>
 <body>
+{{ reglas_edad_alineacion|json_script:"reglas-edad-alineacion" }}
 <div class="app">
     <div class="topbar">
         <div class="acciones-volver">
@@ -882,8 +883,8 @@
 
     <div id="alineacion" class="tab-content">
         <div class="card">
-            <h2>AlineaciÃ³n rÃ¡pida</h2>
-            <p class="nota">Escoge primero el equipo. Solo verÃ¡s los jugadores de ese equipo para marcar titulares, suplentes o no disponibles.</p>
+            <h2>Alineacion rapida</h2>
+            <p class="nota">Escoge primero el equipo. Solo veras los jugadores de ese equipo para marcar titulares, suplentes o no disponibles.</p>
 
             <div class="alineacion-equipo-tabs">
                 <button type="button" class="active" data-alineacion-equipo="local">{{ partido.equipo_local.nombre }}</button>
@@ -917,7 +918,7 @@
                         <select class="slot-select" data-slot-select data-posicion-slot="{{ codigo }}" aria-label="Asignar {{ nombre }}">
                         <option value="">{{ codigo }}</option>
                         {% for j in jugadores_local %}
-                            <option value="{{ j.id }}" data-nombre="{{ j.nombres|texto_limpio }}" data-edad="{{ j.texto_edad }}" data-dorsal="{% if j.dorsal %}{{ j.dorsal }}{% endif %}" data-foto="{{ j.foto_alineacion }}" data-iniciales="{{ j.iniciales_alineacion }}" {% if j.posicion_alineacion == codigo and j.rol_alineacion == "TITULAR" %}selected{% endif %}>
+                            <option value="{{ j.id }}" data-nombre="{{ j.nombres|texto_limpio }}" data-edad="{{ j.texto_edad }}" data-etiqueta-edad="{{ j.etiqueta_edad }}" data-dorsal="{% if j.dorsal %}{{ j.dorsal }}{% endif %}" data-foto="{{ j.foto_alineacion }}" data-iniciales="{{ j.iniciales_alineacion }}" {% if j.posicion_alineacion == codigo and j.rol_alineacion == "TITULAR" %}selected{% endif %}>
                                 {% if j.dorsal %}#{{ j.dorsal }} - {% endif %}{{ j.nombres|texto_limpio }}{% if j.texto_edad %} ({{ j.texto_edad }}){% endif %}
                             </option>
                         {% endfor %}
@@ -931,7 +932,7 @@
                     <button type="button" data-alineacion-equipo="visitante">{{ partido.equipo_visitante.nombre }}</button>
                 </div>
                 {% for j in jugadores_local %}
-                <div class="jugador-lineup-row" data-jugador-id="{{ j.id }}" data-edad="{{ j.texto_edad }}" data-nombre="{{ j.nombres|texto_limpio }}" data-dorsal="{% if j.dorsal %}{{ j.dorsal }}{% endif %}" data-foto="{{ j.foto_alineacion }}" data-iniciales="{{ j.iniciales_alineacion }}">
+                <div class="jugador-lineup-row" data-jugador-id="{{ j.id }}" data-edad="{{ j.texto_edad }}" data-etiqueta-edad="{{ j.etiqueta_edad }}" data-nombre="{{ j.nombres|texto_limpio }}" data-dorsal="{% if j.dorsal %}{{ j.dorsal }}{% endif %}" data-foto="{{ j.foto_alineacion }}" data-iniciales="{{ j.iniciales_alineacion }}">
                     <div class="jugador-lineup-head">
                         <span>{{ j.nombres|texto_limpio }}{% if j.texto_edad %}<span class="edad-badge">{{ j.texto_edad }}</span>{% endif %}</span>
                         <span class="jugador-lineup-dorsal">{% if j.dorsal %}#{{ j.dorsal }}{% else %}S/D{% endif %}</span>
@@ -984,7 +985,7 @@
                         <select class="slot-select" data-slot-select data-posicion-slot="{{ codigo }}" aria-label="Asignar {{ nombre }}">
                         <option value="">{{ codigo }}</option>
                         {% for j in jugadores_visitante %}
-                            <option value="{{ j.id }}" data-nombre="{{ j.nombres|texto_limpio }}" data-edad="{{ j.texto_edad }}" data-dorsal="{% if j.dorsal %}{{ j.dorsal }}{% endif %}" data-foto="{{ j.foto_alineacion }}" data-iniciales="{{ j.iniciales_alineacion }}" {% if j.posicion_alineacion == codigo and j.rol_alineacion == "TITULAR" %}selected{% endif %}>
+                            <option value="{{ j.id }}" data-nombre="{{ j.nombres|texto_limpio }}" data-edad="{{ j.texto_edad }}" data-etiqueta-edad="{{ j.etiqueta_edad }}" data-dorsal="{% if j.dorsal %}{{ j.dorsal }}{% endif %}" data-foto="{{ j.foto_alineacion }}" data-iniciales="{{ j.iniciales_alineacion }}" {% if j.posicion_alineacion == codigo and j.rol_alineacion == "TITULAR" %}selected{% endif %}>
                                 {% if j.dorsal %}#{{ j.dorsal }} - {% endif %}{{ j.nombres|texto_limpio }}{% if j.texto_edad %} ({{ j.texto_edad }}){% endif %}
                             </option>
                         {% endfor %}
@@ -998,7 +999,7 @@
                     <button type="button" class="active" data-alineacion-equipo="visitante">{{ partido.equipo_visitante.nombre }}</button>
                 </div>
                 {% for j in jugadores_visitante %}
-                <div class="jugador-lineup-row" data-jugador-id="{{ j.id }}" data-edad="{{ j.texto_edad }}" data-nombre="{{ j.nombres|texto_limpio }}" data-dorsal="{% if j.dorsal %}{{ j.dorsal }}{% endif %}" data-foto="{{ j.foto_alineacion }}" data-iniciales="{{ j.iniciales_alineacion }}">
+                <div class="jugador-lineup-row" data-jugador-id="{{ j.id }}" data-edad="{{ j.texto_edad }}" data-etiqueta-edad="{{ j.etiqueta_edad }}" data-nombre="{{ j.nombres|texto_limpio }}" data-dorsal="{% if j.dorsal %}{{ j.dorsal }}{% endif %}" data-foto="{{ j.foto_alineacion }}" data-iniciales="{{ j.iniciales_alineacion }}">
                     <div class="jugador-lineup-head">
                         <span>{{ j.nombres|texto_limpio }}{% if j.texto_edad %}<span class="edad-badge">{{ j.texto_edad }}</span>{% endif %}</span>
                         <span class="jugador-lineup-dorsal">{% if j.dorsal %}#{{ j.dorsal }}{% else %}S/D{% endif %}</span>
@@ -1197,7 +1198,7 @@ function actualizarConteoTitulares(panel) {
     const alerta = document.querySelector('[data-alineacion-alerta]');
     if (alerta && !panel.hidden) {
         if (titulares > 11) {
-            alerta.textContent = 'Tienes ' + titulares + ' titulares. Deben ser mÃ¡ximo 11 por equipo.';
+            alerta.textContent = 'Tienes ' + titulares + ' titulares. Deben ser maximo 11 por equipo.';
             alerta.style.display = 'block';
         } else {
             alerta.textContent = '';
@@ -1207,24 +1208,54 @@ function actualizarConteoTitulares(panel) {
     actualizarAdvertenciaEdades(panel, titulares);
 }
 
+function reglasEdadAlineacion() {
+    const script = document.getElementById('reglas-edad-alineacion');
+    if (!script) return [];
+    try {
+        return JSON.parse(script.textContent || '[]');
+    } catch (error) {
+        return [];
+    }
+}
+
 function actualizarAdvertenciaEdades(panel, titulares) {
     const alerta = document.querySelector('[data-alineacion-alerta]');
     if (!alerta || panel.hidden) return;
 
-    const conteos = {'+40': 0, '+45': 0, '+50': 0};
+    const reglas = reglasEdadAlineacion();
+    const conteos = {};
+    reglas.forEach(function(regla) {
+        conteos[regla.etiqueta] = 0;
+    });
+
     panel.querySelectorAll('.jugador-lineup-row').forEach(function(fila) {
         const titular = fila.querySelector('input[value="TITULAR"]');
-        const edad = (fila.dataset.edad || '').trim();
-        if (titular && titular.checked && Object.prototype.hasOwnProperty.call(conteos, edad)) {
-            conteos[edad] += 1;
+        const etiqueta = (fila.dataset.etiquetaEdad || fila.dataset.edad || '').trim();
+        if (titular && titular.checked && Object.prototype.hasOwnProperty.call(conteos, etiqueta)) {
+            conteos[etiqueta] += 1;
         }
     });
 
     const advertencias = [];
     if (titulares > 11) advertencias.push('Maximo 11 titulares, tienes ' + titulares + '.');
-    if (conteos['+40'] > 4) advertencias.push('+40: maximo 4, tienes ' + conteos['+40'] + '.');
-    if (conteos['+45'] > 8) advertencias.push('+45: maximo 8, tienes ' + conteos['+45'] + '.');
-    if (titulares === 11 && conteos['+50'] < 3) advertencias.push('+50: minimo 3, tienes ' + conteos['+50'] + '.');
+
+    reglas.forEach(function(regla) {
+        const cantidad = conteos[regla.etiqueta] || 0;
+        if (regla.maximo !== null && regla.maximo !== undefined && cantidad > regla.maximo) {
+            advertencias.push(regla.etiqueta + ': maximo ' + regla.maximo + ', tienes ' + cantidad + '.');
+        }
+    });
+
+    let sobrantesMayores = 0;
+    reglas.slice().sort(function(a, b) {
+        return (b.edad_minima || 0) - (a.edad_minima || 0);
+    }).forEach(function(regla) {
+        const cantidadConReemplazos = (conteos[regla.etiqueta] || 0) + sobrantesMayores;
+        if (titulares === 11 && regla.minimo && cantidadConReemplazos < regla.minimo) {
+            advertencias.push(regla.etiqueta + ': minimo ' + regla.minimo + ', tienes ' + cantidadConReemplazos + '.');
+        }
+        sobrantesMayores = Math.max(0, cantidadConReemplazos - (regla.minimo || 0));
+    });
 
     alerta.textContent = advertencias.length ? 'Advertencia de edades: ' + advertencias.join(' ') : '';
     alerta.style.display = advertencias.length ? 'block' : 'none';

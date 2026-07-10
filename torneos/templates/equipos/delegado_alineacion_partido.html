@@ -261,6 +261,7 @@
     }
 </style>
 
+{{ reglas_edad_alineacion|json_script:"reglas-edad-alineacion" }}
 <form method="post" data-delegado-alineacion-form>
     {% csrf_token %}
 
@@ -290,7 +291,7 @@
                 <select name="cancha_{{ codigo }}" data-cancha-select aria-label="{{ nombre }}">
                     <option value="">{{ codigo }}</option>
                     {% for jugador in jugadores %}
-                        <option value="{{ jugador.id }}" data-nombre="{{ jugador.nombres|texto_limpio }}" data-dorsal="{% if jugador.dorsal %}{{ jugador.dorsal }}{% endif %}" data-edad="{{ jugador.texto_edad }}" data-foto="{{ jugador.foto_alineacion }}" data-iniciales="{{ jugador.iniciales_alineacion }}" {% if jugador.rol_alineacion == "TITULAR" and jugador.posicion_alineacion == codigo %}selected{% endif %}>
+                        <option value="{{ jugador.id }}" data-nombre="{{ jugador.nombres|texto_limpio }}" data-dorsal="{% if jugador.dorsal %}{{ jugador.dorsal }}{% endif %}" data-edad="{{ jugador.texto_edad }}" data-etiqueta-edad="{{ jugador.etiqueta_edad }}" data-foto="{{ jugador.foto_alineacion }}" data-iniciales="{{ jugador.iniciales_alineacion }}" {% if jugador.rol_alineacion == "TITULAR" and jugador.posicion_alineacion == codigo %}selected{% endif %}>
                             {% if jugador.dorsal %}#{{ jugador.dorsal }} - {% endif %}{{ jugador.nombres|texto_limpio }}{% if jugador.texto_edad %} ({{ jugador.texto_edad }}){% endif %}
                         </option>
                     {% endfor %}
@@ -400,18 +401,47 @@
             syncAgeAlert();
         }
 
+        function reglasEdadAlineacion() {
+            const script = document.getElementById('reglas-edad-alineacion');
+            if (!script) return [];
+            try {
+                return JSON.parse(script.textContent || '[]');
+            } catch (error) {
+                return [];
+            }
+        }
+
         function syncAgeAlert() {
             if (!ageAlert) return;
             const seleccionados = selects.filter((select) => select.value);
-            const conteos = {'+40': 0, '+45': 0, '+50': 0};
-            seleccionados.forEach((select) => {
-                const edad = (select.selectedOptions[0]?.dataset.edad || '').trim();
-                if (Object.prototype.hasOwnProperty.call(conteos, edad)) conteos[edad] += 1;
+            const reglas = reglasEdadAlineacion();
+            const conteos = {};
+            reglas.forEach((regla) => {
+                conteos[regla.etiqueta] = 0;
             });
+            seleccionados.forEach((select) => {
+                const option = select.selectedOptions[0];
+                const etiqueta = (option?.dataset.etiquetaEdad || option?.dataset.edad || '').trim();
+                if (Object.prototype.hasOwnProperty.call(conteos, etiqueta)) conteos[etiqueta] += 1;
+            });
+
             const advertencias = [];
-            if (conteos['+40'] > 4) advertencias.push('+40: maximo 4, tienes ' + conteos['+40'] + '.');
-            if (conteos['+45'] > 8) advertencias.push('+45: maximo 8, tienes ' + conteos['+45'] + '.');
-            if (seleccionados.length === 11 && conteos['+50'] < 3) advertencias.push('+50: minimo 3, tienes ' + conteos['+50'] + '.');
+            reglas.forEach((regla) => {
+                const cantidad = conteos[regla.etiqueta] || 0;
+                if (regla.maximo !== null && regla.maximo !== undefined && cantidad > regla.maximo) {
+                    advertencias.push(regla.etiqueta + ': maximo ' + regla.maximo + ', tienes ' + cantidad + '.');
+                }
+            });
+
+            let sobrantesMayores = 0;
+            reglas.slice().sort((a, b) => (b.edad_minima || 0) - (a.edad_minima || 0)).forEach((regla) => {
+                const cantidadConReemplazos = (conteos[regla.etiqueta] || 0) + sobrantesMayores;
+                if (seleccionados.length === 11 && regla.minimo && cantidadConReemplazos < regla.minimo) {
+                    advertencias.push(regla.etiqueta + ': minimo ' + regla.minimo + ', tienes ' + cantidadConReemplazos + '.');
+                }
+                sobrantesMayores = Math.max(0, cantidadConReemplazos - (regla.minimo || 0));
+            });
+
             ageAlert.textContent = advertencias.length ? 'Advertencia de edades: ' + advertencias.join(' ') : '';
             ageAlert.style.display = advertencias.length ? 'block' : 'none';
         }

@@ -552,7 +552,7 @@ class PlanilleroPartidoTests(TestCase):
         "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
         "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
     })
-    def test_editor_movil_actualiza_edad_despues_del_cumpleanos(self):
+    def test_editor_movil_usa_edad_en_fecha_del_partido(self):
         hoy = date.today()
         self.jugador.fecha_nacimiento = hoy.replace(year=hoy.year - 41)
         self.jugador.save(update_fields=["fecha_nacimiento"])
@@ -562,7 +562,7 @@ class PlanilleroPartidoTests(TestCase):
 
         respuesta = self.client.get(f"/partido/{self.partido.id}/editor-movil/")
 
-        self.assertContains(respuesta, "41 a")
+        self.assertContains(respuesta, "40 a")
 
     @override_settings(STORAGES={
         "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
@@ -586,6 +586,7 @@ class PlanilleroPartidoTests(TestCase):
         self.assertContains(respuesta, 'data-slot-edad')
         self.assertContains(respuesta, 'data-slot-dorsal')
         self.assertContains(respuesta, 'data-edad="+40"')
+        self.assertContains(respuesta, 'data-etiqueta-edad="+40"')
 
     @override_settings(STORAGES={
         "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
@@ -1802,7 +1803,8 @@ class DelegadoEquipoTests(TestCase):
 
         self.assertContains(respuesta, texto_edad_jugador(self.jugador, self.categoria, partido.fecha))
         self.assertContains(respuesta, 'data-slot-player-age')
-        self.assertContains(respuesta, f'data-edad="{texto_edad_jugador(self.jugador, self.categoria)}"')
+        self.assertContains(respuesta, f'data-edad="{texto_edad_jugador(self.jugador, self.categoria, partido.fecha)}"')
+        self.assertContains(respuesta, f'data-etiqueta-edad="{etiqueta_edad_jugador(self.jugador, self.categoria, partido.fecha)}"')
 
     def test_delegado_ve_titular_marcado_en_lista_de_estados(self):
         ahora_local = timezone.localtime()
