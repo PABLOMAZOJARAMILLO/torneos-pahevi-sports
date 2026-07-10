@@ -440,7 +440,10 @@ def crear_solicitud_validacion(tipo, titulo, descripcion="", user=None, torneo=N
             torneo = equipo.categoria.torneo
 
     filtros = {"tipo": tipo, "estado": "PENDIENTE"}
-    if partido:
+    if tipo == "ALINEACION" and partido and equipo:
+        filtros["partido"] = partido
+        filtros["equipo"] = equipo
+    elif partido:
         filtros["partido"] = partido
     elif jugador:
         filtros["jugador"] = jugador
@@ -3566,6 +3569,7 @@ def _marcar_roles_alineacion(jugadores, alineaciones_por_jugador, partido=None):
         alineacion = alineaciones_por_jugador.get(jugador.id)
         jugador.rol_alineacion = alineacion.rol if alineacion else ""
         jugador.posicion_alineacion = alineacion.posicion_cancha if alineacion else ""
+        jugador.documento_validado_alineacion = bool(alineacion and alineacion.documento_validado)
         jugador.foto_alineacion = foto_jugador_url(jugador)
         jugador.iniciales_alineacion = iniciales_jugador(jugador)
         jugador.etiqueta_edad = etiqueta_edad_jugador(
@@ -3579,6 +3583,51 @@ def _marcar_roles_alineacion(jugadores, alineaciones_por_jugador, partido=None):
             date.today(),
         )
     return jugadores
+
+
+def _registrar_alertas_validacion_alineacion(partido, equipo, user, seleccionados, errores_edad):
+    titulares = [int(jugador_id) for jugador_id, rol, _, _ in seleccionados if rol == "TITULAR"]
+    documentos_faltantes = [int(jugador_id) for jugador_id, rol, _, documento_ok in seleccionados if rol == "TITULAR" and not documento_ok]
+
+    if not documentos_faltantes and not errores_edad:
+        return
+
+    jugadores = {
+        jugador.id: jugador
+        for jugador in Jugador.objects.filter(id__in=titulares).only("id", "nombres", "cedula", "dorsal")
+    }
+    faltantes = [jugadores[jugador_id] for jugador_id in documentos_faltantes if jugador_id in jugadores]
+    nombres_faltantes = [jugador.nombres for jugador in faltantes]
+    partes = []
+
+    if nombres_faltantes:
+        partes.append("Titulares sin documento validado: " + ", ".join(nombres_faltantes) + ".")
+    if errores_edad:
+        partes.append("Reglas de edad: " + " ".join(errores_edad))
+
+    crear_solicitud_validacion(
+        "ALINEACION",
+        f"Validar alineacion: {equipo.nombre}",
+        descripcion=" ".join(partes),
+        user=user,
+        partido=partido,
+        equipo=equipo,
+        datos={
+            "equipo_id": equipo.id,
+            "partido_id": partido.id,
+            "titulares": [
+                {
+                    "jugador_id": jugador_id,
+                    "nombre": jugadores[jugador_id].nombres if jugador_id in jugadores else "",
+                    "cedula": jugadores[jugador_id].cedula if jugador_id in jugadores else "",
+                    "documento_validado": jugador_id not in documentos_faltantes,
+                }
+                for jugador_id in titulares
+            ],
+            "documentos_faltantes": documentos_faltantes,
+            "errores_edad": errores_edad,
+        },
+    )
 
 
 def _ordenar_titulares_cancha(items):
@@ -3857,7 +3906,14 @@ def agregar_alineacion_movil(request, partido_id):
             AlineacionPartido.objects.update_or_create(
                 partido=partido,
                 jugador=jugador,
-                defaults={'equipo': equipo, 'rol': rol, 'posicion_cancha': posicion_cancha if rol == 'TITULAR' else ''}
+                defaults={
+                    'equipo': equipo,
+                    'rol': rol,
+                    'posicion_cancha': posicion_cancha if rol == 'TITULAR' else '',
+                    'documento_validado': False,
+                    'documento_validado_por': None,
+                    'documento_validado_en': None,
+                }
             )
             _marcar_estadisticas_pendientes(partido, request.user)
             messages.success(request, 'Jugador agregado a la alineación.')
@@ -3891,6 +3947,7 @@ def guardar_alineacion_masiva_movil(request, partido_id):
         if data["equipo_id"] == equipo.id
     }
     posiciones_usadas = set()
+    documentos_validados = set(request.POST.getlist("documento_validado"))
     seleccionados = []
 
     for llave, rol in request.POST.items():
@@ -3912,26 +3969,45 @@ def guardar_alineacion_masiva_movil(request, partido_id):
                     posiciones_usadas.add(posicion)
             else:
                 posicion = ""
-            seleccionados.append((jugador_id, rol, posicion))
+            documento_validado = rol == "TITULAR" and jugador_id in documentos_validados
+            seleccionados.append((jugador_id, rol, posicion, documento_validado))
 
-    seleccionados_ids = {jugador_id for jugador_id, _, _ in seleccionados}
+    seleccionados_ids = {jugador_id for jugador_id, _, _, _ in seleccionados}
     for jugador_id in sancionados_equipo - seleccionados_ids:
         if jugador_id in jugadores_validos:
-            seleccionados.append((jugador_id, "NO_DISPONIBLE", ""))
+            seleccionados.append((jugador_id, "NO_DISPONIBLE", "", False))
 
-    titulares = [jugador_id for jugador_id, rol, _ in seleccionados if rol == "TITULAR"]
+    titulares = [jugador_id for jugador_id, rol, _, _ in seleccionados if rol == "TITULAR"]
     if len(titulares) > 11:
         messages.error(request, "Solo puedes seleccionar 11 titulares por equipo.")
         return redirect(_url_editor_tab(partido.id, "alineacion"))
     errores_edad = validar_reglas_edad_titulares(partido, equipo, titulares)
 
     AlineacionPartido.objects.filter(partido=partido, equipo=equipo).delete()
+    ahora_validacion = timezone.now()
     nuevas_alineaciones = [
-        AlineacionPartido(partido=partido, equipo=equipo, jugador_id=jugador_id, rol=rol, posicion_cancha=posicion)
-        for jugador_id, rol, posicion in seleccionados
+        AlineacionPartido(
+            partido=partido,
+            equipo=equipo,
+            jugador_id=jugador_id,
+            rol=rol,
+            posicion_cancha=posicion,
+            documento_validado=documento_validado,
+            documento_validado_por=request.user if documento_validado else None,
+            documento_validado_en=ahora_validacion if documento_validado else None,
+        )
+        for jugador_id, rol, posicion, documento_validado in seleccionados
     ]
     AlineacionPartido.objects.bulk_create(nuevas_alineaciones)
     _marcar_estadisticas_pendientes(partido, request.user)
+    _registrar_alertas_validacion_alineacion(partido, equipo, request.user, seleccionados, errores_edad)
+
+    documentos_faltantes = [jugador_id for jugador_id, rol, _, documento_ok in seleccionados if rol == "TITULAR" and not documento_ok]
+    if documentos_faltantes:
+        messages.warning(
+            request,
+            f"Cedulas pendientes por validar en titulares: {len(documentos_faltantes)}. Quedo registro para validacion."
+        )
 
     if sancionados_equipo:
         messages.warning(
@@ -3946,7 +4022,7 @@ def guardar_alineacion_masiva_movil(request, partido_id):
     messages.success(
         request,
         f"Alineacion de {equipo.nombre} guardada: {len(titulares)} titulares, "
-        f"{sum(1 for _, rol, _ in seleccionados if rol == 'SUPLENTE')} suplentes."
+        f"{sum(1 for _, rol, _, _ in seleccionados if rol == 'SUPLENTE')} suplentes."
     )
     return redirect(_url_editor_tab(partido.id, "alineacion"))
 

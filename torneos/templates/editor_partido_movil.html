@@ -380,6 +380,30 @@
         .posicion-cancha-select:disabled {
             opacity: 0.42;
         }
+        .documento-check {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 8px 0 0;
+            padding: 8px 10px;
+            border: 1px solid rgba(250, 204, 21, .55);
+            border-radius: 12px;
+            background: rgba(250, 204, 21, .12);
+            color: #fef9c3;
+            font-size: 11px;
+            line-height: 1.2;
+        }
+        .documento-check input {
+            width: auto;
+            min-height: auto;
+            accent-color: #00e66f;
+        }
+        .documento-check small {
+            display: block;
+            color: #dbeafe;
+            font-size: 10px;
+            font-weight: 700;
+        }
         .alineacion-alerta {
             display: none;
             background: rgba(249, 115, 22, 0.16);
@@ -924,6 +948,10 @@
                             <option value="{{ codigo }}" {% if j.posicion_alineacion == codigo %}selected{% endif %}>{{ nombre }}</option>
                         {% endfor %}
                     </select>
+                    <label class="documento-check">
+                        <input type="checkbox" name="documento_validado" value="{{ j.id }}" data-documento-check {% if j.documento_validado_alineacion %}checked{% endif %}>
+                        <span>Cedula recibida<small>Solo queda registrada si el jugador es titular.</small></span>
+                    </label>
                 </div>
                 {% empty %}
                     <p class="nota">Este equipo no tiene jugadores activos registrados.</p>
@@ -987,6 +1015,10 @@
                             <option value="{{ codigo }}" {% if j.posicion_alineacion == codigo %}selected{% endif %}>{{ nombre }}</option>
                         {% endfor %}
                     </select>
+                    <label class="documento-check">
+                        <input type="checkbox" name="documento_validado" value="{{ j.id }}" data-documento-check {% if j.documento_validado_alineacion %}checked{% endif %}>
+                        <span>Cedula recibida<small>Solo queda registrada si el jugador es titular.</small></span>
+                    </label>
                 </div>
                 {% empty %}
                     <p class="nota">Este equipo no tiene jugadores activos registrados.</p>

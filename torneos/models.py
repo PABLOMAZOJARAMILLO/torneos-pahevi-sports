@@ -183,6 +183,7 @@ class SolicitudValidacion(models.Model):
         ("ESTADISTICAS", "Estadisticas de partido"),
         ("EQUIPO", "Edicion de equipo"),
         ("JUGADOR", "Edicion de jugador"),
+        ("ALINEACION", "Validacion de alineacion"),
     ]
     ESTADOS = [
         ("PENDIENTE", "Pendiente"),
@@ -531,6 +532,9 @@ class AlineacionPartido(models.Model):
     jugador = models.ForeignKey(Jugador, on_delete=models.CASCADE, related_name='alineaciones_partido')
     rol = models.CharField(max_length=20, choices=ROLES, default='TITULAR')
     posicion_cancha = models.CharField(max_length=10, choices=POSICIONES_CANCHA, blank=True, default='', verbose_name='Posición en cancha')
+    documento_validado = models.BooleanField(default=False, verbose_name='Documento validado')
+    documento_validado_por = models.ForeignKey(User, on_delete=models.SET_NULL, blank=True, null=True, related_name='documentos_alineacion_validados')
+    documento_validado_en = models.DateTimeField(blank=True, null=True, verbose_name='Documento validado en')
 
     class Meta:
         verbose_name = 'Alineación del partido'

@@ -11,7 +11,7 @@ from django.utils import timezone
 from openpyxl import Workbook
 
 from .forms import JugadorForm, PartidoForm
-from .models import AlineacionPartido, AdminOrganizador, AdminTorneo, Categoria, Equipo, Gol, Jugador, Organizador, Partido, ReglaEdadCategoria, RegistroActividad, SustitucionPartido, Tarjeta, Torneo
+from .models import AlineacionPartido, AdminOrganizador, AdminTorneo, Categoria, Equipo, Gol, Jugador, Organizador, Partido, ReglaEdadCategoria, RegistroActividad, SolicitudValidacion, SustitucionPartido, Tarjeta, Torneo
 from .planillas_pdf import _edad, _header_image_sources
 from .views import buscar_planilleros_excel, construir_estructura, construir_estadisticas_foraneos, construir_partidos_portada, construir_partidos_programacion, _clave_orden_evento_resumen, _minuto_evento_en_vivo, _sincronizar_no_disponibles_por_tarjetas, etiqueta_edad_jugador, puede_descargar_programacion, texto_edad_jugador, tabla_general_mata_mata_ida_vuelta, validar_reglas_edad_titulares
 
@@ -635,6 +635,40 @@ class PlanilleroPartidoTests(TestCase):
         self.assertTrue(Gol.objects.filter(partido=self.partido, jugador=self.jugador).exists())
         self.partido.refresh_from_db()
         self.assertFalse(self.partido.estadisticas_validadas)
+
+
+    def test_planillero_registra_validacion_de_cedulas_de_titulares(self):
+        segundo = Jugador.objects.create(
+            equipo=self.local,
+            dorsal=10,
+            nombres="Sin Cedula",
+            cedula="SC1",
+            fecha_nacimiento=date(1991, 1, 1),
+        )
+        self.client.force_login(self.planillero)
+
+        respuesta = self.client.post(
+            f"/partido/{self.partido.id}/guardar-alineacion-movil/",
+            {
+                "equipo": self.local.id,
+                f"rol_{self.jugador.id}": "TITULAR",
+                f"posicion_{self.jugador.id}": "DC",
+                f"rol_{segundo.id}": "TITULAR",
+                f"posicion_{segundo.id}": "ED",
+                "documento_validado": [str(self.jugador.id)],
+            },
+        )
+
+        self.assertEqual(respuesta.status_code, 302)
+        validado = AlineacionPartido.objects.get(partido=self.partido, jugador=self.jugador)
+        pendiente = AlineacionPartido.objects.get(partido=self.partido, jugador=segundo)
+        self.assertTrue(validado.documento_validado)
+        self.assertEqual(validado.documento_validado_por, self.planillero)
+        self.assertIsNotNone(validado.documento_validado_en)
+        self.assertFalse(pendiente.documento_validado)
+        solicitud = SolicitudValidacion.objects.get(tipo="ALINEACION", partido=self.partido, equipo=self.local)
+        self.assertEqual(solicitud.estado, "PENDIENTE")
+        self.assertIn(segundo.id, solicitud.datos["documentos_faltantes"])
 
     def test_planillero_no_puede_marcar_wo(self):
         self.client.force_login(self.planillero)
