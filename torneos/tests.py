@@ -1166,6 +1166,46 @@ class FixtureProgramacionBalanceadaTests(TestCase):
             self.assertEqual(partidos_grupo[0].equipo_local, partidos_grupo[1].equipo_visitante)
             self.assertEqual(partidos_grupo[0].equipo_visitante, partidos_grupo[1].equipo_local)
 
+
+    def test_fixture_mata_mata_permite_parejas_manuales(self):
+        self.client.force_login(self.admin)
+        datos = self.datos_fixture_mata_mata()
+        for indice in range(5):
+            datos[f"mata_local_{indice}"] = str(self.equipos[indice * 2].id)
+            datos[f"mata_visitante_{indice}"] = str(self.equipos[indice * 2 + 1].id)
+
+        respuesta = self.client.post("/gestion/generar-fixture/", datos)
+
+        self.assertEqual(respuesta.status_code, 200)
+        partidos_mata_1 = list(
+            Partido.objects.filter(categoria=self.categoria, grupo="MATA 1", fase="GRUPOS").order_by("numero_fecha")
+        )
+        self.assertEqual(partidos_mata_1[0].equipo_local, self.equipos[0])
+        self.assertEqual(partidos_mata_1[0].equipo_visitante, self.equipos[1])
+        self.assertEqual(partidos_mata_1[1].equipo_local, self.equipos[1])
+        self.assertEqual(partidos_mata_1[1].equipo_visitante, self.equipos[0])
+
+    def test_fixture_mata_mata_muestra_tabla_general_de_todos_los_equipos(self):
+        self.client.force_login(self.admin)
+        datos = self.datos_fixture_mata_mata()
+        for indice in range(5):
+            datos[f"mata_local_{indice}"] = str(self.equipos[indice * 2].id)
+            datos[f"mata_visitante_{indice}"] = str(self.equipos[indice * 2 + 1].id)
+        self.client.post("/gestion/generar-fixture/", datos)
+
+        for partido in Partido.objects.filter(categoria=self.categoria, fase="GRUPOS"):
+            partido.goles_local = 2
+            partido.goles_visitante = 0
+            partido.estado = "FINALIZADO"
+            partido.estadisticas_validadas = True
+            partido.save(update_fields=["goles_local", "goles_visitante", "estado", "estadisticas_validadas"])
+
+        tabla_general = construir_estructura(self.torneo)["Senior"]["tabla_general_mata_mata"]
+
+        self.assertEqual(len(tabla_general), 10)
+        self.assertEqual(sum(equipo["pj"] for equipo in tabla_general), 20)
+        self.assertTrue(all(equipo["pts"] == 3 for equipo in tabla_general))
+
     def test_mata_mata_genera_cuartos_con_sistema_oreja(self):
         self.client.force_login(self.admin)
         self.client.post("/gestion/generar-fixture/", self.datos_fixture_mata_mata())

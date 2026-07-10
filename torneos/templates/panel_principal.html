@@ -5389,6 +5389,49 @@ body.solo-lectura .menu-principal{top:96px!important}
             <h2>Tabla de posiciones</h2>
             <p class="aviso-deslizar">← Desliza la tabla hacia los lados para verla completa →</p>
 
+            {% if datos_categoria.tabla_general_mata_mata %}
+                <div class="grupo">
+                    <h2>Tabla general mata-mata</h2>
+                    <div class="tabla-responsive tabla-posiciones">
+                        <table>
+                            <tr>
+                                <th>#</th>
+                                <th class="col-equipo">Equipo</th>
+                                <th>PJ</th>
+                                <th>PG</th>
+                                <th>PE</th>
+                                <th>PP</th>
+                                <th>GF</th>
+                                <th>GC</th>
+                                <th>DG</th>
+                                <th>PTS</th>
+                            </tr>
+                            {% for equipo in datos_categoria.tabla_general_mata_mata %}
+                            <tr>
+                                <td>{{ forloop.counter }}</td>
+                                <td class="col-equipo">
+                                    <div class="equipo-logo">
+                                        {% if equipo.escudo %}
+                                            <img src="{{ equipo.escudo }}" class="logo-equipo">
+                                        {% endif %}
+                                        <span>{{ equipo.equipo }}</span>
+                                    </div>
+                                </td>
+                                <td>{{ equipo.pj }}</td>
+                                <td>{{ equipo.pg }}</td>
+                                <td>{{ equipo.pe }}</td>
+                                <td>{{ equipo.pp }}</td>
+                                <td>{{ equipo.gf }}</td>
+                                <td>{{ equipo.gc }}</td>
+                                <td>{{ equipo.dg }}</td>
+                                <td class="celda-total">{{ equipo.pts }}</td>
+                            </tr>
+                            {% endfor %}
+                        </table>
+                    </div>
+                </div>
+            {% endif %}
+
             {% for grupo, datos_grupo in datos_categoria.grupos.items %}
                 {% if grupo != "FINAL" %}
                 <div class="grupo">

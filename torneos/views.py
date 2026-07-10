@@ -1268,6 +1268,7 @@ def logos_torneo(request, torneo=None):
 def estructura_base_categoria():
     return {
         "grupos": {},
+        "tabla_general_mata_mata": [],
         "partidos_por_fecha": {},
         "columnas_planilla": [],
         "goleadores_planilla": [],
@@ -1536,15 +1537,40 @@ def construir_estructura(torneo=None):
             visitante["pts"] += partido.ajuste_puntos_visitante or 0
 
     for categoria, datos_categoria in estructura.items():
+        tabla_general_mata = {}
         for grupo, datos_grupo in datos_categoria["grupos"].items():
             for equipo in datos_grupo["tabla"].values():
                 equipo["dg"] = equipo["gf"] - equipo["gc"]
+
+                if str(grupo).startswith("MATA "):
+                    acumulado = tabla_general_mata.setdefault(equipo["id"], {
+                        "id": equipo["id"],
+                        "equipo": equipo["equipo"],
+                        "escudo": equipo["escudo"],
+                        "pj": 0,
+                        "pg": 0,
+                        "pe": 0,
+                        "pp": 0,
+                        "gf": 0,
+                        "gc": 0,
+                        "dg": 0,
+                        "pts": 0,
+                    })
+                    for campo in ["pj", "pg", "pe", "pp", "gf", "gc", "pts"]:
+                        acumulado[campo] += equipo[campo]
+                    acumulado["dg"] = acumulado["gf"] - acumulado["gc"]
 
             datos_grupo["tabla"] = sorted(
                 datos_grupo["tabla"].values(),
                 key=lambda x: (x["pts"], x["dg"], x["gf"]),
                 reverse=True
             )
+
+        datos_categoria["tabla_general_mata_mata"] = sorted(
+            tabla_general_mata.values(),
+            key=lambda x: (x["pts"], x["dg"], x["gf"], x["equipo"]),
+            reverse=True,
+        )
 
     goleadores_temp = defaultdict(lambda: defaultdict(lambda: {
         "jugador": "",
@@ -2787,19 +2813,69 @@ def tabla_general_mata_mata_ida_vuelta(categoria):
     )
 
 
-def crear_partidos_mata_mata_ida_vuelta(categoria, equipos):
-    equipos_sorteados = list(equipos)
-    random.shuffle(equipos_sorteados)
+def crear_partidos_mata_mata_desde_parejas(parejas):
     partidos = []
 
-    for indice in range(0, len(equipos_sorteados), 2):
-        local = equipos_sorteados[indice]
-        visitante = equipos_sorteados[indice + 1]
-        grupo = f"MATA {indice // 2 + 1}"
+    for indice, (local, visitante) in enumerate(parejas, start=1):
+        grupo = f"MATA {indice}"
         partidos.append((grupo, "1", local, visitante))
         partidos.append((grupo, "2", visitante, local))
 
     return partidos
+
+
+def crear_partidos_mata_mata_ida_vuelta(categoria, equipos):
+    equipos_sorteados = list(equipos)
+    random.shuffle(equipos_sorteados)
+    parejas = [
+        (equipos_sorteados[indice], equipos_sorteados[indice + 1])
+        for indice in range(0, len(equipos_sorteados), 2)
+    ]
+    return crear_partidos_mata_mata_desde_parejas(parejas)
+
+
+def parejas_mata_mata_desde_formulario(equipos, request_post):
+    equipos_por_id = {str(equipo.id): equipo for equipo in equipos}
+    cantidad_parejas = len(equipos) // 2
+    parejas = []
+    seleccionados = []
+    hay_manual = False
+
+    for indice in range(cantidad_parejas):
+        local_id = request_post.get(f"mata_local_{indice}") or ""
+        visitante_id = request_post.get(f"mata_visitante_{indice}") or ""
+
+        if local_id or visitante_id:
+            hay_manual = True
+
+        if not local_id and not visitante_id:
+            continue
+
+        if not local_id or not visitante_id:
+            return True, [], "Completa ambos equipos en cada pareja manual o dejala totalmente vacia."
+
+        if local_id == visitante_id:
+            return True, [], "Un equipo no puede jugar contra si mismo en una pareja mata-mata."
+
+        if local_id not in equipos_por_id or visitante_id not in equipos_por_id:
+            return True, [], "Hay un equipo seleccionado que no pertenece a esta categoria."
+
+        parejas.append((equipos_por_id[local_id], equipos_por_id[visitante_id]))
+        seleccionados.extend([local_id, visitante_id])
+
+    if not hay_manual:
+        return False, [], ""
+
+    repetidos = {equipo_id for equipo_id in seleccionados if seleccionados.count(equipo_id) > 1}
+    if repetidos:
+        nombres = ", ".join(equipos_por_id[equipo_id].nombre for equipo_id in repetidos)
+        return True, [], f"No repitas equipos en el sorteo manual: {nombres}."
+
+    faltantes = [equipo.nombre for equipo_id, equipo in equipos_por_id.items() if equipo_id not in seleccionados]
+    if faltantes:
+        return True, [], "Faltan equipos por emparejar en el sorteo manual: " + ", ".join(faltantes) + "."
+
+    return True, parejas, ""
 
 
 def grupo_completo(categoria, grupo):
@@ -5254,6 +5330,7 @@ def gestion_generar_fixture(request):
             cantidad_grupos = 2
 
     letras_grupos = [chr(65 + i) for i in range(cantidad_grupos)]
+    parejas_mata_mata = list(range((equipos.count() if categoria else 0) // 2))
 
     if request.method == "POST" and categoria:
         reemplazar = request.POST.get("reemplazar") == "on"
@@ -5285,7 +5362,16 @@ def gestion_generar_fixture(request):
                 messages.error(request, "El torneo mata-mata por parejas ida y vuelta necesita un numero par de equipos.")
                 return redirect(f"{request.path}?categoria={categoria.id}&grupos={cantidad_grupos}&tipo_fixture={tipo_fixture}")
 
-            partidos_a_crear = crear_partidos_mata_mata_ida_vuelta(categoria, equipos_mata_mata)
+            hay_sorteo_manual, parejas_manuales, error_sorteo_manual = parejas_mata_mata_desde_formulario(equipos_mata_mata, request.POST)
+            if error_sorteo_manual:
+                messages.error(request, error_sorteo_manual)
+                return redirect(f"{request.path}?categoria={categoria.id}&grupos={cantidad_grupos}&tipo_fixture={tipo_fixture}")
+
+            if hay_sorteo_manual:
+                partidos_a_crear = crear_partidos_mata_mata_desde_parejas(parejas_manuales)
+            else:
+                partidos_a_crear = crear_partidos_mata_mata_ida_vuelta(categoria, equipos_mata_mata)
+
             grupos_generados = {}
             for grupo_nombre, _, local, visitante in partidos_a_crear:
                 grupos_generados.setdefault(grupo_nombre, [])
@@ -5438,6 +5524,7 @@ def gestion_generar_fixture(request):
         "cantidad_grupos": cantidad_grupos,
         "tipo_fixture": tipo_fixture,
         "letras_grupos": letras_grupos,
+        "parejas_mata_mata": parejas_mata_mata,
         "grupos_generados": grupos_generados,
         "franjas_programacion": FRANJAS_PROGRAMACION_FIXTURE,
         "resumen_programacion": resumen_programacion,

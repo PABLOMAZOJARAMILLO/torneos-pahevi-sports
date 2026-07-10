@@ -45,10 +45,33 @@
 
     {% if tipo_fixture == "MATA_MATA_IDA_VUELTA" %}
     <div class="card">
-        <h2>Mata-mata ida/vuelta por sorteo</h2>
-        <p class="muted">La primera ronda sortea parejas de dos equipos. Cada pareja juega ida y vuelta.</p>
-        <p class="muted">Cuando se cierren esos partidos, se genera una tabla general y clasifican los primeros 8 equipos.</p>
+        <h2>Mata-mata ida/vuelta</h2>
+        <p class="muted">Puedes hacer el sorteo manual por parejas o dejar todas las parejas vacias para que el sistema sortee automaticamente.</p>
+        <p class="muted">Cada pareja juega ida y vuelta. Luego se arma una tabla general y clasifican los primeros 8 equipos.</p>
         <p class="muted">Cuartos: 1 vs 8, 2 vs 7, 3 vs 6 y 4 vs 5. Semifinal: ganador 1 vs ganador 4, y ganador 2 vs ganador 3.</p>
+    </div>
+
+    <div class="grid">
+        {% for indice in parejas_mata_mata %}
+        <div class="card">
+            <h2>Mata {{ forloop.counter }}</h2>
+            <label for="mata-local-{{ forloop.counter0 }}">Equipo ida local</label>
+            <select id="mata-local-{{ forloop.counter0 }}" name="mata_local_{{ forloop.counter0 }}">
+                <option value="">Sorteo automatico</option>
+                {% for equipo in equipos %}
+                    <option value="{{ equipo.id }}">{{ equipo.nombre }}</option>
+                {% endfor %}
+            </select>
+
+            <label for="mata-visitante-{{ forloop.counter0 }}">Equipo ida visitante</label>
+            <select id="mata-visitante-{{ forloop.counter0 }}" name="mata_visitante_{{ forloop.counter0 }}">
+                <option value="">Sorteo automatico</option>
+                {% for equipo in equipos %}
+                    <option value="{{ equipo.id }}">{{ equipo.nombre }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        {% endfor %}
     </div>
     {% else %}
     <div class="grid">
