@@ -6409,6 +6409,36 @@ def gestion_partido_confirmar_programacion(request, partido_id):
 @login_required
 @user_passes_test(es_editor_torneo)
 @require_POST
+def gestion_partido_eliminar(request, partido_id):
+    torneo = torneo_actual(request)
+    if not puede_gestionar_torneo(request, torneo, "programar"):
+        return denegar_permiso_torneo()
+    partidos = Partido.objects.select_related("categoria", "equipo_local", "equipo_visitante")
+    if torneo:
+        partidos = partidos.filter(categoria__torneo=torneo)
+    partido = get_object_or_404(partidos, id=partido_id)
+    descripcion = f"Elimino partido {partido.equipo_local} vs {partido.equipo_visitante}."
+    datos = {
+        "partido_id": partido.id,
+        "categoria": partido.categoria.nombre if partido.categoria_id else "",
+        "equipo_local": partido.equipo_local.nombre if partido.equipo_local_id else "",
+        "equipo_visitante": partido.equipo_visitante.nombre if partido.equipo_visitante_id else "",
+        "fecha": partido.fecha.isoformat() if partido.fecha else "",
+        "hora": partido.hora.isoformat() if partido.hora else "",
+        "estado": partido.estado,
+        "numero_fecha": partido.numero_fecha or "",
+        "grupo": partido.grupo or "",
+        "fase": partido.fase,
+    }
+    registrar_actividad(request, "ELIMINAR", partido, descripcion=descripcion, datos=datos)
+    partido.delete()
+    messages.success(request, "Partido eliminado correctamente.")
+    return redirect(request.POST.get("next") or "gestion_partidos")
+
+
+@login_required
+@user_passes_test(es_editor_torneo)
+@require_POST
 def gestion_partido_validar_estadisticas(request, partido_id):
     torneo = torneo_actual(request)
     if not puede_gestionar_torneo(request, torneo, "validar"):

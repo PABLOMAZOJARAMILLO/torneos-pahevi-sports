@@ -114,6 +114,11 @@
         {% endif %}
         {% if puede_programar %}
         <a class="btn" href="{% url 'gestion_partido_editar' partido.id %}">Programar</a>
+        <form class="inline-form" method="post" action="{% url 'gestion_partido_eliminar' partido.id %}" onsubmit="return confirm('Eliminar este partido borrara goles, tarjetas, alineaciones y sustituciones relacionadas. Continuar?');">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ request.get_full_path }}">
+            <button class="btn secondary" type="submit">Eliminar</button>
+        </form>
         {% if partido.estado_programacion == "SUGERIDA" %}
         <form class="inline-form" method="post" action="{% url 'gestion_partido_confirmar_programacion' partido.id %}">
             {% csrf_token %}

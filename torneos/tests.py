@@ -929,6 +929,113 @@ class AdminTorneoPermisosTests(TestCase):
         self.assertContains(respuesta, "Programar")
         self.assertNotContains(respuesta, "Editor juego")
 
+    def test_admin_programador_ve_opcion_eliminar_partido(self):
+        admin = User.objects.create_user("admin-elimina-ui", password="test")
+        AdminTorneo.objects.create(
+            usuario=admin,
+            torneo=self.torneo,
+            puede_editar=False,
+            puede_validar=False,
+            puede_programar=True,
+        )
+        partido = Partido.objects.create(
+            categoria=self.categoria,
+            equipo_local=self.equipo,
+            equipo_visitante=Equipo.objects.create(nombre="Rival Eliminar", categoria=self.categoria),
+            fecha=date(2026, 5, 1),
+            hora=time(15, 0),
+            estado="PROGRAMADO",
+        )
+        self.client.force_login(admin)
+
+        respuesta = self.client.get("/gestion/partidos/")
+
+        self.assertContains(respuesta, f'/gestion/partidos/{partido.id}/eliminar/')
+        self.assertContains(respuesta, "Eliminar")
+
+    def test_admin_programador_elimina_partido_y_registra_actividad(self):
+        admin = User.objects.create_user("admin-elimina", password="test")
+        AdminTorneo.objects.create(
+            usuario=admin,
+            torneo=self.torneo,
+            puede_editar=False,
+            puede_validar=False,
+            puede_programar=True,
+        )
+        rival = Equipo.objects.create(nombre="Rival Borrado", categoria=self.categoria)
+        jugador = Jugador.objects.create(
+            equipo=self.equipo,
+            dorsal=9,
+            nombres="Jugador Borrado",
+            cedula="9090",
+            fecha_nacimiento=date(1990, 1, 1),
+        )
+        jugador_rival = Jugador.objects.create(
+            equipo=rival,
+            dorsal=10,
+            nombres="Jugador Rival Borrado",
+            cedula="9091",
+            fecha_nacimiento=date(1991, 1, 1),
+        )
+        partido = Partido.objects.create(
+            categoria=self.categoria,
+            equipo_local=self.equipo,
+            equipo_visitante=rival,
+            fecha=date(2026, 5, 1),
+            hora=time(15, 0),
+            estado="PROGRAMADO",
+        )
+        Gol.objects.create(partido=partido, equipo=self.equipo, jugador=jugador, cantidad=1)
+        Tarjeta.objects.create(partido=partido, equipo=self.equipo, jugador=jugador, tipo="AMARILLA")
+        AlineacionPartido.objects.create(partido=partido, equipo=self.equipo, jugador=jugador, rol="TITULAR")
+        SustitucionPartido.objects.create(
+            partido=partido,
+            equipo=self.equipo,
+            jugador_sale=jugador,
+            jugador_entra=jugador_rival,
+            minuto=20,
+        )
+        self.client.force_login(admin)
+        session = self.client.session
+        session["torneo_id"] = self.torneo.id
+        session.save()
+
+        respuesta = self.client.post(f"/gestion/partidos/{partido.id}/eliminar/", {"next": "/gestion/partidos/"})
+
+        self.assertEqual(respuesta.status_code, 302)
+        self.assertFalse(Partido.objects.filter(id=partido.id).exists())
+        self.assertFalse(Gol.objects.filter(partido_id=partido.id).exists())
+        self.assertFalse(Tarjeta.objects.filter(partido_id=partido.id).exists())
+        self.assertFalse(AlineacionPartido.objects.filter(partido_id=partido.id).exists())
+        self.assertFalse(SustitucionPartido.objects.filter(partido_id=partido.id).exists())
+        self.assertTrue(
+            RegistroActividad.objects.filter(
+                usuario=admin,
+                torneo=self.torneo,
+                accion="ELIMINAR",
+                modelo="Partido",
+            ).exists()
+        )
+
+    def test_admin_sin_permiso_programar_no_elimina_partido(self):
+        partido = Partido.objects.create(
+            categoria=self.categoria,
+            equipo_local=self.equipo,
+            equipo_visitante=Equipo.objects.create(nombre="Rival Protegido", categoria=self.categoria),
+            fecha=date(2026, 5, 1),
+            hora=time(15, 0),
+            estado="PROGRAMADO",
+        )
+        self.client.force_login(self.admin)
+        session = self.client.session
+        session["torneo_id"] = self.torneo.id
+        session.save()
+
+        respuesta = self.client.post(f"/gestion/partidos/{partido.id}/eliminar/")
+
+        self.assertEqual(respuesta.status_code, 403)
+        self.assertTrue(Partido.objects.filter(id=partido.id).exists())
+
     def test_programar_partido_no_muestra_campos_de_resultado(self):
         admin = User.objects.create_user("admin-programa-form", password="test")
         AdminTorneo.objects.create(
