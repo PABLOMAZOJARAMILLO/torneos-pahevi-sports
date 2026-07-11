@@ -98,10 +98,50 @@ def equipos_delegado_vigentes(user):
     )
 
 
-def equipos_delegado_asignados(user):
+def equipos_delegado_asignados(user, torneo=None):
     if not user.is_authenticated:
         return Equipo.objects.none()
-    return Equipo.objects.select_related("categoria").filter(responsable=user)
+    equipos = Equipo.objects.select_related("categoria", "categoria__torneo").filter(responsable=user)
+    if torneo:
+        equipos = equipos.filter(categoria__torneo=torneo)
+    return equipos
+
+
+def torneos_delegado_asignados(user):
+    if not user.is_authenticated:
+        return Torneo.objects.none()
+    return Torneo.objects.filter(categorias__equipos__responsable=user).distinct().order_by("-fecha_inicio", "nombre")
+
+
+def torneo_actual_delegado(request):
+    torneos = torneos_delegado_asignados(request.user)
+    torneo_id = request.GET.get("torneo") or request.session.get("torneo_id")
+    torneo = None
+
+    if torneo_id:
+        torneo = torneos.filter(id=torneo_id, estado="ACTIVO").first()
+
+    if not torneo:
+        torneo = torneos.filter(estado="ACTIVO").first()
+
+    if torneo:
+        request.session["torneo_id"] = torneo.id
+
+    return torneo
+
+
+def equipos_alineacion_delegado_actual(request):
+    torneo = torneo_actual_delegado(request)
+    if not torneo:
+        return Equipo.objects.none()
+    return equipos_alineacion_para_usuario(request.user).filter(categoria__torneo=torneo)
+
+
+def equipos_editables_delegado_actual(request):
+    torneo = torneo_actual_delegado(request)
+    if not torneo:
+        return Equipo.objects.none()
+    return equipos_editables_para_usuario(request.user).filter(categoria__torneo=torneo)
 
 
 def puede_editar_equipo_delegado(user, equipo):
@@ -4238,7 +4278,9 @@ def detalle_equipo(request, equipo_id):
 
 @login_required
 def mis_equipos(request):
-    equipos = list(equipos_delegado_asignados(request.user).order_by('categoria__nombre', 'nombre'))
+    torneo = torneo_actual_delegado(request)
+    equipos_qs = equipos_delegado_asignados(request.user, torneo=torneo) if torneo else Equipo.objects.none()
+    equipos = list(equipos_qs.order_by('categoria__nombre', 'nombre'))
     ahora = timezone.now()
     for equipo in equipos:
         equipo.acceso_vigente_delegado = equipo.acceso_delegado_vigente()
@@ -4250,13 +4292,14 @@ def mis_equipos(request):
             equipo.estado_acceso_delegado = f"Disponible hasta {timezone.localtime(equipo.acceso_delegado_hasta).strftime('%d/%m/%Y %H:%M')}."
 
     return render(request, 'equipos/mis_equipos.html', {
-        'equipos': equipos
+        'equipos': equipos,
+        'torneo_actual': torneo,
     })
 
 
 @login_required
 def delegado_equipo_editar(request, equipo_id):
-    equipo = get_object_or_404(equipos_alineacion_para_usuario(request.user), id=equipo_id)
+    equipo = get_object_or_404(equipos_alineacion_delegado_actual(request), id=equipo_id)
     if not puede_editar_equipo_delegado(request.user, equipo):
         messages.warning(request, "La edicion del equipo esta bloqueada. Puedes cargar la alineacion de partidos desde aqui.")
         return redirect("delegado_partidos_equipo", equipo_id=equipo.id)
@@ -4288,17 +4331,18 @@ def delegado_equipo_editar(request, equipo_id):
 
 @login_required
 def delegado_partidos_equipo(request, equipo_id):
-    equipo = get_object_or_404(equipos_alineacion_para_usuario(request.user), id=equipo_id)
+    equipo = get_object_or_404(equipos_alineacion_delegado_actual(request), id=equipo_id)
 
     return render(request, "equipos/delegado_partidos_equipo.html", {
         "equipo": equipo,
+        "torneo_actual": equipo.categoria.torneo if equipo.categoria_id else None,
         "partidos_alineacion": partidos_alineacion_para_equipo(equipo),
     })
 
 
 @login_required
 def delegado_alineacion_partido(request, equipo_id, partido_id):
-    equipo = get_object_or_404(equipos_alineacion_para_usuario(request.user), id=equipo_id)
+    equipo = get_object_or_404(equipos_alineacion_delegado_actual(request), id=equipo_id)
     partido = get_object_or_404(
         Partido.objects.select_related("categoria", "equipo_local", "equipo_visitante"),
         id=partido_id,
@@ -4404,7 +4448,7 @@ def delegado_alineacion_partido(request, equipo_id, partido_id):
 
 @login_required
 def delegado_jugador_nuevo(request, equipo_id):
-    equipo = get_object_or_404(equipos_editables_para_usuario(request.user), id=equipo_id)
+    equipo = get_object_or_404(equipos_editables_delegado_actual(request), id=equipo_id)
     if not puede_editar_equipo_delegado(request.user, equipo):
         return HttpResponseForbidden("El acceso a este equipo ya no esta vigente.")
 
@@ -4437,7 +4481,7 @@ def delegado_jugador_nuevo(request, equipo_id):
 @login_required
 def delegado_jugador_editar(request, jugador_id):
     jugador = get_object_or_404(
-        Jugador.objects.select_related("equipo", "equipo__categoria"),
+        Jugador.objects.select_related("equipo", "equipo__categoria").filter(equipo__in=equipos_editables_delegado_actual(request)),
         id=jugador_id,
     )
     if not puede_editar_equipo_delegado(request.user, jugador.equipo):
@@ -4473,7 +4517,7 @@ def delegado_jugador_editar(request, jugador_id):
 @require_POST
 def delegado_jugador_eliminar(request, jugador_id):
     jugador = get_object_or_404(
-        Jugador.objects.select_related("equipo"),
+        Jugador.objects.select_related("equipo", "equipo__categoria").filter(equipo__in=equipos_editables_delegado_actual(request)),
         id=jugador_id,
     )
     equipo_id = jugador.equipo_id

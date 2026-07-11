@@ -4,7 +4,12 @@
 {% block heading %}Mis equipos{% endblock %}
 
 {% block content %}
-<p class="muted">Estos son los equipos asignados a tu usuario. Si el acceso esta vencido o sin fecha, pide al administrador actualizarlo.</p>
+<p class="muted">Estos son los equipos asignados a tu usuario para el torneo activo. Si el acceso esta vencido o sin fecha, pide al administrador actualizarlo.</p>
+{% if torneo_actual %}
+<div class="card">
+    <strong>Torneo activo:</strong> {{ torneo_actual.nombre }}
+</div>
+{% endif %}
 
 {% for equipo in equipos %}
 <div class="row">
@@ -15,7 +20,7 @@
         <div>
             <div>{{ equipo.nombre }}</div>
             <div class="muted">
-                {{ equipo.categoria.nombre }}
+                {{ equipo.categoria.torneo.nombre }} - {{ equipo.categoria.nombre }}
                 - {{ equipo.estado_acceso_delegado }}
             </div>
         </div>
@@ -30,6 +35,6 @@
     </div>
 </div>
 {% empty %}
-<div class="card">No tienes equipos asignados a este usuario.</div>
+<div class="card">No tienes equipos asignados en el torneo activo.</div>
 {% endfor %}
 {% endblock %}

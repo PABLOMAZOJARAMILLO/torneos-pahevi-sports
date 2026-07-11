@@ -8,13 +8,16 @@
 
 <div class="card">
     <div>{{ equipo.nombre }}</div>
-    <div class="muted">{{ equipo.categoria.nombre }}</div>
+    <div class="muted">{{ equipo.categoria.torneo.nombre }} - {{ equipo.categoria.nombre }}</div>
 </div>
 
 {% for item in partidos_alineacion %}
 <div class="row">
     <div>
         <div>{{ item.partido.equipo_local.nombre }} vs {{ item.partido.equipo_visitante.nombre }}</div>
+        <div class="muted">
+            {{ item.partido.categoria.torneo.nombre }} - {{ item.partido.categoria.nombre }} - {{ item.partido.numero_fecha|default:"Sin fecha fixture" }}
+        </div>
         <div class="muted">
             {{ item.partido.fecha|date:"d/m/Y" }} - {{ item.partido.hora|time:"H:i" }} - {{ item.partido.estado }} - Rival: {{ item.rival.nombre }}
         </div>

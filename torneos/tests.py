@@ -1732,6 +1732,94 @@ class DelegadoEquipoTests(TestCase):
         self.assertContains(respuesta, "Alineacion de partidos")
         self.assertContains(respuesta, "Edicion de equipo bloqueada")
 
+    def test_mis_equipos_filtra_torneo_activo_y_oculta_historicos(self):
+        torneo_viejo = Torneo.objects.create(
+            nombre="Torneo anterior",
+            fecha_inicio=date(2025, 1, 1),
+            estado="FINALIZADO",
+        )
+        categoria_vieja = Categoria.objects.create(
+            nombre="Plus 50",
+            edad_minima=50,
+            edad_maxima=80,
+            torneo=torneo_viejo,
+        )
+        Equipo.objects.create(
+            nombre="Congal historico",
+            categoria=categoria_vieja,
+            responsable=self.delegado,
+            acceso_delegado_hasta=timezone.now() + timedelta(days=2),
+        )
+        self.client.force_login(self.delegado)
+        session = self.client.session
+        session["torneo_id"] = torneo_viejo.id
+        session.save()
+
+        respuesta = self.client.get("/delegado/equipos/")
+
+        self.assertContains(respuesta, "Niqueleros")
+        self.assertContains(respuesta, "Veranero - Senior")
+        self.assertNotContains(respuesta, "Congal historico")
+        self.assertNotContains(respuesta, "Plus 50")
+
+    def test_mis_equipos_respeta_torneo_activo_seleccionado(self):
+        torneo_interbarrios = Torneo.objects.create(
+            nombre="Interbarrios 2026",
+            fecha_inicio=date(2026, 2, 1),
+            estado="ACTIVO",
+        )
+        categoria_interbarrios = Categoria.objects.create(
+            nombre="Interbarrios",
+            edad_minima=18,
+            edad_maxima=60,
+            torneo=torneo_interbarrios,
+        )
+        Equipo.objects.create(
+            nombre="Congal Interbarrios",
+            categoria=categoria_interbarrios,
+            responsable=self.delegado,
+            acceso_delegado_hasta=timezone.now() + timedelta(days=2),
+        )
+        self.client.force_login(self.delegado)
+        session = self.client.session
+        session["torneo_id"] = torneo_interbarrios.id
+        session.save()
+
+        respuesta = self.client.get("/delegado/equipos/")
+
+        self.assertContains(respuesta, "Torneo activo:</strong> Interbarrios 2026", html=False)
+        self.assertContains(respuesta, "Congal Interbarrios")
+        self.assertContains(respuesta, "Interbarrios 2026 - Interbarrios")
+        self.assertNotContains(respuesta, "Niqueleros")
+        self.assertNotContains(respuesta, "Veranero - Senior")
+
+    def test_delegado_no_accede_por_url_a_equipo_de_torneo_no_activo(self):
+        torneo_viejo = Torneo.objects.create(
+            nombre="Torneo viejo URL",
+            fecha_inicio=date(2025, 1, 1),
+            estado="FINALIZADO",
+        )
+        categoria_vieja = Categoria.objects.create(
+            nombre="Senior viejo",
+            edad_minima=18,
+            edad_maxima=60,
+            torneo=torneo_viejo,
+        )
+        equipo_viejo = Equipo.objects.create(
+            nombre="Equipo viejo URL",
+            categoria=categoria_vieja,
+            responsable=self.delegado,
+            acceso_delegado_hasta=timezone.now() + timedelta(days=2),
+        )
+        self.client.force_login(self.delegado)
+        session = self.client.session
+        session["torneo_id"] = torneo_viejo.id
+        session.save()
+
+        respuesta = self.client.get(f"/delegado/equipos/{equipo_viejo.id}/partidos/")
+
+        self.assertEqual(respuesta.status_code, 404)
+
     def test_delegado_sin_acceso_a_edicion_de_equipo_puede_ver_partidos_de_alineacion(self):
         self.equipo.acceso_delegado_hasta = None
         self.equipo.save(update_fields=["acceso_delegado_hasta"])
