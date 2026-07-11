@@ -588,6 +588,22 @@ class PlanilleroPartidoTests(TestCase):
         self.assertContains(respuesta, 'data-edad="+40"')
         self.assertContains(respuesta, 'data-etiqueta-edad="+40"')
 
+    def test_guardar_alineacion_masiva_asigna_posicion_automatica_a_titular(self):
+        self.client.force_login(self.planillero)
+
+        respuesta = self.client.post(
+            f"/partido/{self.partido.id}/guardar-alineacion-movil/",
+            {
+                "equipo": self.local.id,
+                f"rol_{self.jugador.id}": "TITULAR",
+            },
+        )
+
+        self.assertEqual(respuesta.status_code, 302)
+        alineacion = AlineacionPartido.objects.get(partido=self.partido, equipo=self.local, jugador=self.jugador)
+        self.assertEqual(alineacion.rol, "TITULAR")
+        self.assertIn(alineacion.posicion_cancha, {codigo for codigo, _ in AlineacionPartido.POSICIONES_CANCHA})
+
     @override_settings(STORAGES={
         "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
         "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
@@ -1935,6 +1951,30 @@ class DelegadoEquipoTests(TestCase):
                 posicion_cancha="DC",
             ).exists()
         )
+
+    def test_delegado_asigna_posicion_automatica_si_marca_titular_desde_lista(self):
+        ahora_local = timezone.localtime()
+        partido = Partido.objects.create(
+            categoria=self.categoria,
+            equipo_local=self.equipo,
+            equipo_visitante=self.otro_equipo,
+            fecha=(ahora_local - timedelta(hours=1)).date(),
+            hora=(ahora_local - timedelta(hours=1)).time(),
+            estado="PROGRAMADO",
+        )
+        self.client.force_login(self.delegado)
+
+        respuesta = self.client.post(
+            f"/delegado/equipos/{self.equipo.id}/partidos/{partido.id}/alineacion/",
+            {
+                f"rol_{self.jugador.id}": "TITULAR",
+            },
+        )
+
+        self.assertEqual(respuesta.status_code, 302)
+        alineacion = AlineacionPartido.objects.get(partido=partido, equipo=self.equipo, jugador=self.jugador)
+        self.assertEqual(alineacion.rol, "TITULAR")
+        self.assertIn(alineacion.posicion_cancha, {codigo for codigo, _ in AlineacionPartido.POSICIONES_CANCHA})
 
     def test_delegado_guarda_titular_desde_cancha_y_suplente_desde_banco(self):
         suplente = Jugador.objects.create(

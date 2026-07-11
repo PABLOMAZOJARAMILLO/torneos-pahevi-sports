@@ -192,6 +192,9 @@
         display: grid;
         gap: 10px;
     }
+    .banco-jugador[hidden] {
+        display: none;
+    }
     .banco-jugador {
         display: grid;
         gap: 8px;
@@ -378,6 +381,24 @@
                     if (fuera) fuera.checked = true;
                 }
             });
+            form.querySelectorAll('[data-jugador-row]').forEach((row) => {
+                row.hidden = titulares.has(row.dataset.jugadorRow);
+            });
+        }
+
+        function asignarTitularAutomatico(playerId) {
+            if (selects.some((select) => select.value === playerId)) {
+                syncOptions();
+                return true;
+            }
+            const libres = selects.filter((select) => !select.value);
+            if (!libres.length) {
+                return false;
+            }
+            const select = libres[Math.floor(Math.random() * libres.length)];
+            select.value = playerId;
+            syncOptions();
+            return true;
         }
 
         function selectedPlayerIds(exceptSelect) {
@@ -464,10 +485,10 @@
             input.addEventListener('change', function () {
                 const playerId = input.name.replace('rol_', '');
                 if (input.checked && input.value === 'TITULAR') {
-                    if (!selects.some((select) => select.value === playerId)) {
+                    if (!asignarTitularAutomatico(playerId)) {
                         const fuera = form.querySelector('input[name="rol_' + playerId + '"][value=""]');
                         if (fuera) fuera.checked = true;
-                        window.alert('Selecciona la posicion del titular directamente en la cancha.');
+                        window.alert('Ya estan ocupadas las 11 posiciones de la cancha.');
                     }
                 } else if (input.checked) {
                     clearPlayerFromField(playerId);

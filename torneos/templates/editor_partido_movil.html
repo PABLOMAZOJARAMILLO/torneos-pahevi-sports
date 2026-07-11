@@ -287,6 +287,9 @@
             color: #dbeafe;
             font-size: 11px;
         }
+        .jugador-lineup-row[hidden] {
+            display: none;
+        }
         .jugador-lineup-row {
             background: #0f1b2e;
             border: 1px solid #2f4d6f;
@@ -1188,9 +1191,18 @@ function activarTabEditor(tabId) {
     return true;
 }
 
+function actualizarVisibilidadListaAlineacion(panel) {
+    if (!panel) return;
+    panel.querySelectorAll('.jugador-lineup-row').forEach(function(fila) {
+        const titular = fila.querySelector('input[value="TITULAR"]');
+        fila.hidden = Boolean(titular && titular.checked);
+    });
+}
+
 function actualizarConteoTitulares(panel) {
     if (!panel) return;
 
+    actualizarVisibilidadListaAlineacion(panel);
     const contador = panel.querySelector('[data-titulares-count]');
     const titulares = panel.querySelectorAll('input[value="TITULAR"]:checked').length;
     if (contador) contador.textContent = titulares;
@@ -1308,6 +1320,30 @@ function pintarSlot(slot, option) {
     dorsal.style.display = option.dataset.dorsal ? 'grid' : 'none';
     edad.textContent = option.dataset.edad || '';
     edad.style.display = option.dataset.edad ? 'block' : 'none';
+}
+
+function posicionesLibresAlineacion(panel) {
+    const usadas = new Set();
+    panel.querySelectorAll('[data-posicion-select]').forEach(function(selector) {
+        if (selector.value) usadas.add(selector.value);
+    });
+    return Array.from(panel.querySelectorAll('[data-slot-select]')).filter(function(selector) {
+        return !selector.value && !usadas.has(selector.dataset.posicionSlot || '');
+    });
+}
+
+function asignarPosicionAutomaticaAFila(panel, fila) {
+    const titular = fila.querySelector('input[value="TITULAR"]');
+    const posicion = fila.querySelector('[data-posicion-select]');
+    if (!titular || !posicion || !titular.checked || posicion.value) return true;
+
+    const libres = posicionesLibresAlineacion(panel);
+    if (!libres.length) return false;
+
+    const slot = libres[Math.floor(Math.random() * libres.length)];
+    posicion.disabled = false;
+    posicion.value = slot.dataset.posicionSlot || '';
+    return true;
 }
 
 function sincronizarCanchaDesdeFilas(panel) {
@@ -1469,6 +1505,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 asignarJugadorASlot(panel, evento.target);
             }
             if (evento.target.matches('input[type="radio"]')) {
+                const fila = evento.target.closest('.jugador-lineup-row');
+                if (evento.target.value === 'TITULAR' && evento.target.checked && fila && !asignarPosicionAutomaticaAFila(panel, fila)) {
+                    const fuera = fila.querySelector('input[value=""]');
+                    if (fuera) fuera.checked = true;
+                    window.alert('Ya estan ocupadas las 11 posiciones de la cancha.');
+                }
                 actualizarConteoTitulares(panel);
                 actualizarSelectoresPosicion(panel);
                 sincronizarCanchaDesdeFilas(panel);

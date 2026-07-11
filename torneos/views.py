@@ -3715,6 +3715,28 @@ def _marcar_roles_alineacion(jugadores, alineaciones_por_jugador, partido=None):
     return jugadores
 
 
+
+def asignar_posiciones_titulares_automaticas(seleccionados, indice_rol=1, indice_posicion=2):
+    posiciones_usadas = {
+        item[indice_posicion]
+        for item in seleccionados
+        if item[indice_rol] == "TITULAR" and item[indice_posicion]
+    }
+    posiciones_libres = [
+        codigo
+        for codigo, _ in AlineacionPartido.POSICIONES_CANCHA
+        if codigo not in posiciones_usadas
+    ]
+    random.shuffle(posiciones_libres)
+
+    nuevos = []
+    for item in seleccionados:
+        valores = list(item)
+        if valores[indice_rol] == "TITULAR" and not valores[indice_posicion] and posiciones_libres:
+            valores[indice_posicion] = posiciones_libres.pop(0)
+        nuevos.append(tuple(valores))
+    return nuevos
+
 def _registrar_alertas_validacion_alineacion(partido, equipo, user, seleccionados, errores_edad):
     titulares = [int(jugador_id) for jugador_id, rol, _, _ in seleccionados if rol == "TITULAR"]
     documentos_faltantes = [int(jugador_id) for jugador_id, rol, _, documento_ok in seleccionados if rol == "TITULAR" and not documento_ok]
@@ -4113,6 +4135,7 @@ def guardar_alineacion_masiva_movil(request, partido_id):
         messages.error(request, "Solo puedes seleccionar 11 titulares por equipo.")
         return redirect(_url_editor_tab(partido.id, "alineacion"))
     errores_edad = validar_reglas_edad_titulares(partido, equipo, titulares)
+    seleccionados = asignar_posiciones_titulares_automaticas(seleccionados, indice_rol=1, indice_posicion=2)
 
     AlineacionPartido.objects.filter(partido=partido, equipo=equipo).delete()
     ahora_validacion = timezone.now()
@@ -4422,6 +4445,7 @@ def delegado_alineacion_partido(request, equipo_id, partido_id):
             return redirect("delegado_alineacion_partido", equipo_id=equipo.id, partido_id=partido.id)
 
         errores_edad = validar_reglas_edad_titulares(partido, equipo, titulares)
+        seleccionados = asignar_posiciones_titulares_automaticas(seleccionados, indice_rol=1, indice_posicion=2)
         AlineacionPartido.objects.filter(partido=partido, equipo=equipo).delete()
         AlineacionPartido.objects.bulk_create([
             AlineacionPartido(partido=partido, equipo=equipo, jugador_id=jugador_id, rol=rol, posicion_cancha=posicion)
