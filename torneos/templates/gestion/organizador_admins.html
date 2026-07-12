@@ -13,8 +13,20 @@
     <p class="muted">Este admin tendra acceso automatico a todos los torneos actuales y futuros de este organizador.</p>
     <form method="post">
         {% csrf_token %}
+        <input type="hidden" name="accion" value="asignar_admin">
         {{ form.as_p }}
         <button class="btn" type="submit">Guardar admin</button>
+    </form>
+</div>
+
+<div class="card" style="margin-bottom:16px;">
+    <h2 style="margin-top:0;">Crear admin nuevo y asignar</h2>
+    <p class="muted">Crea el usuario de acceso y queda asignado automaticamente a este organizador.</p>
+    <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="accion" value="crear_admin">
+        {{ crear_form.as_p }}
+        <button class="btn" type="submit">Crear y asignar admin</button>
     </form>
 </div>
 

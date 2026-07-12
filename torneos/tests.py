@@ -997,6 +997,53 @@ class AdminTorneoPermisosTests(TestCase):
         self.assertNotEqual(respuesta.status_code, 200)
         self.assertFalse(Organizador.objects.filter(nombre="Organizador No Permitido").exists())
 
+    def test_admin_principal_puede_crear_y_asignar_admin_de_organizador(self):
+        admin_principal = User.objects.create_user("admin-principal-organizador", password="test", is_staff=True)
+        self.client.force_login(admin_principal)
+
+        respuesta = self.client.post(
+            f"/gestion/organizadores/{self.organizador.id}/admins/",
+            {
+                "accion": "crear_admin",
+                "username": "nuevo-admin-org",
+                "first_name": "Nuevo",
+                "last_name": "Admin",
+                "email": "nuevo@example.com",
+                "password": "clave-temporal-123",
+                "puede_editar": "on",
+                "puede_validar": "on",
+                "puede_programar": "on",
+                "activo": "on",
+            },
+        )
+
+        usuario = User.objects.get(username="nuevo-admin-org")
+        self.assertEqual(respuesta.status_code, 302)
+        self.assertTrue(usuario.is_staff)
+        self.assertTrue(AdminOrganizador.objects.filter(usuario=usuario, organizador=self.organizador).exists())
+
+    def test_admin_principal_no_duplica_usuario_al_crear_admin_organizador(self):
+        admin_principal = User.objects.create_user("admin-principal-duplicado", password="test", is_staff=True)
+        User.objects.create_user("admin-existente", password="test", is_staff=True)
+        self.client.force_login(admin_principal)
+
+        respuesta = self.client.post(
+            f"/gestion/organizadores/{self.organizador.id}/admins/",
+            {
+                "accion": "crear_admin",
+                "username": "admin-existente",
+                "password": "clave-temporal-123",
+                "puede_editar": "on",
+                "puede_validar": "on",
+                "puede_programar": "on",
+                "activo": "on",
+            },
+        )
+
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertContains(respuesta, "Ya existe un usuario")
+        self.assertFalse(AdminOrganizador.objects.filter(usuario__username="admin-existente", organizador=self.organizador).exists())
+
     def test_admin_de_organizador_ve_torneos_del_organizador(self):
         torneo_organizador = Torneo.objects.create(
             nombre="Segundo del organizador",

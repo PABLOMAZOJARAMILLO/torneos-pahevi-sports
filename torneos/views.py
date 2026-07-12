@@ -36,7 +36,7 @@ import requests
 from django.views.decorators.http import require_POST
 from openpyxl import load_workbook
 
-from .forms import TorneoForm, OrganizadorForm, CategoriaForm, DocumentoForm, EquipoForm, EquipoDelegadoForm, EquipoReinscripcionForm, JugadorForm, JugadorDelegadoForm, PartidoForm, PartidoProgramacionForm, AdminTorneoForm, AdminOrganizadorForm
+from .forms import TorneoForm, OrganizadorForm, CategoriaForm, DocumentoForm, EquipoForm, EquipoDelegadoForm, EquipoReinscripcionForm, JugadorForm, JugadorDelegadoForm, PartidoForm, PartidoProgramacionForm, AdminTorneoForm, AdminOrganizadorForm, CrearAdminOrganizadorForm
 from .models import Torneo, Organizador, Categoria, Documento, Equipo, Partido, Gol, Tarjeta, Jugador, AlineacionPartido, SustitucionPartido, ReglaEdadCategoria, AdminTorneo, AdminOrganizador, RegistroActividad, SolicitudValidacion, limpiar_ruta_cloudinary
 from .planillas_pdf import generar_planilla_juego_pdf, nombre_archivo_planilla
 from django.utils import timezone
@@ -4853,54 +4853,82 @@ def gestion_organizador_editar(request, organizador_id):
 def gestion_organizador_admins(request, organizador_id):
     organizador = get_object_or_404(Organizador, id=organizador_id)
     asignaciones = AdminOrganizador.objects.select_related("usuario").filter(organizador=organizador)
-    form = AdminOrganizadorForm(request.POST or None)
+    form = AdminOrganizadorForm()
+    crear_form = CrearAdminOrganizadorForm()
 
-    if request.method == "POST" and form.is_valid():
-        asignacion = form.save(commit=False)
-        asignacion.organizador = organizador
-        existente = AdminOrganizador.objects.filter(organizador=organizador, usuario=asignacion.usuario).first()
-
-        if existente:
-            existente.puede_editar = asignacion.puede_editar
-            existente.puede_validar = asignacion.puede_validar
-            existente.puede_programar = asignacion.puede_programar
-            existente.puede_descargar_planillas = asignacion.puede_descargar_planillas
-            existente.activo = asignacion.activo
-            existente.save()
-            asignacion = existente
-            mensaje = "Admin actualizado correctamente."
+    if request.method == "POST":
+        accion = request.POST.get("accion")
+        if accion == "crear_admin":
+            crear_form = CrearAdminOrganizadorForm(request.POST)
+            if crear_form.is_valid():
+                usuario = crear_form.save_user()
+                asignacion = AdminOrganizador.objects.create(
+                    organizador=organizador,
+                    usuario=usuario,
+                    puede_editar=crear_form.cleaned_data["puede_editar"],
+                    puede_validar=crear_form.cleaned_data["puede_validar"],
+                    puede_programar=crear_form.cleaned_data["puede_programar"],
+                    puede_descargar_planillas=crear_form.cleaned_data["puede_descargar_planillas"],
+                    activo=crear_form.cleaned_data["activo"],
+                )
+                registrar_actividad(
+                    request,
+                    "CREAR_ADMIN_ORGANIZADOR",
+                    torneo=None,
+                    descripcion=f"Creo admin {usuario.username} y lo asigno al organizador {organizador.nombre}.",
+                    datos={"organizador": organizador.nombre, "usuario": usuario.username},
+                )
+                messages.success(request, f"Admin creado y asignado: {usuario.username}.")
+                return redirect("gestion_organizador_admins", organizador_id=organizador.id)
         else:
-            asignacion.save()
-            mensaje = "Admin asignado correctamente."
+            form = AdminOrganizadorForm(request.POST)
+            if form.is_valid():
+                asignacion = form.save(commit=False)
+                asignacion.organizador = organizador
+                existente = AdminOrganizador.objects.filter(organizador=organizador, usuario=asignacion.usuario).first()
 
-        registrar_actividad(
-            request,
-            "ASIGNAR_ADMIN_ORGANIZADOR",
-            torneo=None,
-            descripcion=f"Asigno admin {asignacion.usuario.username} al organizador {organizador.nombre}.",
-            datos={
-                "organizador": organizador.nombre,
-                "usuario": asignacion.usuario.username,
-                "puede_editar": asignacion.puede_editar,
-                "puede_validar": asignacion.puede_validar,
-                "puede_programar": asignacion.puede_programar,
-                "puede_descargar_planillas": asignacion.puede_descargar_planillas,
-                "activo": asignacion.activo,
-            },
-        )
-        messages.success(request, mensaje)
-        return redirect("gestion_organizador_admins", organizador_id=organizador.id)
+                if existente:
+                    existente.puede_editar = asignacion.puede_editar
+                    existente.puede_validar = asignacion.puede_validar
+                    existente.puede_programar = asignacion.puede_programar
+                    existente.puede_descargar_planillas = asignacion.puede_descargar_planillas
+                    existente.activo = asignacion.activo
+                    existente.save()
+                    asignacion = existente
+                    mensaje = "Admin actualizado correctamente."
+                else:
+                    asignacion.save()
+                    mensaje = "Admin asignado correctamente."
+
+                registrar_actividad(
+                    request,
+                    "ASIGNAR_ADMIN_ORGANIZADOR",
+                    torneo=None,
+                    descripcion=f"Asigno admin {asignacion.usuario.username} al organizador {organizador.nombre}.",
+                    datos={
+                        "organizador": organizador.nombre,
+                        "usuario": asignacion.usuario.username,
+                        "puede_editar": asignacion.puede_editar,
+                        "puede_validar": asignacion.puede_validar,
+                        "puede_programar": asignacion.puede_programar,
+                        "puede_descargar_planillas": asignacion.puede_descargar_planillas,
+                        "activo": asignacion.activo,
+                    },
+                )
+                messages.success(request, mensaje)
+                return redirect("gestion_organizador_admins", organizador_id=organizador.id)
 
     return render(request, "gestion/organizador_admins.html", {
         "organizador": organizador,
         "asignaciones": asignaciones,
         "form": form,
+        "crear_form": crear_form,
         "torneos": organizador.torneos.order_by("-fecha_inicio", "nombre"),
     })
 
 
 @login_required
-@user_passes_test(es_superadmin)
+@user_passes_test(puede_gestionar_organizadores)
 @require_POST
 def gestion_organizador_admin_eliminar(request, asignacion_id):
     asignacion = get_object_or_404(AdminOrganizador.objects.select_related("organizador", "usuario"), id=asignacion_id)

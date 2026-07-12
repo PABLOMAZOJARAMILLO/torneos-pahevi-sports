@@ -79,6 +79,37 @@ class AdminOrganizadorForm(forms.ModelForm):
         self.fields["usuario"].label_from_instance = lambda obj: obj.get_full_name() or obj.username
 
 
+class CrearAdminOrganizadorForm(forms.Form):
+    username = forms.CharField(label="Usuario", max_length=150)
+    first_name = forms.CharField(label="Nombre", max_length=150, required=False)
+    last_name = forms.CharField(label="Apellido", max_length=150, required=False)
+    email = forms.EmailField(label="Correo", required=False)
+    password = forms.CharField(label="Contraseña temporal", widget=forms.PasswordInput)
+    puede_editar = forms.BooleanField(label="Puede editar", required=False, initial=True)
+    puede_validar = forms.BooleanField(label="Puede validar", required=False, initial=True)
+    puede_programar = forms.BooleanField(label="Puede programar", required=False, initial=True)
+    puede_descargar_planillas = forms.BooleanField(label="Puede descargar planillas", required=False, initial=False)
+    activo = forms.BooleanField(label="Activo", required=False, initial=True)
+
+    def clean_username(self):
+        username = self.cleaned_data["username"].strip()
+        if User.objects.filter(username__iexact=username).exists():
+            raise forms.ValidationError("Ya existe un usuario con ese nombre. Usa el formulario de asignar admin existente.")
+        return username
+
+    def save_user(self):
+        user = User(
+            username=self.cleaned_data["username"],
+            first_name=self.cleaned_data.get("first_name", ""),
+            last_name=self.cleaned_data.get("last_name", ""),
+            email=self.cleaned_data.get("email", ""),
+            is_staff=True,
+        )
+        user.set_password(self.cleaned_data["password"])
+        user.save()
+        return user
+
+
 class DocumentoForm(forms.ModelForm):
     archivo_subido = forms.FileField(label="Archivo", required=False)
 
