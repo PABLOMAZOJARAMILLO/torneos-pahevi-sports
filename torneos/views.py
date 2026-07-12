@@ -4338,6 +4338,12 @@ def delegado_equipo_editar(request, equipo_id):
 
     if request.method == "POST" and form.is_valid():
         equipo = form.save(commit=False)
+        aplicar_imagen_cloudinary(
+            equipo,
+            "escudo",
+            request.POST.get("imagen_cloudinary"),
+            request.FILES.get("escudo"),
+        )
         equipo.save()
         crear_solicitud_validacion(
             "EQUIPO",
@@ -4355,6 +4361,9 @@ def delegado_equipo_editar(request, equipo_id):
         "equipo": equipo,
         "form": form,
         "jugadores": jugadores,
+        "escudo_actual": escudo_url(equipo),
+        "cloudinary_images": listar_imagenes_cloudinary(),
+        "cloudinary_label": "Seleccionar escudo existente de Cloudinary",
     })
 
 
