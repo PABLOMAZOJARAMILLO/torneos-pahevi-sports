@@ -4,6 +4,25 @@
 {% block heading %}Mis equipos{% endblock %}
 
 {% block content %}
+<style>
+    .equipo-delegado-avatar {
+        width: 64px;
+        height: 64px;
+        padding: 1px;
+        border-radius: 12px;
+        background: #ffffff;
+        object-fit: contain;
+        object-position: center;
+        flex: 0 0 64px;
+    }
+    @media (max-width: 640px) {
+        .equipo-delegado-avatar {
+            width: 60px;
+            height: 60px;
+            flex-basis: 60px;
+        }
+    }
+</style>
 <p class="muted">Estos son los equipos asignados a tu usuario para el torneo activo. Si el acceso esta vencido o sin fecha, pide al administrador actualizarlo.</p>
 {% if torneo_actual %}
 <div class="card">
@@ -15,7 +34,7 @@
 <div class="row">
     <div style="display:flex;align-items:center;gap:12px;">
         {% if equipo.escudo %}
-            <img class="avatar" src="{{ equipo.escudo.url }}" alt="">
+            <img class="avatar equipo-delegado-avatar" src="{{ equipo.escudo.url }}" alt="{{ equipo.nombre }}">
         {% endif %}
         <div>
             <div>{{ equipo.nombre }}</div>
