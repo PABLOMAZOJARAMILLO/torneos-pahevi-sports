@@ -136,6 +136,7 @@ class PlanillasJuegoUploadTests(TestCase):
         self.client.force_login(self.planillero)
 
         response = self.client.post("/gestion/planillas-juego/nueva/", {
+            "partido": self.partido.id,
             "categoria": self.categoria.id,
             "numero_fecha": "Fecha 1",
             "equipo_local": self.equipo_local.id,
@@ -161,6 +162,7 @@ class PlanillasJuegoUploadTests(TestCase):
         self.client.force_login(otro_planillero)
 
         response = self.client.post("/gestion/planillas-juego/nueva/", {
+            "partido": self.partido.id,
             "categoria": self.categoria.id,
             "numero_fecha": "Fecha 1",
             "equipo_local": self.equipo_local.id,
@@ -173,6 +175,25 @@ class PlanillasJuegoUploadTests(TestCase):
         self.assertEqual(response.status_code, 302)
         self.assertFalse(Documento.objects.filter(tipo="PLANILLA_JUEGO").exists())
         upload_mock.assert_not_called()
+
+    @patch("torneos.views.subir_documento_torneo", return_value="https://example.com/planilla.jpg")
+    def test_partido_del_fixture_autocompleta_datos_de_planilla(self, upload_mock):
+        self.client.force_login(self.planillero)
+
+        response = self.client.post("/gestion/planillas-juego/nueva/", {
+            "partido": self.partido.id,
+            "imagenes": self.archivo_prueba(),
+        })
+
+        self.assertEqual(response.status_code, 302)
+        documento = Documento.objects.get(tipo="PLANILLA_JUEGO")
+        self.assertEqual(documento.categoria, self.categoria)
+        self.assertEqual(documento.equipo_local, self.equipo_local)
+        self.assertEqual(documento.equipo_visitante, self.equipo_visitante)
+        self.assertEqual(documento.numero_fecha, "Fecha 1")
+        self.assertEqual(documento.fecha_partido, self.partido.fecha)
+        self.assertEqual(documento.hora_partido, self.partido.hora)
+        upload_mock.assert_called_once()
 
     def test_lista_planillas_filtra_por_partido(self):
         rival = Equipo.objects.create(nombre="Riverenos", categoria=self.categoria)

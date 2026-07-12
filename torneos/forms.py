@@ -166,10 +166,16 @@ class MultipleFileField(forms.FileField):
 
 
 class PlanillaJuegoUploadForm(forms.Form):
+    partido = forms.ModelChoiceField(
+        queryset=Partido.objects.none(),
+        label="Partido del fixture",
+        empty_label="Selecciona el partido",
+    )
     categoria = forms.ModelChoiceField(
         queryset=Categoria.objects.none(),
         label="Categoria",
         empty_label="Selecciona la categoria",
+        required=False,
     )
     numero_fecha = forms.ChoiceField(
         label="Fecha de programacion",
@@ -180,19 +186,23 @@ class PlanillaJuegoUploadForm(forms.Form):
         queryset=Equipo.objects.none(),
         label="Equipo A",
         empty_label="Selecciona el equipo A",
+        required=False,
     )
     equipo_visitante = forms.ModelChoiceField(
         queryset=Equipo.objects.none(),
         label="Equipo B",
         empty_label="Selecciona el equipo B",
+        required=False,
     )
     fecha_partido = forms.DateField(
         label="Fecha en que se jugo",
         widget=forms.DateInput(attrs={"type": "date"}),
+        required=False,
     )
     hora_partido = forms.TimeField(
         label="Hora",
         widget=forms.TimeInput(attrs={"type": "time"}),
+        required=False,
     )
     imagenes = MultipleFileField(
         label="Imagenes o PDF de la planilla",
@@ -243,6 +253,12 @@ class PlanillaJuegoUploadForm(forms.Form):
         ]
         self.fields["equipo_local"].queryset = equipos
         self.fields["equipo_visitante"].queryset = equipos
+        self.fields["partido"].queryset = partidos_disponibles.order_by("categoria__nombre", "numero_fecha", "fecha", "hora", "equipo_local__nombre")
+        self.fields["partido"].label_from_instance = lambda partido: (
+            f"{partido.categoria.nombre} - {partido.numero_fecha or 'Sin fecha'} - "
+            f"{partido.equipo_local.nombre} vs {partido.equipo_visitante.nombre} - "
+            f"{partido.fecha.strftime('%d/%m/%Y')} {partido.hora.strftime('%H:%M')}"
+        )
 
     def _usuario_es_editor(self):
         if not self.user or not self.user.is_authenticated:
@@ -256,9 +272,22 @@ class PlanillaJuegoUploadForm(forms.Form):
 
     def clean(self):
         cleaned = super().clean()
+        partido_seleccionado = cleaned.get("partido")
         categoria = cleaned.get("categoria")
         equipo_local = cleaned.get("equipo_local")
         equipo_visitante = cleaned.get("equipo_visitante")
+
+        if partido_seleccionado:
+            self.partido = partido_seleccionado
+            cleaned["categoria"] = partido_seleccionado.categoria
+            cleaned["equipo_local"] = partido_seleccionado.equipo_local
+            cleaned["equipo_visitante"] = partido_seleccionado.equipo_visitante
+            cleaned["numero_fecha"] = partido_seleccionado.numero_fecha or cleaned.get("numero_fecha") or ""
+            cleaned["fecha_partido"] = cleaned.get("fecha_partido") or partido_seleccionado.fecha
+            cleaned["hora_partido"] = cleaned.get("hora_partido") or partido_seleccionado.hora
+            categoria = cleaned["categoria"]
+            equipo_local = cleaned["equipo_local"]
+            equipo_visitante = cleaned["equipo_visitante"]
 
         if equipo_local and equipo_visitante and equipo_local == equipo_visitante:
             raise forms.ValidationError("Equipo A y Equipo B deben ser diferentes.")
@@ -268,7 +297,7 @@ class PlanillaJuegoUploadForm(forms.Form):
         if categoria and equipo_visitante and equipo_visitante.categoria_id != categoria.id:
             self.add_error("equipo_visitante", "Este equipo no pertenece a la categoria seleccionada.")
 
-        if categoria and equipo_local and equipo_visitante:
+        if categoria and equipo_local and equipo_visitante and not partido_seleccionado:
             partidos = Partido.objects.filter(
                 categoria=categoria,
                 equipo_local=equipo_local,
@@ -282,6 +311,15 @@ class PlanillaJuegoUploadForm(forms.Form):
             if self.user and self.user.is_authenticated and not self._usuario_es_editor():
                 if not partido or not partido.planilleros.filter(id=self.user.id).exists():
                     raise forms.ValidationError("Solo puedes cargar planillas de partidos asignados a tu usuario.")
+
+        if partido_seleccionado and self.user and self.user.is_authenticated and not self._usuario_es_editor():
+            if not partido_seleccionado.planilleros.filter(id=self.user.id).exists():
+                raise forms.ValidationError("Solo puedes cargar planillas de partidos asignados a tu usuario.")
+
+        if not cleaned.get("fecha_partido"):
+            self.add_error("fecha_partido", "Selecciona la fecha en que se jugo el partido.")
+        if not cleaned.get("hora_partido"):
+            self.add_error("hora_partido", "Selecciona la hora del partido.")
 
         if not cleaned.get("imagenes"):
             self.add_error("imagenes", "Carga al menos una imagen o PDF de la planilla.")

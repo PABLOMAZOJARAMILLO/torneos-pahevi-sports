@@ -8,6 +8,10 @@
     <a class="btn secondary" href="{% url 'gestion_planillas_juego' %}">Volver</a>
 </p>
 
+{% if torneo_seleccionado %}
+<div class="message">Torneo seleccionado: {{ torneo_seleccionado.nombre }}</div>
+{% endif %}
+
 <form method="post" enctype="multipart/form-data">
     {% csrf_token %}
     {% if form.non_field_errors %}
@@ -29,4 +33,73 @@
         <button class="btn" type="submit">Guardar planilla</button>
     </p>
 </form>
+
+{{ partidos_formulario|json_script:"partidos-planilla-data" }}
+{{ equipos_formulario|json_script:"equipos-planilla-data" }}
+<script>
+(() => {
+    const partidos = JSON.parse(document.getElementById("partidos-planilla-data").textContent);
+    const equipos = JSON.parse(document.getElementById("equipos-planilla-data").textContent);
+    const partidoSelect = document.getElementById("id_partido");
+    const categoriaSelect = document.getElementById("id_categoria");
+    const fechaFixtureSelect = document.getElementById("id_numero_fecha");
+    const localSelect = document.getElementById("id_equipo_local");
+    const visitanteSelect = document.getElementById("id_equipo_visitante");
+    const fechaInput = document.getElementById("id_fecha_partido");
+    const horaInput = document.getElementById("id_hora_partido");
+
+    if (!partidoSelect || !categoriaSelect) return;
+
+    const selectedValue = (select) => select ? select.value : "";
+
+    const resetOptions = (select, placeholder, items, getValue, getLabel) => {
+        const current = selectedValue(select);
+        select.innerHTML = "";
+        select.append(new Option(placeholder, ""));
+        items.forEach((item) => select.append(new Option(getLabel(item), getValue(item))));
+        if ([...select.options].some((option) => option.value === current)) {
+            select.value = current;
+        }
+    };
+
+    const filtrarPorCategoria = () => {
+        const categoriaId = categoriaSelect.value;
+        const partidosFiltrados = categoriaId ? partidos.filter((partido) => String(partido.categoria) === categoriaId) : partidos;
+        const equiposFiltrados = categoriaId ? equipos.filter((equipo) => String(equipo.categoria) === categoriaId) : equipos;
+        const fechas = [...new Set(partidosFiltrados.map((partido) => partido.numero_fecha).filter(Boolean))];
+
+        resetOptions(partidoSelect, "Selecciona el partido", partidosFiltrados, (partido) => partido.id, (partido) => partido.label);
+        resetOptions(fechaFixtureSelect, "Selecciona la fecha", fechas, (fecha) => fecha, (fecha) => fecha);
+        resetOptions(localSelect, "Selecciona el equipo A", equiposFiltrados, (equipo) => equipo.id, (equipo) => equipo.nombre);
+        resetOptions(visitanteSelect, "Selecciona el equipo B", equiposFiltrados, (equipo) => equipo.id, (equipo) => equipo.nombre);
+    };
+
+    const aplicarPartido = () => {
+        const partido = partidos.find((item) => String(item.id) === partidoSelect.value);
+        if (!partido) return;
+
+        categoriaSelect.value = partido.categoria;
+        filtrarPorCategoria();
+        partidoSelect.value = partido.id;
+        fechaFixtureSelect.value = partido.numero_fecha || "";
+        localSelect.value = partido.equipo_local;
+        visitanteSelect.value = partido.equipo_visitante;
+        fechaInput.value = partido.fecha;
+        horaInput.value = partido.hora;
+    };
+
+    categoriaSelect.addEventListener("change", () => {
+        filtrarPorCategoria();
+        fechaInput.value = "";
+        horaInput.value = "";
+    });
+    partidoSelect.addEventListener("change", aplicarPartido);
+
+    if (partidoSelect.value) {
+        aplicarPartido();
+    } else if (categoriaSelect.value) {
+        filtrarPorCategoria();
+    }
+})();
+</script>
 {% endblock %}

@@ -5462,6 +5462,34 @@ def gestion_planillas_juego(request):
 def gestion_planilla_juego_nueva(request):
     torneo = torneo_actual(request) if es_editor_torneo(request.user) else None
     form = PlanillaJuegoUploadForm(request.POST or None, request.FILES or None, user=request.user, torneo=torneo)
+    partidos_formulario = [
+        {
+            "id": partido.id,
+            "categoria": partido.categoria_id,
+            "categoria_nombre": partido.categoria.nombre,
+            "numero_fecha": partido.numero_fecha or "",
+            "equipo_local": partido.equipo_local_id,
+            "equipo_local_nombre": partido.equipo_local.nombre,
+            "equipo_visitante": partido.equipo_visitante_id,
+            "equipo_visitante_nombre": partido.equipo_visitante.nombre,
+            "fecha": partido.fecha.isoformat(),
+            "hora": partido.hora.strftime("%H:%M"),
+            "label": (
+                f"{partido.categoria.nombre} - {partido.numero_fecha or 'Sin fecha'} - "
+                f"{partido.equipo_local.nombre} vs {partido.equipo_visitante.nombre} - "
+                f"{partido.fecha.strftime('%d/%m/%Y')} {partido.hora.strftime('%H:%M')}"
+            ),
+        }
+        for partido in form.fields["partido"].queryset
+    ]
+    equipos_formulario = [
+        {
+            "id": equipo.id,
+            "categoria": equipo.categoria_id,
+            "nombre": equipo.nombre,
+        }
+        for equipo in form.fields["equipo_local"].queryset
+    ]
 
     if request.method == "POST" and form.is_valid():
         categoria = form.cleaned_data["categoria"]
@@ -5518,6 +5546,8 @@ def gestion_planilla_juego_nueva(request):
     return render(request, "gestion/planilla_juego_form.html", {
         "titulo": "Cargar planilla de juego",
         "form": form,
+        "partidos_formulario": partidos_formulario,
+        "equipos_formulario": equipos_formulario,
         "torneo_seleccionado": torneo,
         "es_editor": es_editor_torneo(request.user),
     })
