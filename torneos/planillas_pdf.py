@@ -121,6 +121,12 @@ def _fase(partido):
     return partido.get_fase_display().upper()
 
 
+def _titulo_planilla(partido):
+    torneo = getattr(getattr(partido, "categoria", None), "torneo", None)
+    nombre_torneo = _clean(getattr(torneo, "nombre", ""), "TORNEO").upper()
+    return f"PLANILLA DE JUEGO {nombre_torneo}: SENIOR MASTER, PLUS 50 E INTERBARRIOS"
+
+
 def nombre_archivo_planilla(partido, extension="pdf"):
     base = (
         f"{partido.categoria.nombre} - {partido.equipo_local.nombre} VS "
@@ -427,7 +433,7 @@ def generar_planilla_juego_pdf(partido):
         _cell(draw, col1, row1, col2, row2, fill=WHITE, width=2)
         _draw_image_fit(img, source, _box(col1, row1, col2, row2))
 
-    _cell(draw, 1, 5, 27, 5, "PLANILLA DE JUEGO TORNEO VERANERO: SENIOR MASTER, PLUS 50 E INTERBARRIOS", fill=WHITE, font=FONT_TITLE, width=2)
+    _cell(draw, 1, 5, 27, 5, _titulo_planilla(partido), fill=WHITE, font=FONT_TITLE, width=2)
 
     _label_value(draw, (1, 4), 6, (5, 11), "FECHAS:", _fase(partido))
     _draw_fecha_hora(draw, partido)
