@@ -230,17 +230,29 @@ def _image_from_source(source):
     return None
 
 
-def _draw_image_fit(base, source, box):
+def _draw_image_fit(base, source, box, padding=8):
     image = _image_from_source(source)
     if image is None:
         return
     x1, y1, x2, y2 = [int(round(value)) for value in box]
     with image:
         image = image.convert("RGBA")
-        image.thumbnail((max(1, x2 - x1 - 8), max(1, y2 - y1 - 8)), Image.Resampling.LANCZOS)
+        image.thumbnail((max(1, x2 - x1 - padding), max(1, y2 - y1 - padding)), Image.Resampling.LANCZOS)
         canvas = Image.new("RGBA", (x2 - x1, y2 - y1), (255, 255, 255, 255))
         canvas.paste(image, ((canvas.width - image.width) // 2, (canvas.height - image.height) // 2), image)
         base.paste(canvas.convert("RGB"), (x1, y1))
+
+
+def _team_shield_source(equipo):
+    escudo = getattr(equipo, "escudo", None)
+    if escudo:
+        return escudo
+    return None
+
+
+def _draw_team_shield(base, draw, equipo, col1, row1, col2, row2):
+    _cell(draw, col1, row1, col2, row2, fill=WHITE, width=2)
+    _draw_image_fit(base, _team_shield_source(equipo), _box(col1, row1, col2, row2), padding=4)
 
 
 def _header_image_sources(partido):
@@ -258,7 +270,7 @@ def _label_value(draw, label_cols, row, value_cols, label, value):
 
 
 def _draw_fecha_hora(draw, partido):
-    x1, y1, x2, y2 = _box(15, 6, 27, 6)
+    x1, y1, x2, y2 = _box(15, 6, 25, 6)
     total_w = x2 - x1
     widths = [total_w * 0.17, total_w * 0.43, total_w * 0.15, total_w * 0.25]
     labels = [
@@ -383,14 +395,16 @@ def generar_planilla_juego_pdf(partido):
 
     _cell(draw, 1, 5, 27, 5, "PLANILLA DE JUEGO TORNEO VERANERO: SENIOR MASTER, PLUS 50 E INTERBARRIOS", fill=WHITE, font=FONT_TITLE, width=2)
 
-    _label_value(draw, (1, 4), 6, (5, 13), "FECHAS:", _fase(partido))
+    _label_value(draw, (1, 4), 6, (5, 11), "FECHAS:", _fase(partido))
     _draw_fecha_hora(draw, partido)
-    _label_value(draw, (1, 4), 7, (5, 13), "CATEGORIA", partido.categoria.nombre.upper())
-    _label_value(draw, (15, 17), 7, (18, 27), "ARBITRO", "")
-    _label_value(draw, (1, 4), 8, (5, 13), "CANCHA", _clean(partido.cancha, "").upper())
-    _label_value(draw, (15, 17), 8, (18, 27), "MARCADOR", "")
-    _label_value(draw, (1, 4), 9, (5, 13), "Equipo A:", partido.equipo_local.nombre.upper())
-    _label_value(draw, (15, 17), 9, (18, 27), "Equipo B:", partido.equipo_visitante.nombre.upper())
+    _label_value(draw, (1, 4), 7, (5, 11), "CATEGORIA", partido.categoria.nombre.upper())
+    _label_value(draw, (15, 17), 7, (18, 25), "ARBITRO", "")
+    _label_value(draw, (1, 4), 8, (5, 11), "CANCHA", _clean(partido.cancha, "").upper())
+    _label_value(draw, (15, 17), 8, (18, 25), "MARCADOR", "")
+    _label_value(draw, (1, 4), 9, (5, 11), "Equipo A:", partido.equipo_local.nombre.upper())
+    _label_value(draw, (15, 17), 9, (18, 25), "Equipo B:", partido.equipo_visitante.nombre.upper())
+    _draw_team_shield(img, draw, partido.equipo_local, 12, 6, 13, 9)
+    _draw_team_shield(img, draw, partido.equipo_visitante, 26, 6, 27, 9)
 
     referencia = partido.fecha or date.today()
     _draw_player_side(img, draw, 1, "LISTADO DE JUGADORES - EQUIPO A", _jugadores(partido.equipo_local), referencia)
