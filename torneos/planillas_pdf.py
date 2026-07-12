@@ -124,6 +124,9 @@ def _fase(partido):
 def _titulo_planilla(partido):
     torneo = getattr(getattr(partido, "categoria", None), "torneo", None)
     nombre_torneo = _clean(getattr(torneo, "nombre", ""), "TORNEO").upper()
+    descripcion = _clean(getattr(torneo, "descripcion", "")).upper()
+    if descripcion:
+        return f"PLANILLA DE JUEGO {nombre_torneo} {descripcion}"
     return f"PLANILLA DE JUEGO {nombre_torneo}"
 
 

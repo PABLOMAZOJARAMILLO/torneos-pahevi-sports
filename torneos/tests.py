@@ -434,8 +434,12 @@ class ReglasEdadCategoriaTests(TestCase):
 
 
 class PlanillasPDFTests(TestCase):
-    def test_titulo_planilla_usa_nombre_del_torneo(self):
-        torneo = Torneo.objects.create(nombre="Veranero 2026", fecha_inicio=date(2026, 1, 1))
+    def test_titulo_planilla_usa_nombre_y_descripcion_del_torneo(self):
+        torneo = Torneo.objects.create(
+            nombre="Torneo Amistoso Mata Mata.",
+            descripcion="Senior Master",
+            fecha_inicio=date(2026, 1, 1),
+        )
         categoria = Categoria.objects.create(
             nombre="Senior",
             edad_minima=40,
@@ -450,7 +454,7 @@ class PlanillasPDFTests(TestCase):
 
         self.assertEqual(
             _titulo_planilla(partido),
-            "PLANILLA DE JUEGO VERANERO 2026",
+            "PLANILLA DE JUEGO TORNEO AMISTOSO MATA MATA. SENIOR MASTER",
         )
 
     def test_planilla_usa_logos_del_torneo_en_el_encabezado(self):
