@@ -270,7 +270,7 @@ def _draw_team_shield(base, draw, equipo, col1, row1, col2, row2):
     _draw_image_fit(base, _team_shield_source(equipo), _box(col1, row1, col2, row2), padding=4)
 
 
-def _draw_team_watermark(base, equipo, box, opacity=76):
+def _draw_team_watermark(base, equipo, box, opacity=110):
     image = _image_from_source(_team_shield_source(equipo))
     if image is None:
         return
