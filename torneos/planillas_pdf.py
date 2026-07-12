@@ -124,7 +124,7 @@ def _fase(partido):
 def _titulo_planilla(partido):
     torneo = getattr(getattr(partido, "categoria", None), "torneo", None)
     nombre_torneo = _clean(getattr(torneo, "nombre", ""), "TORNEO").upper()
-    return f"PLANILLA DE JUEGO {nombre_torneo}: SENIOR MASTER, PLUS 50 E INTERBARRIOS"
+    return f"PLANILLA DE JUEGO {nombre_torneo}"
 
 
 def nombre_archivo_planilla(partido, extension="pdf"):

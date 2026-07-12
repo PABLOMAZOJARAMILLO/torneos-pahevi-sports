@@ -450,7 +450,7 @@ class PlanillasPDFTests(TestCase):
 
         self.assertEqual(
             _titulo_planilla(partido),
-            "PLANILLA DE JUEGO VERANERO 2026: SENIOR MASTER, PLUS 50 E INTERBARRIOS",
+            "PLANILLA DE JUEGO VERANERO 2026",
         )
 
     def test_planilla_usa_logos_del_torneo_en_el_encabezado(self):
