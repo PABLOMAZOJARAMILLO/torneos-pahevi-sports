@@ -143,6 +143,147 @@ class DocumentoForm(forms.ModelForm):
             self.fields["archivo_subido"].required = True
 
 
+class MultipleFileInput(forms.ClearableFileInput):
+    allow_multiple_selected = True
+
+
+class MultipleFileField(forms.FileField):
+    def __init__(self, *args, **kwargs):
+        kwargs.setdefault("widget", MultipleFileInput)
+        super().__init__(*args, **kwargs)
+
+    def clean(self, data, initial=None):
+        if isinstance(data, (list, tuple)):
+            return [super(MultipleFileField, self).clean(archivo, initial) for archivo in data]
+        if data:
+            return [super().clean(data, initial)]
+        return []
+
+
+class PlanillaJuegoUploadForm(forms.Form):
+    categoria = forms.ModelChoiceField(
+        queryset=Categoria.objects.none(),
+        label="Categoria",
+        empty_label="Selecciona la categoria",
+    )
+    numero_fecha = forms.ChoiceField(
+        label="Fecha de programacion",
+        required=False,
+        choices=[],
+    )
+    equipo_local = forms.ModelChoiceField(
+        queryset=Equipo.objects.none(),
+        label="Equipo A",
+        empty_label="Selecciona el equipo A",
+    )
+    equipo_visitante = forms.ModelChoiceField(
+        queryset=Equipo.objects.none(),
+        label="Equipo B",
+        empty_label="Selecciona el equipo B",
+    )
+    fecha_partido = forms.DateField(
+        label="Fecha en que se jugo",
+        widget=forms.DateInput(attrs={"type": "date"}),
+    )
+    hora_partido = forms.TimeField(
+        label="Hora",
+        widget=forms.TimeInput(attrs={"type": "time"}),
+    )
+    imagenes = MultipleFileField(
+        label="Imagenes o PDF de la planilla",
+        required=True,
+        widget=MultipleFileInput(attrs={"multiple": True, "accept": "image/*,application/pdf"}),
+    )
+
+    def __init__(self, *args, **kwargs):
+        self.user = kwargs.pop("user", None)
+        self.torneo = kwargs.pop("torneo", None)
+        self.partido = None
+        super().__init__(*args, **kwargs)
+
+        categorias = Categoria.objects.select_related("torneo").order_by("nombre")
+        equipos = Equipo.objects.select_related("categoria").order_by("nombre")
+
+        if self.torneo:
+            categorias = categorias.filter(torneo=self.torneo)
+            equipos = equipos.filter(categoria__torneo=self.torneo)
+
+        partidos_disponibles = Partido.objects.select_related("categoria", "equipo_local", "equipo_visitante")
+        if self.torneo:
+            partidos_disponibles = partidos_disponibles.filter(categoria__torneo=self.torneo)
+
+        if self.user and self.user.is_authenticated and not self._usuario_es_editor():
+            partidos_disponibles = partidos_disponibles.filter(planilleros=self.user)
+            categorias = Categoria.objects.filter(partido__in=partidos_disponibles).distinct().order_by("nombre")
+            equipos = equipos.filter(
+                Q(partidos_local__planilleros=self.user) | Q(partidos_visitante__planilleros=self.user)
+            ).distinct()
+
+        categoria_id = self.data.get("categoria") if self.is_bound else self.initial.get("categoria")
+        if categoria_id:
+            equipos = equipos.filter(categoria_id=categoria_id)
+            partidos_disponibles = partidos_disponibles.filter(categoria_id=categoria_id)
+
+        fechas_fixture = list(
+            partidos_disponibles.exclude(numero_fecha__isnull=True)
+            .exclude(numero_fecha="")
+            .order_by("numero_fecha")
+            .values_list("numero_fecha", flat=True)
+            .distinct()
+        )
+
+        self.fields["categoria"].queryset = categorias
+        self.fields["numero_fecha"].choices = [("", "Selecciona la fecha")] + [
+            (fecha, fecha) for fecha in fechas_fixture
+        ]
+        self.fields["equipo_local"].queryset = equipos
+        self.fields["equipo_visitante"].queryset = equipos
+
+    def _usuario_es_editor(self):
+        if not self.user or not self.user.is_authenticated:
+            return False
+        if self.user.is_superuser:
+            return True
+        return (
+            AdminTorneo.objects.filter(usuario=self.user, activo=True).exists()
+            or AdminOrganizador.objects.filter(usuario=self.user, activo=True).exists()
+        )
+
+    def clean(self):
+        cleaned = super().clean()
+        categoria = cleaned.get("categoria")
+        equipo_local = cleaned.get("equipo_local")
+        equipo_visitante = cleaned.get("equipo_visitante")
+
+        if equipo_local and equipo_visitante and equipo_local == equipo_visitante:
+            raise forms.ValidationError("Equipo A y Equipo B deben ser diferentes.")
+
+        if categoria and equipo_local and equipo_local.categoria_id != categoria.id:
+            self.add_error("equipo_local", "Este equipo no pertenece a la categoria seleccionada.")
+        if categoria and equipo_visitante and equipo_visitante.categoria_id != categoria.id:
+            self.add_error("equipo_visitante", "Este equipo no pertenece a la categoria seleccionada.")
+
+        if categoria and equipo_local and equipo_visitante:
+            partidos = Partido.objects.filter(
+                categoria=categoria,
+                equipo_local=equipo_local,
+                equipo_visitante=equipo_visitante,
+            )
+            if cleaned.get("numero_fecha"):
+                partidos = partidos.filter(numero_fecha=cleaned["numero_fecha"])
+            partido = partidos.order_by("-fecha", "-hora", "-id").first()
+            self.partido = partido
+
+            if self.user and self.user.is_authenticated and not self._usuario_es_editor():
+                if not partido or not partido.planilleros.filter(id=self.user.id).exists():
+                    raise forms.ValidationError("Solo puedes cargar planillas de partidos asignados a tu usuario.")
+
+        if not cleaned.get("imagenes"):
+            self.add_error("imagenes", "Carga al menos una imagen o PDF de la planilla.")
+
+        return cleaned
+
+
 class CategoriaForm(forms.ModelForm):
     class Meta:
         model = Categoria

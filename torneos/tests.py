@@ -1,5 +1,6 @@
 from datetime import date, time, timedelta
 from io import BytesIO
+from unittest.mock import patch
 
 from types import SimpleNamespace
 
@@ -98,6 +99,71 @@ class DocumentosTorneoTests(TestCase):
         response = self.client.get(f"/gestion/documentos/{self.documento_otro.id}/editar/")
 
         self.assertEqual(response.status_code, 404)
+
+
+class PlanillasJuegoUploadTests(TestCase):
+    def setUp(self):
+        self.torneo = Torneo.objects.create(nombre="Veranero", fecha_inicio=date(2026, 1, 1))
+        self.categoria = Categoria.objects.create(nombre="Senior Master", edad_minima=40, edad_maxima=80, torneo=self.torneo)
+        self.equipo_local = Equipo.objects.create(nombre="Niqueleros FC", categoria=self.categoria)
+        self.equipo_visitante = Equipo.objects.create(nombre="Integracion 28", categoria=self.categoria)
+        self.planillero = User.objects.create_user("planillero-docs", password="clave")
+        self.partido = Partido.objects.create(
+            categoria=self.categoria,
+            equipo_local=self.equipo_local,
+            equipo_visitante=self.equipo_visitante,
+            fecha=date(2026, 6, 3),
+            hora=time(16, 0),
+            estado="FINALIZADO",
+            numero_fecha="Fecha 1",
+        )
+        self.partido.planilleros.add(self.planillero)
+
+    def archivo_prueba(self):
+        return SimpleUploadedFile("planilla.jpg", b"imagen", content_type="image/jpeg")
+
+    @patch("torneos.views.subir_documento_torneo", return_value="https://example.com/planilla.jpg")
+    def test_planillero_puede_cargar_planilla_de_partido_asignado(self, upload_mock):
+        self.client.force_login(self.planillero)
+
+        response = self.client.post("/gestion/planillas-juego/nueva/", {
+            "categoria": self.categoria.id,
+            "numero_fecha": "Fecha 1",
+            "equipo_local": self.equipo_local.id,
+            "equipo_visitante": self.equipo_visitante.id,
+            "fecha_partido": "2026-06-03",
+            "hora_partido": "16:00",
+            "imagenes": self.archivo_prueba(),
+        })
+
+        self.assertEqual(response.status_code, 302)
+        documento = Documento.objects.get(tipo="PLANILLA_JUEGO")
+        self.assertEqual(documento.partido, self.partido)
+        self.assertEqual(documento.categoria, self.categoria)
+        self.assertEqual(documento.equipo_local, self.equipo_local)
+        self.assertEqual(documento.equipo_visitante, self.equipo_visitante)
+        self.assertEqual(documento.cargado_por, self.planillero)
+        self.assertEqual(documento.archivo, "https://example.com/planilla.jpg")
+        upload_mock.assert_called_once()
+
+    @patch("torneos.views.subir_documento_torneo", return_value="https://example.com/planilla.jpg")
+    def test_planillero_no_puede_cargar_planilla_de_partido_no_asignado(self, upload_mock):
+        otro_planillero = User.objects.create_user("otro-planillero", password="clave")
+        self.client.force_login(otro_planillero)
+
+        response = self.client.post("/gestion/planillas-juego/nueva/", {
+            "categoria": self.categoria.id,
+            "numero_fecha": "Fecha 1",
+            "equipo_local": self.equipo_local.id,
+            "equipo_visitante": self.equipo_visitante.id,
+            "fecha_partido": "2026-06-03",
+            "hora_partido": "16:00",
+            "imagenes": self.archivo_prueba(),
+        })
+
+        self.assertEqual(response.status_code, 302)
+        self.assertFalse(Documento.objects.filter(tipo="PLANILLA_JUEGO").exists())
+        upload_mock.assert_not_called()
 
 
 class SancionesTarjetasTests(TestCase):

@@ -332,9 +332,9 @@ class CategoriaAdmin(ImportExportModelAdmin):
 
 @admin.register(Documento)
 class DocumentoAdmin(admin.ModelAdmin):
-    list_display = ('tipo', 'torneo', 'titulo', 'activo', 'creado_en')
-    list_filter = ('torneo', 'tipo', 'activo')
-    search_fields = ('titulo', 'descripcion', 'torneo__nombre')
+    list_display = ('tipo', 'torneo', 'categoria', 'numero_fecha', 'partido', 'titulo', 'cargado_por', 'activo', 'creado_en')
+    list_filter = ('torneo', 'categoria', 'tipo', 'activo')
+    search_fields = ('titulo', 'descripcion', 'torneo__nombre', 'categoria__nombre', 'equipo_local__nombre', 'equipo_visitante__nombre', 'cargado_por__username')
     ordering = ('tipo', '-creado_en', 'titulo')
 
 

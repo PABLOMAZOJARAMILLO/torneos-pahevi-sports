@@ -36,7 +36,7 @@ import requests
 from django.views.decorators.http import require_POST
 from openpyxl import load_workbook
 
-from .forms import TorneoForm, OrganizadorForm, CategoriaForm, DocumentoForm, EquipoForm, EquipoDelegadoForm, EquipoReinscripcionForm, JugadorForm, JugadorDelegadoForm, PartidoForm, PartidoProgramacionForm, AdminTorneoForm, AdminOrganizadorForm, CrearAdminOrganizadorForm
+from .forms import TorneoForm, OrganizadorForm, CategoriaForm, DocumentoForm, PlanillaJuegoUploadForm, EquipoForm, EquipoDelegadoForm, EquipoReinscripcionForm, JugadorForm, JugadorDelegadoForm, PartidoForm, PartidoProgramacionForm, AdminTorneoForm, AdminOrganizadorForm, CrearAdminOrganizadorForm
 from .models import Torneo, Organizador, Categoria, Documento, Equipo, Partido, Gol, Tarjeta, Jugador, AlineacionPartido, SustitucionPartido, ReglaEdadCategoria, AdminTorneo, AdminOrganizador, RegistroActividad, SolicitudValidacion, limpiar_ruta_cloudinary
 from .planillas_pdf import generar_planilla_juego_pdf, nombre_archivo_planilla
 from django.utils import timezone
@@ -101,6 +101,14 @@ def puede_diligenciar_partido(user, partido):
     if partido.estado == "FINALIZADO":
         return False
     return partido.planilleros.filter(id=user.id).exists()
+
+
+def puede_cargar_planillas_juego(user):
+    if not user.is_authenticated:
+        return False
+    if es_editor_torneo(user):
+        return True
+    return user.partidos_planillero.exists()
 
 
 def denegar_partido_no_autorizado():
@@ -304,6 +312,12 @@ class IngresoTorneosView(LoginView):
             and equipos_delegado_asignados(self.request.user).exists()
         ):
             return reverse("delegado_mis_equipos")
+        if (
+            self.request.user.is_authenticated
+            and not es_editor_torneo(self.request.user)
+            and self.request.user.partidos_planillero.exists()
+        ):
+            return reverse("gestion_planillas_juego")
         return super().get_success_url()
 
     def form_valid(self, form):
@@ -313,7 +327,7 @@ class IngresoTorneosView(LoginView):
             messages.success(self.request, "Acceso exitoso. Bienvenido al panel de gestion.")
         elif equipos_delegado_asignados(user).exists():
             messages.success(self.request, "Acceso exitoso. Bienvenido al portal de delegados.")
-        elif user.partidos_planillero.exclude(estado="FINALIZADO").exists():
+        elif user.partidos_planillero.exists():
             messages.success(self.request, "Acceso exitoso. Ya puedes diligenciar tus partidos asignados.")
         else:
             messages.success(self.request, "Acceso exitoso.")
@@ -328,6 +342,12 @@ class IngresoTorneosView(LoginView):
             and equipos_delegado_asignados(self.request.user).exists()
         ):
             return reverse("delegado_mis_equipos")
+        if (
+            self.request.user.is_authenticated
+            and not es_editor_torneo(self.request.user)
+            and self.request.user.partidos_planillero.exists()
+        ):
+            return reverse("gestion_planillas_juego")
         return super().get_default_redirect_url()
 
 
@@ -4765,6 +4785,7 @@ def gestion_panel(request):
         "puede_validar": puede_validar,
         "puede_programar": puede_programar,
         "puede_descargar_planillas": puede_descargar_planillas,
+        "puede_cargar_planillas_juego": puede_cargar_planillas_juego(request.user),
         "puede_gestionar_organizadores": puede_gestionar_organizadores(request.user),
     })
 
@@ -5324,6 +5345,101 @@ def gestion_documento_editar(request, documento_id):
         "titulo": f"Editar documento: {documento.titulo}",
         "form": form,
         "volver_url": "gestion_documentos",
+    })
+
+
+def _planillas_juego_para_usuario(user, torneo=None):
+    documentos = Documento.objects.select_related(
+        "torneo",
+        "categoria",
+        "partido",
+        "equipo_local",
+        "equipo_visitante",
+        "cargado_por",
+    ).filter(tipo="PLANILLA_JUEGO")
+
+    if torneo:
+        documentos = documentos.filter(torneo=torneo)
+
+    if es_editor_torneo(user):
+        return documentos.order_by("-fecha_partido", "-hora_partido", "-creado_en")
+
+    return documentos.filter(
+        Q(cargado_por=user) | Q(partido__planilleros=user)
+    ).distinct().order_by("-fecha_partido", "-hora_partido", "-creado_en")
+
+
+@login_required
+@user_passes_test(puede_cargar_planillas_juego)
+def gestion_planillas_juego(request):
+    torneo = torneo_actual(request) if es_editor_torneo(request.user) else None
+    documentos = _planillas_juego_para_usuario(request.user, torneo)
+
+    return render(request, "gestion/planillas_juego.html", {
+        "documentos": documentos[:300],
+        "torneo_seleccionado": torneo,
+        "es_editor": es_editor_torneo(request.user),
+    })
+
+
+@login_required
+@user_passes_test(puede_cargar_planillas_juego)
+def gestion_planilla_juego_nueva(request):
+    torneo = torneo_actual(request) if es_editor_torneo(request.user) else None
+    form = PlanillaJuegoUploadForm(request.POST or None, request.FILES or None, user=request.user, torneo=torneo)
+
+    if request.method == "POST" and form.is_valid():
+        categoria = form.cleaned_data["categoria"]
+        equipo_local = form.cleaned_data["equipo_local"]
+        equipo_visitante = form.cleaned_data["equipo_visitante"]
+        numero_fecha = form.cleaned_data.get("numero_fecha") or (form.partido.numero_fecha if form.partido else "")
+        fecha_partido = form.cleaned_data["fecha_partido"]
+        hora_partido = form.cleaned_data["hora_partido"]
+        archivos = form.cleaned_data["imagenes"]
+        creados = 0
+
+        for archivo in archivos:
+            titulo = f"Planilla {categoria.nombre} - {numero_fecha or 'Sin fecha'} - {equipo_local.nombre} vs {equipo_visitante.nombre}"
+            documento = Documento.objects.create(
+                tipo="PLANILLA_JUEGO",
+                torneo=categoria.torneo,
+                categoria=categoria,
+                partido=form.partido,
+                equipo_local=equipo_local,
+                equipo_visitante=equipo_visitante,
+                titulo=titulo,
+                descripcion=f"Cargada por {request.user.get_username()}",
+                archivo=subir_documento_torneo(archivo, "PLANILLA_JUEGO"),
+                numero_fecha=numero_fecha,
+                fecha_partido=fecha_partido,
+                hora_partido=hora_partido,
+                cargado_por=request.user,
+                activo=True,
+            )
+            registrar_actividad(
+                request,
+                "CARGAR_PLANILLA_JUEGO",
+                documento,
+                torneo=categoria.torneo,
+                descripcion=f"Cargo planilla de juego de {equipo_local.nombre} vs {equipo_visitante.nombre}.",
+                datos={
+                    "categoria": categoria.nombre,
+                    "numero_fecha": numero_fecha,
+                    "fecha_partido": fecha_partido.isoformat(),
+                    "hora_partido": hora_partido.strftime("%H:%M"),
+                    "partido_id": form.partido.id if form.partido else None,
+                },
+            )
+            creados += 1
+
+        messages.success(request, f"Planilla cargada correctamente: {creados} archivo(s).")
+        return redirect("gestion_planillas_juego")
+
+    return render(request, "gestion/planilla_juego_form.html", {
+        "titulo": "Cargar planilla de juego",
+        "form": form,
+        "torneo_seleccionado": torneo,
+        "es_editor": es_editor_torneo(request.user),
     })
 
 

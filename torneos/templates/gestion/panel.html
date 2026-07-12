@@ -43,6 +43,13 @@
     </a>
     {% endif %}
 
+    {% if puede_cargar_planillas_juego %}
+    <a class="card" href="{% url 'gestion_planillas_juego' %}">
+        <h2>Planillas de juego</h2>
+        <p class="muted">Cargar imagenes o PDF por categoria, fecha y partido</p>
+    </a>
+    {% endif %}
+
     {% if puede_validar %}
     <a class="card" href="{% url 'gestion_validaciones' %}">
         <h2>Validaciones</h2>

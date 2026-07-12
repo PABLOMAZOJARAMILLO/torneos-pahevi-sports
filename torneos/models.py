@@ -275,13 +275,22 @@ class Documento(models.Model):
         ("RESOLUCION", "Resolución"),
         ("DEMANDA", "Demanda"),
         ("COMUNICADO", "Comunicado"),
+        ("PLANILLA_JUEGO", "Planilla de juego"),
     ]
 
     tipo = models.CharField(max_length=20, choices=TIPOS, verbose_name="Tipo")
     torneo = models.ForeignKey(Torneo, on_delete=models.CASCADE, related_name="documentos", blank=True, null=True)
+    categoria = models.ForeignKey("Categoria", on_delete=models.SET_NULL, related_name="documentos_planilla", blank=True, null=True)
+    partido = models.ForeignKey("Partido", on_delete=models.SET_NULL, related_name="documentos_planilla", blank=True, null=True)
+    equipo_local = models.ForeignKey("Equipo", on_delete=models.SET_NULL, related_name="documentos_planilla_local", blank=True, null=True)
+    equipo_visitante = models.ForeignKey("Equipo", on_delete=models.SET_NULL, related_name="documentos_planilla_visitante", blank=True, null=True)
     titulo = models.CharField(max_length=180, verbose_name="Título")
     descripcion = models.TextField(blank=True, null=True, verbose_name="Descripción")
     archivo = models.URLField(max_length=600, verbose_name="Archivo")
+    numero_fecha = models.CharField(max_length=50, blank=True, null=True, verbose_name="Fecha del fixture")
+    fecha_partido = models.DateField(blank=True, null=True, verbose_name="Fecha jugada")
+    hora_partido = models.TimeField(blank=True, null=True, verbose_name="Hora jugada")
+    cargado_por = models.ForeignKey(User, on_delete=models.SET_NULL, related_name="documentos_planilla_cargados", blank=True, null=True)
     activo = models.BooleanField(default=True, verbose_name="Activo")
     creado_en = models.DateTimeField(auto_now_add=True, verbose_name="Creado en")
 

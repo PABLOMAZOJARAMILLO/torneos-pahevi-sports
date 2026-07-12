@@ -1,0 +1,39 @@
+{% extends "gestion/base.html" %}
+
+{% block title %}Planillas de juego{% endblock %}
+{% block heading %}Planillas de juego{% endblock %}
+
+{% block content %}
+<p>
+    {% if es_editor %}
+        <a class="btn secondary" href="{% url 'gestion_panel' %}">Volver</a>
+    {% else %}
+        <a class="btn secondary" href="{% url 'panel' %}">Volver al panel</a>
+    {% endif %}
+    <a class="btn" href="{% url 'gestion_planilla_juego_nueva' %}">Cargar planilla</a>
+</p>
+
+{% for documento in documentos %}
+<div class="row">
+    <div>
+        <strong>{{ documento.titulo }}</strong>
+        <div class="muted">
+            {{ documento.categoria.nombre }}
+            {% if documento.numero_fecha %} - {{ documento.numero_fecha }}{% endif %}
+            {% if documento.fecha_partido %} - {{ documento.fecha_partido|date:"d/m/Y" }}{% endif %}
+            {% if documento.hora_partido %} {{ documento.hora_partido|time:"H:i" }}{% endif %}
+        </div>
+        <div class="muted">
+            {% if documento.equipo_local %}{{ documento.equipo_local.nombre }}{% endif %}
+            {% if documento.equipo_visitante %} vs {{ documento.equipo_visitante.nombre }}{% endif %}
+            {% if documento.cargado_por %} - Cargada por {{ documento.cargado_por.username }}{% endif %}
+        </div>
+    </div>
+    {% if documento.archivo %}
+    <a class="btn" href="{{ documento.archivo }}" target="_blank" rel="noopener">Ver archivo</a>
+    {% endif %}
+</div>
+{% empty %}
+    <div class="message">Todavia no hay planillas de juego cargadas.</div>
+{% endfor %}
+{% endblock %}
