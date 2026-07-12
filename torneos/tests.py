@@ -131,6 +131,38 @@ class PlanillasJuegoUploadTests(TestCase):
     def archivo_prueba(self):
         return SimpleUploadedFile("planilla.jpg", b"imagen", content_type="image/jpeg")
 
+    def crear_partido_programado(self):
+        partido = Partido.objects.create(
+            categoria=self.categoria,
+            equipo_local=self.equipo_local,
+            equipo_visitante=self.equipo_visitante,
+            fecha=date(2026, 6, 8),
+            hora=time(18, 0),
+            estado="PROGRAMADO",
+            numero_fecha="Fecha 2",
+        )
+        partido.planilleros.add(self.planillero)
+        return partido
+
+    def test_login_planillero_redirige_a_mis_partidos(self):
+        response = self.client.post("/ingresar/", {
+            "username": "planillero-docs",
+            "password": "clave",
+        })
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response["Location"], "/planillero/partidos/")
+
+    def test_planillero_ve_editor_de_partidos_asignados_editables(self):
+        partido = self.crear_partido_programado()
+        self.client.force_login(self.planillero)
+
+        response = self.client.get("/planillero/partidos/")
+
+        self.assertContains(response, "Editor juego")
+        self.assertContains(response, f"/partido/{partido.id}/editor-movil/")
+        self.assertContains(response, "Cargar planilla")
+
     @patch("torneos.views.subir_documento_torneo", return_value="https://example.com/planilla.jpg")
     def test_planillero_puede_cargar_planilla_de_partido_asignado(self, upload_mock):
         self.client.force_login(self.planillero)

@@ -111,6 +111,10 @@ def puede_cargar_planillas_juego(user):
     return user.partidos_planillero.exists()
 
 
+def es_planillero_asignado(user):
+    return bool(user.is_authenticated and not es_editor_torneo(user) and user.partidos_planillero.exists())
+
+
 def denegar_partido_no_autorizado():
     return HttpResponseForbidden("No tienes permiso para editar este partido.")
 
@@ -317,7 +321,7 @@ class IngresoTorneosView(LoginView):
             and not es_editor_torneo(self.request.user)
             and self.request.user.partidos_planillero.exists()
         ):
-            return reverse("gestion_planillas_juego")
+            return reverse("planillero_mis_partidos")
         return super().get_success_url()
 
     def form_valid(self, form):
@@ -347,7 +351,7 @@ class IngresoTorneosView(LoginView):
             and not es_editor_torneo(self.request.user)
             and self.request.user.partidos_planillero.exists()
         ):
-            return reverse("gestion_planillas_juego")
+            return reverse("planillero_mis_partidos")
         return super().get_default_redirect_url()
 
 
@@ -5514,8 +5518,8 @@ def gestion_planillas_juego(request):
         "partido_id": partido_id,
         "torneo_seleccionado": torneo,
         "es_editor": es_editor_torneo(request.user),
-        "volver_panel_url": reverse("gestion_planillas_juego") if not es_editor_torneo(request.user) else reverse("panel"),
-        "volver_panel_text": "Mis planillas" if not es_editor_torneo(request.user) else "Volver al panel",
+        "volver_panel_url": reverse("planillero_mis_partidos") if es_planillero_asignado(request.user) else reverse("panel"),
+        "volver_panel_text": "Mis partidos" if es_planillero_asignado(request.user) else "Volver al panel",
     })
 
 
@@ -5621,8 +5625,39 @@ def gestion_planilla_juego_nueva(request):
         "equipos_formulario": equipos_formulario,
         "torneo_seleccionado": torneo,
         "es_editor": es_editor_torneo(request.user),
-        "volver_panel_url": reverse("gestion_planillas_juego") if not es_editor_torneo(request.user) else reverse("panel"),
-        "volver_panel_text": "Mis planillas" if not es_editor_torneo(request.user) else "Volver al panel",
+        "volver_panel_url": reverse("planillero_mis_partidos") if es_planillero_asignado(request.user) else reverse("panel"),
+        "volver_panel_text": "Mis partidos" if es_planillero_asignado(request.user) else "Volver al panel",
+    })
+
+
+@login_required
+@user_passes_test(es_planillero_asignado)
+def planillero_mis_partidos(request):
+    partidos = request.user.partidos_planillero.select_related(
+        "categoria",
+        "categoria__torneo",
+        "equipo_local",
+        "equipo_visitante",
+    ).order_by("estado", "fecha", "hora", "categoria__nombre", "equipo_local__nombre")
+
+    estado = request.GET.get("estado", "").strip()
+    if estado:
+        partidos = partidos.filter(estado=estado)
+
+    items = []
+    for partido in partidos:
+        items.append(SimpleNamespace(
+            partido=partido,
+            puede_editar=puede_diligenciar_partido(request.user, partido),
+            planillas_count=partido.documentos_planilla.filter(tipo="PLANILLA_JUEGO").count(),
+        ))
+
+    return render(request, "gestion/planillero_mis_partidos.html", {
+        "items": items,
+        "estado": estado,
+        "estados": Partido.ESTADOS,
+        "volver_panel_url": reverse("planillero_mis_partidos"),
+        "volver_panel_text": "Mis partidos",
     })
 
 

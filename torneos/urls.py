@@ -186,6 +186,8 @@ urlpatterns = [
     path('delegado/jugadores/<int:jugador_id>/editar/', views.delegado_jugador_editar, name='delegado_jugador_editar'),
     path('delegado/jugadores/<int:jugador_id>/eliminar/', views.delegado_jugador_eliminar, name='delegado_jugador_eliminar'),
 
+    path('planillero/partidos/', views.planillero_mis_partidos, name='planillero_mis_partidos'),
+
     path('gestion/', views.gestion_panel, name='gestion_panel'),
     path('gestion/actividad/', views.gestion_actividad, name='gestion_actividad'),
     path('gestion/organizadores/', views.gestion_organizadores, name='gestion_organizadores'),

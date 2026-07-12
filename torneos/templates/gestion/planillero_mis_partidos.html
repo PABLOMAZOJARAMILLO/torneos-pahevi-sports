@@ -1,0 +1,88 @@
+{% extends "gestion/base.html" %}
+
+{% block title %}Mis partidos{% endblock %}
+{% block heading %}Mis partidos{% endblock %}
+
+{% block content %}
+<style>
+    .quick-actions {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-bottom: 12px;
+    }
+    .match-meta {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-top: 6px;
+    }
+    .pill {
+        display: inline-flex;
+        align-items: center;
+        min-height: 28px;
+        padding: 4px 10px;
+        border-radius: 999px;
+        background: rgba(255,255,255,0.1);
+        color: #e5e7eb;
+        font-size: 13px;
+    }
+    .match-actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+    }
+    @media (max-width: 640px) {
+        .match-actions { width: 100%; }
+        .match-actions .btn { width: 100%; }
+    }
+</style>
+
+<div class="quick-actions">
+    <a class="btn" href="{% url 'gestion_planillas_juego' %}">Planillas de juego</a>
+    <a class="btn secondary" href="{% url 'cerrar_sesion' %}">Salir</a>
+</div>
+
+<form method="get">
+    <label for="estado">Filtrar por estado</label>
+    <select id="estado" name="estado">
+        <option value="">Todos</option>
+        {% for valor, etiqueta in estados %}
+            <option value="{{ valor }}" {% if estado == valor %}selected{% endif %}>{{ etiqueta }}</option>
+        {% endfor %}
+    </select>
+    <p>
+        <button class="btn" type="submit">Buscar</button>
+        <a class="btn secondary" href="{% url 'planillero_mis_partidos' %}">Limpiar</a>
+    </p>
+</form>
+
+{% for item in items %}
+<div class="row">
+    <div>
+        <strong>{{ item.partido.equipo_local.nombre }} vs {{ item.partido.equipo_visitante.nombre }}</strong>
+        <div class="match-meta">
+            <span class="pill">{{ item.partido.categoria.nombre }}</span>
+            {% if item.partido.numero_fecha %}<span class="pill">{{ item.partido.numero_fecha }}</span>{% endif %}
+            {% if item.partido.grupo %}<span class="pill">Grupo {{ item.partido.grupo }}</span>{% endif %}
+            <span class="pill">{{ item.partido.fecha|date:"d/m/Y" }} {{ item.partido.hora|time:"H:i" }}</span>
+            {% if item.partido.cancha %}<span class="pill">{{ item.partido.cancha }}</span>{% endif %}
+            <span class="pill">{{ item.partido.get_estado_display }}</span>
+            <span class="pill">{{ item.planillas_count }} planilla(s)</span>
+        </div>
+    </div>
+    <div class="match-actions">
+        {% if item.puede_editar %}
+            <a class="btn" href="{% url 'editor_partido_movil' item.partido.id %}">Editor juego</a>
+        {% else %}
+            <span class="btn secondary">Edicion cerrada</span>
+        {% endif %}
+        <a class="btn" href="{% url 'gestion_planilla_juego_nueva' %}?partido={{ item.partido.id }}">Cargar planilla</a>
+        <a class="btn secondary" href="{% url 'partido_detalle_publico' item.partido.id %}">Ver partido</a>
+    </div>
+</div>
+{% empty %}
+    <div class="message">No tienes partidos asignados con ese filtro.</div>
+{% endfor %}
+{% endblock %}
