@@ -3,6 +3,7 @@ from . import views
 from .views import (
     panel_principal,
     descargar_tabla_grupo,
+    descargar_tabla_general_mata_mata,
     descargar_goleadores_categoria,
     descargar_tarjetas_categoria,
     descargar_valla_categoria,
@@ -44,6 +45,11 @@ urlpatterns = [
         'descargar/tabla/<str:categoria>/<str:grupo>/',
         descargar_tabla_grupo,
         name='descargar_tabla_grupo'
+    ),
+    path(
+        'descargar/tabla-general-mata-mata/<str:categoria>/',
+        descargar_tabla_general_mata_mata,
+        name='descargar_tabla_general_mata_mata'
     ),
 
     path(

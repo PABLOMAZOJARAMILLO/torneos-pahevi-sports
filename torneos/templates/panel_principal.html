@@ -5392,6 +5392,13 @@ body.solo-lectura .menu-principal{top:96px!important}
             {% if datos_categoria.tabla_general_mata_mata %}
                 <div class="grupo">
                     <h2>Tabla general mata-mata</h2>
+                    {% if request.user.is_staff %}
+                    <div class="descargas-tab">
+                        <a class="boton" href="{% url 'descargar_tabla_general_mata_mata' categoria %}">
+                            Descargar tabla general mata-mata
+                        </a>
+                    </div>
+                    {% endif %}
                     <div class="tabla-responsive tabla-posiciones">
                         <table>
                             <tr>

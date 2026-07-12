@@ -1656,6 +1656,30 @@ class FixtureProgramacionBalanceadaTests(TestCase):
         self.assertEqual(sum(equipo["pj"] for equipo in tabla_general), 20)
         self.assertTrue(all(equipo["pts"] == 3 for equipo in tabla_general))
 
+    @override_settings(STORAGES={
+        "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+        "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
+    })
+    def test_panel_mata_mata_muestra_descarga_tabla_general(self):
+        self.client.force_login(self.admin)
+        datos = self.datos_fixture_mata_mata()
+        self.client.post("/gestion/generar-fixture/", datos)
+        session = self.client.session
+        session["torneo_id"] = self.torneo.id
+        session.save()
+
+        for partido in Partido.objects.filter(categoria=self.categoria, fase="GRUPOS"):
+            partido.goles_local = 2
+            partido.goles_visitante = 0
+            partido.estado = "FINALIZADO"
+            partido.estadisticas_validadas = True
+            partido.save(update_fields=["goles_local", "goles_visitante", "estado", "estadisticas_validadas"])
+
+        respuesta = self.client.get(f"/?categoria={self.categoria.nombre}")
+
+        self.assertContains(respuesta, "Descargar tabla general mata-mata")
+        self.assertContains(respuesta, f"/descargar/tabla-general-mata-mata/{self.categoria.nombre}/")
+
     def test_mata_mata_genera_cuartos_con_sistema_oreja(self):
         self.client.force_login(self.admin)
         self.client.post("/gestion/generar-fixture/", self.datos_fixture_mata_mata())

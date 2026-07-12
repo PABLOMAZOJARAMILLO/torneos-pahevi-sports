@@ -2704,6 +2704,37 @@ def descargar_tabla_grupo(request, categoria, grupo):
 
 @login_required
 @user_passes_test(es_editor_torneo)
+def descargar_tabla_general_mata_mata(request, categoria):
+    torneo = torneo_actual(request)
+    estructura = construir_estructura(torneo)
+    datos_categoria = estructura.get(categoria)
+
+    if not datos_categoria:
+        return HttpResponse("Categoría no encontrada")
+
+    datos_categoria = preparar_categoria_para_descarga(request, datos_categoria)
+    tabla_general = datos_categoria.get("tabla_general_mata_mata") or []
+
+    if not tabla_general:
+        return HttpResponse("Tabla general mata-mata no encontrada")
+
+    logos = logos_torneo(request, torneo)
+
+    html = render_to_string("descargas/tabla_grupo.html", {
+        "categoria": categoria,
+        "grupo": "General mata-mata",
+        "datos_grupo": {"tabla": tabla_general},
+        "logo_alcaldia": logos["logo_alcaldia"],
+        "logo_torneo": logos["logo_torneo"],
+        "logo_imcred": logos["logo_imcred"],
+    })
+
+    nombre = limpiar_nombre(f"TABLA_GENERAL_MATA_MATA_{categoria}.png")
+    return crear_imagen_desde_html(html, nombre, 1600, 1200, url_retorno_descarga(request))
+
+
+@login_required
+@user_passes_test(es_editor_torneo)
 def descargar_goleadores_categoria(request, categoria):
     torneo = torneo_actual(request)
     estructura = construir_estructura(torneo)
