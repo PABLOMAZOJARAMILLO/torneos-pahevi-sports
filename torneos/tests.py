@@ -11,9 +11,78 @@ from django.utils import timezone
 from openpyxl import Workbook
 
 from .forms import JugadorForm, PartidoForm
-from .models import AlineacionPartido, AdminOrganizador, AdminTorneo, Categoria, Equipo, Gol, Jugador, Organizador, Partido, ReglaEdadCategoria, RegistroActividad, SolicitudValidacion, SustitucionPartido, Tarjeta, Torneo
+from .models import AlineacionPartido, AdminOrganizador, AdminTorneo, Categoria, Documento, Equipo, Gol, Jugador, Organizador, Partido, ReglaEdadCategoria, RegistroActividad, SolicitudValidacion, SustitucionPartido, Tarjeta, Torneo
 from .planillas_pdf import _edad, _header_image_sources
 from .views import buscar_planilleros_excel, construir_estructura, construir_estadisticas_foraneos, construir_partidos_portada, construir_partidos_programacion, _clave_orden_evento_resumen, _minuto_evento_en_vivo, _sincronizar_no_disponibles_por_tarjetas, etiqueta_edad_jugador, puede_descargar_programacion, texto_edad_jugador, tabla_general_mata_mata_ida_vuelta, validar_reglas_edad_titulares
+
+
+class DocumentosTorneoTests(TestCase):
+    def setUp(self):
+        self.torneo = Torneo.objects.create(nombre="Veranero", fecha_inicio=date(2026, 1, 1))
+        self.otro_torneo = Torneo.objects.create(nombre="Copa Antigua", fecha_inicio=date(2025, 1, 1))
+        self.usuario = User.objects.create_user("admin-docs", password="clave")
+        AdminTorneo.objects.create(usuario=self.usuario, torneo=self.torneo, puede_editar=True, puede_validar=True, puede_programar=True)
+        self.documento_actual = Documento.objects.create(
+            torneo=self.torneo,
+            tipo="REGLAMENTO",
+            titulo="Reglamento Veranero",
+            archivo="https://example.com/veranero.pdf",
+            activo=True,
+        )
+        self.documento_otro = Documento.objects.create(
+            torneo=self.otro_torneo,
+            tipo="REGLAMENTO",
+            titulo="Reglamento Copa Antigua",
+            archivo="https://example.com/antigua.pdf",
+            activo=True,
+        )
+        self.documento_global = Documento.objects.create(
+            tipo="REGLAMENTO",
+            titulo="Reglamento Sin Torneo",
+            archivo="https://example.com/global.pdf",
+            activo=True,
+        )
+
+    def seleccionar_torneo(self):
+        session = self.client.session
+        session["torneo_id"] = self.torneo.id
+        session.save()
+
+    @override_settings(STORAGES={
+        "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+        "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
+    })
+    def test_panel_publico_muestra_solo_documentos_del_torneo_actual(self):
+        self.seleccionar_torneo()
+        response = self.client.get("/")
+
+        self.assertContains(response, "Reglamento Veranero")
+        self.assertNotContains(response, "Reglamento Copa Antigua")
+        self.assertNotContains(response, "Reglamento Sin Torneo")
+
+    def test_gestion_documentos_muestra_solo_documentos_del_torneo_actual(self):
+        self.client.force_login(self.usuario)
+        self.seleccionar_torneo()
+        response = self.client.get("/gestion/documentos/")
+
+        self.assertContains(response, "Reglamento Veranero")
+        self.assertNotContains(response, "Reglamento Copa Antigua")
+        self.assertNotContains(response, "Reglamento Sin Torneo")
+
+    def test_no_permite_abrir_documento_de_otro_torneo_por_url_directa(self):
+        self.seleccionar_torneo()
+
+        response = self.client.get(f"/documentos/{self.documento_otro.id}/")
+
+        self.assertEqual(response.status_code, 404)
+
+    def test_no_permite_editar_documento_de_otro_torneo(self):
+        self.client.force_login(self.usuario)
+        self.seleccionar_torneo()
+
+        response = self.client.get(f"/gestion/documentos/{self.documento_otro.id}/editar/")
+
+        self.assertEqual(response.status_code, 404)
 
 
 class SancionesTarjetasTests(TestCase):

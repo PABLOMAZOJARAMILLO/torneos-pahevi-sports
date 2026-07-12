@@ -862,20 +862,16 @@ def aplicar_imagenes_torneo_cloudinary(torneo, archivos):
 def documentos_publicos_por_tipo(torneo=None):
     documentos = Documento.objects.filter(activo=True).order_by("tipo", "-creado_en", "titulo")
     if torneo:
-        documentos = documentos.filter(Q(torneo=torneo) | Q(torneo__isnull=True))
-    documentos_por_tipo = {
+        documentos = documentos.filter(torneo=torneo)
+    else:
+        documentos = documentos.none()
+
+    return {
         "reglamentos": documentos.filter(tipo="REGLAMENTO"),
         "resoluciones": documentos.filter(tipo="RESOLUCION"),
         "demandas": documentos.filter(tipo="DEMANDA"),
         "comunicados": documentos.filter(tipo="COMUNICADO"),
     }
-
-    documentos_cloudinary = listar_documentos_cloudinary_por_tipo()
-    for tipo, lista_cloudinary in documentos_cloudinary.items():
-        if not documentos_por_tipo[tipo].exists() and lista_cloudinary:
-            documentos_por_tipo[tipo] = lista_cloudinary
-
-    return documentos_por_tipo
 
 
 def listar_documentos_cloudinary_por_tipo(max_results=500):
@@ -948,15 +944,25 @@ def listar_documentos_cloudinary_por_tipo(max_results=500):
     return documentos
 
 
+def documento_visible_en_torneo_actual(request, documento_id):
+    torneo = torneo_actual(request, auto_seleccionar=False)
+    documentos = Documento.objects.filter(id=documento_id, activo=True)
+    if torneo:
+        documentos = documentos.filter(torneo=torneo)
+    else:
+        documentos = documentos.none()
+    return get_object_or_404(documentos)
+
+
 def documento_publico(request, documento_id):
-    documento = get_object_or_404(Documento, id=documento_id, activo=True)
+    documento = documento_visible_en_torneo_actual(request, documento_id)
     archivo_url = request.build_absolute_uri(reverse("documento_archivo_publico", args=[documento.id]))
     visor_url = f"https://docs.google.com/gview?embedded=1&url={quote(archivo_url, safe='')}"
     return redirect(visor_url)
 
 
 def documento_archivo_publico(request, documento_id):
-    documento = get_object_or_404(Documento, id=documento_id, activo=True)
+    documento = documento_visible_en_torneo_actual(request, documento_id)
     respuesta = requests.get(documento.archivo, timeout=20)
     respuesta.raise_for_status()
     content_type = respuesta.headers.get("Content-Type") or "application/pdf"
@@ -5121,7 +5127,9 @@ def gestion_documentos(request):
         return denegar_permiso_torneo()
     documentos = Documento.objects.order_by("tipo", "-creado_en", "titulo")
     if torneo:
-        documentos = documentos.filter(Q(torneo=torneo) | Q(torneo__isnull=True))
+        documentos = documentos.filter(torneo=torneo)
+    else:
+        documentos = documentos.none()
     tipo = request.GET.get("tipo", "").strip()
 
     if tipo:
@@ -5168,7 +5176,9 @@ def gestion_documento_editar(request, documento_id):
     torneo = torneo_actual(request)
     documentos = Documento.objects.all()
     if torneo:
-        documentos = documentos.filter(Q(torneo=torneo) | Q(torneo__isnull=True))
+        documentos = documentos.filter(torneo=torneo)
+    else:
+        documentos = documentos.none()
     documento = get_object_or_404(documentos, id=documento_id)
     if not puede_gestionar_torneo(request, documento.torneo or torneo, "editar"):
         return denegar_permiso_torneo()
