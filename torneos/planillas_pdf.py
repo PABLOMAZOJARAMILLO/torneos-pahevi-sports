@@ -67,9 +67,9 @@ FONT_TINY_BOLD = _font(31, True)
 
 STATIC_IMG_DIR = Path(__file__).resolve().parent / "static" / "torneos" / "img"
 HEADER_IMAGE_SLOTS = [
-    (1, 1, 7, 4, "logo_izquierdo", STATIC_IMG_DIR / "planilla_header_left.png"),
+    (1, 1, 7, 4, "logo_izquierdo", None),
     (8, 1, 17, 4, "imagen_central", STATIC_IMG_DIR / "planilla_header_center.png"),
-    (18, 1, 27, 4, "logo_derecho", STATIC_IMG_DIR / "planilla_header_right.png"),
+    (18, 1, 27, 4, "logo_derecho", None),
 ]
 
 
@@ -267,7 +267,7 @@ def _draw_team_shield(base, draw, equipo, col1, row1, col2, row2):
     _draw_image_fit(base, _team_shield_source(equipo), _box(col1, row1, col2, row2), padding=4)
 
 
-def _draw_team_watermark(base, equipo, box, opacity=22):
+def _draw_team_watermark(base, equipo, box, opacity=42):
     image = _image_from_source(_team_shield_source(equipo))
     if image is None:
         return
@@ -275,8 +275,8 @@ def _draw_team_watermark(base, equipo, box, opacity=22):
     x1, y1, x2, y2 = [int(round(value)) for value in box]
     with image:
         image = image.convert("RGBA")
-        target_w = max(1, int((x2 - x1) * 0.58))
-        target_h = max(1, int((y2 - y1) * 0.58))
+        target_w = max(1, int((x2 - x1) * 0.72))
+        target_h = max(1, int((y2 - y1) * 0.72))
         image.thumbnail((target_w, target_h), Image.Resampling.LANCZOS)
         alpha = image.getchannel("A").point(lambda value: min(value, opacity))
         image.putalpha(alpha)
