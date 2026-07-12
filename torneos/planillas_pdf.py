@@ -109,6 +109,12 @@ def _edad(fecha_nacimiento, referencia=None):
     )
 
 
+def _dorsal(value):
+    if value in (None, "", 0, "0"):
+        return ""
+    return _clean(value)
+
+
 def _fase(partido):
     if partido.fase == "GRUPOS":
         return _clean(partido.numero_fecha, "FECHA")
@@ -331,7 +337,7 @@ def _draw_player_side(img, draw, start_col, team_title, jugadores, referencia):
             font=FONT_SMALL,
             align="left",
         )
-        _cell(draw, number_col, row, text=_clean(getattr(jugador, "dorsal", "")) if jugador else "", font=FONT_TINY)
+        _cell(draw, number_col, row, text=_dorsal(getattr(jugador, "dorsal", "")) if jugador else "", font=FONT_TINY)
         _cell(draw, edad_col, row, text=_edad(getattr(jugador, "fecha_nacimiento", None), referencia) if jugador else "", font=FONT_TINY)
         _cell(draw, inic_col, row, text="", font=FONT_TINY)
         _cell(draw, sup_col, row, text="", font=FONT_TINY)
