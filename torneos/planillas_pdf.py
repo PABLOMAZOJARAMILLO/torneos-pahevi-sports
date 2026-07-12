@@ -267,7 +267,7 @@ def _draw_team_shield(base, draw, equipo, col1, row1, col2, row2):
     _draw_image_fit(base, _team_shield_source(equipo), _box(col1, row1, col2, row2), padding=4)
 
 
-def _draw_team_watermark(base, equipo, box, opacity=42):
+def _draw_team_watermark(base, equipo, box, opacity=76):
     image = _image_from_source(_team_shield_source(equipo))
     if image is None:
         return
@@ -275,8 +275,8 @@ def _draw_team_watermark(base, equipo, box, opacity=42):
     x1, y1, x2, y2 = [int(round(value)) for value in box]
     with image:
         image = image.convert("RGBA")
-        target_w = max(1, int((x2 - x1) * 0.72))
-        target_h = max(1, int((y2 - y1) * 0.72))
+        target_w = max(1, int((x2 - x1) * 0.92))
+        target_h = max(1, int((y2 - y1) * 0.92))
         image.thumbnail((target_w, target_h), Image.Resampling.LANCZOS)
         alpha = image.getchannel("A").point(lambda value: min(value, opacity))
         image.putalpha(alpha)
@@ -284,7 +284,8 @@ def _draw_team_watermark(base, equipo, box, opacity=42):
         px = x1 + ((x2 - x1) - image.width) // 2
         py = y1 + ((y2 - y1) - image.height) // 2
         layer.paste(image, (px, py), image)
-        base.paste(Image.alpha_composite(base.convert("RGBA"), layer).convert("RGB"), (0, 0))
+        composed = Image.alpha_composite(base.convert("RGBA"), layer).convert("RGB")
+        base.paste(composed)
 
 
 def _header_image_sources(partido):
@@ -430,6 +431,8 @@ def generar_planilla_juego_pdf(partido):
     draw = ImageDraw.Draw(img)
 
     for col1, row1, col2, row2, source in _header_image_sources(partido):
+        if not source:
+            continue
         _cell(draw, col1, row1, col2, row2, fill=WHITE, width=2)
         _draw_image_fit(img, source, _box(col1, row1, col2, row2))
 
