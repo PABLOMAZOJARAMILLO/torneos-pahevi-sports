@@ -9,7 +9,7 @@ import random
 import re
 import uuid
 import zipfile
-from urllib.parse import quote
+from urllib.parse import quote, urlencode
 
 from django.conf import settings
 from django.contrib import messages
@@ -5361,22 +5361,94 @@ def _planillas_juego_para_usuario(user, torneo=None):
     if torneo:
         documentos = documentos.filter(torneo=torneo)
 
+    orden = ("categoria__nombre", "numero_fecha", "fecha_partido", "hora_partido", "equipo_local__nombre", "equipo_visitante__nombre", "-creado_en")
+
     if es_editor_torneo(user):
-        return documentos.order_by("-fecha_partido", "-hora_partido", "-creado_en")
+        return documentos.order_by(*orden)
 
     return documentos.filter(
         Q(cargado_por=user) | Q(partido__planilleros=user)
-    ).distinct().order_by("-fecha_partido", "-hora_partido", "-creado_en")
+    ).distinct().order_by(*orden)
+
+
+def _agrupar_planillas_juego(documentos):
+    categorias = {}
+
+    for documento in documentos:
+        categoria_id = documento.categoria_id or 0
+        if categoria_id not in categorias:
+            categorias[categoria_id] = SimpleNamespace(
+                nombre=documento.categoria.nombre if documento.categoria else "Sin categoria",
+                fechas={},
+            )
+        categoria = categorias[categoria_id]
+
+        fecha_nombre = documento.numero_fecha or "Sin fecha fixture"
+        if fecha_nombre not in categoria.fechas:
+            categoria.fechas[fecha_nombre] = SimpleNamespace(
+                nombre=fecha_nombre,
+                partidos={},
+            )
+        fecha = categoria.fechas[fecha_nombre]
+
+        partido_key = documento.partido_id or f"manual-{documento.equipo_local_id}-{documento.equipo_visitante_id}-{documento.fecha_partido}"
+        if partido_key not in fecha.partidos:
+            fecha.partidos[partido_key] = SimpleNamespace(
+                partido=documento.partido,
+                equipo_local=documento.equipo_local,
+                equipo_visitante=documento.equipo_visitante,
+                fecha_partido=documento.fecha_partido,
+                hora_partido=documento.hora_partido,
+                documentos=[],
+            )
+        fecha.partidos[partido_key].documentos.append(documento)
+
+    return [
+        SimpleNamespace(
+            nombre=categoria.nombre,
+            fechas=[
+                SimpleNamespace(nombre=fecha.nombre, partidos=list(fecha.partidos.values()))
+                for fecha in categoria.fechas.values()
+            ],
+        )
+        for categoria in categorias.values()
+    ]
 
 
 @login_required
 @user_passes_test(puede_cargar_planillas_juego)
 def gestion_planillas_juego(request):
     torneo = torneo_actual(request) if es_editor_torneo(request.user) else None
-    documentos = _planillas_juego_para_usuario(request.user, torneo)
+    documentos_base = _planillas_juego_para_usuario(request.user, torneo)
+    categoria_id = request.GET.get("categoria", "").strip()
+    numero_fecha = request.GET.get("fecha", "").strip()
+    partido_id = request.GET.get("partido", "").strip()
+    documentos = documentos_base
+
+    if categoria_id:
+        documentos = documentos.filter(categoria_id=categoria_id)
+    if numero_fecha:
+        documentos = documentos.filter(numero_fecha=numero_fecha)
+    if partido_id:
+        documentos = documentos.filter(partido_id=partido_id)
+
+    categorias = Categoria.objects.filter(documentos_planilla__in=documentos_base).distinct().order_by("nombre")
+    fechas = documentos_base.exclude(numero_fecha__isnull=True).exclude(numero_fecha="").order_by("numero_fecha").values_list("numero_fecha", flat=True).distinct()
+    partidos = Partido.objects.select_related("equipo_local", "equipo_visitante", "categoria").filter(documentos_planilla__in=documentos_base)
+    if categoria_id:
+        partidos = partidos.filter(categoria_id=categoria_id)
+    if numero_fecha:
+        partidos = partidos.filter(numero_fecha=numero_fecha)
+    partidos = partidos.distinct().order_by("categoria__nombre", "numero_fecha", "fecha", "hora", "equipo_local__nombre")
 
     return render(request, "gestion/planillas_juego.html", {
-        "documentos": documentos[:300],
+        "grupos_planillas": _agrupar_planillas_juego(documentos[:500]),
+        "categorias": categorias,
+        "fechas": fechas,
+        "partidos": partidos,
+        "categoria_id": categoria_id,
+        "numero_fecha": numero_fecha,
+        "partido_id": partido_id,
         "torneo_seleccionado": torneo,
         "es_editor": es_editor_torneo(request.user),
     })
@@ -5433,7 +5505,12 @@ def gestion_planilla_juego_nueva(request):
             creados += 1
 
         messages.success(request, f"Planilla cargada correctamente: {creados} archivo(s).")
-        return redirect("gestion_planillas_juego")
+        query = urlencode({
+            "categoria": categoria.id,
+            "fecha": numero_fecha,
+            "partido": form.partido.id if form.partido else "",
+        })
+        return redirect(f"{reverse('gestion_planillas_juego')}?{query}")
 
     return render(request, "gestion/planilla_juego_form.html", {
         "titulo": "Cargar planilla de juego",

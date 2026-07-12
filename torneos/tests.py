@@ -165,6 +165,57 @@ class PlanillasJuegoUploadTests(TestCase):
         self.assertFalse(Documento.objects.filter(tipo="PLANILLA_JUEGO").exists())
         upload_mock.assert_not_called()
 
+    def test_lista_planillas_filtra_por_partido(self):
+        rival = Equipo.objects.create(nombre="Riverenos", categoria=self.categoria)
+        otro_partido = Partido.objects.create(
+            categoria=self.categoria,
+            equipo_local=self.equipo_local,
+            equipo_visitante=rival,
+            fecha=date(2026, 6, 10),
+            hora=time(18, 0),
+            estado="FINALIZADO",
+            numero_fecha="Fecha 2",
+        )
+        otro_partido.planilleros.add(self.planillero)
+        Documento.objects.create(
+            tipo="PLANILLA_JUEGO",
+            torneo=self.torneo,
+            categoria=self.categoria,
+            partido=self.partido,
+            equipo_local=self.equipo_local,
+            equipo_visitante=self.equipo_visitante,
+            titulo="Planilla Fecha 1",
+            archivo="https://example.com/fecha1.jpg",
+            numero_fecha="Fecha 1",
+            fecha_partido=date(2026, 6, 3),
+            hora_partido=time(16, 0),
+            cargado_por=self.planillero,
+        )
+        Documento.objects.create(
+            tipo="PLANILLA_JUEGO",
+            torneo=self.torneo,
+            categoria=self.categoria,
+            partido=otro_partido,
+            equipo_local=self.equipo_local,
+            equipo_visitante=rival,
+            titulo="Planilla Fecha 2",
+            archivo="https://example.com/fecha2.jpg",
+            numero_fecha="Fecha 2",
+            fecha_partido=date(2026, 6, 10),
+            hora_partido=time(18, 0),
+            cargado_por=self.planillero,
+        )
+
+        self.client.force_login(self.planillero)
+        response = self.client.get(f"/gestion/planillas-juego/?partido={self.partido.id}")
+
+        grupos = response.context["grupos_planillas"]
+        self.assertEqual(len(grupos), 1)
+        self.assertEqual(grupos[0].fechas[0].nombre, "Fecha 1")
+        self.assertEqual(len(grupos[0].fechas[0].partidos), 1)
+        self.assertEqual(grupos[0].fechas[0].partidos[0].partido, self.partido)
+        self.assertEqual(grupos[0].fechas[0].partidos[0].documentos[0].titulo, "Planilla Fecha 1")
+
 
 class SancionesTarjetasTests(TestCase):
     def setUp(self):
