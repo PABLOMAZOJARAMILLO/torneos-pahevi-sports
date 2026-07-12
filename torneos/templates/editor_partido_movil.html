@@ -618,12 +618,12 @@
     <div class="topbar">
         <div class="acciones-volver">
             <a class="volver"
-               href="{% url 'partido_live' partido.id %}"
+               href="{{ editor_live_url }}"
                onclick="guardarContextoPanelEditor()">
                 ← En vivo
             </a>
             <a class="volver volver-secundario"
-               href="{% url 'panel' %}?volver_editor=1&categoria={{ partido.categoria.nombre|urlencode }}&tab={% if partido.fase and partido.fase != 'GRUPOS' %}finales{% else %}fase1{% endif %}"
+               href="{{ editor_volver_url }}"
                onclick="guardarContextoPanelEditor()">
                 Panel
             </a>
@@ -1154,6 +1154,15 @@ function guardarContextoPanelEditor() {
 
     localStorage.setItem('panel_volver_partido_id', '{{ partido.id }}');
 }
+
+document.querySelectorAll('form').forEach(function(form) {
+    if (form.querySelector('input[name="volver"]')) return;
+    var volver = document.createElement('input');
+    volver.type = 'hidden';
+    volver.name = 'volver';
+    volver.value = '{{ editor_volver_url|escapejs }}';
+    form.appendChild(volver);
+});
 
 function mostrarEditorTab(tabId, boton) {
     document.querySelectorAll('.tab-content').forEach(function(tab) {

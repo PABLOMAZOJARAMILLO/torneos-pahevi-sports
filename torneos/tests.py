@@ -1148,6 +1148,71 @@ class AdminTorneoPermisosTests(TestCase):
         self.assertContains(respuesta, "Programar")
         self.assertNotContains(respuesta, "Editor juego")
 
+    def test_editor_juego_desde_gestion_lleva_url_de_retorno(self):
+        partido = Partido.objects.create(
+            categoria=self.categoria,
+            equipo_local=self.equipo,
+            equipo_visitante=Equipo.objects.create(nombre="Rival Editor", categoria=self.categoria),
+            fecha=date(2026, 5, 1),
+            hora=time(15, 0),
+            estado="PROGRAMADO",
+        )
+        self.client.force_login(self.admin)
+        session = self.client.session
+        session["torneo_id"] = self.torneo.id
+        session.save()
+
+        respuesta = self.client.get(f"/gestion/partidos/?categoria={self.categoria.id}&estado=PROGRAMADO")
+
+        self.assertContains(
+            respuesta,
+            f"/partido/{partido.id}/editor-movil/?volver=/gestion/partidos/%3Fcategoria%3D{self.categoria.id}%26estado%3DPROGRAMADO",
+        )
+
+    def test_editor_juego_conserva_retorno_a_gestion_despues_de_guardar(self):
+        rival = Equipo.objects.create(nombre="Rival Guarda", categoria=self.categoria)
+        partido = Partido.objects.create(
+            categoria=self.categoria,
+            equipo_local=self.equipo,
+            equipo_visitante=rival,
+            fecha=date(2026, 5, 1),
+            hora=time(15, 0),
+            estado="PROGRAMADO",
+            numero_fecha="1",
+            grupo="A",
+            cancha="Teresa Sierra",
+            fase="GRUPOS",
+        )
+        self.client.force_login(self.admin)
+        session = self.client.session
+        session["torneo_id"] = self.torneo.id
+        session.save()
+        volver = f"/gestion/partidos/?categoria={self.categoria.id}&estado=PROGRAMADO"
+
+        respuesta = self.client.post(
+            f"/partido/{partido.id}/guardar-info-movil/",
+            {
+                "volver": volver,
+                "goles_local": "1",
+                "goles_visitante": "0",
+                "estado": "PROGRAMADO",
+                "fecha": "2026-05-01",
+                "hora": "15:00",
+                "cancha": "Teresa Sierra",
+                "numero_fecha": "1",
+                "grupo": "A",
+                "fase": "GRUPOS",
+                "ajuste_puntos_local": "0",
+                "ajuste_puntos_visitante": "0",
+            },
+        )
+
+        self.assertRedirects(
+            respuesta,
+            f"/partido/{partido.id}/editor-movil/?volver=%2Fgestion%2Fpartidos%2F%3Fcategoria%3D{self.categoria.id}%26estado%3DPROGRAMADO",
+            fetch_redirect_response=False,
+        )
+
     def test_admin_programador_ve_opcion_eliminar_partido(self):
         admin = User.objects.create_user("admin-elimina-ui", password="test")
         AdminTorneo.objects.create(

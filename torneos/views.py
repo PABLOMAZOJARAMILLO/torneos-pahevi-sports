@@ -3606,8 +3606,30 @@ def _validar_jugador_equipo(jugador, equipo, partido):
     return jugador.equipo_id == equipo.id and equipo.id in equipos_validos
 
 
-def _url_editor_tab(partido_id, tab):
-    return f"{reverse('editor_partido_movil', args=[partido_id])}#{tab}"
+def _volver_editor_partido_url(request, partido):
+    fallback = f"{reverse('panel')}?torneo={partido.categoria.torneo_id}"
+    volver_url = (request.POST.get("volver") or request.GET.get("volver") or "").strip()
+    if volver_url and url_has_allowed_host_and_scheme(
+        volver_url,
+        allowed_hosts={request.get_host()},
+        require_https=request.is_secure(),
+    ):
+        return volver_url
+    return fallback
+
+
+def _url_editor_tab(partido_id, tab, volver_url=""):
+    url = reverse('editor_partido_movil', args=[partido_id])
+    if volver_url:
+        url = f"{url}?volver={quote(volver_url, safe='')}"
+    return f"{url}#{tab}"
+
+
+def _url_editor_partido(request, partido, tab=""):
+    volver_url = _volver_editor_partido_url(request, partido)
+    if tab:
+        return _url_editor_tab(partido.id, tab, volver_url)
+    return f"{reverse('editor_partido_movil', args=[partido.id])}?volver={quote(volver_url, safe='')}"
 
 
 POSICIONES_ALINEACION_DEFAULT = [codigo for codigo, _ in AlineacionPartido.POSICIONES_CANCHA]
@@ -3929,6 +3951,7 @@ def editor_partido_movil(request, partido_id):
     alineaciones_por_jugador = {alineacion.jugador_id: alineacion for alineacion in alineaciones}
     jugadores_local = _marcar_roles_alineacion(jugadores_local, alineaciones_por_jugador, partido)
     jugadores_visitante = _marcar_roles_alineacion(jugadores_visitante, alineaciones_por_jugador, partido)
+    volver_url = _volver_editor_partido_url(request, partido)
 
     return render(request, 'editor_partido_movil.html', {
         'partido': partido,
@@ -3952,6 +3975,8 @@ def editor_partido_movil(request, partido_id):
         'ajuste_puntos_visitante_abs': abs(partido.ajuste_puntos_visitante or 0),
         'ajuste_puntos_local_signo': '-' if (partido.ajuste_puntos_local or 0) < 0 else '+',
         'ajuste_puntos_visitante_signo': '-' if (partido.ajuste_puntos_visitante or 0) < 0 else '+',
+        'editor_volver_url': volver_url,
+        'editor_live_url': f"{reverse('partido_live', args=[partido.id])}?volver={quote(volver_url, safe='')}",
     })
 
 
@@ -3992,7 +4017,7 @@ def guardar_info_partido_movil(request, partido_id):
     messages.success(request, 'Partido actualizado correctamente.')
     if not es_editor_torneo(request.user) and partido.estado == "FINALIZADO":
         return redirect('partido_live', partido_id=partido.id)
-    return redirect('editor_partido_movil', partido_id=partido.id)
+    return redirect(_url_editor_partido(request, partido))
 
 
 @login_required
@@ -4036,7 +4061,7 @@ def agregar_gol_movil(request, partido_id):
         else:
             messages.error(request, 'El jugador no pertenece al equipo seleccionado.')
 
-    return redirect('editor_partido_movil', partido_id=partido.id)
+    return redirect(_url_editor_partido(request, partido))
 
 
 @login_required
@@ -4066,7 +4091,7 @@ def agregar_tarjeta_movil(request, partido_id):
         else:
             messages.error(request, 'El jugador no pertenece al equipo seleccionado.')
 
-    return redirect('editor_partido_movil', partido_id=partido.id)
+    return redirect(_url_editor_partido(request, partido))
 
 
 @login_required
@@ -4091,7 +4116,7 @@ def agregar_alineacion_movil(request, partido_id):
         if _validar_jugador_equipo(jugador, equipo, partido):
             if jugador.id in sancionados_tarjetas and rol != "NO_DISPONIBLE":
                 messages.error(request, 'Este jugador esta sancionado por tarjetas y queda como no disponible.')
-                return redirect(_url_editor_tab(partido.id, "alineacion"))
+                return redirect(_url_editor_partido(request, partido, "alineacion"))
             AlineacionPartido.objects.update_or_create(
                 partido=partido,
                 jugador=jugador,
@@ -4109,7 +4134,7 @@ def agregar_alineacion_movil(request, partido_id):
         else:
             messages.error(request, 'El jugador no pertenece al equipo seleccionado.')
 
-    return redirect('editor_partido_movil', partido_id=partido.id)
+    return redirect(_url_editor_partido(request, partido))
 
 
 @login_required
@@ -4124,7 +4149,7 @@ def guardar_alineacion_masiva_movil(request, partido_id):
 
     if equipo.id not in [partido.equipo_local_id, partido.equipo_visitante_id]:
         messages.error(request, "Ese equipo no pertenece al partido.")
-        return redirect(_url_editor_tab(partido.id, "alineacion"))
+        return redirect(_url_editor_partido(request, partido, "alineacion"))
 
     jugadores_equipo = Jugador.objects.filter(equipo=equipo).only("id")
     jugadores_validos = {str(jugador.id) for jugador in jugadores_equipo}
@@ -4153,7 +4178,7 @@ def guardar_alineacion_masiva_movil(request, partido_id):
                     posicion = ""
                 if posicion and posicion in posiciones_usadas:
                     messages.error(request, "No repitas la misma posición en la cancha.")
-                    return redirect(_url_editor_tab(partido.id, "alineacion"))
+                    return redirect(_url_editor_partido(request, partido, "alineacion"))
                 if posicion:
                     posiciones_usadas.add(posicion)
             else:
@@ -4169,7 +4194,7 @@ def guardar_alineacion_masiva_movil(request, partido_id):
     titulares = [jugador_id for jugador_id, rol, _, _ in seleccionados if rol == "TITULAR"]
     if len(titulares) > 11:
         messages.error(request, "Solo puedes seleccionar 11 titulares por equipo.")
-        return redirect(_url_editor_tab(partido.id, "alineacion"))
+        return redirect(_url_editor_partido(request, partido, "alineacion"))
     errores_edad = validar_reglas_edad_titulares(partido, equipo, titulares)
     seleccionados = asignar_posiciones_titulares_automaticas(seleccionados, indice_rol=1, indice_posicion=2)
 
@@ -4214,7 +4239,7 @@ def guardar_alineacion_masiva_movil(request, partido_id):
         f"Alineacion de {equipo.nombre} guardada: {len(titulares)} titulares, "
         f"{sum(1 for _, rol, _, _ in seleccionados if rol == 'SUPLENTE')} suplentes."
     )
-    return redirect(_url_editor_tab(partido.id, "alineacion"))
+    return redirect(_url_editor_partido(request, partido, "alineacion"))
 
 
 @login_required
@@ -4248,7 +4273,7 @@ def agregar_sustitucion_movil(request, partido_id):
         else:
             messages.error(request, 'Los jugadores deben pertenecer al equipo seleccionado.')
 
-    return redirect('editor_partido_movil', partido_id=partido.id)
+    return redirect(_url_editor_partido(request, partido))
 
 
 @login_required
@@ -4263,7 +4288,7 @@ def eliminar_gol_movil(request, gol_id):
     _recalcular_marcador_por_goles(partido)
     _marcar_estadisticas_pendientes(partido, request.user)
     messages.success(request, 'Gol eliminado.')
-    return redirect('editor_partido_movil', partido_id=partido_id)
+    return redirect(_url_editor_partido(request, partido))
 
 
 @login_required
@@ -4276,7 +4301,7 @@ def eliminar_tarjeta_movil(request, tarjeta_id):
     tarjeta.delete()
     _marcar_estadisticas_pendientes(tarjeta.partido, request.user)
     messages.success(request, 'Tarjeta eliminada.')
-    return redirect('editor_partido_movil', partido_id=partido_id)
+    return redirect(_url_editor_partido(request, tarjeta.partido))
 
 
 @login_required
@@ -4289,7 +4314,7 @@ def eliminar_alineacion_movil(request, alineacion_id):
     alineacion.delete()
     _marcar_estadisticas_pendientes(alineacion.partido, request.user)
     messages.success(request, 'Jugador eliminado de la alineación.')
-    return redirect('editor_partido_movil', partido_id=partido_id)
+    return redirect(_url_editor_partido(request, alineacion.partido))
 
 
 @login_required
@@ -4302,7 +4327,7 @@ def eliminar_sustitucion_movil(request, sustitucion_id):
     sustitucion.delete()
     _marcar_estadisticas_pendientes(sustitucion.partido, request.user)
     messages.success(request, 'Sustitución eliminada.')
-    return redirect('editor_partido_movil', partido_id=partido_id)
+    return redirect(_url_editor_partido(request, sustitucion.partido))
 
 def lista_equipos(request):
     equipos = Equipo.objects.select_related(

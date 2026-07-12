@@ -105,7 +105,7 @@
     </div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;">
         {% if puede_editar %}
-        <a class="btn secondary" href="{% url 'editor_partido_movil' partido.id %}">Editor juego</a>
+        <a class="btn secondary" href="{% url 'editor_partido_movil' partido.id %}?volver={{ request.get_full_path|urlencode }}">Editor juego</a>
         {% endif %}
         {% if partido.estado == "PROGRAMADO" and partido.estado_programacion != "SUGERIDA" and partido.cancha %}
         {% if puede_descargar_planillas %}
