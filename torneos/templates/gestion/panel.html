@@ -5,7 +5,7 @@
 
 {% block content %}
 <div class="grid">
-    {% if request.user.is_superuser %}
+    {% if puede_gestionar_organizadores %}
     <a class="card" href="{% url 'gestion_organizadores' %}">
         <h2>Organizadores</h2>
         <p class="muted">{{ total_organizadores }} registrados</p>

@@ -41,10 +41,28 @@ from .models import Torneo, Organizador, Categoria, Documento, Equipo, Partido, 
 from .planillas_pdf import generar_planilla_juego_pdf, nombre_archivo_planilla
 from django.utils import timezone
 
-def es_editor_torneo(user):
+def puede_gestionar_organizadores(user):
     if not user.is_authenticated:
         return False
     if user.is_superuser:
+        return True
+    if not user.is_staff:
+        return False
+    if user.has_perm("torneos.add_organizador") or user.has_perm("torneos.change_organizador"):
+        return True
+
+    tiene_torneos = tabla_disponible("torneos_admintorneo") and AdminTorneo.objects.filter(usuario=user, activo=True).exists()
+    tiene_organizadores = (
+        tabla_disponible("torneos_adminorganizador")
+        and AdminOrganizador.objects.filter(usuario=user, activo=True).exists()
+    )
+    return not tiene_torneos and not tiene_organizadores
+
+
+def es_editor_torneo(user):
+    if not user.is_authenticated:
+        return False
+    if user.is_superuser or puede_gestionar_organizadores(user):
         return True
     if not tabla_disponible("torneos_admintorneo"):
         return user.is_staff
@@ -4679,6 +4697,7 @@ def gestion_panel(request):
         "puede_validar": puede_validar,
         "puede_programar": puede_programar,
         "puede_descargar_planillas": puede_descargar_planillas,
+        "puede_gestionar_organizadores": puede_gestionar_organizadores(request.user),
     })
 
 
@@ -4779,7 +4798,7 @@ def gestion_validacion_resolver(request, solicitud_id):
 
 
 @login_required
-@user_passes_test(es_superadmin)
+@user_passes_test(puede_gestionar_organizadores)
 def gestion_organizadores(request):
     if not tabla_disponible("torneos_organizador"):
         messages.error(request, "La tabla de organizadores todavia no esta creada. Espera que Render termine de aplicar las migraciones.")
@@ -4793,7 +4812,7 @@ def gestion_organizadores(request):
 
 
 @login_required
-@user_passes_test(es_superadmin)
+@user_passes_test(puede_gestionar_organizadores)
 def gestion_organizador_nuevo(request):
     form = OrganizadorForm(request.POST or None, request.FILES or None)
 
@@ -4811,7 +4830,7 @@ def gestion_organizador_nuevo(request):
 
 
 @login_required
-@user_passes_test(es_superadmin)
+@user_passes_test(puede_gestionar_organizadores)
 def gestion_organizador_editar(request, organizador_id):
     organizador = get_object_or_404(Organizador, id=organizador_id)
     form = OrganizadorForm(request.POST or None, request.FILES or None, instance=organizador)
@@ -4830,7 +4849,7 @@ def gestion_organizador_editar(request, organizador_id):
 
 
 @login_required
-@user_passes_test(es_superadmin)
+@user_passes_test(puede_gestionar_organizadores)
 def gestion_organizador_admins(request, organizador_id):
     organizador = get_object_or_404(Organizador, id=organizador_id)
     asignaciones = AdminOrganizador.objects.select_related("usuario").filter(organizador=organizador)

@@ -972,6 +972,31 @@ class AdminTorneoPermisosTests(TestCase):
 
         self.assertEqual(respuesta.status_code, 403)
 
+    def test_admin_principal_staff_puede_crear_organizadores(self):
+        admin_principal = User.objects.create_user("admin-principal", password="test", is_staff=True)
+        self.client.force_login(admin_principal)
+
+        panel = self.client.get("/gestion/")
+        respuesta = self.client.post(
+            "/gestion/organizadores/nuevo/",
+            {"nombre": "Nuevo Organizador", "activo": "on"},
+        )
+
+        self.assertContains(panel, "Organizadores")
+        self.assertEqual(respuesta.status_code, 302)
+        self.assertTrue(Organizador.objects.filter(nombre="Nuevo Organizador").exists())
+
+    def test_admin_torneo_asignado_no_crea_organizadores(self):
+        self.client.force_login(self.admin)
+
+        respuesta = self.client.post(
+            "/gestion/organizadores/nuevo/",
+            {"nombre": "Organizador No Permitido", "activo": "on"},
+        )
+
+        self.assertNotEqual(respuesta.status_code, 200)
+        self.assertFalse(Organizador.objects.filter(nombre="Organizador No Permitido").exists())
+
     def test_admin_de_organizador_ve_torneos_del_organizador(self):
         torneo_organizador = Torneo.objects.create(
             nombre="Segundo del organizador",
