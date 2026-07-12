@@ -11,9 +11,23 @@ from django.utils import timezone
 from openpyxl import Workbook
 
 from .forms import JugadorForm, PartidoForm
-from .models import AlineacionPartido, AdminOrganizador, AdminTorneo, Categoria, Documento, Equipo, Gol, Jugador, Organizador, Partido, ReglaEdadCategoria, RegistroActividad, SolicitudValidacion, SustitucionPartido, Tarjeta, Torneo
+from .models import AlineacionPartido, AdminOrganizador, AdminTorneo, Categoria, Documento, Equipo, Gol, Jugador, Organizador, Partido, ReglaEdadCategoria, RegistroActividad, SolicitudValidacion, SustitucionPartido, Tarjeta, Torneo, ruta_escudo_equipo
 from .planillas_pdf import _edad, _header_image_sources
 from .views import buscar_planilleros_excel, construir_estructura, construir_estadisticas_foraneos, construir_partidos_portada, construir_partidos_programacion, _clave_orden_evento_resumen, _minuto_evento_en_vivo, _sincronizar_no_disponibles_por_tarjetas, etiqueta_edad_jugador, puede_descargar_programacion, texto_edad_jugador, tabla_general_mata_mata_ida_vuelta, validar_reglas_edad_titulares
+
+
+class EscudoEquipoTests(TestCase):
+    def test_ruta_escudo_equipo_genera_nombre_unico_para_evitar_cache(self):
+        torneo = Torneo.objects.create(nombre="Veranero", fecha_inicio=date(2026, 1, 1))
+        categoria = Categoria.objects.create(nombre="Senior Master", edad_minima=40, edad_maxima=80, torneo=torneo)
+        equipo = Equipo(nombre="Paraiso", categoria=categoria)
+
+        primera_ruta = ruta_escudo_equipo(equipo, "escudo.png")
+        segunda_ruta = ruta_escudo_equipo(equipo, "escudo.png")
+
+        self.assertNotEqual(primera_ruta, segunda_ruta)
+        self.assertTrue(primera_ruta.startswith("equipos/SENIOR_MASTER/PARAISO/escudo_"))
+        self.assertTrue(primera_ruta.endswith(".png"))
 
 
 class DocumentosTorneoTests(TestCase):

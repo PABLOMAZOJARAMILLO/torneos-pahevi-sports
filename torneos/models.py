@@ -1,5 +1,6 @@
 import os
 import re
+import uuid
 
 from django.db import models
 from django.contrib.auth.models import User
@@ -22,7 +23,8 @@ def extension_archivo(nombre_archivo):
 def ruta_escudo_equipo(instance, filename):
     categoria = limpiar_ruta_cloudinary(getattr(instance.categoria, "nombre", "SIN_CATEGORIA"))
     equipo = limpiar_ruta_cloudinary(instance.nombre)
-    return f"equipos/{categoria}/{equipo}/escudo{extension_archivo(filename)}"
+    sufijo = uuid.uuid4().hex[:12]
+    return f"equipos/{categoria}/{equipo}/escudo_{sufijo}{extension_archivo(filename)}"
 
 
 def ruta_foto_jugador(instance, filename):
