@@ -195,6 +195,18 @@ class PlanillasJuegoUploadTests(TestCase):
         self.assertEqual(documento.hora_partido, self.partido.hora)
         upload_mock.assert_called_once()
 
+    def test_planillero_ve_partidos_asignados_aunque_no_tengan_planilla(self):
+        self.client.force_login(self.planillero)
+
+        response = self.client.get("/gestion/planillas-juego/")
+
+        self.assertContains(response, "Niqueleros FC")
+        self.assertContains(response, "Integracion 28")
+        self.assertContains(response, "Sin planillas cargadas")
+        self.assertContains(response, "Fecha 1")
+        self.assertEqual(list(response.context["categorias"]), [self.categoria])
+        self.assertEqual(list(response.context["partidos"]), [self.partido])
+
     def test_lista_planillas_filtra_por_partido(self):
         rival = Equipo.objects.create(nombre="Riverenos", categoria=self.categoria)
         otro_partido = Partido.objects.create(

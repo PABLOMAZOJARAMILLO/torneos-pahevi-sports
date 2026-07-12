@@ -197,7 +197,11 @@
                 {% endif %}
             </a>
             {% endif %}
+            {% if volver_panel_url %}
+            <a class="btn secondary" href="{{ volver_panel_url }}">{{ volver_panel_text|default:'Volver al panel' }}</a>
+            {% else %}
             <a class="btn secondary" href="{% url 'panel' %}">Volver al panel</a>
+            {% endif %}
         </div>
     </div>
 

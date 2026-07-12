@@ -5374,6 +5374,23 @@ def _planillas_juego_para_usuario(user, torneo=None):
     ).distinct().order_by(*orden)
 
 
+def _partidos_planillas_para_usuario(user, torneo=None):
+    partidos = Partido.objects.select_related(
+        "categoria",
+        "categoria__torneo",
+        "equipo_local",
+        "equipo_visitante",
+    ).order_by("categoria__nombre", "numero_fecha", "fecha", "hora", "equipo_local__nombre")
+
+    if torneo:
+        partidos = partidos.filter(categoria__torneo=torneo)
+
+    if es_editor_torneo(user):
+        return partidos
+
+    return partidos.filter(planilleros=user)
+
+
 def _agrupar_planillas_juego(documentos):
     categorias = {}
 
@@ -5418,26 +5435,69 @@ def _agrupar_planillas_juego(documentos):
     ]
 
 
+def _agrupar_partidos_planillas(partidos, documentos):
+    documentos_por_partido = defaultdict(list)
+    for documento in documentos:
+        documentos_por_partido[documento.partido_id].append(documento)
+
+    categorias = {}
+    for partido in partidos:
+        categoria_id = partido.categoria_id or 0
+        if categoria_id not in categorias:
+            categorias[categoria_id] = SimpleNamespace(
+                nombre=partido.categoria.nombre if partido.categoria else "Sin categoria",
+                fechas={},
+            )
+        categoria = categorias[categoria_id]
+
+        fecha_nombre = partido.numero_fecha or "Sin fecha fixture"
+        if fecha_nombre not in categoria.fechas:
+            categoria.fechas[fecha_nombre] = SimpleNamespace(nombre=fecha_nombre, partidos={})
+        fecha = categoria.fechas[fecha_nombre]
+
+        fecha.partidos[partido.id] = SimpleNamespace(
+            partido=partido,
+            equipo_local=partido.equipo_local,
+            equipo_visitante=partido.equipo_visitante,
+            fecha_partido=partido.fecha,
+            hora_partido=partido.hora,
+            documentos=documentos_por_partido.get(partido.id, []),
+        )
+
+    return [
+        SimpleNamespace(
+            nombre=categoria.nombre,
+            fechas=[
+                SimpleNamespace(nombre=fecha.nombre, partidos=list(fecha.partidos.values()))
+                for fecha in categoria.fechas.values()
+            ],
+        )
+        for categoria in categorias.values()
+    ]
+
+
 @login_required
 @user_passes_test(puede_cargar_planillas_juego)
 def gestion_planillas_juego(request):
     torneo = torneo_actual(request) if es_editor_torneo(request.user) else None
     documentos_base = _planillas_juego_para_usuario(request.user, torneo)
+    partidos_base = _partidos_planillas_para_usuario(request.user, torneo)
     categoria_id = request.GET.get("categoria", "").strip()
     numero_fecha = request.GET.get("fecha", "").strip()
     partido_id = request.GET.get("partido", "").strip()
-    documentos = documentos_base
+    partidos_resultado = partidos_base
 
     if categoria_id:
-        documentos = documentos.filter(categoria_id=categoria_id)
+        partidos_resultado = partidos_resultado.filter(categoria_id=categoria_id)
     if numero_fecha:
-        documentos = documentos.filter(numero_fecha=numero_fecha)
+        partidos_resultado = partidos_resultado.filter(numero_fecha=numero_fecha)
     if partido_id:
-        documentos = documentos.filter(partido_id=partido_id)
+        partidos_resultado = partidos_resultado.filter(id=partido_id)
 
-    categorias = Categoria.objects.filter(documentos_planilla__in=documentos_base).distinct().order_by("nombre")
-    fechas = documentos_base.exclude(numero_fecha__isnull=True).exclude(numero_fecha="").order_by("numero_fecha").values_list("numero_fecha", flat=True).distinct()
-    partidos = Partido.objects.select_related("equipo_local", "equipo_visitante", "categoria").filter(documentos_planilla__in=documentos_base)
+    documentos = documentos_base.filter(partido__in=partidos_resultado)
+    categorias = Categoria.objects.filter(partido__in=partidos_base).distinct().order_by("nombre")
+    fechas = partidos_base.exclude(numero_fecha__isnull=True).exclude(numero_fecha="").order_by("numero_fecha").values_list("numero_fecha", flat=True).distinct()
+    partidos = partidos_base
     if categoria_id:
         partidos = partidos.filter(categoria_id=categoria_id)
     if numero_fecha:
@@ -5445,7 +5505,7 @@ def gestion_planillas_juego(request):
     partidos = partidos.distinct().order_by("categoria__nombre", "numero_fecha", "fecha", "hora", "equipo_local__nombre")
 
     return render(request, "gestion/planillas_juego.html", {
-        "grupos_planillas": _agrupar_planillas_juego(documentos[:500]),
+        "grupos_planillas": _agrupar_partidos_planillas(partidos_resultado[:500], documentos),
         "categorias": categorias,
         "fechas": fechas,
         "partidos": partidos,
@@ -5454,6 +5514,8 @@ def gestion_planillas_juego(request):
         "partido_id": partido_id,
         "torneo_seleccionado": torneo,
         "es_editor": es_editor_torneo(request.user),
+        "volver_panel_url": reverse("gestion_planillas_juego") if not es_editor_torneo(request.user) else reverse("panel"),
+        "volver_panel_text": "Mis planillas" if not es_editor_torneo(request.user) else "Volver al panel",
     })
 
 
@@ -5461,7 +5523,16 @@ def gestion_planillas_juego(request):
 @user_passes_test(puede_cargar_planillas_juego)
 def gestion_planilla_juego_nueva(request):
     torneo = torneo_actual(request) if es_editor_torneo(request.user) else None
-    form = PlanillaJuegoUploadForm(request.POST or None, request.FILES or None, user=request.user, torneo=torneo)
+    initial = {}
+    if request.method == "GET" and request.GET.get("partido"):
+        initial["partido"] = request.GET.get("partido")
+    form = PlanillaJuegoUploadForm(
+        request.POST or None,
+        request.FILES or None,
+        initial=initial,
+        user=request.user,
+        torneo=torneo,
+    )
     partidos_formulario = [
         {
             "id": partido.id,
@@ -5550,6 +5621,8 @@ def gestion_planilla_juego_nueva(request):
         "equipos_formulario": equipos_formulario,
         "torneo_seleccionado": torneo,
         "es_editor": es_editor_torneo(request.user),
+        "volver_panel_url": reverse("gestion_planillas_juego") if not es_editor_torneo(request.user) else reverse("panel"),
+        "volver_panel_text": "Mis planillas" if not es_editor_torneo(request.user) else "Volver al panel",
     })
 
 

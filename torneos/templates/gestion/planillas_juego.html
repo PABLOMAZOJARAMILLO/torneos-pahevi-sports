@@ -72,7 +72,7 @@
     {% if es_editor %}
         <a class="btn secondary" href="{% url 'gestion_panel' %}">Volver</a>
     {% else %}
-        <a class="btn secondary" href="{% url 'panel' %}">Volver al panel</a>
+        <a class="btn secondary" href="{% url 'gestion_planillas_juego' %}">Mis planillas</a>
     {% endif %}
     <a class="btn" href="{% url 'gestion_planilla_juego_nueva' %}">Cargar planilla</a>
 </div>
@@ -142,6 +142,15 @@
             </div>
 
             <div class="files-grid">
+                {% if not partido.documentos %}
+                <div class="file-card">
+                    <div>
+                        <strong>Sin planillas cargadas</strong>
+                        <div class="muted">Este partido esta asignado, pero todavia no tiene archivo.</div>
+                    </div>
+                    <a class="btn" href="{% url 'gestion_planilla_juego_nueva' %}?partido={{ partido.partido.id }}">Cargar</a>
+                </div>
+                {% endif %}
                 {% for documento in partido.documentos %}
                 <div class="file-card">
                     <div>
