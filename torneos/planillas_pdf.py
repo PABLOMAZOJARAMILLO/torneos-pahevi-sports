@@ -261,6 +261,26 @@ def _draw_team_shield(base, draw, equipo, col1, row1, col2, row2):
     _draw_image_fit(base, _team_shield_source(equipo), _box(col1, row1, col2, row2), padding=4)
 
 
+def _draw_team_watermark(base, equipo, box, opacity=22):
+    image = _image_from_source(_team_shield_source(equipo))
+    if image is None:
+        return
+
+    x1, y1, x2, y2 = [int(round(value)) for value in box]
+    with image:
+        image = image.convert("RGBA")
+        target_w = max(1, int((x2 - x1) * 0.58))
+        target_h = max(1, int((y2 - y1) * 0.58))
+        image.thumbnail((target_w, target_h), Image.Resampling.LANCZOS)
+        alpha = image.getchannel("A").point(lambda value: min(value, opacity))
+        image.putalpha(alpha)
+        layer = Image.new("RGBA", base.size, (255, 255, 255, 0))
+        px = x1 + ((x2 - x1) - image.width) // 2
+        py = y1 + ((y2 - y1) - image.height) // 2
+        layer.paste(image, (px, py), image)
+        base.paste(Image.alpha_composite(base.convert("RGBA"), layer).convert("RGB"), (0, 0))
+
+
 def _header_image_sources(partido):
     torneo = getattr(getattr(partido, "categoria", None), "torneo", None)
     sources = []
@@ -297,7 +317,7 @@ def _jugadores(equipo):
     return list(equipo.jugadores.filter(estado="ACTIVO").order_by("dorsal", "nombres"))[:30]
 
 
-def _draw_player_side(img, draw, start_col, team_title, jugadores, referencia):
+def _draw_player_side(img, draw, start_col, team_title, jugadores, referencia, equipo=None):
     name_start = start_col + 1
     if start_col == 1:
         name_end = 6
@@ -320,30 +340,38 @@ def _draw_player_side(img, draw, start_col, team_title, jugadores, referencia):
     _cell(draw, amarilla_cols[0], 11, amarilla_cols[1], 11, "A", fill=LIGHT, font=FONT_TINY_BOLD, width=2)
     _cell(draw, roja_col, 11, text="R", fill=LIGHT, font=FONT_TINY_BOLD, width=2)
 
+    row_cells = [
+        (start_col, start_col),
+        (name_start, name_end),
+        (number_col, number_col),
+        (edad_col, edad_col),
+        (inic_col, inic_col),
+        (sup_col, sup_col),
+        (amarilla_cols[0], amarilla_cols[0]),
+        (amarilla_cols[1], amarilla_cols[1]),
+        (roja_col, roja_col),
+    ]
+
     for index in range(30):
         row = 12 + index
+        for col1, col2 in row_cells:
+            _cell(draw, col1, row, col2, row, text="", font=FONT_TINY)
+
+    _draw_team_watermark(img, equipo, _box(start_col, 12, start_col + 12, 41))
+
+    for index in range(30):
+        row = 12 + index
+        for col1, col2 in row_cells:
+            draw.rectangle(_box(col1, row, col2, row), outline=BORDER, width=1)
+
         jugador = jugadores[index] if index < len(jugadores) else None
         nombre = _clean(getattr(jugador, "nombres", "")).title() if jugador else ""
         if jugador and getattr(jugador, "es_foraneo", False):
             nombre = f"{nombre} (F)"
-        _cell(draw, start_col, row, text=str(index + 1), font=FONT_TINY)
-        _cell(
-            draw,
-            name_start,
-            row,
-            name_end,
-            row,
-            nombre,
-            font=FONT_SMALL,
-            align="left",
-        )
-        _cell(draw, number_col, row, text=_dorsal(getattr(jugador, "dorsal", "")) if jugador else "", font=FONT_TINY)
-        _cell(draw, edad_col, row, text=_edad(getattr(jugador, "fecha_nacimiento", None), referencia) if jugador else "", font=FONT_TINY)
-        _cell(draw, inic_col, row, text="", font=FONT_TINY)
-        _cell(draw, sup_col, row, text="", font=FONT_TINY)
-        _cell(draw, amarilla_cols[0], row, text="", font=FONT_TINY)
-        _cell(draw, amarilla_cols[1], row, text="", font=FONT_TINY)
-        _cell(draw, roja_col, row, text="", font=FONT_TINY)
+        _text(draw, _box(start_col, row, start_col, row), str(index + 1), font=FONT_TINY)
+        _text(draw, _box(name_start, row, name_end, row), nombre, font=FONT_SMALL, align="left")
+        _text(draw, _box(number_col, row, number_col, row), _dorsal(getattr(jugador, "dorsal", "")) if jugador else "", font=FONT_TINY)
+        _text(draw, _box(edad_col, row, edad_col, row), _edad(getattr(jugador, "fecha_nacimiento", None), referencia) if jugador else "", font=FONT_TINY)
 
 
 def _draw_changes(draw, col1, col2):
@@ -413,8 +441,8 @@ def generar_planilla_juego_pdf(partido):
     _draw_team_shield(img, draw, partido.equipo_visitante, 26, 6, 27, 9)
 
     referencia = partido.fecha or date.today()
-    _draw_player_side(img, draw, 1, "LISTADO DE JUGADORES - EQUIPO A", _jugadores(partido.equipo_local), referencia)
-    _draw_player_side(img, draw, 15, "LISTADO DE JUGADORES - EQUIPO B", _jugadores(partido.equipo_visitante), referencia)
+    _draw_player_side(img, draw, 1, "LISTADO DE JUGADORES - EQUIPO A", _jugadores(partido.equipo_local), referencia, partido.equipo_local)
+    _draw_player_side(img, draw, 15, "LISTADO DE JUGADORES - EQUIPO B", _jugadores(partido.equipo_visitante), referencia, partido.equipo_visitante)
 
     _draw_changes(draw, 1, 13)
     _draw_changes(draw, 15, 27)

@@ -9,10 +9,11 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase, TransactionTestCase, override_settings
 from django.utils import timezone
 from openpyxl import Workbook
+from PIL import Image
 
 from .forms import JugadorForm, PartidoForm
 from .models import AlineacionPartido, AdminOrganizador, AdminTorneo, Categoria, Documento, Equipo, Gol, Jugador, Organizador, Partido, ReglaEdadCategoria, RegistroActividad, SolicitudValidacion, SustitucionPartido, Tarjeta, Torneo, ruta_escudo_equipo
-from .planillas_pdf import _dorsal, _edad, _header_image_sources, _team_shield_source
+from .planillas_pdf import _dorsal, _edad, _header_image_sources, _team_shield_source, _draw_team_watermark
 from .views import buscar_planilleros_excel, construir_estructura, construir_estadisticas_foraneos, construir_partidos_portada, construir_partidos_programacion, _clave_orden_evento_resumen, _minuto_evento_en_vivo, _sincronizar_no_disponibles_por_tarjetas, etiqueta_edad_jugador, puede_descargar_programacion, texto_edad_jugador, tabla_general_mata_mata_ida_vuelta, validar_reglas_edad_titulares
 
 
@@ -464,6 +465,14 @@ class PlanillasPDFTests(TestCase):
         self.assertEqual(_dorsal("0"), "")
         self.assertEqual(_dorsal(None), "")
         self.assertEqual(_dorsal(17), "17")
+
+    def test_marca_de_agua_no_falla_sin_escudo(self):
+        base = Image.new("RGB", (100, 100), "white")
+        equipo = Equipo(nombre="Sin escudo")
+
+        _draw_team_watermark(base, equipo, [0, 0, 100, 100])
+
+        self.assertEqual(base.size, (100, 100))
 
     def test_planilla_usa_escudo_de_cada_equipo(self):
         torneo = Torneo.objects.create(nombre="Veranero", fecha_inicio=date(2026, 1, 1))
