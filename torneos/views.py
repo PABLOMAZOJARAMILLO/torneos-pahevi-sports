@@ -2560,6 +2560,18 @@ def url_retorno_descarga(request):
     )
 
 
+def url_retorno_gestion(request, fallback_name):
+    fallback = reverse(fallback_name)
+    volver_url = (request.POST.get("volver") or request.GET.get("volver") or "").strip()
+    if volver_url and url_has_allowed_host_and_scheme(
+        volver_url,
+        allowed_hosts={request.get_host()},
+        require_https=request.is_secure(),
+    ):
+        return volver_url
+    return fallback
+
+
 def respuesta_descarga_sin_partidos(request, mensaje):
     volver_url = escape(url_retorno_descarga(request))
     mensaje = escape(mensaje)
@@ -6495,6 +6507,7 @@ def gestion_partido_editar(request, partido_id):
     torneo = torneo_actual(request)
     if not puede_gestionar_torneo(request, torneo, "programar"):
         return denegar_permiso_torneo()
+    volver_url = url_retorno_gestion(request, "gestion_partidos")
     partidos = Partido.objects.select_related("categoria", "equipo_local", "equipo_visitante")
     if torneo:
         partidos = partidos.filter(categoria__torneo=torneo)
@@ -6508,12 +6521,13 @@ def gestion_partido_editar(request, partido_id):
             partido.save(update_fields=["estado_programacion"])
         registrar_actividad(request, "PROGRAMAR", partido, descripcion=f"Programo partido {partido.equipo_local} vs {partido.equipo_visitante}.")
         messages.success(request, "Programacion actualizada correctamente.")
-        return redirect("gestion_partidos")
+        return redirect(volver_url)
 
     return render(request, "gestion/formulario.html", {
         "titulo": f"Programar partido: {partido.equipo_local} vs {partido.equipo_visitante}",
         "form": form,
         "volver_url": "gestion_partidos",
+        "volver_href": volver_url,
     })
 
 

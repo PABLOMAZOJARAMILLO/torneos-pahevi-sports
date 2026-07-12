@@ -11,7 +11,7 @@ from django.utils import timezone
 from openpyxl import Workbook
 from PIL import Image
 
-from .forms import JugadorForm, PartidoForm
+from .forms import JugadorForm, PartidoForm, TorneoForm
 from .models import AlineacionPartido, AdminOrganizador, AdminTorneo, Categoria, Documento, Equipo, Gol, Jugador, Organizador, Partido, ReglaEdadCategoria, RegistroActividad, SolicitudValidacion, SustitucionPartido, Tarjeta, Torneo, ruta_escudo_equipo
 from .planillas_pdf import _dorsal, _edad, _header_image_sources, _team_shield_source, _draw_team_watermark, _titulo_planilla
 from .views import buscar_planilleros_excel, construir_estructura, construir_estadisticas_foraneos, construir_partidos_portada, construir_partidos_programacion, _clave_orden_evento_resumen, _minuto_evento_en_vivo, _sincronizar_no_disponibles_por_tarjetas, etiqueta_edad_jugador, puede_descargar_programacion, texto_edad_jugador, tabla_general_mata_mata_ida_vuelta, validar_reglas_edad_titulares
@@ -1285,6 +1285,60 @@ class AdminTorneoPermisosTests(TestCase):
         self.assertNotContains(respuesta, 'name="goles_local_penales"')
         self.assertNotContains(respuesta, 'name="goles_visitante_penales"')
         self.assertNotContains(respuesta, 'name="estadisticas_validadas"')
+
+    def test_editar_torneo_no_pide_fechas_ya_definidas(self):
+        form = TorneoForm(instance=self.torneo)
+
+        self.assertNotIn("fecha_inicio", form.fields)
+        self.assertNotIn("fecha_fin", form.fields)
+
+    def test_programar_partido_regresa_a_gestion_filtrada(self):
+        admin = User.objects.create_user("admin-vuelve-filtro", password="test")
+        AdminTorneo.objects.create(
+            usuario=admin,
+            torneo=self.torneo,
+            puede_editar=False,
+            puede_validar=False,
+            puede_programar=True,
+        )
+        rival = Equipo.objects.create(nombre="Rival Retorno", categoria=self.categoria)
+        partido = Partido.objects.create(
+            categoria=self.categoria,
+            equipo_local=self.equipo,
+            equipo_visitante=rival,
+            fecha=date(2026, 5, 1),
+            hora=time(15, 0),
+            estado="PROGRAMADO",
+            numero_fecha="1",
+            grupo="A",
+            cancha="Teresa Sierra",
+            fase="GRUPOS",
+        )
+        self.client.force_login(admin)
+        session = self.client.session
+        session["torneo_id"] = self.torneo.id
+        session.save()
+
+        volver = f"/gestion/partidos/?categoria={self.categoria.id}&estado=PROGRAMADO&q=Rival"
+        volver_codificado = f"%2Fgestion%2Fpartidos%2F%3Fcategoria%3D{self.categoria.id}%26estado%3DPROGRAMADO%26q%3DRival"
+        respuesta = self.client.post(
+            f"/gestion/partidos/{partido.id}/editar/?volver={volver_codificado}",
+            {
+                "categoria": self.categoria.id,
+                "equipo_local": self.equipo.id,
+                "equipo_visitante": rival.id,
+                "fecha": "2026-05-02",
+                "hora": "16:00",
+                "estado": "PROGRAMADO",
+                "numero_fecha": "2",
+                "grupo": "A",
+                "cancha": "El Porvenir",
+                "estado_programacion": "OFICIAL",
+                "fase": "GRUPOS",
+            },
+        )
+
+        self.assertRedirects(respuesta, volver, fetch_redirect_response=False)
 
     @override_settings(STORAGES={
         "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},

@@ -72,10 +72,19 @@
     }
 </style>
 
-<p><a class="btn secondary" href="{% url volver_url %}">Volver</a></p>
+<p>
+    {% if volver_href %}
+        <a class="btn secondary" href="{{ volver_href }}">Volver</a>
+    {% else %}
+        <a class="btn secondary" href="{% url volver_url %}">Volver</a>
+    {% endif %}
+</p>
 
 <form method="post" enctype="multipart/form-data">
     {% csrf_token %}
+    {% if volver_href %}
+        <input type="hidden" name="volver" value="{{ volver_href }}">
+    {% endif %}
     {% for field in form %}
         <label for="{{ field.id_for_label }}">{{ field.label }}</label>
         {{ field }}

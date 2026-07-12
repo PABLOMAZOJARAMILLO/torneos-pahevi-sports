@@ -42,6 +42,12 @@ class TorneoForm(forms.ModelForm):
             "descripcion": forms.Textarea(attrs={"rows": 3}),
         }
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance and self.instance.pk:
+            self.fields.pop("fecha_inicio", None)
+            self.fields.pop("fecha_fin", None)
+
 
 class AdminTorneoForm(forms.ModelForm):
     class Meta:
