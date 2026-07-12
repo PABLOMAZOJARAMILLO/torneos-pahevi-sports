@@ -100,6 +100,15 @@ class DocumentosTorneoTests(TestCase):
 
         self.assertEqual(response.status_code, 404)
 
+    def test_formulario_documento_no_ofrece_planilla_de_juego(self):
+        self.client.force_login(self.usuario)
+        self.seleccionar_torneo()
+
+        response = self.client.get("/gestion/documentos/nuevo/")
+
+        self.assertContains(response, "Nuevo documento")
+        self.assertNotContains(response, "Planilla de juego")
+
 
 class PlanillasJuegoUploadTests(TestCase):
     def setUp(self):

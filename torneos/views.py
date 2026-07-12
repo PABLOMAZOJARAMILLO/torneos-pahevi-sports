@@ -5293,6 +5293,9 @@ def gestion_documento_nuevo(request):
     torneo = torneo_actual(request)
     if not puede_gestionar_torneo(request, torneo, "editar"):
         return denegar_permiso_torneo()
+    if request.method == "POST" and request.POST.get("tipo") == "PLANILLA_JUEGO":
+        messages.info(request, "Las planillas de juego se cargan desde el formulario especializado.")
+        return redirect("gestion_planilla_juego_nueva")
     form = DocumentoForm(request.POST or None, request.FILES or None, initial={"torneo": torneo}, torneo=torneo)
 
     if request.method == "POST" and form.is_valid():

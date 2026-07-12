@@ -136,6 +136,11 @@ class DocumentoForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         torneo = kwargs.pop("torneo", None)
         super().__init__(*args, **kwargs)
+        self.fields["tipo"].choices = [
+            (valor, etiqueta)
+            for valor, etiqueta in self.fields["tipo"].choices
+            if valor != "PLANILLA_JUEGO"
+        ]
         if torneo:
             self.fields["torneo"].queryset = Torneo.objects.filter(id=torneo.id)
             self.fields["torneo"].initial = torneo
