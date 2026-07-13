@@ -695,6 +695,25 @@ def torneo_actual(request, auto_seleccionar=True):
     return torneo
 
 
+def torneo_actual_planillero(request):
+    if not request.user.is_authenticated:
+        return None
+    torneos = Torneo.objects.filter(categorias__partido__planilleros=request.user).distinct().order_by("-fecha_inicio", "nombre")
+    torneo_id = request.GET.get("torneo") or request.session.get("torneo_id")
+    torneo = None
+
+    if torneo_id:
+        torneo = torneos.filter(id=torneo_id).first()
+
+    if not torneo:
+        torneo = torneos.filter(estado="ACTIVO").first() or torneos.first()
+
+    if torneo:
+        request.session["torneo_id"] = torneo.id
+
+    return torneo
+
+
 def listar_imagenes_cloudinary(max_results=80):
     imagenes = []
 
@@ -5392,7 +5411,10 @@ def _partidos_planillas_para_usuario(user, torneo=None):
     if es_editor_torneo(user):
         return partidos
 
-    return partidos.filter(planilleros=user)
+    return partidos.filter(planilleros=user).exclude(
+        estado="FINALIZADO",
+        documentos_planilla__tipo="PLANILLA_JUEGO",
+    ).distinct()
 
 
 def _agrupar_planillas_juego(documentos):
@@ -5483,7 +5505,7 @@ def _agrupar_partidos_planillas(partidos, documentos):
 @login_required
 @user_passes_test(puede_cargar_planillas_juego)
 def gestion_planillas_juego(request):
-    torneo = torneo_actual(request) if es_editor_torneo(request.user) else None
+    torneo = torneo_actual(request) if es_editor_torneo(request.user) else torneo_actual_planillero(request)
     documentos_base = _planillas_juego_para_usuario(request.user, torneo)
     partidos_base = _partidos_planillas_para_usuario(request.user, torneo)
     categoria_id = request.GET.get("categoria", "").strip()
@@ -5526,7 +5548,7 @@ def gestion_planillas_juego(request):
 @login_required
 @user_passes_test(puede_cargar_planillas_juego)
 def gestion_planilla_juego_nueva(request):
-    torneo = torneo_actual(request) if es_editor_torneo(request.user) else None
+    torneo = torneo_actual(request) if es_editor_torneo(request.user) else torneo_actual_planillero(request)
     initial = {}
     if request.method == "GET" and request.GET.get("partido"):
         initial["partido"] = request.GET.get("partido")
@@ -5633,12 +5655,19 @@ def gestion_planilla_juego_nueva(request):
 @login_required
 @user_passes_test(es_planillero_asignado)
 def planillero_mis_partidos(request):
+    torneo = torneo_actual_planillero(request)
     partidos = request.user.partidos_planillero.select_related(
         "categoria",
         "categoria__torneo",
         "equipo_local",
         "equipo_visitante",
     ).order_by("estado", "fecha", "hora", "categoria__nombre", "equipo_local__nombre")
+    if torneo:
+        partidos = partidos.filter(categoria__torneo=torneo)
+    partidos = partidos.exclude(
+        estado="FINALIZADO",
+        documentos_planilla__tipo="PLANILLA_JUEGO",
+    ).distinct()
 
     estado = request.GET.get("estado", "").strip()
     if estado:
@@ -5656,6 +5685,7 @@ def planillero_mis_partidos(request):
         "items": items,
         "estado": estado,
         "estados": Partido.ESTADOS,
+        "torneo_seleccionado": torneo,
         "volver_panel_url": reverse("planillero_mis_partidos"),
         "volver_panel_text": "Mis partidos",
     })
