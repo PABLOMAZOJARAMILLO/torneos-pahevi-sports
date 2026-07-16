@@ -15,7 +15,7 @@ from PIL import Image
 from .forms import JugadorForm, PartidoForm, TorneoForm
 from .models import AlineacionPartido, AdminOrganizador, AdminTorneo, Categoria, Documento, Equipo, Gol, Jugador, Organizador, Partido, ReglaEdadCategoria, RegistroActividad, SolicitudValidacion, SustitucionPartido, Tarjeta, Torneo, ruta_escudo_equipo
 from .planillas_pdf import _dorsal, _edad, _header_image_sources, _team_shield_source, _draw_team_watermark, _titulo_planilla
-from .views import buscar_planilleros_excel, construir_estructura, construir_estadisticas_foraneos, construir_partidos_portada, construir_partidos_programacion, _clave_orden_evento_resumen, _minuto_evento_en_vivo, _sincronizar_no_disponibles_por_tarjetas, etiqueta_edad_jugador, puede_descargar_programacion, texto_edad_jugador, tabla_general_mata_mata_ida_vuelta, validar_reglas_edad_titulares
+from .views import buscar_planilleros_excel, construir_estructura, construir_estadisticas_foraneos, construir_partidos_portada, construir_partidos_programacion, _clave_orden_evento_resumen, _minuto_evento_en_vivo, _sincronizar_no_disponibles_por_tarjetas, etiqueta_edad_jugador, puede_descargar_programacion, reglas_edad_para_frontend, texto_edad_jugador, tabla_general_mata_mata_ida_vuelta, validar_reglas_edad_titulares
 
 
 class EscudoEquipoTests(TestCase):
@@ -668,6 +668,27 @@ class ReglasEdadCategoriaTests(TestCase):
         )
 
         self.assertTrue(any("+45" in error for error in errores))
+
+    def test_reporta_regla_incompleta_con_menos_de_once_titulares(self):
+        jugadores = []
+        for indice in range(1, 5):
+            jugadores.append(self.crear_jugador(indice, date(1983, 1, 1)))
+        for indice in range(5, 8):
+            jugadores.append(self.crear_jugador(indice, date(1978, 1, 1)))
+
+        errores = validar_reglas_edad_titulares(
+            self.partido,
+            self.equipo,
+            [str(jugador.id) for jugador in jugadores],
+        )
+
+        self.assertTrue(any("+50" in error and "minimo 3" in error for error in errores))
+
+    def test_frontend_recibe_maximo_por_defecto_de_cuarenta_y_cinco(self):
+        reglas = reglas_edad_para_frontend(self.categoria)
+        regla_45 = next(regla for regla in reglas if regla["etiqueta"] == "+45")
+
+        self.assertEqual(regla_45["maximo"], 8)
 
 
 class PlanillasPDFTests(TestCase):

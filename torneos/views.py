@@ -2348,7 +2348,11 @@ def reglas_edad_para_frontend(categoria):
             "etiqueta": regla.etiqueta,
             "edad_minima": regla.edad_minima,
             "minimo": regla.minimo_titulares or 0,
-            "maximo": regla.maximo_titulares,
+            "maximo": (
+                regla.maximo_titulares
+                if regla.maximo_titulares is not None
+                else (8 if regla.etiqueta.strip().upper() == "+45" else None)
+            ),
         }
         for regla in reglas_edad_categoria(categoria)
         if regla.minimo_titulares or regla.maximo_titulares is not None
@@ -2360,7 +2364,7 @@ def validar_reglas_edad_titulares(partido, equipo, titulares_ids):
         regla for regla in reglas_edad_categoria(partido.categoria)
         if regla.minimo_titulares or regla.maximo_titulares is not None
     ]
-    if not reglas or len(titulares_ids) < 11:
+    if not reglas:
         return []
 
     jugadores = Jugador.objects.filter(id__in=titulares_ids, equipo=equipo)

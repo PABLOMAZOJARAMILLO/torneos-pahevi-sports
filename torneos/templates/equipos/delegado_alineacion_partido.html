@@ -457,7 +457,7 @@
             let sobrantesMayores = 0;
             reglas.slice().sort((a, b) => (b.edad_minima || 0) - (a.edad_minima || 0)).forEach((regla) => {
                 const cantidadConReemplazos = (conteos[regla.etiqueta] || 0) + sobrantesMayores;
-                if (seleccionados.length === 11 && regla.minimo && cantidadConReemplazos < regla.minimo) {
+                if (regla.minimo && cantidadConReemplazos < regla.minimo) {
                     advertencias.push(regla.etiqueta + ': minimo ' + regla.minimo + ', tienes ' + cantidadConReemplazos + '.');
                 }
                 sobrantesMayores = Math.max(0, cantidadConReemplazos - (regla.minimo || 0));

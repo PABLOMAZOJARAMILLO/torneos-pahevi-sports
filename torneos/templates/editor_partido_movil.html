@@ -1385,7 +1385,7 @@ function actualizarAdvertenciaEdades(panel, titulares) {
         return (b.edad_minima || 0) - (a.edad_minima || 0);
     }).forEach(function(regla) {
         const cantidadConReemplazos = (conteos[regla.etiqueta] || 0) + sobrantesMayores;
-        if (titulares === 11 && regla.minimo && cantidadConReemplazos < regla.minimo) {
+        if (regla.minimo && cantidadConReemplazos < regla.minimo) {
             advertencias.push(regla.etiqueta + ': minimo ' + regla.minimo + ', tienes ' + cantidadConReemplazos + '.');
         }
         sobrantesMayores = Math.max(0, cantidadConReemplazos - (regla.minimo || 0));
