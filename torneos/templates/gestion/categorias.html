@@ -24,6 +24,16 @@
             Edad: {{ categoria.edad_minima }} - {{ categoria.edad_maxima }}
             {% if categoria.descripcion %} · {{ categoria.descripcion }}{% endif %}
         </div>
+        <div class="muted">
+            Reglas:
+            {% for regla in categoria.reglas_edad.all %}
+                {% if regla.activa %}
+                    {{ regla.etiqueta }}{% if regla.minimo_titulares %} min {{ regla.minimo_titulares }}{% endif %}{% if regla.maximo_titulares %} max {{ regla.maximo_titulares }}{% endif %}{% if not forloop.last %} - {% endif %}
+                {% endif %}
+            {% empty %}
+                Sin reglas de edad en cancha.
+            {% endfor %}
+        </div>
     </div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;">
         <a class="btn" href="{% url 'gestion_categoria_editar' categoria.id %}">Editar</a>

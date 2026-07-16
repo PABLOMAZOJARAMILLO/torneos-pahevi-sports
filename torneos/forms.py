@@ -1,8 +1,9 @@
 from django import forms
 from django.contrib.auth.models import User
 from django.db.models import Q
+from django.forms import inlineformset_factory
 
-from .models import Torneo, Organizador, Documento, Categoria, Equipo, Jugador, Partido, AdminTorneo, AdminOrganizador
+from .models import Torneo, Organizador, Documento, Categoria, Equipo, Jugador, Partido, ReglaEdadCategoria, AdminTorneo, AdminOrganizador
 
 
 class OrganizadorForm(forms.ModelForm):
@@ -341,6 +342,50 @@ class CategoriaForm(forms.ModelForm):
         widgets = {
             "descripcion": forms.Textarea(attrs={"rows": 3}),
         }
+
+
+class ReglaEdadCategoriaForm(forms.ModelForm):
+    class Meta:
+        model = ReglaEdadCategoria
+        fields = [
+            "etiqueta",
+            "edad_minima",
+            "edad_maxima",
+            "minimo_titulares",
+            "maximo_titulares",
+            "orden",
+            "activa",
+        ]
+        widgets = {
+            "etiqueta": forms.TextInput(attrs={"placeholder": "+40"}),
+            "edad_minima": forms.NumberInput(attrs={"min": 0, "placeholder": "40"}),
+            "edad_maxima": forms.NumberInput(attrs={"min": 0, "placeholder": "44"}),
+            "minimo_titulares": forms.NumberInput(attrs={"min": 0, "placeholder": "0"}),
+            "maximo_titulares": forms.NumberInput(attrs={"min": 0, "placeholder": "Sin max."}),
+            "orden": forms.NumberInput(attrs={"min": 0}),
+        }
+
+    def clean(self):
+        cleaned = super().clean()
+        vacia = not any(cleaned.get(campo) not in ("", None) for campo in [
+            "etiqueta",
+            "edad_minima",
+            "edad_maxima",
+            "minimo_titulares",
+            "maximo_titulares",
+        ])
+        if vacia:
+            cleaned["DELETE"] = True
+        return cleaned
+
+
+ReglaEdadCategoriaFormSet = inlineformset_factory(
+    Categoria,
+    ReglaEdadCategoria,
+    form=ReglaEdadCategoriaForm,
+    extra=2,
+    can_delete=True,
+)
 
 
 class EquipoForm(forms.ModelForm):

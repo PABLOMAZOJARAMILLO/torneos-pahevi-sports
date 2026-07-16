@@ -706,6 +706,61 @@ class ReglasEdadCategoriaTests(TestCase):
         self.assertFalse(any("+45" in error and "maximo" in error for error in errores))
 
 
+class GestionCategoriaReglasTests(TestCase):
+    def setUp(self):
+        self.admin = User.objects.create_user("admin-categorias", password="test", is_staff=True, is_superuser=True)
+        self.torneo = Torneo.objects.create(nombre="Veranero", fecha_inicio=date(2026, 1, 1))
+        self.client.force_login(self.admin)
+        session = self.client.session
+        session["torneo_id"] = self.torneo.id
+        session.save()
+
+    def datos_categoria(self):
+        return {
+            "nombre": "Senior Master",
+            "descripcion": "Reglas senior",
+            "edad_minima": "40",
+            "edad_maxima": "80",
+            "porcentaje_minimo_foraneos": "50",
+            "reglas-TOTAL_FORMS": "3",
+            "reglas-INITIAL_FORMS": "0",
+            "reglas-MIN_NUM_FORMS": "0",
+            "reglas-MAX_NUM_FORMS": "1000",
+            "reglas-0-etiqueta": "+40",
+            "reglas-0-edad_minima": "40",
+            "reglas-0-edad_maxima": "44",
+            "reglas-0-minimo_titulares": "0",
+            "reglas-0-maximo_titulares": "4",
+            "reglas-0-orden": "1",
+            "reglas-0-activa": "on",
+            "reglas-1-etiqueta": "+45",
+            "reglas-1-edad_minima": "45",
+            "reglas-1-edad_maxima": "49",
+            "reglas-1-minimo_titulares": "5",
+            "reglas-1-maximo_titulares": "",
+            "reglas-1-orden": "2",
+            "reglas-1-activa": "on",
+            "reglas-2-etiqueta": "+50",
+            "reglas-2-edad_minima": "50",
+            "reglas-2-edad_maxima": "",
+            "reglas-2-minimo_titulares": "2",
+            "reglas-2-maximo_titulares": "",
+            "reglas-2-orden": "3",
+            "reglas-2-activa": "on",
+        }
+
+    def test_admin_crea_categoria_con_reglas_de_edad(self):
+        respuesta = self.client.post("/gestion/categorias/nueva/", self.datos_categoria())
+
+        self.assertEqual(respuesta.status_code, 302)
+        categoria = Categoria.objects.get(nombre="Senior Master")
+        reglas = {regla.etiqueta: regla for regla in categoria.reglas_edad.all()}
+        self.assertEqual(reglas["+40"].maximo_titulares, 4)
+        self.assertEqual(reglas["+45"].minimo_titulares, 5)
+        self.assertIsNone(reglas["+45"].maximo_titulares)
+        self.assertEqual(reglas["+50"].minimo_titulares, 2)
+
+
 class PlanillasPDFTests(TestCase):
     def test_titulo_planilla_usa_nombre_y_descripcion_del_torneo(self):
         torneo = Torneo.objects.create(

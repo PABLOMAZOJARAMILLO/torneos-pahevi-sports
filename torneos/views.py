@@ -36,7 +36,7 @@ import requests
 from django.views.decorators.http import require_POST
 from openpyxl import load_workbook
 
-from .forms import TorneoForm, OrganizadorForm, CategoriaForm, DocumentoForm, PlanillaJuegoUploadForm, EquipoForm, EquipoDelegadoForm, EquipoReinscripcionForm, JugadorForm, JugadorDelegadoForm, PartidoForm, PartidoProgramacionForm, AdminTorneoForm, AdminOrganizadorForm, CrearAdminOrganizadorForm
+from .forms import TorneoForm, OrganizadorForm, CategoriaForm, ReglaEdadCategoriaFormSet, DocumentoForm, PlanillaJuegoUploadForm, EquipoForm, EquipoDelegadoForm, EquipoReinscripcionForm, JugadorForm, JugadorDelegadoForm, PartidoForm, PartidoProgramacionForm, AdminTorneoForm, AdminOrganizadorForm, CrearAdminOrganizadorForm
 from .models import Torneo, Organizador, Categoria, Documento, Equipo, Partido, Gol, Tarjeta, Jugador, AlineacionPartido, SustitucionPartido, ReglaEdadCategoria, AdminTorneo, AdminOrganizador, RegistroActividad, SolicitudValidacion, limpiar_ruta_cloudinary
 from .planillas_pdf import generar_planilla_juego_pdf, nombre_archivo_planilla
 from django.utils import timezone
@@ -4553,7 +4553,7 @@ def delegado_equipo_editar(request, equipo_id):
     form = EquipoDelegadoForm(request.POST or None, request.FILES or None, instance=equipo)
     jugadores = equipo.jugadores.order_by("dorsal", "nombres")
 
-    if request.method == "POST" and form.is_valid():
+    if request.method == "POST" and form.is_valid() and reglas_formset.is_valid():
         equipo = form.save(commit=False)
         aplicar_imagen_cloudinary(
             equipo,
@@ -4710,7 +4710,7 @@ def delegado_jugador_nuevo(request, equipo_id):
 
     form = JugadorDelegadoForm(request.POST or None, request.FILES or None)
 
-    if request.method == "POST" and form.is_valid():
+    if request.method == "POST" and form.is_valid() and reglas_formset.is_valid():
         jugador = form.save(commit=False)
         jugador.equipo = equipo
         jugador.nombres = jugador.nombres.upper()
@@ -5296,7 +5296,7 @@ def gestion_categorias(request):
     torneo = torneo_actual(request)
     if usuario_solo_descarga_planillas(request.user, torneo):
         return denegar_permiso_torneo()
-    categorias = Categoria.objects.select_related("torneo").order_by("nombre")
+    categorias = Categoria.objects.select_related("torneo").prefetch_related("reglas_edad").order_by("nombre")
     if torneo:
         categorias = categorias.filter(torneo=torneo)
 
@@ -5312,19 +5312,42 @@ def gestion_categoria_nueva(request):
     torneo = torneo_actual(request)
     if not puede_gestionar_torneo(request, torneo, "editar"):
         return denegar_permiso_torneo()
-    form = CategoriaForm(request.POST or None)
+    categoria = Categoria(torneo=torneo)
+    reglas_iniciales = [
+        {"etiqueta": "+40", "edad_minima": 40, "edad_maxima": 44, "minimo_titulares": 0, "maximo_titulares": 4, "orden": 1, "activa": True},
+        {"etiqueta": "+45", "edad_minima": 45, "edad_maxima": 49, "minimo_titulares": 4, "orden": 2, "activa": True},
+        {"etiqueta": "+50", "edad_minima": 50, "minimo_titulares": 3, "orden": 3, "activa": True},
+    ]
+    form = CategoriaForm(request.POST or None, instance=categoria)
+    reglas_formset = ReglaEdadCategoriaFormSet(
+        None,
+        instance=categoria,
+        prefix="reglas",
+        initial=reglas_iniciales,
+    )
 
     if request.method == "POST" and form.is_valid():
         categoria = form.save(commit=False)
         categoria.torneo = torneo
         categoria.save()
+        reglas_formset = ReglaEdadCategoriaFormSet(request.POST, instance=categoria, prefix="reglas")
+        if not reglas_formset.is_valid():
+            categoria.delete()
+            return render(request, "gestion/categoria_formulario.html", {
+                "titulo": "Nueva categorÃ­a",
+                "form": form,
+                "reglas_formset": reglas_formset,
+                "volver_url": "gestion_categorias",
+            })
+        reglas_formset.save()
         registrar_actividad(request, "CREAR", categoria, descripcion=f"Creo categoria {categoria.nombre}.")
         messages.success(request, "Categoría creada correctamente.")
         return redirect("gestion_categorias")
 
-    return render(request, "gestion/formulario.html", {
+    return render(request, "gestion/categoria_formulario.html", {
         "titulo": "Nueva categoría",
         "form": form,
+        "reglas_formset": reglas_formset,
         "volver_url": "gestion_categorias",
     })
 
@@ -5340,19 +5363,27 @@ def gestion_categoria_editar(request, categoria_id):
         categorias = categorias.filter(torneo=torneo)
     categoria = get_object_or_404(categorias, id=categoria_id)
     form = CategoriaForm(request.POST or None, instance=categoria)
+    reglas_formset = ReglaEdadCategoriaFormSet(
+        request.POST or None,
+        instance=categoria,
+        prefix="reglas",
+    )
 
-    if request.method == "POST" and form.is_valid():
+    if request.method == "POST" and form.is_valid() and reglas_formset.is_valid():
         categoria = form.save(commit=False)
         if torneo:
             categoria.torneo = torneo
         categoria.save()
+        reglas_formset.instance = categoria
+        reglas_formset.save()
         registrar_actividad(request, "EDITAR", categoria, descripcion=f"Actualizo categoria {categoria.nombre}.")
         messages.success(request, "Categoría actualizada correctamente.")
         return redirect("gestion_categorias")
 
-    return render(request, "gestion/formulario.html", {
+    return render(request, "gestion/categoria_formulario.html", {
         "titulo": f"Editar categoría: {categoria.nombre}",
         "form": form,
+        "reglas_formset": reglas_formset,
         "volver_url": "gestion_categorias",
     })
 

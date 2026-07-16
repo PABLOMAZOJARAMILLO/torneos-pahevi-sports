@@ -1,0 +1,137 @@
+{% extends "gestion/base.html" %}
+
+{% block title %}{{ titulo }}{% endblock %}
+{% block heading %}{{ titulo }}{% endblock %}
+
+{% block content %}
+<style>
+    .reglas-card {
+        margin-top: 18px;
+        padding: 14px;
+        border: 1px solid rgba(0, 255, 102, 0.35);
+        border-radius: 8px;
+        background: rgba(15, 23, 42, 0.72);
+    }
+    .reglas-card h2 {
+        margin: 0 0 6px;
+        color: #00ff66;
+        font-size: 18px;
+        text-transform: uppercase;
+    }
+    .reglas-help {
+        margin: 0 0 12px;
+        color: #cbd5e1;
+        font-size: 13px;
+        font-weight: 800;
+    }
+    .reglas-grid {
+        display: grid;
+        gap: 10px;
+    }
+    .regla-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr 1fr 1fr .8fr .8fr .8fr;
+        gap: 8px;
+        align-items: end;
+        padding: 10px;
+        border: 1px solid rgba(148, 163, 184, 0.25);
+        border-radius: 8px;
+        background: rgba(2, 6, 23, 0.35);
+    }
+    .regla-field label {
+        display: block;
+        margin-bottom: 4px;
+        color: #bbf7d0;
+        font-size: 11px;
+        font-weight: 900;
+    }
+    .regla-field input[type="checkbox"] {
+        width: auto;
+        min-height: auto;
+        accent-color: #00e66f;
+    }
+    .regla-errors {
+        grid-column: 1 / -1;
+        color: #fecaca;
+        font-size: 12px;
+        font-weight: 900;
+    }
+    @media (max-width: 900px) {
+        .regla-row {
+            grid-template-columns: 1fr 1fr;
+        }
+    }
+</style>
+
+<p><a class="btn secondary" href="{% url volver_url %}">Volver</a></p>
+
+<form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    {{ form.non_field_errors }}
+
+    {% for field in form %}
+        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+        {{ field }}
+        {% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}
+        {{ field.errors }}
+    {% endfor %}
+
+    <section class="reglas-card">
+        <h2>Reglas de edad en cancha</h2>
+        <p class="reglas-help">
+            Estas reglas muestran advertencias al hacer la alineacion. No bloquean al delegado ni al planillero.
+            Deja "Maximo" vacio cuando no exista limite.
+        </p>
+        {{ reglas_formset.management_form }}
+        {{ reglas_formset.non_form_errors }}
+        <div class="reglas-grid">
+            {% for regla_form in reglas_formset %}
+            <div class="regla-row">
+                {% for hidden in regla_form.hidden_fields %}{{ hidden }}{% endfor %}
+
+                <div class="regla-field">
+                    <label for="{{ regla_form.etiqueta.id_for_label }}">Etiqueta</label>
+                    {{ regla_form.etiqueta }}
+                </div>
+                <div class="regla-field">
+                    <label for="{{ regla_form.edad_minima.id_for_label }}">Edad min.</label>
+                    {{ regla_form.edad_minima }}
+                </div>
+                <div class="regla-field">
+                    <label for="{{ regla_form.edad_maxima.id_for_label }}">Edad max.</label>
+                    {{ regla_form.edad_maxima }}
+                </div>
+                <div class="regla-field">
+                    <label for="{{ regla_form.minimo_titulares.id_for_label }}">Min. cancha</label>
+                    {{ regla_form.minimo_titulares }}
+                </div>
+                <div class="regla-field">
+                    <label for="{{ regla_form.maximo_titulares.id_for_label }}">Max. cancha</label>
+                    {{ regla_form.maximo_titulares }}
+                </div>
+                <div class="regla-field">
+                    <label for="{{ regla_form.orden.id_for_label }}">Orden</label>
+                    {{ regla_form.orden }}
+                </div>
+                <div class="regla-field">
+                    <label for="{{ regla_form.activa.id_for_label }}">Activa</label>
+                    {{ regla_form.activa }}
+                </div>
+                {% if regla_form.DELETE %}
+                <div class="regla-field">
+                    <label for="{{ regla_form.DELETE.id_for_label }}">Eliminar</label>
+                    {{ regla_form.DELETE }}
+                </div>
+                {% endif %}
+
+                {% if regla_form.errors %}
+                <div class="regla-errors">{{ regla_form.errors }}</div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+
+    <p><button class="btn" type="submit">Guardar</button></p>
+</form>
+{% endblock %}
