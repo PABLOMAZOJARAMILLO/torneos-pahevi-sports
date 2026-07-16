@@ -21,7 +21,7 @@ from django.http import FileResponse, HttpResponse, HttpResponseForbidden
 from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
 from django.db import connection, transaction
-from django.db.models import Count, Q, Sum
+from django.db.models import Q, Sum
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
 from django.contrib.staticfiles import finders
@@ -687,25 +687,6 @@ def torneo_actual(request, auto_seleccionar=True):
         torneo = torneos.filter(id=torneo_id).first()
 
     if not torneo and auto_seleccionar:
-        torneo = torneos.filter(estado="ACTIVO").first() or torneos.first()
-
-    if torneo:
-        request.session["torneo_id"] = torneo.id
-
-    return torneo
-
-
-def torneo_actual_planillero(request):
-    if not request.user.is_authenticated:
-        return None
-    torneos = Torneo.objects.filter(categorias__partido__planilleros=request.user).distinct().order_by("-fecha_inicio", "nombre")
-    torneo_id = request.GET.get("torneo") or request.session.get("torneo_id")
-    torneo = None
-
-    if torneo_id:
-        torneo = torneos.filter(id=torneo_id).first()
-
-    if not torneo:
         torneo = torneos.filter(estado="ACTIVO").first() or torneos.first()
 
     if torneo:
@@ -5411,10 +5392,7 @@ def _partidos_planillas_para_usuario(user, torneo=None):
     if es_editor_torneo(user):
         return partidos
 
-    return partidos.filter(planilleros=user).exclude(
-        estado="FINALIZADO",
-        documentos_planilla__tipo="PLANILLA_JUEGO",
-    ).distinct()
+    return partidos.filter(planilleros=user)
 
 
 def _agrupar_planillas_juego(documentos):
@@ -5505,7 +5483,7 @@ def _agrupar_partidos_planillas(partidos, documentos):
 @login_required
 @user_passes_test(puede_cargar_planillas_juego)
 def gestion_planillas_juego(request):
-    torneo = torneo_actual(request) if es_editor_torneo(request.user) else torneo_actual_planillero(request)
+    torneo = torneo_actual(request) if es_editor_torneo(request.user) else None
     documentos_base = _planillas_juego_para_usuario(request.user, torneo)
     partidos_base = _partidos_planillas_para_usuario(request.user, torneo)
     categoria_id = request.GET.get("categoria", "").strip()
@@ -5548,7 +5526,7 @@ def gestion_planillas_juego(request):
 @login_required
 @user_passes_test(puede_cargar_planillas_juego)
 def gestion_planilla_juego_nueva(request):
-    torneo = torneo_actual(request) if es_editor_torneo(request.user) else torneo_actual_planillero(request)
+    torneo = torneo_actual(request) if es_editor_torneo(request.user) else None
     initial = {}
     if request.method == "GET" and request.GET.get("partido"):
         initial["partido"] = request.GET.get("partido")
@@ -5655,24 +5633,12 @@ def gestion_planilla_juego_nueva(request):
 @login_required
 @user_passes_test(es_planillero_asignado)
 def planillero_mis_partidos(request):
-    torneo = torneo_actual_planillero(request)
     partidos = request.user.partidos_planillero.select_related(
         "categoria",
         "categoria__torneo",
         "equipo_local",
         "equipo_visitante",
     ).order_by("estado", "fecha", "hora", "categoria__nombre", "equipo_local__nombre")
-    if torneo:
-        partidos = partidos.filter(categoria__torneo=torneo)
-    partidos = partidos.exclude(
-        estado="FINALIZADO",
-        documentos_planilla__tipo="PLANILLA_JUEGO",
-    ).distinct().annotate(
-        planillas_juego_count=Count(
-            "documentos_planilla",
-            filter=Q(documentos_planilla__tipo="PLANILLA_JUEGO"),
-        )
-    )
 
     estado = request.GET.get("estado", "").strip()
     if estado:
@@ -5683,14 +5649,13 @@ def planillero_mis_partidos(request):
         items.append(SimpleNamespace(
             partido=partido,
             puede_editar=puede_diligenciar_partido(request.user, partido),
-            planillas_count=partido.planillas_juego_count,
+            planillas_count=partido.documentos_planilla.filter(tipo="PLANILLA_JUEGO").count(),
         ))
 
     return render(request, "gestion/planillero_mis_partidos.html", {
         "items": items,
         "estado": estado,
         "estados": Partido.ESTADOS,
-        "torneo_seleccionado": torneo,
         "volver_panel_url": reverse("planillero_mis_partidos"),
         "volver_panel_text": "Mis partidos",
     })

@@ -239,56 +239,8 @@ class PlanillasJuegoUploadTests(TestCase):
         self.assertEqual(list(response.context["categorias"]), [self.categoria])
         self.assertEqual(list(response.context["partidos"]), [self.partido])
 
-    def test_planillero_solo_ve_partidos_del_torneo_activo(self):
-        otro_torneo = Torneo.objects.create(nombre="Copa Antigua", fecha_inicio=date(2025, 1, 1))
-        otra_categoria = Categoria.objects.create(nombre="Plus 50", edad_minima=50, edad_maxima=80, torneo=otro_torneo)
-        otro_local = Equipo.objects.create(nombre="Equipo Antiguo A", categoria=otra_categoria)
-        otro_visitante = Equipo.objects.create(nombre="Equipo Antiguo B", categoria=otra_categoria)
-        partido_otro_torneo = Partido.objects.create(
-            categoria=otra_categoria,
-            equipo_local=otro_local,
-            equipo_visitante=otro_visitante,
-            fecha=date(2026, 7, 1),
-            hora=time(16, 0),
-            estado="PROGRAMADO",
-            numero_fecha="Fecha 9",
-        )
-        partido_otro_torneo.planilleros.add(self.planillero)
-        session = self.client.session
-        session["torneo_id"] = self.torneo.id
-        session.save()
-        self.client.force_login(self.planillero)
-
-        response = self.client.get("/planillero/partidos/")
-
-        self.assertContains(response, "Niqueleros FC")
-        self.assertNotContains(response, "Equipo Antiguo A")
-
-    def test_planillero_no_ve_finalizado_con_planilla_cargada(self):
-        Documento.objects.create(
-            tipo="PLANILLA_JUEGO",
-            torneo=self.torneo,
-            categoria=self.categoria,
-            partido=self.partido,
-            equipo_local=self.equipo_local,
-            equipo_visitante=self.equipo_visitante,
-            titulo="Planilla Fecha 1",
-            archivo="https://example.com/fecha1.jpg",
-            numero_fecha="Fecha 1",
-            fecha_partido=date(2026, 6, 3),
-            hora_partido=time(16, 0),
-            cargado_por=self.planillero,
-        )
-        self.client.force_login(self.planillero)
-
-        response = self.client.get("/planillero/partidos/")
-
-        self.assertNotContains(response, "Niqueleros FC")
-        self.assertContains(response, "No tienes partidos asignados con ese filtro.")
-
     def test_lista_planillas_filtra_por_partido(self):
         rival = Equipo.objects.create(nombre="Riverenos", categoria=self.categoria)
-        partido_visible = self.crear_partido_programado()
         otro_partido = Partido.objects.create(
             categoria=self.categoria,
             equipo_local=self.equipo_local,
@@ -303,14 +255,14 @@ class PlanillasJuegoUploadTests(TestCase):
             tipo="PLANILLA_JUEGO",
             torneo=self.torneo,
             categoria=self.categoria,
-            partido=partido_visible,
+            partido=self.partido,
             equipo_local=self.equipo_local,
             equipo_visitante=self.equipo_visitante,
             titulo="Planilla Fecha 1",
             archivo="https://example.com/fecha1.jpg",
-            numero_fecha="Fecha 2",
-            fecha_partido=date(2026, 6, 8),
-            hora_partido=time(18, 0),
+            numero_fecha="Fecha 1",
+            fecha_partido=date(2026, 6, 3),
+            hora_partido=time(16, 0),
             cargado_por=self.planillero,
         )
         Documento.objects.create(
@@ -329,13 +281,13 @@ class PlanillasJuegoUploadTests(TestCase):
         )
 
         self.client.force_login(self.planillero)
-        response = self.client.get(f"/gestion/planillas-juego/?partido={partido_visible.id}")
+        response = self.client.get(f"/gestion/planillas-juego/?partido={self.partido.id}")
 
         grupos = response.context["grupos_planillas"]
         self.assertEqual(len(grupos), 1)
-        self.assertEqual(grupos[0].fechas[0].nombre, "Fecha 2")
+        self.assertEqual(grupos[0].fechas[0].nombre, "Fecha 1")
         self.assertEqual(len(grupos[0].fechas[0].partidos), 1)
-        self.assertEqual(grupos[0].fechas[0].partidos[0].partido, partido_visible)
+        self.assertEqual(grupos[0].fechas[0].partidos[0].partido, self.partido)
         self.assertEqual(grupos[0].fechas[0].partidos[0].documentos[0].titulo, "Planilla Fecha 1")
 
 
