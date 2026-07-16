@@ -407,6 +407,69 @@
             font-size: 10px;
             font-weight: 700;
         }
+        .validacion-documentos {
+            margin: 12px 0;
+            padding: 10px;
+            border: 1px solid rgba(0, 255, 102, .35);
+            border-radius: 8px;
+            background: rgba(7, 17, 31, .7);
+        }
+        .validacion-documentos h3 {
+            margin: 0 0 8px;
+            color: #00ff66;
+            font-size: 14px;
+            text-transform: uppercase;
+        }
+        .validacion-documentos-vacia {
+            margin: 0;
+            color: #cbd5e1;
+            font-size: 12px;
+            font-weight: 800;
+        }
+        .documento-titular-row {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 8px;
+            align-items: center;
+            padding: 8px 0;
+            border-top: 1px solid rgba(148, 163, 184, .22);
+        }
+        .documento-titular-row[hidden] {
+            display: none;
+        }
+        .documento-titular-nombre {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            align-items: center;
+            color: #fff;
+            font-size: 12px;
+            font-weight: 900;
+        }
+        .documento-titular-meta {
+            color: #cbd5e1;
+            font-size: 11px;
+            font-weight: 800;
+        }
+        .documento-titular-check {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            min-height: 34px;
+            padding: 6px 10px;
+            border: 1px solid rgba(250, 204, 21, .55);
+            border-radius: 999px;
+            background: rgba(250, 204, 21, .12);
+            color: #fef9c3;
+            font-size: 11px;
+            font-weight: 900;
+            white-space: nowrap;
+        }
+        .documento-titular-check input {
+            width: auto;
+            min-height: auto;
+            accent-color: #00e66f;
+        }
         .alineacion-alerta {
             display: none;
             background: rgba(249, 115, 22, 0.16);
@@ -934,6 +997,26 @@
                     <button type="button" class="active" data-alineacion-equipo="local">{{ partido.equipo_local.nombre }}</button>
                     <button type="button" data-alineacion-equipo="visitante">{{ partido.equipo_visitante.nombre }}</button>
                 </div>
+                <section class="validacion-documentos" data-validacion-documentos>
+                    <h3>Cedulas de titulares</h3>
+                    <p class="validacion-documentos-vacia" data-validacion-vacia>Selecciona titulares para validar documentos.</p>
+                    {% for j in jugadores_local %}
+                    <div class="documento-titular-row" data-documento-titular-row="{{ j.id }}" hidden>
+                        <div>
+                            <div class="documento-titular-nombre">
+                                {% if j.dorsal %}<span>#{{ j.dorsal }}</span>{% endif %}
+                                <span>{{ j.nombres|texto_limpio }}</span>
+                                {% if j.texto_edad %}<span class="edad-badge">{{ j.texto_edad }}</span>{% endif %}
+                            </div>
+                            <div class="documento-titular-meta">Comparar con cedula fisica entregada.</div>
+                        </div>
+                        <label class="documento-titular-check">
+                            <input type="checkbox" name="documento_validado" value="{{ j.id }}" data-documento-titular-check {% if j.documento_validado_alineacion %}checked{% endif %}>
+                            <span>Cedula recibida</span>
+                        </label>
+                    </div>
+                    {% endfor %}
+                </section>
                 {% for j in jugadores_local %}
                 <div class="jugador-lineup-row" data-jugador-id="{{ j.id }}" data-edad="{{ j.texto_edad }}" data-etiqueta-edad="{{ j.etiqueta_edad }}" data-nombre="{{ j.nombres|texto_limpio }}" data-dorsal="{% if j.dorsal %}{{ j.dorsal }}{% endif %}" data-foto="{{ j.foto_alineacion }}" data-iniciales="{{ j.iniciales_alineacion }}">
                     <div class="jugador-lineup-head">
@@ -952,10 +1035,6 @@
                             <option value="{{ codigo }}" {% if j.posicion_alineacion == codigo %}selected{% endif %}>{{ nombre }}</option>
                         {% endfor %}
                     </select>
-                    <label class="documento-check">
-                        <input type="checkbox" name="documento_validado" value="{{ j.id }}" data-documento-check {% if j.documento_validado_alineacion %}checked{% endif %}>
-                        <span>Cedula recibida<small>Solo queda registrada si el jugador es titular.</small></span>
-                    </label>
                 </div>
                 {% empty %}
                     <p class="nota">Este equipo no tiene jugadores activos registrados.</p>
@@ -1001,6 +1080,26 @@
                     <button type="button" data-alineacion-equipo="local">{{ partido.equipo_local.nombre }}</button>
                     <button type="button" class="active" data-alineacion-equipo="visitante">{{ partido.equipo_visitante.nombre }}</button>
                 </div>
+                <section class="validacion-documentos" data-validacion-documentos>
+                    <h3>Cedulas de titulares</h3>
+                    <p class="validacion-documentos-vacia" data-validacion-vacia>Selecciona titulares para validar documentos.</p>
+                    {% for j in jugadores_visitante %}
+                    <div class="documento-titular-row" data-documento-titular-row="{{ j.id }}" hidden>
+                        <div>
+                            <div class="documento-titular-nombre">
+                                {% if j.dorsal %}<span>#{{ j.dorsal }}</span>{% endif %}
+                                <span>{{ j.nombres|texto_limpio }}</span>
+                                {% if j.texto_edad %}<span class="edad-badge">{{ j.texto_edad }}</span>{% endif %}
+                            </div>
+                            <div class="documento-titular-meta">Comparar con cedula fisica entregada.</div>
+                        </div>
+                        <label class="documento-titular-check">
+                            <input type="checkbox" name="documento_validado" value="{{ j.id }}" data-documento-titular-check {% if j.documento_validado_alineacion %}checked{% endif %}>
+                            <span>Cedula recibida</span>
+                        </label>
+                    </div>
+                    {% endfor %}
+                </section>
                 {% for j in jugadores_visitante %}
                 <div class="jugador-lineup-row" data-jugador-id="{{ j.id }}" data-edad="{{ j.texto_edad }}" data-etiqueta-edad="{{ j.etiqueta_edad }}" data-nombre="{{ j.nombres|texto_limpio }}" data-dorsal="{% if j.dorsal %}{{ j.dorsal }}{% endif %}" data-foto="{{ j.foto_alineacion }}" data-iniciales="{{ j.iniciales_alineacion }}">
                     <div class="jugador-lineup-head">
@@ -1019,10 +1118,6 @@
                             <option value="{{ codigo }}" {% if j.posicion_alineacion == codigo %}selected{% endif %}>{{ nombre }}</option>
                         {% endfor %}
                     </select>
-                    <label class="documento-check">
-                        <input type="checkbox" name="documento_validado" value="{{ j.id }}" data-documento-check {% if j.documento_validado_alineacion %}checked{% endif %}>
-                        <span>Cedula recibida<small>Solo queda registrada si el jugador es titular.</small></span>
-                    </label>
                 </div>
                 {% empty %}
                     <p class="nota">Este equipo no tiene jugadores activos registrados.</p>
@@ -1208,10 +1303,28 @@ function actualizarVisibilidadListaAlineacion(panel) {
     });
 }
 
+function actualizarValidacionDocumentosTitulares(panel) {
+    if (!panel) return;
+    let visibles = 0;
+
+    panel.querySelectorAll('[data-documento-titular-row]').forEach(function(filaValidacion) {
+        const jugadorId = filaValidacion.dataset.documentoTitularRow;
+        const filaJugador = panel.querySelector('.jugador-lineup-row[data-jugador-id="' + jugadorId + '"]');
+        const titular = filaJugador ? filaJugador.querySelector('input[value="TITULAR"]') : null;
+        const visible = Boolean(titular && titular.checked);
+        filaValidacion.hidden = !visible;
+        if (visible) visibles += 1;
+    });
+
+    const vacia = panel.querySelector('[data-validacion-vacia]');
+    if (vacia) vacia.hidden = visibles > 0;
+}
+
 function actualizarConteoTitulares(panel) {
     if (!panel) return;
 
     actualizarVisibilidadListaAlineacion(panel);
+    actualizarValidacionDocumentosTitulares(panel);
     const contador = panel.querySelector('[data-titulares-count]');
     const titulares = panel.querySelectorAll('input[value="TITULAR"]:checked').length;
     if (contador) contador.textContent = titulares;
