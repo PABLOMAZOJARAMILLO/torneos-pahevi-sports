@@ -13,7 +13,7 @@ from urllib.parse import quote, urlencode
 
 from django.conf import settings
 from django.contrib import messages
-from django.contrib.auth import logout
+from django.contrib.auth import login as auth_login, logout
 from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.views import LoginView
@@ -325,17 +325,103 @@ class IngresoTorneosView(LoginView):
         return super().get_success_url()
 
     def form_valid(self, form):
-        response = super().form_valid(form)
+        auth_login(self.request, form.get_user())
         user = self.request.user
         if es_editor_torneo(user):
-            messages.success(self.request, "Acceso exitoso. Bienvenido al panel de gestion.")
+            mensaje = "Acceso exitoso. Bienvenido al panel de gestion."
+            acciones = [
+                ("Gestion", reverse("gestion_panel")),
+                ("Partidos", reverse("gestion_partidos")),
+                ("Planillas de juego", reverse("gestion_planillas_juego")),
+                ("Panel principal", reverse("panel")),
+            ]
         elif equipos_delegado_asignados(user).exists():
-            messages.success(self.request, "Acceso exitoso. Bienvenido al portal de delegados.")
+            mensaje = "Acceso exitoso. Bienvenido al portal de delegados."
+            acciones = [
+                ("Mis equipos", reverse("delegado_mis_equipos")),
+                ("Panel principal", reverse("panel")),
+            ]
         elif user.partidos_planillero.exists():
-            messages.success(self.request, "Acceso exitoso. Ya puedes diligenciar tus partidos asignados.")
+            mensaje = "Acceso exitoso. Ya puedes diligenciar tus partidos asignados."
+            acciones = [
+                ("Mis partidos", reverse("planillero_mis_partidos")),
+                ("Planillas de juego", reverse("gestion_planillas_juego")),
+                ("Panel principal", reverse("panel")),
+            ]
         else:
-            messages.success(self.request, "Acceso exitoso.")
-        return response
+            mensaje = "Acceso exitoso."
+            acciones = [("Panel principal", reverse("panel"))]
+
+        botones = "".join(
+            f'<a class="btn" href="{escape(url)}">{escape(texto)}</a>'
+            for texto, url in acciones
+        )
+        return HttpResponse(f"""
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Acceso exitoso</title>
+    <style>
+        * {{ box-sizing: border-box; }}
+        body {{
+            margin: 0;
+            min-height: 100vh;
+            display: grid;
+            place-items: center;
+            padding: 18px;
+            background: radial-gradient(circle at top, #12345a, #07111f);
+            color: #ffffff;
+            font-family: Arial, sans-serif;
+            font-weight: 800;
+        }}
+        .card {{
+            width: min(100%, 460px);
+            background: #101d30;
+            border: 1px solid rgba(0, 255, 102, 0.35);
+            border-radius: 18px;
+            padding: 22px;
+            box-shadow: 0 20px 44px rgba(0, 0, 0, 0.35);
+        }}
+        h1 {{
+            margin: 0 0 10px;
+            color: #00ff66;
+            font-size: clamp(28px, 7vw, 40px);
+            text-transform: uppercase;
+            text-align: center;
+        }}
+        p {{
+            margin: 0 0 18px;
+            color: #dbeafe;
+            text-align: center;
+        }}
+        .actions {{
+            display: grid;
+            gap: 10px;
+        }}
+        .btn {{
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 48px;
+            border-radius: 999px;
+            background: #00e565;
+            color: #03110a;
+            text-decoration: none;
+            font-weight: 900;
+        }}
+    </style>
+</head>
+<body>
+    <main class="card">
+        <h1>Acceso exitoso</h1>
+        <p>{escape(mensaje)}</p>
+        <div class="actions">{botones}</div>
+    </main>
+</body>
+</html>
+""")
 
     def get_default_redirect_url(self):
         if self.request.user.is_authenticated and es_editor_torneo(self.request.user):

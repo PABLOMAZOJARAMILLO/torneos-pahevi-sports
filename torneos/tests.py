@@ -144,14 +144,15 @@ class PlanillasJuegoUploadTests(TestCase):
         partido.planilleros.add(self.planillero)
         return partido
 
-    def test_login_planillero_redirige_a_mis_partidos(self):
+    def test_login_planillero_muestra_acceso_exitoso_con_mis_partidos(self):
         response = self.client.post("/ingresar/", {
             "username": "planillero-docs",
             "password": "clave",
         })
 
-        self.assertEqual(response.status_code, 302)
-        self.assertEqual(response["Location"], "/planillero/partidos/")
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Acceso exitoso")
+        self.assertContains(response, "/planillero/partidos/")
 
     def test_planillero_ve_editor_de_partidos_asignados_editables(self):
         partido = self.crear_partido_programado()
