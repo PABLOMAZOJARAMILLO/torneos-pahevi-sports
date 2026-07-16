@@ -21,7 +21,7 @@ from django.http import FileResponse, HttpResponse, HttpResponseForbidden
 from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
 from django.db import connection, transaction
-from django.db.models import Q, Sum
+from django.db.models import Count, Q, Sum
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
 from django.contrib.staticfiles import finders
@@ -5667,7 +5667,12 @@ def planillero_mis_partidos(request):
     partidos = partidos.exclude(
         estado="FINALIZADO",
         documentos_planilla__tipo="PLANILLA_JUEGO",
-    ).distinct()
+    ).distinct().annotate(
+        planillas_juego_count=Count(
+            "documentos_planilla",
+            filter=Q(documentos_planilla__tipo="PLANILLA_JUEGO"),
+        )
+    )
 
     estado = request.GET.get("estado", "").strip()
     if estado:
@@ -5678,7 +5683,7 @@ def planillero_mis_partidos(request):
         items.append(SimpleNamespace(
             partido=partido,
             puede_editar=puede_diligenciar_partido(request.user, partido),
-            planillas_count=partido.documentos_planilla.filter(tipo="PLANILLA_JUEGO").count(),
+            planillas_count=partido.planillas_juego_count,
         ))
 
     return render(request, "gestion/planillero_mis_partidos.html", {

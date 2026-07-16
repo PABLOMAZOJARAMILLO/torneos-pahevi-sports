@@ -26,6 +26,16 @@ def main():
         "torneos_pahevi_sports.wsgi",
         "--bind",
         f"0.0.0.0:{port}",
+        "--timeout",
+        os.environ.get("WEB_TIMEOUT", "120"),
+        "--graceful-timeout",
+        os.environ.get("WEB_GRACEFUL_TIMEOUT", "30"),
+        "--access-logfile",
+        "-",
+        "--error-logfile",
+        "-",
+        "--log-level",
+        os.environ.get("WEB_LOG_LEVEL", "info"),
     ])
 
 
