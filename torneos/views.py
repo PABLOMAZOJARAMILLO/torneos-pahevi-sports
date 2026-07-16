@@ -21,7 +21,7 @@ from django.http import FileResponse, HttpResponse, HttpResponseForbidden
 from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
 from django.db import connection, transaction
-from django.db.models import Count, Exists, OuterRef, Q, Sum
+from django.db.models import Count, Q, Sum
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
 from django.contrib.staticfiles import finders
@@ -698,9 +698,8 @@ def torneo_actual(request, auto_seleccionar=True):
 def torneo_actual_planillero(request):
     if not request.user.is_authenticated:
         return None
-    torneo_ids = Partido.objects.filter(planilleros=request.user).values("categoria__torneo_id")
-    torneos = Torneo.objects.filter(id__in=torneo_ids).order_by("-fecha_inicio", "nombre")
-    torneo_id = request.GET.get("torneo") or request.session.get("torneo_planillero_id")
+    torneos = Torneo.objects.filter(categorias__partido__planilleros=request.user).distinct().order_by("-fecha_inicio", "nombre")
+    torneo_id = request.GET.get("torneo") or request.session.get("torneo_id")
     torneo = None
 
     if torneo_id:
@@ -710,7 +709,7 @@ def torneo_actual_planillero(request):
         torneo = torneos.filter(estado="ACTIVO").first() or torneos.first()
 
     if torneo:
-        request.session["torneo_planillero_id"] = torneo.id
+        request.session["torneo_id"] = torneo.id
 
     return torneo
 
@@ -5412,16 +5411,10 @@ def _partidos_planillas_para_usuario(user, torneo=None):
     if es_editor_torneo(user):
         return partidos
 
-    planilla_cargada = Documento.objects.filter(
-        tipo="PLANILLA_JUEGO",
-        partido_id=OuterRef("pk"),
-    ).distinct()
-    return partidos.filter(planilleros=user).annotate(
-        tiene_planilla_juego=Exists(planilla_cargada)
-    ).exclude(
+    return partidos.filter(planilleros=user).exclude(
         estado="FINALIZADO",
-        tiene_planilla_juego=True,
-    )
+        documentos_planilla__tipo="PLANILLA_JUEGO",
+    ).distinct()
 
 
 def _agrupar_planillas_juego(documentos):
@@ -5663,10 +5656,6 @@ def gestion_planilla_juego_nueva(request):
 @user_passes_test(es_planillero_asignado)
 def planillero_mis_partidos(request):
     torneo = torneo_actual_planillero(request)
-    planilla_cargada = Documento.objects.filter(
-        tipo="PLANILLA_JUEGO",
-        partido_id=OuterRef("pk"),
-    )
     partidos = request.user.partidos_planillero.select_related(
         "categoria",
         "categoria__torneo",
@@ -5675,15 +5664,14 @@ def planillero_mis_partidos(request):
     ).order_by("estado", "fecha", "hora", "categoria__nombre", "equipo_local__nombre")
     if torneo:
         partidos = partidos.filter(categoria__torneo=torneo)
-    partidos = partidos.annotate(
-        tiene_planilla_juego=Exists(planilla_cargada),
+    partidos = partidos.exclude(
+        estado="FINALIZADO",
+        documentos_planilla__tipo="PLANILLA_JUEGO",
+    ).distinct().annotate(
         planillas_juego_count=Count(
             "documentos_planilla",
             filter=Q(documentos_planilla__tipo="PLANILLA_JUEGO"),
-        ),
-    ).exclude(
-        estado="FINALIZADO",
-        tiene_planilla_juego=True,
+        )
     )
 
     estado = request.GET.get("estado", "").strip()
