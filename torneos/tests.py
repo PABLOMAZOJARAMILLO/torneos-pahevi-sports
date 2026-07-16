@@ -2000,6 +2000,64 @@ class ImportacionPartidosPlanillerosTests(TestCase):
         self.assertEqual(list(partido.planilleros.all()), [planillero])
 
 
+class ImportacionJugadoresPlanillaTests(TestCase):
+    def setUp(self):
+        self.torneo = Torneo.objects.create(nombre="Veranero", fecha_inicio=date(2026, 1, 1))
+        self.categoria = Categoria.objects.create(
+            nombre="Senior Master",
+            edad_minima=18,
+            edad_maxima=70,
+            torneo=self.torneo,
+        )
+        self.equipo = Equipo.objects.create(nombre="NIQUELEROS FC", categoria=self.categoria)
+        self.admin = User.objects.create_user("admin-jugadores", password="test", is_staff=True, is_superuser=True)
+
+    def _archivo_planilla(self):
+        workbook = Workbook()
+        hoja = workbook.active
+        hoja["D3"] = self.categoria.nombre
+        hoja["I3"] = self.equipo.nombre
+        hoja["C8"] = "Jugador Nuevo"
+        hoja["D8"] = 10
+        hoja["E8"] = 1
+        hoja["F8"] = 1
+        hoja["G8"] = 1980
+        hoja["H8"] = "12345"
+        archivo = BytesIO()
+        workbook.save(archivo)
+        archivo.seek(0)
+        return archivo
+
+    def test_importar_planilla_elimina_jugadores_que_no_vienen_en_excel(self):
+        Jugador.objects.create(
+            equipo=self.equipo,
+            nombres="Jugador Viejo",
+            cedula="99999",
+            fecha_nacimiento=date(1981, 1, 1),
+            estado="ACTIVO",
+        )
+
+        self.client.force_login(self.admin)
+        session = self.client.session
+        session["torneo_id"] = self.torneo.id
+        session.save()
+        archivo = self._archivo_planilla()
+        respuesta = self.client.post(
+            "/gestion/jugadores/importar-planilla/",
+            {
+                "archivo_excel": SimpleUploadedFile(
+                    "jugadores.xlsx",
+                    archivo.read(),
+                    content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                )
+            },
+        )
+
+        self.assertEqual(respuesta.status_code, 302)
+        self.assertTrue(Jugador.objects.filter(equipo=self.equipo, cedula="12345").exists())
+        self.assertFalse(Jugador.objects.filter(equipo=self.equipo, cedula="99999").exists())
+
+
 class PartidoFormTests(TestCase):
     def setUp(self):
         self.torneo = Torneo.objects.create(nombre="Veranero", fecha_inicio=date(2026, 1, 1))

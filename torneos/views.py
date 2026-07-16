@@ -6812,7 +6812,9 @@ def gestion_importar_planilla(request):
             creados = 0
             actualizados = 0
             omitidos = 0
+            eliminados = 0
             errores = []
+            cedulas_importadas = set()
 
             for fila in range(8, 38):
                 nombre = limpiar_texto_excel(hoja[f"C{fila}"].value)
@@ -6864,22 +6866,28 @@ def gestion_importar_planilla(request):
                         "estado": "ACTIVO",
                     },
                 )
+                cedulas_importadas.add(cedula)
 
                 if creado:
                     creados += 1
                 else:
                     actualizados += 1
 
+            if cedulas_importadas:
+                eliminados, _ = Jugador.objects.filter(equipo=equipo).exclude(
+                    cedula__in=cedulas_importadas
+                ).delete()
+
             messages.success(
                 request,
-                f"Planilla importada: {equipo.nombre} / {categoria.nombre}. Nuevos: {creados}. Actualizados: {actualizados}. Omitidos: {omitidos}.",
+                f"Planilla importada: {equipo.nombre} / {categoria.nombre}. Nuevos: {creados}. Actualizados: {actualizados}. Eliminados: {eliminados}. Omitidos: {omitidos}.",
             )
             registrar_actividad(
                 request,
                 "IMPORTAR_PLANILLA",
                 equipo,
-                descripcion=f"Importo planilla de {equipo.nombre}. Nuevos: {creados}. Actualizados: {actualizados}. Omitidos: {omitidos}.",
-                datos={"creados": creados, "actualizados": actualizados, "omitidos": omitidos},
+                descripcion=f"Importo planilla de {equipo.nombre}. Nuevos: {creados}. Actualizados: {actualizados}. Eliminados: {eliminados}. Omitidos: {omitidos}.",
+                datos={"creados": creados, "actualizados": actualizados, "eliminados": eliminados, "omitidos": omitidos},
             )
 
             for error in errores[:12]:
