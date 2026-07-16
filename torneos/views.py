@@ -310,8 +310,6 @@ class IngresoTorneosView(LoginView):
     template_name = "registration/login.html"
 
     def get_success_url(self):
-        if self.request.user.is_authenticated and es_editor_torneo(self.request.user):
-            return reverse("gestion_inicio")
         if (
             self.request.user.is_authenticated
             and not es_editor_torneo(self.request.user)
