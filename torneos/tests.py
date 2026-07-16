@@ -164,6 +164,51 @@ class PlanillasJuegoUploadTests(TestCase):
         self.assertContains(response, f"/partido/{partido.id}/editor-movil/")
         self.assertContains(response, "Cargar planilla")
 
+    def test_planillero_solo_ve_partidos_del_torneo_seleccionado(self):
+        partido = self.crear_partido_programado()
+        otro_torneo = Torneo.objects.create(nombre="Amistoso", fecha_inicio=date(2026, 7, 1))
+        otra_categoria = Categoria.objects.create(nombre="Senior Master", edad_minima=40, edad_maxima=80, torneo=otro_torneo)
+        otro_local = Equipo.objects.create(nombre="Paraiso", categoria=otra_categoria)
+        otro_visitante = Equipo.objects.create(nombre="Riverenos", categoria=otra_categoria)
+        otro_partido = Partido.objects.create(
+            categoria=otra_categoria,
+            equipo_local=otro_local,
+            equipo_visitante=otro_visitante,
+            fecha=date(2026, 7, 10),
+            hora=time(18, 0),
+            estado="PROGRAMADO",
+            numero_fecha="Fecha 1",
+        )
+        otro_partido.planilleros.add(self.planillero)
+        self.client.force_login(self.planillero)
+
+        response = self.client.get(f"/planillero/partidos/?torneo={self.torneo.id}")
+
+        self.assertContains(response, partido.equipo_local.nombre)
+        self.assertNotContains(response, otro_partido.equipo_local.nombre)
+
+    def test_planillero_no_ve_partido_finalizado_con_planilla_cargada(self):
+        Documento.objects.create(
+            tipo="PLANILLA_JUEGO",
+            torneo=self.torneo,
+            categoria=self.categoria,
+            partido=self.partido,
+            equipo_local=self.equipo_local,
+            equipo_visitante=self.equipo_visitante,
+            titulo="Planilla Fecha 1",
+            archivo="https://example.com/fecha1.jpg",
+            numero_fecha="Fecha 1",
+            fecha_partido=date(2026, 6, 3),
+            hora_partido=time(16, 0),
+            cargado_por=self.planillero,
+        )
+        self.client.force_login(self.planillero)
+
+        response = self.client.get(f"/planillero/partidos/?torneo={self.torneo.id}")
+
+        self.assertNotContains(response, self.equipo_local.nombre)
+        self.assertContains(response, "No tienes partidos asignados con ese filtro.")
+
     @patch("torneos.views.subir_documento_torneo", return_value="https://example.com/planilla.jpg")
     def test_planillero_puede_cargar_planilla_de_partido_asignado(self, upload_mock):
         self.client.force_login(self.planillero)

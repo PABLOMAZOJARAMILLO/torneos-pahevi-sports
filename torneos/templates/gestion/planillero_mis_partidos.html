@@ -45,6 +45,13 @@
 </div>
 
 <form method="get">
+    <label for="torneo">Torneo</label>
+    <select id="torneo" name="torneo">
+        {% for opcion in torneos %}
+            <option value="{{ opcion.id }}" {% if torneo and opcion.id == torneo.id %}selected{% endif %}>{{ opcion.nombre }}</option>
+        {% endfor %}
+    </select>
+
     <label for="estado">Filtrar por estado</label>
     <select id="estado" name="estado">
         <option value="">Todos</option>
@@ -79,7 +86,7 @@
             <span class="btn secondary">Edicion cerrada</span>
         {% endif %}
         <a class="btn" href="{% url 'gestion_planilla_juego_nueva' %}?partido={{ item.partido.id }}">Cargar planilla</a>
-        <a class="btn secondary" href="{% url 'partido_detalle_publico' item.partido.id %}">Ver partido</a>
+        <a class="btn secondary" href="{% url 'partido_live' item.partido.id %}">Ver partido</a>
     </div>
 </div>
 {% empty %}
