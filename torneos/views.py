@@ -2348,11 +2348,7 @@ def reglas_edad_para_frontend(categoria):
             "etiqueta": regla.etiqueta,
             "edad_minima": regla.edad_minima,
             "minimo": regla.minimo_titulares or 0,
-            "maximo": (
-                regla.maximo_titulares
-                if regla.maximo_titulares is not None
-                else (8 if regla.etiqueta.strip().upper() == "+45" else None)
-            ),
+            "maximo": regla.maximo_titulares,
         }
         for regla in reglas_edad_categoria(categoria)
         if regla.minimo_titulares or regla.maximo_titulares is not None
@@ -2379,8 +2375,6 @@ def validar_reglas_edad_titulares(partido, equipo, titulares_ids):
     for regla in reglas:
         cantidad = conteos.get(regla.id, 0)
         maximo_titulares = regla.maximo_titulares
-        if maximo_titulares is None and regla.etiqueta.strip().upper() == "+45":
-            maximo_titulares = 8
         if maximo_titulares is not None and cantidad > maximo_titulares:
             errores.append(
                 f"{regla.etiqueta}: maximo {maximo_titulares} en cancha, tienes {cantidad}."

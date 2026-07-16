@@ -684,11 +684,26 @@ class ReglasEdadCategoriaTests(TestCase):
 
         self.assertTrue(any("+50" in error and "minimo 3" in error for error in errores))
 
-    def test_frontend_recibe_maximo_por_defecto_de_cuarenta_y_cinco(self):
+    def test_frontend_no_impone_maximo_por_defecto_de_cuarenta_y_cinco(self):
         reglas = reglas_edad_para_frontend(self.categoria)
         regla_45 = next(regla for regla in reglas if regla["etiqueta"] == "+45")
 
-        self.assertEqual(regla_45["maximo"], 8)
+        self.assertIsNone(regla_45["maximo"])
+
+    def test_cuarenta_y_cinco_puede_superar_ocho_si_no_tiene_maximo_configurado(self):
+        jugadores = []
+        for indice in range(1, 10):
+            jugadores.append(self.crear_jugador(indice, date(1978, 1, 1)))
+        for indice in range(10, 12):
+            jugadores.append(self.crear_jugador(indice, date(1970, 1, 1)))
+
+        errores = validar_reglas_edad_titulares(
+            self.partido,
+            self.equipo,
+            [str(jugador.id) for jugador in jugadores],
+        )
+
+        self.assertFalse(any("+45" in error and "maximo" in error for error in errores))
 
 
 class PlanillasPDFTests(TestCase):
