@@ -3769,7 +3769,11 @@ def _validar_jugador_equipo(jugador, equipo, partido):
 
 
 def _volver_editor_partido_url(request, partido):
-    fallback = f"{reverse('panel')}?torneo={partido.categoria.torneo_id}"
+    fallback = (
+        reverse("planillero_mis_partidos")
+        if es_planillero_asignado(request.user)
+        else f"{reverse('panel')}?torneo={partido.categoria.torneo_id}"
+    )
     volver_url = (request.POST.get("volver") or request.GET.get("volver") or "").strip()
     if volver_url and url_has_allowed_host_and_scheme(
         volver_url,
@@ -4138,6 +4142,7 @@ def editor_partido_movil(request, partido_id):
         'ajuste_puntos_local_signo': '-' if (partido.ajuste_puntos_local or 0) < 0 else '+',
         'ajuste_puntos_visitante_signo': '-' if (partido.ajuste_puntos_visitante or 0) < 0 else '+',
         'editor_volver_url': volver_url,
+        'editor_volver_text': "Mis partidos" if es_planillero_asignado(request.user) else "Panel",
         'editor_live_url': f"{reverse('partido_live', args=[partido.id])}?volver={quote(volver_url, safe='')}",
     })
 

@@ -993,6 +993,18 @@ class PlanilleroPartidoTests(TestCase):
         "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
         "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
     })
+    def test_editor_planillero_vuelve_a_mis_partidos(self):
+        self.client.force_login(self.planillero)
+
+        respuesta = self.client.get(f"/partido/{self.partido.id}/editor-movil/")
+
+        self.assertContains(respuesta, 'href="/planillero/partidos/"')
+        self.assertContains(respuesta, "Mis partidos")
+
+    @override_settings(STORAGES={
+        "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+        "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
+    })
     def test_editor_movil_muestra_edad_en_alineacion(self):
         self.client.force_login(self.planillero)
 
