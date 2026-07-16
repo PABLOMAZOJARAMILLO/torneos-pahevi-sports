@@ -339,7 +339,7 @@ class IngresoTorneosView(LoginView):
 
     def get_default_redirect_url(self):
         if self.request.user.is_authenticated and es_editor_torneo(self.request.user):
-            return reverse("gestion_panel")
+            return reverse("gestion_inicio")
         if (
             self.request.user.is_authenticated
             and not es_editor_torneo(self.request.user)
@@ -4752,6 +4752,15 @@ def gestion_probar_storage(request):
         f"STORAGE OK\n\nArchivo: {nombre}\nURL: {url}",
         content_type="text/plain",
     )
+
+
+@login_required
+@user_passes_test(es_editor_torneo)
+def gestion_inicio(request):
+    return render(request, "gestion/inicio.html", {
+        "volver_panel_url": reverse("panel"),
+        "volver_panel_text": "Panel principal",
+    })
 
 
 @login_required

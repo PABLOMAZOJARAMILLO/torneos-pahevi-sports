@@ -1,0 +1,31 @@
+{% extends "gestion/base.html" %}
+
+{% block title %}Acceso exitoso{% endblock %}
+{% block heading %}Acceso exitoso{% endblock %}
+
+{% block content %}
+<p class="message">Sesion iniciada correctamente. Escoge la gestion que necesitas abrir.</p>
+
+<div class="grid">
+    <a class="card" href="{% url 'gestion_panel' %}">
+        <h2>Gestion general</h2>
+        <p class="muted">Abrir el panel completo de administracion.</p>
+    </a>
+    <a class="card" href="{% url 'gestion_partidos' %}">
+        <h2>Partidos</h2>
+        <p class="muted">Programar, editar y revisar partidos.</p>
+    </a>
+    <a class="card" href="{% url 'gestion_planillas_juego' %}">
+        <h2>Planillas de juego</h2>
+        <p class="muted">Cargar o consultar planillas por partido.</p>
+    </a>
+    <a class="card" href="{% url 'gestion_torneos' %}">
+        <h2>Torneos</h2>
+        <p class="muted">Seleccionar o administrar torneos.</p>
+    </a>
+    <a class="card" href="{% url 'panel' %}">
+        <h2>Panel publico</h2>
+        <p class="muted">Volver a la vista principal del torneo.</p>
+    </a>
+</div>
+{% endblock %}

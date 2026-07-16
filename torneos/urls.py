@@ -188,6 +188,7 @@ urlpatterns = [
 
     path('planillero/partidos/', views.planillero_mis_partidos, name='planillero_mis_partidos'),
 
+    path('gestion/inicio/', views.gestion_inicio, name='gestion_inicio'),
     path('gestion/', views.gestion_panel, name='gestion_panel'),
     path('gestion/actividad/', views.gestion_actividad, name='gestion_actividad'),
     path('gestion/organizadores/', views.gestion_organizadores, name='gestion_organizadores'),
