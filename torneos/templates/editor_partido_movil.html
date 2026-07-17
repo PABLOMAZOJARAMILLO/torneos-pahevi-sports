@@ -152,9 +152,30 @@
             padding: 9px;
             margin: 6px 0;
         }
-        .cronometro-card h2 {
-            margin-bottom: 8px;
+        .cronometro-card summary {
+            cursor: pointer;
+            color: #00ff66;
             font-size: 13px;
+            font-weight: 900;
+            text-transform: uppercase;
+            list-style: none;
+        }
+        .cronometro-card summary::-webkit-details-marker {
+            display: none;
+        }
+        .cronometro-card summary::after {
+            content: "▾";
+            float: right;
+            color: #dbeafe;
+        }
+        .cronometro-card[open] summary {
+            margin-bottom: 8px;
+        }
+        .cronometro-card[open] summary::after {
+            content: "▴";
+        }
+        .cronometro-card h2 {
+            display: none;
         }
         .cronometro-card .grid-2 {
             grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -715,7 +736,8 @@
         </div>
         {% endif %}
 
-        <div class="card cronometro-card">
+        <details class="card cronometro-card">
+            <summary>Cronometro en vivo</summary>
     <h2>Cronómetro en vivo</h2>
 
     <div class="grid-2">
@@ -727,7 +749,7 @@
         <a class="btn" href="{% url 'cronometro_suspender' partido.id %}">⚠ Suspender</a>
         <a class="btn" href="{% url 'cronometro_finalizar' partido.id %}">🏁 Finalizar</a>
     </div>
-        </div>
+        </details>
         <div class="tabs">
             <button type="button" class="tab-btn active" data-tab="resultado" onclick="mostrarEditorTab('resultado', this)">Resultado</button>
             <button type="button" class="tab-btn" data-tab="goles" onclick="mostrarEditorTab('goles', this)">Goles</button>
@@ -1504,6 +1526,10 @@ function asignarJugadorASlot(panel, selectorSlot) {
         const posicionSelect = fila.querySelector('[data-posicion-select]');
         if (posicionSelect && posicionSelect.value === posicion) {
             posicionSelect.value = '';
+            if (fila.dataset.jugadorId !== jugadorId) {
+                const fuera = fila.querySelector('input[value=""]');
+                if (fuera) fuera.checked = true;
+            }
         }
     });
 
