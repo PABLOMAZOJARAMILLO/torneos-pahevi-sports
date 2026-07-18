@@ -39,6 +39,17 @@
     .foto-jugador-card input[type="file"] {
         width: 100%;
     }
+    .foto-opciones {
+        display: grid;
+        gap: 8px;
+    }
+    .foto-opcion-label {
+        display: block;
+        margin: 0 0 4px;
+        color: #bbf7d0;
+        font-size: 12px;
+        font-weight: 900;
+    }
     .foto-jugador-status {
         display: block;
         margin-top: 6px;
@@ -84,7 +95,16 @@
                     <div class="muted">{{ fila.jugador.estado }}{% if fila.jugador.es_foraneo %} - Foraneo{% endif %}</div>
                 </div>
                 <div>
-                    {{ fila.form.foto }}
+                    <div class="foto-opciones">
+                        <div>
+                            <span class="foto-opcion-label">Tomar foto</span>
+                            {{ fila.form.foto }}
+                        </div>
+                        <div>
+                            <label class="foto-opcion-label" for="galeria-jugador-{{ fila.jugador.id }}">Subir de galeria</label>
+                            <input id="galeria-jugador-{{ fila.jugador.id }}" type="file" name="{{ fila.form.foto.html_name }}" accept="image/*" data-photo-resize="jugador">
+                        </div>
+                    </div>
                     <span class="foto-jugador-status" data-photo-status></span>
                     {% for error in fila.form.foto.errors %}
                         <div class="message">{{ error }}</div>

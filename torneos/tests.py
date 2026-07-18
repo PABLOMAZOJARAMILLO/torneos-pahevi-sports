@@ -2735,6 +2735,8 @@ class DelegadoEquipoTests(TestCase):
 
         self.assertContains(respuesta_lista, "Fotos jugadores")
         self.assertContains(respuesta_lista, "Edicion de equipo bloqueada")
+        self.assertContains(respuesta_fotos, "Tomar foto")
+        self.assertContains(respuesta_fotos, "Subir de galeria")
         self.assertContains(respuesta_fotos, 'accept="image/*"')
         self.assertContains(respuesta_fotos, 'capture="environment"')
         self.assertContains(respuesta_fotos, 'data-photo-resize="jugador"')

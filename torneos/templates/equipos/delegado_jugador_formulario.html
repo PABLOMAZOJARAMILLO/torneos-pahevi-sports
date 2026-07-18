@@ -11,6 +11,17 @@
         color: #bbf7d0;
         font-size: 12px;
     }
+    .foto-opciones {
+        display: grid;
+        gap: 8px;
+    }
+    .foto-opcion-label {
+        display: block;
+        margin: 0 0 4px;
+        color: #bbf7d0;
+        font-size: 12px;
+        font-weight: 900;
+    }
 </style>
 
 <p><a class="btn secondary" href="{% url 'delegado_equipo_editar' equipo.id %}">Volver al equipo</a></p>
@@ -19,7 +30,20 @@
     {% csrf_token %}
     {% for field in form %}
         <label for="{{ field.id_for_label }}">{{ field.label }}</label>
-        {{ field }}
+        {% if field.name == "foto" %}
+            <div class="foto-opciones">
+                <div>
+                    <span class="foto-opcion-label">Tomar foto</span>
+                    {{ field }}
+                </div>
+                <div>
+                    <label class="foto-opcion-label" for="{{ field.id_for_label }}_galeria">Subir de galeria</label>
+                    <input id="{{ field.id_for_label }}_galeria" type="file" name="{{ field.html_name }}" accept="image/*" data-photo-resize="jugador">
+                </div>
+            </div>
+        {% else %}
+            {{ field }}
+        {% endif %}
         {% if field.help_text %}
             <div class="muted">{{ field.help_text }}</div>
         {% endif %}
