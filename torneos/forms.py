@@ -539,12 +539,26 @@ class JugadorDelegadoForm(forms.ModelForm):
         self.fields["fecha_nacimiento"].input_formats = ["%Y-%m-%d"]
         if not permitir_foto:
             self.fields.pop("foto", None)
+        elif "foto" in self.fields:
+            self.fields["foto"].widget.attrs.update({
+                "accept": "image/*",
+                "capture": "environment",
+                "data-photo-resize": "jugador",
+            })
 
 
 class JugadorFotoDelegadoForm(forms.ModelForm):
     class Meta:
         model = Jugador
         fields = ["foto"]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["foto"].widget.attrs.update({
+            "accept": "image/*",
+            "capture": "environment",
+            "data-photo-resize": "jugador",
+        })
 
 
 class PartidoForm(forms.ModelForm):

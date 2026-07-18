@@ -2731,9 +2731,13 @@ class DelegadoEquipoTests(TestCase):
         respuesta_lista = self.client.get("/delegado/equipos/")
         respuesta_editar = self.client.get(f"/delegado/equipos/{self.equipo.id}/editar/")
         respuesta_nuevo = self.client.get(f"/delegado/equipos/{self.equipo.id}/jugadores/nuevo/")
+        respuesta_fotos = self.client.get(f"/delegado/equipos/{self.equipo.id}/fotos-jugadores/")
 
         self.assertContains(respuesta_lista, "Fotos jugadores")
         self.assertContains(respuesta_lista, "Edicion de equipo bloqueada")
+        self.assertContains(respuesta_fotos, 'accept="image/*"')
+        self.assertContains(respuesta_fotos, 'capture="environment"')
+        self.assertContains(respuesta_fotos, 'data-photo-resize="jugador"')
         self.assertRedirects(
             respuesta_editar,
             f"/delegado/equipos/{self.equipo.id}/fotos-jugadores/",

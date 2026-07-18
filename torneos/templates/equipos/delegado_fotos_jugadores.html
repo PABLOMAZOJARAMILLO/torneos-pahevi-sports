@@ -39,6 +39,12 @@
     .foto-jugador-card input[type="file"] {
         width: 100%;
     }
+    .foto-jugador-status {
+        display: block;
+        margin-top: 6px;
+        color: #bbf7d0;
+        font-size: 12px;
+    }
     @media (min-width: 760px) {
         .foto-jugador-card {
             grid-template-columns: 80px minmax(0, 1fr) minmax(260px, .8fr);
@@ -69,9 +75,9 @@
         {% for fila in filas %}
             <div class="foto-jugador-card">
                 {% if fila.foto_url %}
-                    <img src="{{ fila.foto_url }}" alt="Foto de {{ fila.jugador.nombres|texto_limpio }}">
+                    <img data-photo-preview src="{{ fila.foto_url }}" alt="Foto de {{ fila.jugador.nombres|texto_limpio }}">
                 {% else %}
-                    <div class="foto-jugador-placeholder">Foto</div>
+                    <div class="foto-jugador-placeholder" data-photo-placeholder>Foto</div>
                 {% endif %}
                 <div>
                     <div>{% if fila.jugador.dorsal %}#{{ fila.jugador.dorsal }} - {% endif %}{{ fila.jugador.nombres|texto_limpio }}</div>
@@ -79,6 +85,7 @@
                 </div>
                 <div>
                     {{ fila.form.foto }}
+                    <span class="foto-jugador-status" data-photo-status></span>
                     {% for error in fila.form.foto.errors %}
                         <div class="message">{{ error }}</div>
                     {% endfor %}
@@ -93,4 +100,111 @@
         <p><button class="btn" type="submit">Guardar fotos</button></p>
     {% endif %}
 </form>
+
+<script>
+    (function () {
+        var maxSize = 640;
+        var quality = 0.82;
+
+        function bytesToKb(bytes) {
+            return Math.max(1, Math.round(bytes / 1024));
+        }
+
+        function loadImage(file) {
+            return new Promise(function (resolve, reject) {
+                var image = new Image();
+                image.onload = function () {
+                    URL.revokeObjectURL(image.src);
+                    resolve(image);
+                };
+                image.onerror = reject;
+                image.src = URL.createObjectURL(file);
+            });
+        }
+
+        function canvasToBlob(canvas) {
+            return new Promise(function (resolve) {
+                if (!canvas.toBlob) {
+                    resolve(null);
+                    return;
+                }
+                canvas.toBlob(resolve, 'image/jpeg', quality);
+            });
+        }
+
+        function replaceInputFile(input, file) {
+            if (typeof DataTransfer === 'undefined') return false;
+            var transfer = new DataTransfer();
+            transfer.items.add(file);
+            input.files = transfer.files;
+            return true;
+        }
+
+        function setPreview(input, file) {
+            var card = input.closest('.foto-jugador-card');
+            if (!card) return;
+            var preview = card.querySelector('[data-photo-preview]');
+            var placeholder = card.querySelector('[data-photo-placeholder]');
+            if (!preview) {
+                preview = document.createElement('img');
+                preview.setAttribute('data-photo-preview', '');
+                preview.alt = 'Vista previa';
+                if (placeholder) {
+                    placeholder.replaceWith(preview);
+                } else {
+                    card.insertBefore(preview, card.firstChild);
+                }
+            }
+            preview.src = URL.createObjectURL(file);
+        }
+
+        async function resizePhoto(input) {
+            var file = input.files && input.files[0];
+            if (!file || !file.type.match(/^image\//)) return;
+
+            var status = input.parentElement.querySelector('[data-photo-status]');
+            if (status) status.textContent = 'Preparando foto...';
+
+            try {
+                var originalKb = bytesToKb(file.size);
+                var image = await loadImage(file);
+                var side = Math.min(image.naturalWidth || image.width, image.naturalHeight || image.height);
+                var sourceX = ((image.naturalWidth || image.width) - side) / 2;
+                var sourceY = ((image.naturalHeight || image.height) - side) / 2;
+                var target = Math.min(maxSize, side);
+                var canvas = document.createElement('canvas');
+                canvas.width = target;
+                canvas.height = target;
+                canvas.getContext('2d').drawImage(image, sourceX, sourceY, side, side, 0, 0, target, target);
+                var blob = await canvasToBlob(canvas);
+                if (!blob) {
+                    if (status) status.textContent = 'Tu navegador enviara la foto original.';
+                    setPreview(input, file);
+                    return;
+                }
+                var resized = new File(
+                    [blob],
+                    (file.name || 'jugador').replace(/\.[^.]+$/, '') + '.jpg',
+                    { type: 'image/jpeg', lastModified: Date.now() }
+                );
+                if (replaceInputFile(input, resized)) {
+                    if (status) status.textContent = 'Lista: ' + bytesToKb(resized.size) + ' KB (antes ' + originalKb + ' KB).';
+                    setPreview(input, resized);
+                } else {
+                    if (status) status.textContent = 'Tu celular no permite comprimir antes de enviar; se subira la foto original.';
+                    setPreview(input, file);
+                }
+            } catch (error) {
+                if (status) status.textContent = 'No se pudo comprimir; se subira la foto original.';
+                setPreview(input, file);
+            }
+        }
+
+        document.querySelectorAll('input[data-photo-resize="jugador"]').forEach(function (input) {
+            input.addEventListener('change', function () {
+                resizePhoto(input);
+            });
+        });
+    })();
+</script>
 {% endblock %}

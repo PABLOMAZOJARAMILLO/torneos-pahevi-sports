@@ -4,6 +4,15 @@
 {% block heading %}{{ titulo }}{% endblock %}
 
 {% block content %}
+<style>
+    .foto-jugador-status {
+        display: block;
+        margin-top: 6px;
+        color: #bbf7d0;
+        font-size: 12px;
+    }
+</style>
+
 <p><a class="btn secondary" href="{% url 'delegado_equipo_editar' equipo.id %}">Volver al equipo</a></p>
 
 <form method="post" enctype="multipart/form-data">
@@ -13,6 +22,9 @@
         {{ field }}
         {% if field.help_text %}
             <div class="muted">{{ field.help_text }}</div>
+        {% endif %}
+        {% if field.name == "foto" %}
+            <span class="foto-jugador-status" data-photo-status></span>
         {% endif %}
         {% for error in field.errors %}
             <div class="message">{{ error }}</div>
@@ -27,4 +39,89 @@
 
     <p><button class="btn" type="submit">Guardar jugador</button></p>
 </form>
+
+<script>
+    (function () {
+        var maxSize = 640;
+        var quality = 0.82;
+
+        function bytesToKb(bytes) {
+            return Math.max(1, Math.round(bytes / 1024));
+        }
+
+        function loadImage(file) {
+            return new Promise(function (resolve, reject) {
+                var image = new Image();
+                image.onload = function () {
+                    URL.revokeObjectURL(image.src);
+                    resolve(image);
+                };
+                image.onerror = reject;
+                image.src = URL.createObjectURL(file);
+            });
+        }
+
+        function canvasToBlob(canvas) {
+            return new Promise(function (resolve) {
+                if (!canvas.toBlob) {
+                    resolve(null);
+                    return;
+                }
+                canvas.toBlob(resolve, 'image/jpeg', quality);
+            });
+        }
+
+        function replaceInputFile(input, file) {
+            if (typeof DataTransfer === 'undefined') return false;
+            var transfer = new DataTransfer();
+            transfer.items.add(file);
+            input.files = transfer.files;
+            return true;
+        }
+
+        async function resizePhoto(input) {
+            var file = input.files && input.files[0];
+            if (!file || !file.type.match(/^image\//)) return;
+
+            var status = document.querySelector('[data-photo-status]');
+            if (status) status.textContent = 'Preparando foto...';
+
+            try {
+                var originalKb = bytesToKb(file.size);
+                var image = await loadImage(file);
+                var side = Math.min(image.naturalWidth || image.width, image.naturalHeight || image.height);
+                var sourceX = ((image.naturalWidth || image.width) - side) / 2;
+                var sourceY = ((image.naturalHeight || image.height) - side) / 2;
+                var target = Math.min(maxSize, side);
+                var canvas = document.createElement('canvas');
+                canvas.width = target;
+                canvas.height = target;
+                canvas.getContext('2d').drawImage(image, sourceX, sourceY, side, side, 0, 0, target, target);
+                var blob = await canvasToBlob(canvas);
+                if (!blob) {
+                    if (status) status.textContent = 'Tu navegador enviara la foto original.';
+                    return;
+                }
+                var resized = new File(
+                    [blob],
+                    (file.name || 'jugador').replace(/\.[^.]+$/, '') + '.jpg',
+                    { type: 'image/jpeg', lastModified: Date.now() }
+                );
+                if (replaceInputFile(input, resized)) {
+                    if (status) status.textContent = 'Lista: ' + bytesToKb(resized.size) + ' KB (antes ' + originalKb + ' KB).';
+                } else if (status) {
+                    status.textContent = 'Tu celular no permite comprimir antes de enviar; se subira la foto original.';
+                }
+            } catch (error) {
+                if (status) status.textContent = 'No se pudo comprimir; se subira la foto original.';
+            }
+        }
+
+        document.querySelectorAll('input[data-photo-resize="jugador"]').forEach(function (input) {
+            input.addEventListener('change', function () {
+                resizePhoto(input);
+            });
+        });
+    })();
+</script>
 {% endblock %}
