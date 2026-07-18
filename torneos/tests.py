@@ -15,7 +15,24 @@ from PIL import Image
 from .forms import JugadorForm, PartidoForm, TorneoForm
 from .models import AlineacionPartido, AdminOrganizador, AdminTorneo, Categoria, Documento, Equipo, Gol, Jugador, Organizador, Partido, ReglaEdadCategoria, RegistroActividad, SolicitudValidacion, SustitucionPartido, Tarjeta, Torneo, ruta_escudo_equipo
 from .planillas_pdf import _dorsal, _edad, _header_image_sources, _team_shield_source, _draw_team_watermark, _titulo_planilla
+from .storage_backends import CloudinaryMediaStorage
 from .views import buscar_planilleros_excel, construir_estructura, construir_estadisticas_foraneos, construir_partidos_portada, construir_partidos_programacion, _clave_orden_evento_resumen, _minuto_evento_en_vivo, _sincronizar_no_disponibles_por_tarjetas, etiqueta_edad_jugador, puede_descargar_programacion, reglas_edad_para_frontend, texto_edad_jugador, tabla_general_mata_mata_ida_vuelta, validar_reglas_edad_titulares
+
+
+class CloudinaryStorageTests(TestCase):
+    @override_settings(CLOUDINARY_URL="cloudinary://key:secret@test-cloud")
+    def test_url_de_imagen_usa_transformacion_liviana(self):
+        try:
+            import cloudinary.utils  # noqa: F401
+        except ModuleNotFoundError:
+            self.skipTest("cloudinary no esta instalado en este entorno local")
+
+        url = CloudinaryMediaStorage().url("equipos/senior/escudo.png")
+
+        self.assertIn("f_auto", url)
+        self.assertIn("q_auto", url)
+        self.assertIn("c_limit", url)
+        self.assertIn("w_900", url)
 
 
 class EscudoEquipoTests(TestCase):

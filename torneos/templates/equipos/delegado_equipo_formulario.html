@@ -102,7 +102,7 @@
 
 <div class="card escudo-preview-card">
     {% if escudo_actual %}
-        <img class="escudo-preview" src="{{ escudo_actual }}" alt="Escudo de {{ equipo.nombre }}">
+        <img class="escudo-preview" src="{{ escudo_actual }}" alt="Escudo de {{ equipo.nombre }}" loading="lazy" decoding="async">
     {% endif %}
     <div>
         <div>Escudo actual</div>
@@ -198,7 +198,7 @@
 <div class="row">
     <div style="display:flex;align-items:center;gap:12px;">
         {% if jugador.foto %}
-            <img class="avatar" src="{{ jugador.foto.url }}" alt="">
+            <img class="avatar" src="{{ jugador.foto.url }}" alt="" loading="lazy" decoding="async">
         {% endif %}
         <div>
             <div>{% if jugador.dorsal %}#{{ jugador.dorsal }} - {% endif %}{{ jugador.nombres|texto_limpio }}</div>

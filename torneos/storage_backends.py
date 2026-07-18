@@ -87,8 +87,21 @@ class CloudinaryMediaStorage(Storage):
         import cloudinary.utils
 
         self._configure()
+        resource_type = self._resource_type(name)
+        options = {
+            "resource_type": resource_type,
+            "secure": True,
+        }
+        if resource_type == "image":
+            options["transformation"] = [
+                {
+                    "width": 900,
+                    "crop": "limit",
+                    "quality": "auto",
+                    "fetch_format": "auto",
+                }
+            ]
         return cloudinary.utils.cloudinary_url(
             str(name),
-            resource_type=self._resource_type(name),
-            secure=True,
+            **options,
         )[0]

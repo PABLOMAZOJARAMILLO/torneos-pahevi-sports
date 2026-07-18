@@ -129,7 +129,7 @@
 <div class="row">
     <div style="display:flex;align-items:center;gap:12px;">
         {% if equipo.escudo %}
-            <img class="avatar" src="{{ equipo.escudo.url }}" alt="">
+            <img class="avatar" src="{{ equipo.escudo.url }}" alt="" loading="lazy" decoding="async">
         {% endif %}
         <div>
             <div>{{ equipo.nombre }}</div>

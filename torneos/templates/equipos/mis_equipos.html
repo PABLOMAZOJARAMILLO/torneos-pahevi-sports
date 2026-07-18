@@ -34,7 +34,7 @@
 <div class="row">
     <div style="display:flex;align-items:center;gap:12px;">
         {% if equipo.escudo %}
-            <img class="avatar equipo-delegado-avatar" src="{{ equipo.escudo.url }}" alt="{{ equipo.nombre }}">
+            <img class="avatar equipo-delegado-avatar" src="{{ equipo.escudo.url }}" alt="{{ equipo.nombre }}" loading="lazy" decoding="async">
         {% endif %}
         <div>
             <div>{{ equipo.nombre }}</div>
