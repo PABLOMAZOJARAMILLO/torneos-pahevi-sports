@@ -3501,7 +3501,7 @@ def generar_tercer_puesto(request, categoria):
 
     messages.success(request, f"Partido por tercer puesto generado correctamente para {categoria}.")
     return redirect("panel")
-def construir_partidos_programacion(request, categoria_obj=None):
+def construir_partidos_programacion(request, categoria_obj=None, numero_fecha="", dia=None):
     dias_semana = {
         0: "LUNES",
         1: "MARTES",
@@ -3557,6 +3557,12 @@ def construir_partidos_programacion(request, categoria_obj=None):
 
     if categoria_obj:
         partidos = partidos.filter(categoria=categoria_obj)
+
+    if numero_fecha:
+        partidos = partidos.filter(numero_fecha__iexact=numero_fecha)
+
+    if dia:
+        partidos = partidos.filter(fecha=dia)
 
     partidos_programacion = []
 
@@ -3672,6 +3678,62 @@ def medidas_programacion(cantidad):
     }
 
 
+def filtros_descarga_programacion(request):
+    torneo = torneo_actual(request)
+    categoria_id = (request.GET.get("categoria") or "").strip()
+    numero_fecha = (request.GET.get("fecha_fixture") or "").strip()
+    dia = fecha_desde_texto(request.GET.get("dia"))
+    categoria_obj = None
+
+    if categoria_id:
+        categorias = Categoria.objects.filter(id=categoria_id)
+        if torneo:
+            categorias = categorias.filter(torneo=torneo)
+        categoria_obj = categorias.first()
+
+    return torneo, categoria_obj, numero_fecha, dia
+
+
+def titulo_descarga_programacion(categoria_obj=None, numero_fecha="", dia=None):
+    partes = []
+    if categoria_obj:
+        partes.append(categoria_obj.nombre)
+    else:
+        partes.append("TODAS LAS CATEGORIAS")
+    if numero_fecha:
+        partes.append(str(numero_fecha).upper())
+    if dia:
+        partes.append(f"DIA {dia.strftime('%d/%m/%Y')}")
+    return " - ".join(partes)
+
+
+@login_required
+@user_passes_test(puede_descargar_programacion)
+def seleccionar_descarga_programacion(request):
+    torneo = torneo_actual(request)
+    partidos = Partido.objects.filter(
+        estado="PROGRAMADO",
+        estado_programacion__in=["MANUAL", "OFICIAL"],
+        fecha__isnull=False,
+        hora__isnull=False,
+        cancha__isnull=False,
+    ).exclude(cancha="").exclude(cancha__iexact="Por definir").exclude(hora=time(0, 0))
+    if torneo:
+        partidos = partidos.filter(categoria__torneo=torneo)
+
+    categorias = Categoria.objects.filter(partido__in=partidos).distinct().order_by("nombre")
+    fechas_fixture = partidos.exclude(numero_fecha="").values_list("numero_fecha", flat=True).distinct().order_by("numero_fecha")
+    dias = partidos.values_list("fecha", flat=True).distinct().order_by("fecha")
+
+    return render(request, "gestion/descargar_programacion.html", {
+        "torneo_seleccionado": torneo,
+        "categorias": categorias,
+        "fechas_fixture": fechas_fixture,
+        "dias": dias,
+        "volver_url": url_retorno_descarga(request),
+    })
+
+
 @login_required
 @user_passes_test(puede_descargar_programacion)
 def descargar_programacion_categoria(request, categoria):
@@ -3680,11 +3742,13 @@ def descargar_programacion_categoria(request, categoria):
     if torneo:
         categorias = categorias.filter(torneo=torneo)
     categoria_obj = categorias.first()
+    numero_fecha = (request.GET.get("fecha_fixture") or "").strip()
+    dia = fecha_desde_texto(request.GET.get("dia"))
 
     if not categoria_obj:
         return HttpResponse("Categoría no encontrada")
 
-    partidos_programacion = construir_partidos_programacion(request, categoria_obj)
+    partidos_programacion = construir_partidos_programacion(request, categoria_obj, numero_fecha, dia)
 
     if not partidos_programacion:
         return respuesta_descarga_sin_partidos(request, "No hay partidos programados con fecha, hora y cancha para esta categoria.")
@@ -3694,7 +3758,7 @@ def descargar_programacion_categoria(request, categoria):
     medidas = medidas_programacion(cantidad)
 
     html = render_to_string("descargas/programacion_categoria.html", {
-        "categoria": categoria,
+        "categoria": titulo_descarga_programacion(categoria_obj, numero_fecha, dia),
         "partidos": partidos_programacion,
         "ancho": medidas["ancho"],
         "compacta": medidas["compacta"],
@@ -3708,15 +3772,15 @@ def descargar_programacion_categoria(request, categoria):
         "logo_imcred": logos["logo_imcred"],
     })
 
-    nombre = limpiar_nombre(f"PROGRAMACION_PARTIDOS_PROGRAMADOS_{categoria}.png")
+    nombre = limpiar_nombre(f"PROGRAMACION_PARTIDOS_PROGRAMADOS_{titulo_descarga_programacion(categoria_obj, numero_fecha, dia)}.png")
     return crear_imagen_desde_html(html, nombre, medidas["ancho"], medidas["alto"], url_retorno_descarga(request))
 
 
 @login_required
 @user_passes_test(puede_descargar_programacion)
 def descargar_programacion_general(request):
-    torneo = torneo_actual(request)
-    partidos_programacion = construir_partidos_programacion(request)
+    torneo, categoria_obj, numero_fecha, dia = filtros_descarga_programacion(request)
+    partidos_programacion = construir_partidos_programacion(request, categoria_obj, numero_fecha, dia)
 
     if not partidos_programacion:
         return respuesta_descarga_sin_partidos(request, "No hay partidos programados con fecha, hora y cancha asignada.")
@@ -3724,10 +3788,11 @@ def descargar_programacion_general(request):
     logos = logos_torneo(request, torneo)
     cantidad = len(partidos_programacion)
     medidas = medidas_programacion(cantidad)
+    titulo_programacion = titulo_descarga_programacion(categoria_obj, numero_fecha, dia)
 
     html = render_to_string("descargas/programacion_categoria.html", {
-        "categoria": "TODAS LAS CATEGORIAS",
-        "mostrar_categoria": True,
+        "categoria": titulo_programacion,
+        "mostrar_categoria": not categoria_obj,
         "partidos": partidos_programacion,
         "ancho": medidas["ancho"],
         "compacta": medidas["compacta"],
@@ -3741,7 +3806,7 @@ def descargar_programacion_general(request):
         "logo_imcred": logos["logo_imcred"],
     })
 
-    nombre = "PROGRAMACION_TODAS_LAS_CATEGORIAS.png"
+    nombre = limpiar_nombre(f"PROGRAMACION_{titulo_programacion}.png")
     return crear_imagen_desde_html(html, nombre, medidas["ancho"], medidas["alto"], url_retorno_descarga(request))
 
 

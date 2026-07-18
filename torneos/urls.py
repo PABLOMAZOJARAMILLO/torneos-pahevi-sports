@@ -14,6 +14,7 @@ from .views import (
     generar_tercer_puesto,
     descargar_programacion_categoria,
     descargar_programacion_general,
+    seleccionar_descarga_programacion,
     editor_partido_movil,
     guardar_info_partido_movil,
     agregar_gol_movil,
@@ -98,6 +99,12 @@ urlpatterns = [
         'generar-tercer-puesto/<str:categoria>/',
         generar_tercer_puesto,
         name='generar_tercer_puesto'
+    ),
+
+    path(
+        'descargar/programacion/',
+        seleccionar_descarga_programacion,
+        name='seleccionar_descarga_programacion'
     ),
 
     path(

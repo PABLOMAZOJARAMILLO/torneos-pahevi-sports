@@ -5094,7 +5094,7 @@ body.solo-lectura .menu-principal{top:96px!important}
     <div class="acciones-portada">
     {% if tiene_gestion_torneo %}
     {% if puede_descargar_programacion %}
-    <a class="boton" href="{% url 'descargar_programacion_general' %}?volver={{ request.get_full_path|urlencode }}">
+    <a class="boton" href="{% url 'seleccionar_descarga_programacion' %}?volver={{ request.get_full_path|urlencode }}">
         <span class="texto-largo">Descargar programación completa</span>
         <span class="texto-corto">Descargar programación</span>
     </a>
@@ -6375,7 +6375,7 @@ function accionAdmin(accion) {
 
     const urls = {
         login: "{% url 'login' %}?next={% url 'gestion_panel' %}",
-        descargar: "{% url 'descargar_programacion_general' %}?volver={{ request.get_full_path|urlencode }}",
+        descargar: "{% url 'seleccionar_descarga_programacion' %}?volver={{ request.get_full_path|urlencode }}",
         gestion: "{% url 'gestion_panel' %}",
         salir: "{% url 'cerrar_sesion' %}"
     };

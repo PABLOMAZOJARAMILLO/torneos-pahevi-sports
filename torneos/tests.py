@@ -1823,6 +1823,67 @@ class AdminTorneoPermisosTests(TestCase):
         self.assertContains(respuesta, "Descargar programación")
 
 
+class DescargaProgramacionFiltrosTests(TestCase):
+    def setUp(self):
+        self.torneo = Torneo.objects.create(nombre="Veranero", fecha_inicio=date(2026, 1, 1))
+        self.categoria = Categoria.objects.create(nombre="Senior", edad_minima=18, edad_maxima=60, torneo=self.torneo)
+        self.otra_categoria = Categoria.objects.create(nombre="Plus 50", edad_minima=50, edad_maxima=80, torneo=self.torneo)
+        self.local = Equipo.objects.create(nombre="Local", categoria=self.categoria)
+        self.visitante = Equipo.objects.create(nombre="Visitante", categoria=self.categoria)
+        self.plus_local = Equipo.objects.create(nombre="Plus Local", categoria=self.otra_categoria)
+        self.plus_visitante = Equipo.objects.create(nombre="Plus Visitante", categoria=self.otra_categoria)
+        self.admin = User.objects.create_user("admin-programacion-descarga", password="test", is_staff=True, is_superuser=True)
+        self.partido = Partido.objects.create(
+            categoria=self.categoria,
+            equipo_local=self.local,
+            equipo_visitante=self.visitante,
+            fecha=date(2026, 7, 18),
+            hora=time(16, 0),
+            estado="PROGRAMADO",
+            estado_programacion="OFICIAL",
+            numero_fecha="Fecha 1",
+            cancha="Teresa Sierra",
+            grupo="A",
+        )
+        Partido.objects.create(
+            categoria=self.otra_categoria,
+            equipo_local=self.plus_local,
+            equipo_visitante=self.plus_visitante,
+            fecha=date(2026, 7, 19),
+            hora=time(10, 0),
+            estado="PROGRAMADO",
+            estado_programacion="OFICIAL",
+            numero_fecha="Fecha 2",
+            cancha="El Porvenir",
+            grupo="B",
+        )
+        self.client.force_login(self.admin)
+        session = self.client.session
+        session["torneo_id"] = self.torneo.id
+        session.save()
+
+    def test_selector_muestra_filtros_de_programacion(self):
+        respuesta = self.client.get("/descargar/programacion/?volver=/")
+
+        self.assertContains(respuesta, "Todas las categorias")
+        self.assertContains(respuesta, "Fecha 1")
+        self.assertContains(respuesta, "18/07/2026")
+        self.assertContains(respuesta, f'value="{self.categoria.id}"')
+
+    def test_constructor_filtra_programacion_por_categoria_fecha_y_dia(self):
+        request = self.client.get("/descargar/programacion/").wsgi_request
+
+        partidos = construir_partidos_programacion(
+            request,
+            categoria_obj=self.categoria,
+            numero_fecha="Fecha 1",
+            dia=date(2026, 7, 18),
+        )
+
+        self.assertEqual(len(partidos), 1)
+        self.assertEqual(partidos[0]["local"], "Local")
+
+
 class FixtureProgramacionBalanceadaTests(TestCase):
     def setUp(self):
         self.torneo = Torneo.objects.create(nombre="Programacion", fecha_inicio=date(2026, 1, 1))

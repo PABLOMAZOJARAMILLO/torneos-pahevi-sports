@@ -1,0 +1,55 @@
+{% extends "gestion/base.html" %}
+
+{% block title %}Descargar programacion{% endblock %}
+{% block heading %}Descargar programacion{% endblock %}
+
+{% block content %}
+<p>
+    <a class="btn secondary" href="{{ volver_url }}">Volver</a>
+</p>
+
+{% if torneo_seleccionado %}
+<div class="card">
+    <strong>Torneo:</strong> {{ torneo_seleccionado.nombre }}
+    <div class="muted">Solo se descargan partidos oficiales o manuales con fecha, hora y cancha.</div>
+</div>
+{% endif %}
+
+<form method="get" action="{% url 'descargar_programacion_general' %}">
+    <input type="hidden" name="volver" value="{{ volver_url }}">
+
+    <label for="categoria">Categoria</label>
+    <select id="categoria" name="categoria">
+        <option value="">Todas las categorias</option>
+        {% for categoria in categorias %}
+            <option value="{{ categoria.id }}">{{ categoria.nombre }}</option>
+        {% endfor %}
+    </select>
+
+    <label for="fecha_fixture">Fecha del fixture</label>
+    <select id="fecha_fixture" name="fecha_fixture">
+        <option value="">Todas las fechas del fixture</option>
+        {% for fecha in fechas_fixture %}
+            <option value="{{ fecha }}">{{ fecha }}</option>
+        {% endfor %}
+    </select>
+
+    <label for="dia">Dia calendario</label>
+    <select id="dia" name="dia">
+        <option value="">Todos los dias programados</option>
+        {% for dia in dias %}
+            <option value="{{ dia|date:'Y-m-d' }}">{{ dia|date:"d/m/Y" }}</option>
+        {% endfor %}
+    </select>
+
+    <p>
+        <button class="btn" type="submit">Descargar programacion</button>
+    </p>
+</form>
+
+<div class="card">
+    <h2>Opciones rapidas</h2>
+    <p class="muted">Para descargar todo, deja los tres filtros en "Todas" y presiona descargar.</p>
+    <p class="muted">Para una categoria, selecciona solo la categoria. Para una fecha o dia, selecciona solo ese filtro.</p>
+</div>
+{% endblock %}
