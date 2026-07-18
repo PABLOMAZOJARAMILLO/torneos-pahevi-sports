@@ -396,6 +396,8 @@ class EquipoForm(forms.ModelForm):
             "categoria",
             "responsable",
             "acceso_delegado_hasta",
+            "delegado_puede_editar_equipo",
+            "delegado_puede_cargar_fotos_jugadores",
             "delegado",
             "telefono",
             "director_tecnico",
@@ -417,6 +419,8 @@ class EquipoForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.fields["acceso_delegado_hasta"].input_formats = ["%Y-%m-%dT%H:%M", "%Y-%m-%d %H:%M:%S"]
         self.fields["acceso_delegado_hasta"].help_text = "El delegado solo podra editar este equipo hasta esta fecha y hora."
+        self.fields["delegado_puede_editar_equipo"].help_text = "Permite cambiar datos del equipo, crear, editar o eliminar jugadores."
+        self.fields["delegado_puede_cargar_fotos_jugadores"].help_text = "Permite cargar fotos de jugadores sin modificar sus datos."
         categorias = Categoria.objects.order_by("nombre")
         if torneo:
             categorias = categorias.filter(torneo=torneo)
@@ -530,8 +534,17 @@ class JugadorDelegadoForm(forms.ModelForm):
         }
 
     def __init__(self, *args, **kwargs):
+        permitir_foto = kwargs.pop("permitir_foto", True)
         super().__init__(*args, **kwargs)
         self.fields["fecha_nacimiento"].input_formats = ["%Y-%m-%d"]
+        if not permitir_foto:
+            self.fields.pop("foto", None)
+
+
+class JugadorFotoDelegadoForm(forms.ModelForm):
+    class Meta:
+        model = Jugador
+        fields = ["foto"]
 
 
 class PartidoForm(forms.ModelForm):

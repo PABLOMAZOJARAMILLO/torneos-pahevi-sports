@@ -2722,6 +2722,58 @@ class DelegadoEquipoTests(TestCase):
         self.assertEqual(respuesta.status_code, 302)
         self.assertTrue(Jugador.objects.filter(equipo=self.equipo, cedula="456", nombres="JUGADOR NUEVO").exists())
 
+    def test_delegado_con_permiso_solo_fotos_no_edita_datos(self):
+        self.equipo.delegado_puede_editar_equipo = False
+        self.equipo.delegado_puede_cargar_fotos_jugadores = True
+        self.equipo.save(update_fields=["delegado_puede_editar_equipo", "delegado_puede_cargar_fotos_jugadores"])
+        self.client.force_login(self.delegado)
+
+        respuesta_lista = self.client.get("/delegado/equipos/")
+        respuesta_editar = self.client.get(f"/delegado/equipos/{self.equipo.id}/editar/")
+        respuesta_nuevo = self.client.get(f"/delegado/equipos/{self.equipo.id}/jugadores/nuevo/")
+
+        self.assertContains(respuesta_lista, "Fotos jugadores")
+        self.assertContains(respuesta_lista, "Edicion de equipo bloqueada")
+        self.assertRedirects(
+            respuesta_editar,
+            f"/delegado/equipos/{self.equipo.id}/fotos-jugadores/",
+            fetch_redirect_response=False,
+        )
+        self.assertEqual(respuesta_nuevo.status_code, 404)
+
+    def test_delegado_con_permiso_solo_fotos_puede_cargar_foto_de_jugador(self):
+        self.equipo.delegado_puede_editar_equipo = False
+        self.equipo.delegado_puede_cargar_fotos_jugadores = True
+        self.equipo.save(update_fields=["delegado_puede_editar_equipo", "delegado_puede_cargar_fotos_jugadores"])
+        self.client.force_login(self.delegado)
+        imagen_bytes = BytesIO()
+        Image.new("RGB", (8, 8), "#00ff66").save(imagen_bytes, format="PNG")
+        imagen_bytes.seek(0)
+        archivo = SimpleUploadedFile("jugador.png", imagen_bytes.read(), content_type="image/png")
+
+        respuesta = self.client.post(
+            f"/delegado/equipos/{self.equipo.id}/fotos-jugadores/",
+            {f"jugador_{self.jugador.id}-foto": archivo},
+        )
+
+        self.assertRedirects(
+            respuesta,
+            f"/delegado/equipos/{self.equipo.id}/fotos-jugadores/",
+            fetch_redirect_response=False,
+        )
+        self.jugador.refresh_from_db()
+        self.assertTrue(self.jugador.foto.name)
+        self.assertEqual(self.jugador.nombres, "Jugador Uno")
+
+    def test_delegado_sin_permiso_de_fotos_no_abre_carga_de_fotos(self):
+        self.equipo.delegado_puede_cargar_fotos_jugadores = False
+        self.equipo.save(update_fields=["delegado_puede_cargar_fotos_jugadores"])
+        self.client.force_login(self.delegado)
+
+        respuesta = self.client.get(f"/delegado/equipos/{self.equipo.id}/fotos-jugadores/")
+
+        self.assertEqual(respuesta.status_code, 403)
+
     def test_delegado_no_puede_editar_otro_equipo(self):
         self.client.force_login(self.delegado)
 

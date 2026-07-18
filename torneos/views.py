@@ -36,7 +36,7 @@ import requests
 from django.views.decorators.http import require_POST
 from openpyxl import load_workbook
 
-from .forms import TorneoForm, OrganizadorForm, CategoriaForm, ReglaEdadCategoriaFormSet, DocumentoForm, PlanillaJuegoUploadForm, EquipoForm, EquipoDelegadoForm, EquipoReinscripcionForm, JugadorForm, JugadorDelegadoForm, PartidoForm, PartidoProgramacionForm, AdminTorneoForm, AdminOrganizadorForm, CrearAdminOrganizadorForm
+from .forms import TorneoForm, OrganizadorForm, CategoriaForm, ReglaEdadCategoriaFormSet, DocumentoForm, PlanillaJuegoUploadForm, EquipoForm, EquipoDelegadoForm, EquipoReinscripcionForm, JugadorForm, JugadorDelegadoForm, JugadorFotoDelegadoForm, PartidoForm, PartidoProgramacionForm, AdminTorneoForm, AdminOrganizadorForm, CrearAdminOrganizadorForm
 from .models import Torneo, Organizador, Categoria, Documento, Equipo, Partido, Gol, Tarjeta, Jugador, AlineacionPartido, SustitucionPartido, ReglaEdadCategoria, AdminTorneo, AdminOrganizador, RegistroActividad, SolicitudValidacion, limpiar_ruta_cloudinary
 from .planillas_pdf import generar_planilla_juego_pdf, nombre_archivo_planilla
 from django.utils import timezone
@@ -208,6 +208,22 @@ def puede_editar_equipo_delegado(user, equipo):
         user.is_authenticated
         and equipo.responsable_id == user.id
         and equipo.acceso_delegado_vigente()
+        and equipo.delegado_puede_editar_equipo
+    )
+
+
+def puede_cargar_fotos_jugadores_delegado(user, equipo):
+    if user.is_authenticated and user.is_superuser:
+        return True
+    if user.is_authenticated and user.is_staff:
+        if not tabla_disponible("torneos_admintorneo"):
+            return True
+        return usuario_puede_editar_torneo(user, equipo.categoria.torneo if equipo.categoria_id else None)
+    return bool(
+        user.is_authenticated
+        and equipo.responsable_id == user.id
+        and equipo.acceso_delegado_vigente()
+        and equipo.delegado_puede_cargar_fotos_jugadores
     )
 
 
@@ -222,7 +238,17 @@ def equipos_editables_para_usuario(user):
         if tabla_disponible("torneos_adminorganizador"):
             filtro |= Q(categoria__torneo__organizador__admins_asignados__usuario=user, categoria__torneo__organizador__admins_asignados__activo=True)
         return equipos.filter(filtro).distinct()
-    return equipos_delegado_vigentes(user)
+    return equipos_delegado_vigentes(user).filter(delegado_puede_editar_equipo=True)
+
+
+def equipos_con_fotos_delegado_actual(request):
+    torneo = torneo_actual_delegado(request)
+    if not torneo:
+        return Equipo.objects.none()
+    return equipos_delegado_vigentes(request.user).filter(
+        categoria__torneo=torneo,
+        delegado_puede_cargar_fotos_jugadores=True,
+    )
 
 
 def equipos_alineacion_para_usuario(user):
@@ -4600,6 +4626,8 @@ def mis_equipos(request):
     ahora = timezone.now()
     for equipo in equipos:
         equipo.acceso_vigente_delegado = equipo.acceso_delegado_vigente()
+        equipo.puede_editar_datos_delegado = puede_editar_equipo_delegado(request.user, equipo)
+        equipo.puede_cargar_fotos_delegado = puede_cargar_fotos_jugadores_delegado(request.user, equipo)
         if not equipo.acceso_delegado_hasta:
             equipo.estado_acceso_delegado = "Sin fecha de acceso asignada."
         elif equipo.acceso_delegado_hasta < ahora:
@@ -4617,13 +4645,16 @@ def mis_equipos(request):
 def delegado_equipo_editar(request, equipo_id):
     equipo = get_object_or_404(equipos_alineacion_delegado_actual(request), id=equipo_id)
     if not puede_editar_equipo_delegado(request.user, equipo):
+        if puede_cargar_fotos_jugadores_delegado(request.user, equipo):
+            messages.warning(request, "La edicion de datos esta bloqueada. Solo puedes cargar fotos de jugadores.")
+            return redirect("delegado_fotos_jugadores", equipo_id=equipo.id)
         messages.warning(request, "La edicion del equipo esta bloqueada. Puedes cargar la alineacion de partidos desde aqui.")
         return redirect("delegado_partidos_equipo", equipo_id=equipo.id)
 
     form = EquipoDelegadoForm(request.POST or None, request.FILES or None, instance=equipo)
     jugadores = equipo.jugadores.order_by("dorsal", "nombres")
 
-    if request.method == "POST" and form.is_valid() and reglas_formset.is_valid():
+    if request.method == "POST" and form.is_valid():
         equipo = form.save(commit=False)
         aplicar_imagen_cloudinary(
             equipo,
@@ -4651,6 +4682,56 @@ def delegado_equipo_editar(request, equipo_id):
         "escudo_actual": escudo_url(equipo),
         "cloudinary_images": listar_imagenes_cloudinary(),
         "cloudinary_label": "Seleccionar escudo existente de Cloudinary",
+    })
+
+
+@login_required
+def delegado_fotos_jugadores(request, equipo_id):
+    equipo = get_object_or_404(equipos_alineacion_delegado_actual(request), id=equipo_id)
+    if not puede_cargar_fotos_jugadores_delegado(request.user, equipo):
+        return HttpResponseForbidden("No tienes permiso para cargar fotos de jugadores de este equipo.")
+
+    jugadores = list(equipo.jugadores.order_by("dorsal", "nombres"))
+
+    if request.method == "POST":
+        actualizados = 0
+        for jugador in jugadores:
+            form = JugadorFotoDelegadoForm(
+                request.POST,
+                request.FILES,
+                instance=jugador,
+                prefix=f"jugador_{jugador.id}",
+            )
+            if form.is_valid() and form.cleaned_data.get("foto"):
+                form.save()
+                actualizados += 1
+        if actualizados:
+            crear_solicitud_validacion(
+                "JUGADOR",
+                f"Validar fotos de jugadores: {equipo.nombre}",
+                descripcion=f"El delegado cargo o actualizo {actualizados} foto(s) de jugadores en {equipo.nombre}.",
+                user=request.user,
+                equipo=equipo,
+                datos={"equipo_id": equipo.id, "accion": "FOTOS_JUGADORES", "cantidad": actualizados},
+            )
+            messages.success(request, f"Fotos actualizadas: {actualizados}.")
+        else:
+            messages.info(request, "No seleccionaste fotos nuevas para cargar.")
+        return redirect("delegado_fotos_jugadores", equipo_id=equipo.id)
+
+    filas = [
+        {
+            "jugador": jugador,
+            "form": JugadorFotoDelegadoForm(instance=jugador, prefix=f"jugador_{jugador.id}"),
+            "foto_url": foto_jugador_url(jugador),
+        }
+        for jugador in jugadores
+    ]
+
+    return render(request, "equipos/delegado_fotos_jugadores.html", {
+        "titulo": f"Fotos de jugadores: {equipo.nombre}",
+        "equipo": equipo,
+        "filas": filas,
     })
 
 
@@ -4778,9 +4859,13 @@ def delegado_jugador_nuevo(request, equipo_id):
     if not puede_editar_equipo_delegado(request.user, equipo):
         return HttpResponseForbidden("El acceso a este equipo ya no esta vigente.")
 
-    form = JugadorDelegadoForm(request.POST or None, request.FILES or None)
+    form = JugadorDelegadoForm(
+        request.POST or None,
+        request.FILES or None,
+        permitir_foto=puede_cargar_fotos_jugadores_delegado(request.user, equipo),
+    )
 
-    if request.method == "POST" and form.is_valid() and reglas_formset.is_valid():
+    if request.method == "POST" and form.is_valid():
         jugador = form.save(commit=False)
         jugador.equipo = equipo
         jugador.nombres = jugador.nombres.upper()
@@ -4813,7 +4898,12 @@ def delegado_jugador_editar(request, jugador_id):
     if not puede_editar_equipo_delegado(request.user, jugador.equipo):
         return HttpResponseForbidden("No tienes permiso para editar este jugador.")
 
-    form = JugadorDelegadoForm(request.POST or None, request.FILES or None, instance=jugador)
+    form = JugadorDelegadoForm(
+        request.POST or None,
+        request.FILES or None,
+        instance=jugador,
+        permitir_foto=puede_cargar_fotos_jugadores_delegado(request.user, jugador.equipo),
+    )
 
     if request.method == "POST" and form.is_valid():
         jugador = form.save(commit=False)

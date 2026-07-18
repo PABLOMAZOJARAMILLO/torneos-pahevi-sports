@@ -187,6 +187,7 @@ urlpatterns = [
     path('mis-equipos/', views.mis_equipos, name='mis_equipos'),
     path('delegado/equipos/', views.mis_equipos, name='delegado_mis_equipos'),
     path('delegado/equipos/<int:equipo_id>/editar/', views.delegado_equipo_editar, name='delegado_equipo_editar'),
+    path('delegado/equipos/<int:equipo_id>/fotos-jugadores/', views.delegado_fotos_jugadores, name='delegado_fotos_jugadores'),
     path('delegado/equipos/<int:equipo_id>/partidos/', views.delegado_partidos_equipo, name='delegado_partidos_equipo'),
     path('delegado/equipos/<int:equipo_id>/partidos/<int:partido_id>/alineacion/', views.delegado_alineacion_partido, name='delegado_alineacion_partido'),
     path('delegado/equipos/<int:equipo_id>/jugadores/nuevo/', views.delegado_jugador_nuevo, name='delegado_jugador_nuevo'),

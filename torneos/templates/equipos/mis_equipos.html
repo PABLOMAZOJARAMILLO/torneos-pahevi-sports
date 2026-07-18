@@ -46,10 +46,13 @@
     </div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;">
         <a class="btn" href="{% url 'delegado_partidos_equipo' equipo.id %}">Alineacion de partidos</a>
-        {% if equipo.acceso_vigente_delegado %}
+        {% if equipo.puede_editar_datos_delegado %}
             <a class="btn secondary" href="{% url 'delegado_equipo_editar' equipo.id %}">Editar equipo</a>
         {% else %}
             <span class="btn secondary" style="opacity:.65;cursor:not-allowed;">Edicion de equipo bloqueada</span>
+        {% endif %}
+        {% if equipo.puede_cargar_fotos_delegado %}
+            <a class="btn secondary" href="{% url 'delegado_fotos_jugadores' equipo.id %}">Fotos jugadores</a>
         {% endif %}
     </div>
 </div>

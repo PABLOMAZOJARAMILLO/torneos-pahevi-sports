@@ -308,6 +308,8 @@ class Equipo(models.Model):
     categoria = models.ForeignKey(Categoria, on_delete=models.CASCADE, related_name='equipos')
     responsable = models.ForeignKey(User, on_delete=models.SET_NULL, blank=True, null=True, related_name='equipos_asignados', verbose_name='Usuario responsable')
     acceso_delegado_hasta = models.DateTimeField(blank=True, null=True, verbose_name='Acceso delegado hasta')
+    delegado_puede_editar_equipo = models.BooleanField(default=True, verbose_name='Delegado puede editar equipo y jugadores')
+    delegado_puede_cargar_fotos_jugadores = models.BooleanField(default=True, verbose_name='Delegado puede cargar fotos de jugadores')
     delegado = models.CharField(max_length=120, blank=True, null=True, verbose_name='Delegado')
     telefono = models.CharField(max_length=30, blank=True, null=True, verbose_name='Celular delegado')
     director_tecnico = models.CharField(max_length=150, blank=True, null=True, verbose_name='Director técnico')

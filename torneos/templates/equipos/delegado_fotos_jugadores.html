@@ -1,0 +1,96 @@
+{% extends "gestion/base.html" %}
+{% load texto_limpio %}
+
+{% block title %}{{ titulo }}{% endblock %}
+{% block heading %}Fotos de jugadores{% endblock %}
+
+{% block content %}
+<style>
+    .foto-jugadores-lista {
+        display: grid;
+        gap: 12px;
+        margin-top: 14px;
+    }
+    .foto-jugador-card {
+        display: grid;
+        grid-template-columns: 72px minmax(0, 1fr);
+        gap: 12px;
+        align-items: center;
+        padding: 12px;
+        border: 1px solid rgba(0, 255, 102, 0.45);
+        border-radius: 14px;
+        background: #0b1526;
+    }
+    .foto-jugador-card img,
+    .foto-jugador-placeholder {
+        width: 72px;
+        height: 72px;
+        border-radius: 12px;
+        background: #ffffff;
+        object-fit: cover;
+        object-position: center;
+    }
+    .foto-jugador-placeholder {
+        display: grid;
+        place-items: center;
+        color: #0b1728;
+        font-weight: 900;
+    }
+    .foto-jugador-card input[type="file"] {
+        width: 100%;
+    }
+    @media (min-width: 760px) {
+        .foto-jugador-card {
+            grid-template-columns: 80px minmax(0, 1fr) minmax(260px, .8fr);
+        }
+        .foto-jugador-card img,
+        .foto-jugador-placeholder {
+            width: 80px;
+            height: 80px;
+        }
+    }
+</style>
+
+<p>
+    <a class="btn secondary" href="{% url 'delegado_mis_equipos' %}">Mis equipos</a>
+    {% if equipo.delegado_puede_editar_equipo %}
+        <a class="btn secondary" href="{% url 'delegado_equipo_editar' equipo.id %}">Editar equipo</a>
+    {% endif %}
+</p>
+
+<div class="card">
+    <strong>{{ equipo.nombre }}</strong>
+    <div class="muted">Solo puedes cargar o reemplazar fotos. Los datos de jugadores no se modifican desde esta pantalla.</div>
+</div>
+
+<form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    <div class="foto-jugadores-lista">
+        {% for fila in filas %}
+            <div class="foto-jugador-card">
+                {% if fila.foto_url %}
+                    <img src="{{ fila.foto_url }}" alt="Foto de {{ fila.jugador.nombres|texto_limpio }}">
+                {% else %}
+                    <div class="foto-jugador-placeholder">Foto</div>
+                {% endif %}
+                <div>
+                    <div>{% if fila.jugador.dorsal %}#{{ fila.jugador.dorsal }} - {% endif %}{{ fila.jugador.nombres|texto_limpio }}</div>
+                    <div class="muted">{{ fila.jugador.estado }}{% if fila.jugador.es_foraneo %} - Foraneo{% endif %}</div>
+                </div>
+                <div>
+                    {{ fila.form.foto }}
+                    {% for error in fila.form.foto.errors %}
+                        <div class="message">{{ error }}</div>
+                    {% endfor %}
+                </div>
+            </div>
+        {% empty %}
+            <div class="card">Este equipo todavia no tiene jugadores.</div>
+        {% endfor %}
+    </div>
+
+    {% if filas %}
+        <p><button class="btn" type="submit">Guardar fotos</button></p>
+    {% endif %}
+</form>
+{% endblock %}

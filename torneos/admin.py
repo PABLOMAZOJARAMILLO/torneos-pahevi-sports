@@ -267,7 +267,7 @@ class EquipoResource(resources.ModelResource):
     class Meta:
         model = Equipo
         import_id_fields = ('nombre', 'categoria')
-        fields = ('id', 'nombre', 'categoria', 'responsable', 'acceso_delegado_hasta', 'delegado', 'telefono', 'director_tecnico', 'telefono_dt', 'asistente_tecnico', 'telefono_at', 'activo')
+        fields = ('id', 'nombre', 'categoria', 'responsable', 'acceso_delegado_hasta', 'delegado_puede_editar_equipo', 'delegado_puede_cargar_fotos_jugadores', 'delegado', 'telefono', 'director_tecnico', 'telefono_dt', 'asistente_tecnico', 'telefono_at', 'activo')
         skip_unchanged = True
         report_skipped = True
 
@@ -348,7 +348,7 @@ class JugadorInline(admin.TabularInline):
 @admin.register(Equipo)
 class EquipoAdmin(ImportExportModelAdmin):
     resource_class = EquipoResource
-    list_display = ('nombre', 'categoria', 'responsable', 'acceso_delegado_hasta', 'delegado', 'telefono', 'director_tecnico', 'telefono_dt', 'asistente_tecnico', 'telefono_at', 'activo')
+    list_display = ('nombre', 'categoria', 'responsable', 'acceso_delegado_hasta', 'delegado_puede_editar_equipo', 'delegado_puede_cargar_fotos_jugadores', 'delegado', 'telefono', 'director_tecnico', 'telefono_dt', 'asistente_tecnico', 'telefono_at', 'activo')
     list_filter = ('categoria__torneo', 'categoria', 'activo')
     search_fields = ('nombre', 'responsable__username', 'delegado', 'telefono', 'director_tecnico', 'telefono_dt', 'asistente_tecnico', 'telefono_at')
     inlines = [JugadorInline]
