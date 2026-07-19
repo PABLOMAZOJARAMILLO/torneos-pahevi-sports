@@ -229,6 +229,7 @@ urlpatterns = [
     path('gestion/equipos/acceso-delegado-masivo/', views.gestion_equipos_acceso_delegado_masivo, name='gestion_equipos_acceso_delegado_masivo'),
     path('gestion/equipos/crear-delegados-masivo/', views.gestion_equipos_crear_delegados_masivo, name='gestion_equipos_crear_delegados_masivo'),
     path('gestion/equipos/renombrar-delegados-masivo/', views.gestion_equipos_renombrar_delegados_masivo, name='gestion_equipos_renombrar_delegados_masivo'),
+    path('gestion/equipos/permisos-delegados-masivo/', views.gestion_equipos_permisos_delegados_masivo, name='gestion_equipos_permisos_delegados_masivo'),
     path('gestion/equipos/nuevo/', views.gestion_equipo_nuevo, name='gestion_equipo_nuevo'),
     path('gestion/equipos/<int:equipo_id>/editar/', views.gestion_equipo_editar, name='gestion_equipo_editar'),
     path('gestion/equipos/<int:equipo_id>/reinscribir/', views.gestion_equipo_reinscribir, name='gestion_equipo_reinscribir'),

@@ -6722,6 +6722,51 @@ def gestion_equipos_renombrar_delegados_masivo(request):
 
 @login_required
 @user_passes_test(es_editor_torneo)
+@require_POST
+def gestion_equipos_permisos_delegados_masivo(request):
+    torneo = torneo_actual(request)
+    if not puede_gestionar_torneo(request, torneo, "editar"):
+        return denegar_permiso_torneo()
+
+    q = request.POST.get("q", "")
+    categoria_id = request.POST.get("categoria", "")
+    opciones_validas = {"MANTENER", "HABILITAR", "DESHABILITAR"}
+    editar = (request.POST.get("permiso_editar") or "MANTENER").upper()
+    fotos = (request.POST.get("permiso_fotos") or "MANTENER").upper()
+    if editar not in opciones_validas or fotos not in opciones_validas:
+        messages.error(request, "Selecciona opciones válidas para los permisos.")
+        return redirect(f"{reverse('gestion_equipos')}?q={quote(q)}&categoria={quote(categoria_id)}")
+    if editar == "MANTENER" and fotos == "MANTENER":
+        messages.warning(request, "No seleccionaste ningún cambio de permisos.")
+        return redirect(f"{reverse('gestion_equipos')}?q={quote(q)}&categoria={quote(categoria_id)}")
+
+    equipos = equipos_gestion_filtrados(torneo, q, categoria_id).filter(responsable__isnull=False)
+    cambios = {}
+    if editar != "MANTENER":
+        cambios["delegado_puede_editar_equipo"] = editar == "HABILITAR"
+    if fotos != "MANTENER":
+        cambios["delegado_puede_cargar_fotos_jugadores"] = fotos == "HABILITAR"
+
+    cantidad = equipos.update(**cambios)
+    registrar_actividad(
+        request,
+        "PERMISOS_DELEGADOS_MASIVO",
+        torneo=torneo,
+        descripcion=f"Actualizó permisos de delegados para {cantidad} equipo(s).",
+        datos={
+            "equipos": cantidad,
+            "categoria_id": categoria_id,
+            "q": q,
+            "permiso_editar": editar,
+            "permiso_fotos": fotos,
+        },
+    )
+    messages.success(request, f"Permisos actualizados para {cantidad} equipo(s) con delegado asignado.")
+    return redirect(f"{reverse('gestion_equipos')}?q={quote(q)}&categoria={quote(categoria_id)}")
+
+
+@login_required
+@user_passes_test(es_editor_torneo)
 def gestion_equipo_nuevo(request):
     torneo = torneo_actual(request)
     if not puede_gestionar_torneo(request, torneo, "editar"):

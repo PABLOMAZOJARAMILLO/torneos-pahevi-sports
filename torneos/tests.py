@@ -2679,6 +2679,88 @@ class GestionEquiposRenombrarDelegadosMasivoTests(TestCase):
         self.assertTrue(self.usuario_largo.check_password("Temporal123"))
 
 
+class GestionEquiposPermisosDelegadosMasivoTests(TestCase):
+    def setUp(self):
+        self.torneo = Torneo.objects.create(nombre="Veranero", fecha_inicio=date(2026, 1, 1))
+        self.categoria = Categoria.objects.create(
+            nombre="Senior",
+            edad_minima=18,
+            edad_maxima=60,
+            torneo=self.torneo,
+        )
+        self.otra_categoria = Categoria.objects.create(
+            nombre="Máster",
+            edad_minima=40,
+            edad_maxima=80,
+            torneo=self.torneo,
+        )
+        delegado = User.objects.create_user("delegado-permisos", password="test")
+        otro_delegado = User.objects.create_user("otro-delegado-permisos", password="test")
+        self.equipo = Equipo.objects.create(
+            nombre="Equipo Senior",
+            categoria=self.categoria,
+            responsable=delegado,
+            delegado_puede_editar_equipo=False,
+            delegado_puede_cargar_fotos_jugadores=False,
+        )
+        self.equipo_otra_categoria = Equipo.objects.create(
+            nombre="Equipo Máster",
+            categoria=self.otra_categoria,
+            responsable=otro_delegado,
+            delegado_puede_editar_equipo=False,
+            delegado_puede_cargar_fotos_jugadores=False,
+        )
+        self.admin = User.objects.create_superuser("admin-permisos", password="test")
+
+    def test_habilita_permisos_solo_a_equipos_visibles_del_filtro(self):
+        self.client.force_login(self.admin)
+        session = self.client.session
+        session["torneo_id"] = self.torneo.id
+        session.save()
+
+        respuesta = self.client.post(
+            "/gestion/equipos/permisos-delegados-masivo/",
+            {
+                "categoria": str(self.categoria.id),
+                "q": "",
+                "permiso_editar": "HABILITAR",
+                "permiso_fotos": "HABILITAR",
+            },
+        )
+
+        self.assertEqual(respuesta.status_code, 302)
+        self.equipo.refresh_from_db()
+        self.equipo_otra_categoria.refresh_from_db()
+        self.assertTrue(self.equipo.delegado_puede_editar_equipo)
+        self.assertTrue(self.equipo.delegado_puede_cargar_fotos_jugadores)
+        self.assertFalse(self.equipo_otra_categoria.delegado_puede_editar_equipo)
+        self.assertFalse(self.equipo_otra_categoria.delegado_puede_cargar_fotos_jugadores)
+        self.assertTrue(RegistroActividad.objects.filter(
+            accion="PERMISOS_DELEGADOS_MASIVO",
+            usuario=self.admin,
+        ).exists())
+
+    def test_puede_mantener_edicion_y_habilitar_solo_fotos(self):
+        self.client.force_login(self.admin)
+        session = self.client.session
+        session["torneo_id"] = self.torneo.id
+        session.save()
+
+        self.client.post(
+            "/gestion/equipos/permisos-delegados-masivo/",
+            {
+                "categoria": str(self.categoria.id),
+                "q": "",
+                "permiso_editar": "MANTENER",
+                "permiso_fotos": "HABILITAR",
+            },
+        )
+
+        self.equipo.refresh_from_db()
+        self.assertFalse(self.equipo.delegado_puede_editar_equipo)
+        self.assertTrue(self.equipo.delegado_puede_cargar_fotos_jugadores)
+
+
 class DelegadoEquipoTests(TestCase):
     def setUp(self):
         self.torneo = Torneo.objects.create(

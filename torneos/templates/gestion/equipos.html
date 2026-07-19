@@ -68,6 +68,7 @@
         <button class="tab-admin active" type="button" data-tab-delegados="crear">Crear</button>
         <button class="tab-admin" type="button" data-tab-delegados="vencimiento">Vencimiento</button>
         <button class="tab-admin" type="button" data-tab-delegados="renombrar">Renombrar</button>
+        <button class="tab-admin" type="button" data-tab-delegados="permisos">Permisos</button>
     </div>
 
     <section class="panel-delegados active" data-panel-delegados="crear">
@@ -123,6 +124,35 @@
             </p>
         </form>
     </section>
+
+    <section class="panel-delegados" data-panel-delegados="permisos">
+        <p class="muted">Aplica permisos a todos los equipos visibles que tengan delegado asignado. Usa los filtros superiores para limitar la categoría o los equipos.</p>
+        <form method="post" action="{% url 'gestion_equipos_permisos_delegados_masivo' %}">
+            {% csrf_token %}
+            <input type="hidden" name="q" value="{{ q }}">
+            <input type="hidden" name="categoria" value="{{ categoria_id }}">
+
+            <label for="permiso-editar">Editar equipo y jugadores</label>
+            <select id="permiso-editar" name="permiso_editar">
+                <option value="MANTENER">Mantener como está</option>
+                <option value="HABILITAR">Habilitar para todos</option>
+                <option value="DESHABILITAR">Deshabilitar para todos</option>
+            </select>
+
+            <label for="permiso-fotos">Cargar fotos de jugadores</label>
+            <select id="permiso-fotos" name="permiso_fotos">
+                <option value="MANTENER">Mantener como está</option>
+                <option value="HABILITAR">Habilitar para todos</option>
+                <option value="DESHABILITAR">Deshabilitar para todos</option>
+            </select>
+
+            <p>
+                <button class="btn" type="submit" onclick="return confirm('Se actualizarán los permisos de todos los equipos visibles con delegado. ¿Continuar?');">
+                    Aplicar permisos visibles
+                </button>
+            </p>
+        </form>
+    </section>
 </div>
 
 {% for equipo in equipos %}
@@ -137,6 +167,7 @@
                 {{ equipo.categoria.nombre }}{% if not equipo.activo %} - Inactivo{% endif %}
                 {% if equipo.responsable %} - Delegado: {{ equipo.responsable.get_full_name|default:equipo.responsable.username }}{% endif %}
                 {% if equipo.acceso_delegado_hasta %} - Hasta: {{ equipo.acceso_delegado_hasta|date:"d/m/Y H:i" }}{% endif %}
+                {% if equipo.responsable %}<br>Editar: {% if equipo.delegado_puede_editar_equipo %}Sí{% else %}No{% endif %} · Fotos: {% if equipo.delegado_puede_cargar_fotos_jugadores %}Sí{% else %}No{% endif %}{% endif %}
             </div>
         </div>
     </div>
