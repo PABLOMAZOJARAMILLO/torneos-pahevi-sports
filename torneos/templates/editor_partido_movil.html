@@ -1220,8 +1220,8 @@
                     <option value="{{ partido.equipo_visitante.id }}">{{ partido.equipo_visitante.nombre }}</option>
                 </select>
 
-                <label>Jugador que sale</label>
-                <select name="jugador_sale" required>
+                <label>Jugador que entra</label>
+                <select name="jugador_entra" required>
                     <optgroup label="{{ partido.equipo_local.nombre }}">
                         {% for j in jugadores_local %}<option value="{{ j.id }}" data-equipo-id="{{ partido.equipo_local.id }}">{% if j.dorsal %}#{{ j.dorsal }} - {% endif %}{{ j.nombres|primeras_tres_palabras }}</option>{% endfor %}
                     </optgroup>
@@ -1230,8 +1230,8 @@
                     </optgroup>
                 </select>
 
-                <label>Jugador que entra</label>
-                <select name="jugador_entra" required>
+                <label>Jugador que sale</label>
+                <select name="jugador_sale" required>
                     <optgroup label="{{ partido.equipo_local.nombre }}">
                         {% for j in jugadores_local %}<option value="{{ j.id }}" data-equipo-id="{{ partido.equipo_local.id }}">{% if j.dorsal %}#{{ j.dorsal }} - {% endif %}{{ j.nombres|primeras_tres_palabras }}</option>{% endfor %}
                     </optgroup>
