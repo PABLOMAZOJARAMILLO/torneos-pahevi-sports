@@ -728,6 +728,47 @@ class CronometroEventoTests(TestCase):
         self.assertEqual(respuesta.status_code, 302)
         sustitucion = SustitucionPartido.objects.get(partido=partido)
         self.assertEqual(sustitucion.minuto, 39)
+        alineacion = AlineacionPartido.objects.get(partido=partido, jugador=jugador_entra)
+        self.assertEqual(alineacion.equipo, equipo)
+        self.assertEqual(alineacion.rol, "SUPLENTE")
+
+    def test_sustitucion_convierte_en_suplente_al_jugador_no_disponible(self):
+        torneo = Torneo.objects.create(nombre="Veranero", fecha_inicio=date(2026, 1, 1))
+        categoria = Categoria.objects.create(nombre="Senior", edad_minima=18, edad_maxima=60, torneo=torneo)
+        equipo = Equipo.objects.create(nombre="Local", categoria=categoria)
+        rival = Equipo.objects.create(nombre="Visitante", categoria=categoria)
+        jugador_sale = Jugador.objects.create(equipo=equipo, nombres="Sale Uno", cedula="11", fecha_nacimiento=date(1990, 1, 1))
+        jugador_entra = Jugador.objects.create(equipo=equipo, nombres="Entra Uno", cedula="12", fecha_nacimiento=date(1991, 1, 1))
+        partido = Partido.objects.create(
+            categoria=categoria,
+            equipo_local=equipo,
+            equipo_visitante=rival,
+            fecha=date(2026, 6, 1),
+            hora=time(16, 0),
+            estado="EN_JUEGO",
+        )
+        AlineacionPartido.objects.create(
+            partido=partido,
+            equipo=equipo,
+            jugador=jugador_entra,
+            rol="NO_DISPONIBLE",
+        )
+        admin = User.objects.create_user("admin-suplente", password="test", is_staff=True, is_superuser=True)
+
+        self.client.force_login(admin)
+        respuesta = self.client.post(
+            f"/partido/{partido.id}/agregar-sustitucion-movil/",
+            {
+                "equipo": str(equipo.id),
+                "jugador_sale": str(jugador_sale.id),
+                "jugador_entra": str(jugador_entra.id),
+                "minuto": "10",
+            },
+        )
+
+        self.assertEqual(respuesta.status_code, 302)
+        alineacion = AlineacionPartido.objects.get(partido=partido, jugador=jugador_entra)
+        self.assertEqual(alineacion.rol, "SUPLENTE")
 
 
 class TablaPosicionesWoTests(TestCase):

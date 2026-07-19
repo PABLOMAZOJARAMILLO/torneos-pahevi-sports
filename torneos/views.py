@@ -4593,14 +4593,29 @@ def agregar_sustitucion_movil(request, partido_id):
         jugador_entra = get_object_or_404(Jugador, id=jugador_entra_id)
 
         if _validar_jugador_equipo(jugador_sale, equipo, partido) and _validar_jugador_equipo(jugador_entra, equipo, partido):
-            SustitucionPartido.objects.create(
-                partido=partido,
-                equipo=equipo,
-                jugador_sale=jugador_sale,
-                jugador_entra=jugador_entra,
-                minuto=minuto,
-                observacion=observacion
-            )
+            with transaction.atomic():
+                SustitucionPartido.objects.create(
+                    partido=partido,
+                    equipo=equipo,
+                    jugador_sale=jugador_sale,
+                    jugador_entra=jugador_entra,
+                    minuto=minuto,
+                    observacion=observacion
+                )
+                alineacion_entra, creada = AlineacionPartido.objects.get_or_create(
+                    partido=partido,
+                    jugador=jugador_entra,
+                    defaults={
+                        "equipo": equipo,
+                        "rol": "SUPLENTE",
+                        "posicion_cancha": "",
+                    },
+                )
+                if not creada and alineacion_entra.rol == "NO_DISPONIBLE":
+                    alineacion_entra.equipo = equipo
+                    alineacion_entra.rol = "SUPLENTE"
+                    alineacion_entra.posicion_cancha = ""
+                    alineacion_entra.save(update_fields=["equipo", "rol", "posicion_cancha"])
             _marcar_estadisticas_pendientes(partido, request.user)
             messages.success(request, 'Sustitución agregada correctamente.')
         else:
