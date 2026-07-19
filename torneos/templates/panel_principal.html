@@ -5178,6 +5178,8 @@ body.solo-lectura .menu-principal{top:96px!important}
                         <button type="button" class="submenu-boton" data-documento-seccion="resoluciones" onclick="mostrarDocumentoPrincipal('resoluciones')">Resoluciones</button>
                         <button type="button" class="submenu-boton" data-documento-seccion="demandas" onclick="mostrarDocumentoPrincipal('demandas')">Demandas</button>
                         <button type="button" class="submenu-boton" data-documento-seccion="comunicados" onclick="mostrarDocumentoPrincipal('comunicados')">Comunicados</button>
+                        <button type="button" class="submenu-boton" data-documento-seccion="planillas" onclick="mostrarDocumentoPrincipal('planillas')">Planillas</button>
+                        <button type="button" class="submenu-boton" data-documento-seccion="otros" onclick="mostrarDocumentoPrincipal('otros')">Otros</button>
                     </div>
 
                     <div class="submenu-panel" data-submenu="admin">
@@ -5357,6 +5359,44 @@ body.solo-lectura .menu-principal{top:96px!important}
                 </a>
             {% empty %}
                 <div class="partido-portada">Próximamente podrás consultar comunicados oficiales.</div>
+            {% endfor %}
+        </div>
+    </section>
+
+    <section class="portada-seccion seccion-documentos seccion-principal" id="planillas" data-seccion-principal="planillas">
+        <h2>Planillas de juego</h2>
+        <div class="documentos-lista">
+            {% for documento in planillas %}
+                <a class="documento-card" href="{% url 'documento_publico' documento.id %}" target="_blank" rel="noopener">
+                    <div>
+                        <strong>{{ documento.titulo }}</strong>
+                        <span>
+                            {% if documento.categoria %}{{ documento.categoria.nombre }}{% endif %}
+                            {% if documento.numero_fecha %} · {{ documento.numero_fecha }}{% endif %}
+                            {% if documento.fecha_partido %} · {{ documento.fecha_partido|date:"d/m/Y" }}{% endif %}
+                        </span>
+                    </div>
+                    <em>Ver</em>
+                </a>
+            {% empty %}
+                <div class="partido-portada">Aún no hay planillas de juego publicadas.</div>
+            {% endfor %}
+        </div>
+    </section>
+
+    <section class="portada-seccion seccion-documentos seccion-principal" id="otros" data-seccion-principal="otros">
+        <h2>Otros documentos</h2>
+        <div class="documentos-lista">
+            {% for documento in otros %}
+                <a class="documento-card" href="{% url 'documento_publico' documento.id %}" target="_blank" rel="noopener">
+                    <div>
+                        <strong>{{ documento.titulo }}</strong>
+                        {% if documento.descripcion %}<span>{{ documento.descripcion }}</span>{% endif %}
+                    </div>
+                    <em>Ver</em>
+                </a>
+            {% empty %}
+                <div class="partido-portada">Aún no hay otros documentos publicados.</div>
             {% endfor %}
         </div>
     </section>

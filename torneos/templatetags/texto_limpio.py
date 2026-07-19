@@ -33,3 +33,9 @@ def texto_limpio(valor):
     if valor is None:
         return ""
     return str(valor).translate(MOJIBAKE_DOS).translate(MOJIBAKE_JUGADORES)
+
+
+@register.filter
+def primeras_tres_palabras(valor):
+    limpio = texto_limpio(valor)
+    return " ".join(limpio.split()[:3])

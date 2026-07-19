@@ -16,7 +16,7 @@ from .forms import JugadorForm, PartidoForm, TorneoForm
 from .models import AlineacionPartido, AdminOrganizador, AdminTorneo, Categoria, Documento, Equipo, Gol, Jugador, Organizador, Partido, ReglaEdadCategoria, RegistroActividad, SolicitudValidacion, SustitucionPartido, Tarjeta, Torneo, ruta_escudo_equipo
 from .planillas_pdf import _dorsal, _edad, _header_image_sources, _team_shield_source, _draw_team_watermark, _titulo_planilla
 from .storage_backends import CloudinaryMediaStorage
-from .views import buscar_planilleros_excel, construir_estructura, construir_estadisticas_foraneos, construir_partidos_portada, construir_partidos_programacion, _clave_orden_evento_resumen, _minuto_evento_en_vivo, _sincronizar_no_disponibles_por_tarjetas, etiqueta_edad_jugador, puede_descargar_programacion, reglas_edad_para_frontend, texto_edad_jugador, tabla_general_mata_mata_ida_vuelta, validar_reglas_edad_titulares
+from .views import buscar_planilleros_excel, construir_estructura, construir_estadisticas_foraneos, construir_partidos_portada, construir_partidos_programacion, _clave_orden_evento_resumen, _minuto_evento_en_vivo, _sincronizar_no_disponibles_por_tarjetas, etiqueta_edad_jugador, nombre_corto_jugador, nombre_resumen_jugador, puede_descargar_programacion, reglas_edad_para_frontend, texto_edad_jugador, tabla_general_mata_mata_ida_vuelta, validar_reglas_edad_titulares
 
 
 class CloudinaryStorageTests(TestCase):
@@ -92,6 +92,53 @@ class DocumentosTorneoTests(TestCase):
         self.assertContains(response, "Reglamento Veranero")
         self.assertNotContains(response, "Reglamento Copa Antigua")
         self.assertNotContains(response, "Reglamento Sin Torneo")
+
+    @override_settings(STORAGES={
+        "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+        "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
+    })
+    def test_panel_publico_muestra_planillas_activas_del_torneo(self):
+        Documento.objects.create(
+            torneo=self.torneo,
+            tipo="PLANILLA_JUEGO",
+            titulo="Planilla Mama Mata Fecha 1",
+            archivo="https://example.com/planilla-mama-mata.jpg",
+            numero_fecha="Fecha 1",
+            activo=True,
+        )
+        Documento.objects.create(
+            torneo=self.otro_torneo,
+            tipo="PLANILLA_JUEGO",
+            titulo="Planilla Copa Antigua",
+            archivo="https://example.com/planilla-antigua.jpg",
+            activo=True,
+        )
+        self.seleccionar_torneo()
+
+        response = self.client.get("/")
+
+        self.assertContains(response, 'data-documento-seccion="planillas"')
+        self.assertContains(response, "Planilla Mama Mata Fecha 1")
+        self.assertNotContains(response, "Planilla Copa Antigua")
+
+    @override_settings(STORAGES={
+        "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+        "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
+    })
+    def test_panel_publico_muestra_otros_documentos_del_torneo(self):
+        Documento.objects.create(
+            torneo=self.torneo,
+            tipo="OTRO",
+            titulo="Circular informativa",
+            archivo="https://example.com/circular.pdf",
+            activo=True,
+        )
+        self.seleccionar_torneo()
+
+        response = self.client.get("/")
+
+        self.assertContains(response, 'data-documento-seccion="otros"')
+        self.assertContains(response, "Circular informativa")
 
     def test_gestion_documentos_muestra_solo_documentos_del_torneo_actual(self):
         self.client.force_login(self.usuario)
@@ -859,6 +906,9 @@ class PlanillasPDFTests(TestCase):
 
 class ForaneosTests(TestCase):
     def setUp(self):
+        parche_escudo = patch("torneos.views.escudo_url", return_value="")
+        parche_escudo.start()
+        self.addCleanup(parche_escudo.stop)
         self.torneo = Torneo.objects.create(
             nombre="IMCRED",
             fecha_inicio=date(2026, 1, 1),
@@ -909,6 +959,21 @@ class ForaneosTests(TestCase):
 
         self.assertEqual(fila["partidos_fase1"], 7)
         self.assertEqual(fila["minimo"], 3)
+
+    def test_minimo_usa_los_partidos_del_fixture_de_primera_fase(self):
+        partido_uno = self.crear_partido(1)
+        partido_dos = self.crear_partido(8)
+        Partido.objects.filter(id__in=[partido_uno.id, partido_dos.id]).update(
+            estado="PROGRAMADO",
+            estadisticas_validadas=False,
+        )
+
+        fila = construir_estadisticas_foraneos(self.categoria)[0]
+
+        self.assertEqual(fila["partidos_fase1"], 2)
+        self.assertEqual(fila["minimo"], 1)
+        self.assertFalse(fila["cumple"])
+        self.assertEqual(fila["estado"], "Pendiente")
 
     def test_cuenta_titular_y_suplente_que_entra(self):
         partido_uno = self.crear_partido(1)
@@ -1051,6 +1116,22 @@ class PlanilleroPartidoTests(TestCase):
         respuesta = self.client.get(f"/partido/{self.partido.id}/editor-movil/")
 
         self.assertContains(respuesta, "Cambiar equipo debajo de la cancha", count=2)
+
+    @override_settings(STORAGES={
+        "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+        "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
+    })
+    def test_editor_y_live_usan_las_tres_primeras_palabras_del_jugador(self):
+        self.jugador.nombres = "Carlos Mario Galvis Padilla"
+        self.jugador.save(update_fields=["nombres"])
+        self.client.force_login(self.planillero)
+
+        respuesta = self.client.get(f"/partido/{self.partido.id}/editor-movil/")
+
+        self.assertContains(respuesta, "Carlos Mario Galvis")
+        self.assertNotContains(respuesta, "Carlos Mario Galvis Padilla</option>")
+        self.assertEqual(nombre_corto_jugador(self.jugador), "Carlos Mario Galvis")
+        self.assertEqual(nombre_resumen_jugador(self.jugador), "Carlos Mario Galvis")
 
     @override_settings(STORAGES={
         "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},

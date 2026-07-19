@@ -733,7 +733,12 @@ a { color: inherit; text-decoration: none; }
 }
 .jugador-nombre {
     display: block;
-    font-size: 12px;
+    width: max-content;
+    max-width: 118px;
+    margin-left: 50%;
+    transform: translateX(-50%);
+    white-space: nowrap;
+    font-size: 9px;
     font-weight: 900;
     line-height: 1.05;
 }
@@ -982,7 +987,13 @@ a { color: inherit; text-decoration: none; }
         height: 48px;
     }
     .jugador-nombre {
+        font-size: 7px;
+        letter-spacing: -0.15px;
+    }
+    .timeline-event .event-text,
+    .event-sub-line {
         font-size: 11px;
+        letter-spacing: -0.15px;
     }
     .cancha-watermark {
         width: 68px;

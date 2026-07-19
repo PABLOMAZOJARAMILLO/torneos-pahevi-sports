@@ -1037,7 +1037,7 @@ def aplicar_imagenes_torneo_cloudinary(torneo, archivos):
 
 
 def documentos_publicos_por_tipo(torneo=None):
-    documentos = Documento.objects.filter(activo=True).order_by("tipo", "-creado_en", "titulo")
+    documentos = Documento.objects.select_related("categoria").filter(activo=True).order_by("tipo", "-creado_en", "titulo")
     if torneo:
         documentos = documentos.filter(torneo=torneo)
     else:
@@ -1048,6 +1048,8 @@ def documentos_publicos_por_tipo(torneo=None):
         "resoluciones": documentos.filter(tipo="RESOLUCION"),
         "demandas": documentos.filter(tipo="DEMANDA"),
         "comunicados": documentos.filter(tipo="COMUNICADO"),
+        "planillas": documentos.filter(tipo="PLANILLA_JUEGO"),
+        "otros": documentos.filter(tipo="OTRO"),
     }
 
 
@@ -1057,6 +1059,7 @@ def listar_documentos_cloudinary_por_tipo(max_results=500):
         "resoluciones": [],
         "demandas": [],
         "comunicados": [],
+        "otros": [],
     }
 
     if not getattr(settings, "USE_CLOUDINARY_STORAGE", False):
@@ -1087,6 +1090,7 @@ def listar_documentos_cloudinary_por_tipo(max_results=500):
         "RESOLUCION": "resoluciones",
         "DEMANDA": "demandas",
         "COMUNICADO": "comunicados",
+        "OTRO": "otros",
     }
 
     vistos = set()
@@ -1583,8 +1587,6 @@ def construir_estadisticas_foraneos(categoria):
     partidos_fase1 = Partido.objects.filter(
         categoria=categoria,
         fase="GRUPOS",
-        estado__in=ESTADOS_PARTIDO_CERRADO,
-        estadisticas_validadas=True,
     )
     total_partidos_por_equipo = defaultdict(int)
     partidos_por_equipo = defaultdict(set)
@@ -1599,7 +1601,6 @@ def construir_estadisticas_foraneos(categoria):
         partido__categoria=categoria,
         partido__fase="GRUPOS",
         partido__estado__in=ESTADOS_PARTIDO_CERRADO,
-        partido__estadisticas_validadas=True,
         rol="TITULAR",
         jugador__es_foraneo=True,
     ).values_list("jugador_id", "partido_id")
@@ -1610,7 +1611,6 @@ def construir_estadisticas_foraneos(categoria):
         partido__categoria=categoria,
         partido__fase="GRUPOS",
         partido__estado__in=ESTADOS_PARTIDO_CERRADO,
-        partido__estadisticas_validadas=True,
         jugador_entra__es_foraneo=True,
     ).values_list("jugador_entra_id", "partido_id")
     for jugador_id, partido_id in sustituciones:
@@ -2316,11 +2316,12 @@ def _nombre_primer_apellido(jugador):
 
 
 def nombre_corto_jugador(jugador):
-    return _nombre_primer_apellido(jugador)
+    nombre = (getattr(jugador, "nombres", "") or "").strip()
+    return " ".join(nombre.split()[:3]) or "Jugador"
 
 
 def nombre_resumen_jugador(jugador):
-    return _nombre_primer_apellido(jugador)
+    return nombre_corto_jugador(jugador)
 
 
 def edad_jugador_en_fecha(jugador, fecha_referencia=None):
@@ -2696,6 +2697,8 @@ def panel_principal(request):
         "resoluciones": documentos["resoluciones"],
         "demandas": documentos["demandas"],
         "comunicados": documentos["comunicados"],
+        "planillas": documentos["planillas"],
+        "otros": documentos["otros"],
         "logo_alcaldia": logos["logo_alcaldia"],
         "logo_torneo": logos["logo_torneo"],
         "logo_imcred": logos["logo_imcred"],

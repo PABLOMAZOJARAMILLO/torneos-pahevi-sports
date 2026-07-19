@@ -211,6 +211,10 @@
             font-size: 15px;
             font-weight: bold;
         }
+        select option {
+            font-size: 12px;
+            white-space: nowrap;
+        }
         textarea { min-height: 80px; resize: vertical; }
         .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
         .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
@@ -626,9 +630,13 @@
             font-weight: 1000;
             line-height: 1.08;
             text-shadow: 0 1px 2px rgba(0,0,0,0.58);
-            min-height: 22px;
+            min-height: 12px;
             text-transform: uppercase;
-            overflow-wrap: anywhere;
+            white-space: nowrap;
+            width: max-content;
+            max-width: 112px;
+            margin-left: 50%;
+            transform: translateX(-50%);
         }
         .slot-edad {
             display: none;
@@ -679,7 +687,8 @@
                 height: 46px;
             }
             .slot-nombre {
-                font-size: 8px;
+                font-size: 7px;
+                letter-spacing: -0.15px;
             }
             .cronometro-card .grid-2 {
                 grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -890,10 +899,10 @@
                 <label>Jugador</label>
                 <select name="jugador" required>
                     <optgroup label="{{ partido.equipo_local.nombre }}">
-                        {% for j in jugadores_local %}<option value="{{ j.id }}" data-equipo-id="{{ partido.equipo_local.id }}">{% if j.dorsal %}#{{ j.dorsal }} - {% endif %}{{ j.nombres|texto_limpio }}</option>{% endfor %}
+                        {% for j in jugadores_local %}<option value="{{ j.id }}" data-equipo-id="{{ partido.equipo_local.id }}">{% if j.dorsal %}#{{ j.dorsal }} - {% endif %}{{ j.nombres|primeras_tres_palabras }}</option>{% endfor %}
                     </optgroup>
                     <optgroup label="{{ partido.equipo_visitante.nombre }}">
-                        {% for j in jugadores_visitante %}<option value="{{ j.id }}" data-equipo-id="{{ partido.equipo_visitante.id }}">{% if j.dorsal %}#{{ j.dorsal }} - {% endif %}{{ j.nombres|texto_limpio }}</option>{% endfor %}
+                        {% for j in jugadores_visitante %}<option value="{{ j.id }}" data-equipo-id="{{ partido.equipo_visitante.id }}">{% if j.dorsal %}#{{ j.dorsal }} - {% endif %}{{ j.nombres|primeras_tres_palabras }}</option>{% endfor %}
                     </optgroup>
                 </select>
 
@@ -937,10 +946,10 @@
                 <label>Jugador</label>
                 <select name="jugador" required>
                     <optgroup label="{{ partido.equipo_local.nombre }}">
-                        {% for j in jugadores_local %}<option value="{{ j.id }}" data-equipo-id="{{ partido.equipo_local.id }}">{% if j.dorsal %}#{{ j.dorsal }} - {% endif %}{{ j.nombres|texto_limpio }}</option>{% endfor %}
+                        {% for j in jugadores_local %}<option value="{{ j.id }}" data-equipo-id="{{ partido.equipo_local.id }}">{% if j.dorsal %}#{{ j.dorsal }} - {% endif %}{{ j.nombres|primeras_tres_palabras }}</option>{% endfor %}
                     </optgroup>
                     <optgroup label="{{ partido.equipo_visitante.nombre }}">
-                        {% for j in jugadores_visitante %}<option value="{{ j.id }}" data-equipo-id="{{ partido.equipo_visitante.id }}">{% if j.dorsal %}#{{ j.dorsal }} - {% endif %}{{ j.nombres|texto_limpio }}</option>{% endfor %}
+                        {% for j in jugadores_visitante %}<option value="{{ j.id }}" data-equipo-id="{{ partido.equipo_visitante.id }}">{% if j.dorsal %}#{{ j.dorsal }} - {% endif %}{{ j.nombres|primeras_tres_palabras }}</option>{% endfor %}
                     </optgroup>
                 </select>
 
@@ -1007,7 +1016,7 @@
                         <option value="">{{ codigo }}</option>
                         {% for j in jugadores_local %}
                             <option value="{{ j.id }}" data-nombre="{{ j.nombres|texto_limpio }}" data-edad="{{ j.texto_edad }}" data-etiqueta-edad="{{ j.etiqueta_edad }}" data-dorsal="{% if j.dorsal %}{{ j.dorsal }}{% endif %}" data-foto="{{ j.foto_alineacion }}" data-iniciales="{{ j.iniciales_alineacion }}" {% if j.posicion_alineacion == codigo and j.rol_alineacion == "TITULAR" %}selected{% endif %}>
-                                {% if j.dorsal %}#{{ j.dorsal }} - {% endif %}{{ j.nombres|texto_limpio }}{% if j.texto_edad %} ({{ j.texto_edad }}){% endif %}
+                                {% if j.dorsal %}#{{ j.dorsal }} - {% endif %}{{ j.nombres|primeras_tres_palabras }}{% if j.texto_edad %} ({{ j.texto_edad }}){% endif %}
                             </option>
                         {% endfor %}
                         </select>
@@ -1090,7 +1099,7 @@
                         <option value="">{{ codigo }}</option>
                         {% for j in jugadores_visitante %}
                             <option value="{{ j.id }}" data-nombre="{{ j.nombres|texto_limpio }}" data-edad="{{ j.texto_edad }}" data-etiqueta-edad="{{ j.etiqueta_edad }}" data-dorsal="{% if j.dorsal %}{{ j.dorsal }}{% endif %}" data-foto="{{ j.foto_alineacion }}" data-iniciales="{{ j.iniciales_alineacion }}" {% if j.posicion_alineacion == codigo and j.rol_alineacion == "TITULAR" %}selected{% endif %}>
-                                {% if j.dorsal %}#{{ j.dorsal }} - {% endif %}{{ j.nombres|texto_limpio }}{% if j.texto_edad %} ({{ j.texto_edad }}){% endif %}
+                                {% if j.dorsal %}#{{ j.dorsal }} - {% endif %}{{ j.nombres|primeras_tres_palabras }}{% if j.texto_edad %} ({{ j.texto_edad }}){% endif %}
                             </option>
                         {% endfor %}
                         </select>
@@ -1161,10 +1170,10 @@
                 <label>Jugador</label>
                 <select name="jugador" required>
                     <optgroup label="{{ partido.equipo_local.nombre }}">
-                        {% for j in jugadores_local %}<option value="{{ j.id }}" data-equipo-id="{{ partido.equipo_local.id }}">{% if j.dorsal %}#{{ j.dorsal }} - {% endif %}{{ j.nombres|texto_limpio }}</option>{% endfor %}
+                        {% for j in jugadores_local %}<option value="{{ j.id }}" data-equipo-id="{{ partido.equipo_local.id }}">{% if j.dorsal %}#{{ j.dorsal }} - {% endif %}{{ j.nombres|primeras_tres_palabras }}</option>{% endfor %}
                     </optgroup>
                     <optgroup label="{{ partido.equipo_visitante.nombre }}">
-                        {% for j in jugadores_visitante %}<option value="{{ j.id }}" data-equipo-id="{{ partido.equipo_visitante.id }}">{% if j.dorsal %}#{{ j.dorsal }} - {% endif %}{{ j.nombres|texto_limpio }}</option>{% endfor %}
+                        {% for j in jugadores_visitante %}<option value="{{ j.id }}" data-equipo-id="{{ partido.equipo_visitante.id }}">{% if j.dorsal %}#{{ j.dorsal }} - {% endif %}{{ j.nombres|primeras_tres_palabras }}</option>{% endfor %}
                     </optgroup>
                 </select>
 
@@ -1207,20 +1216,20 @@
                 <label>Jugador que sale</label>
                 <select name="jugador_sale" required>
                     <optgroup label="{{ partido.equipo_local.nombre }}">
-                        {% for j in jugadores_local %}<option value="{{ j.id }}" data-equipo-id="{{ partido.equipo_local.id }}">{% if j.dorsal %}#{{ j.dorsal }} - {% endif %}{{ j.nombres|texto_limpio }}</option>{% endfor %}
+                        {% for j in jugadores_local %}<option value="{{ j.id }}" data-equipo-id="{{ partido.equipo_local.id }}">{% if j.dorsal %}#{{ j.dorsal }} - {% endif %}{{ j.nombres|primeras_tres_palabras }}</option>{% endfor %}
                     </optgroup>
                     <optgroup label="{{ partido.equipo_visitante.nombre }}">
-                        {% for j in jugadores_visitante %}<option value="{{ j.id }}" data-equipo-id="{{ partido.equipo_visitante.id }}">{% if j.dorsal %}#{{ j.dorsal }} - {% endif %}{{ j.nombres|texto_limpio }}</option>{% endfor %}
+                        {% for j in jugadores_visitante %}<option value="{{ j.id }}" data-equipo-id="{{ partido.equipo_visitante.id }}">{% if j.dorsal %}#{{ j.dorsal }} - {% endif %}{{ j.nombres|primeras_tres_palabras }}</option>{% endfor %}
                     </optgroup>
                 </select>
 
                 <label>Jugador que entra</label>
                 <select name="jugador_entra" required>
                     <optgroup label="{{ partido.equipo_local.nombre }}">
-                        {% for j in jugadores_local %}<option value="{{ j.id }}" data-equipo-id="{{ partido.equipo_local.id }}">{% if j.dorsal %}#{{ j.dorsal }} - {% endif %}{{ j.nombres|texto_limpio }}</option>{% endfor %}
+                        {% for j in jugadores_local %}<option value="{{ j.id }}" data-equipo-id="{{ partido.equipo_local.id }}">{% if j.dorsal %}#{{ j.dorsal }} - {% endif %}{{ j.nombres|primeras_tres_palabras }}</option>{% endfor %}
                     </optgroup>
                     <optgroup label="{{ partido.equipo_visitante.nombre }}">
-                        {% for j in jugadores_visitante %}<option value="{{ j.id }}" data-equipo-id="{{ partido.equipo_visitante.id }}">{% if j.dorsal %}#{{ j.dorsal }} - {% endif %}{{ j.nombres|texto_limpio }}</option>{% endfor %}
+                        {% for j in jugadores_visitante %}<option value="{{ j.id }}" data-equipo-id="{{ partido.equipo_visitante.id }}">{% if j.dorsal %}#{{ j.dorsal }} - {% endif %}{{ j.nombres|primeras_tres_palabras }}</option>{% endfor %}
                     </optgroup>
                 </select>
 
@@ -1435,7 +1444,7 @@ function actualizarSelectoresPosicion(panel) {
 function nombreCorto(nombre) {
     if (!nombre) return '';
     const partes = nombre.trim().split(/\s+/).filter(Boolean);
-    return (partes.length <= 2 ? partes.join(' ') : partes[0] + ' ' + partes[1]).toUpperCase();
+    return partes.slice(0, 3).join(' ').toUpperCase();
 }
 
 function pintarSlot(slot, option) {
