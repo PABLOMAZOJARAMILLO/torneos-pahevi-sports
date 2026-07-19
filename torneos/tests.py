@@ -256,7 +256,7 @@ class DocumentosTorneoTests(TestCase):
             categoria=categoria,
             equipo_local=local,
             equipo_visitante=visitante,
-            numero_fecha="Fecha 1",
+            numero_fecha="1",
             activo=True,
         )
         Documento.objects.create(
@@ -275,7 +275,7 @@ class DocumentosTorneoTests(TestCase):
         self.assertContains(response, '<details class="planillas-categoria"')
         self.assertContains(response, "Senior Master")
         self.assertContains(response, '<details class="planillas-fecha"')
-        self.assertContains(response, "Fecha 1")
+        self.assertContains(response, "<summary>FECHA 1</summary>", html=True)
         self.assertNotContains(response, "Planilla Copa Antigua")
 
     def test_planilla_publica_abre_archivo_original_sin_visor_de_google(self):

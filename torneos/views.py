@@ -2681,7 +2681,15 @@ def panel_principal(request):
         SimpleNamespace(
             nombre=categoria_nombre,
             fechas=[
-                SimpleNamespace(nombre=fecha_nombre, documentos=documentos_fecha)
+                SimpleNamespace(
+                    nombre=fecha_nombre,
+                    etiqueta=(
+                        fecha_nombre.upper()
+                        if str(fecha_nombre).strip().lower().startswith("fecha")
+                        else f"FECHA {fecha_nombre}"
+                    ),
+                    documentos=documentos_fecha,
+                )
                 for fecha_nombre, documentos_fecha in fechas.items()
             ],
         )

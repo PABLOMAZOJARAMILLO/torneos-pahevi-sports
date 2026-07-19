@@ -5421,7 +5421,7 @@ body.solo-lectura .menu-principal{top:96px!important}
                 <div class="planillas-fechas">
                     {% for fecha in categoria.fechas %}
                     <details class="planillas-fecha" {% if forloop.first %}open{% endif %}>
-                        <summary>{{ fecha.nombre }}</summary>
+                        <summary>{{ fecha.etiqueta }}</summary>
                         <div class="documentos-lista">
                             {% for documento in fecha.documentos %}
                             <a class="documento-card" href="{% url 'documento_publico' documento.id %}" target="_blank" rel="noopener">
