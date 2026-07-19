@@ -447,6 +447,16 @@
             font-size: 14px;
             text-transform: uppercase;
         }
+        .validacion-documentos > summary {
+            color: #00ff66;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 1000;
+            text-transform: uppercase;
+        }
+        .validacion-documentos[open] > summary {
+            margin-bottom: 8px;
+        }
         .validacion-documentos-vacia {
             margin: 0;
             color: #cbd5e1;
@@ -1061,8 +1071,8 @@
                     <button type="button" class="active" data-alineacion-equipo="local">{{ partido.equipo_local.nombre }}</button>
                     <button type="button" data-alineacion-equipo="visitante">{{ partido.equipo_visitante.nombre }}</button>
                 </div>
-                <section class="validacion-documentos" data-validacion-documentos>
-                    <h3>Cedulas de titulares</h3>
+                <details class="validacion-documentos" data-validacion-documentos>
+                    <summary>Cedulas de titulares</summary>
                     <p class="validacion-documentos-vacia" data-validacion-vacia>Selecciona titulares para validar documentos.</p>
                     {% for j in jugadores_local %}
                     <div class="documento-titular-row" data-documento-titular-row="{{ j.id }}" hidden>
@@ -1079,7 +1089,7 @@
                         </label>
                     </div>
                     {% endfor %}
-                </section>
+                </details>
                 <details class="ajustes-plantilla">
                 <summary>Ajustar banco, fuera y no disponibles ({{ jugadores_local|length }})</summary>
                 <div class="ajustes-plantilla-contenido">
@@ -1148,8 +1158,8 @@
                     <button type="button" data-alineacion-equipo="local">{{ partido.equipo_local.nombre }}</button>
                     <button type="button" class="active" data-alineacion-equipo="visitante">{{ partido.equipo_visitante.nombre }}</button>
                 </div>
-                <section class="validacion-documentos" data-validacion-documentos>
-                    <h3>Cedulas de titulares</h3>
+                <details class="validacion-documentos" data-validacion-documentos>
+                    <summary>Cedulas de titulares</summary>
                     <p class="validacion-documentos-vacia" data-validacion-vacia>Selecciona titulares para validar documentos.</p>
                     {% for j in jugadores_visitante %}
                     <div class="documento-titular-row" data-documento-titular-row="{{ j.id }}" hidden>
@@ -1166,7 +1176,7 @@
                         </label>
                     </div>
                     {% endfor %}
-                </section>
+                </details>
                 <details class="ajustes-plantilla">
                 <summary>Ajustar banco, fuera y no disponibles ({{ jugadores_visitante|length }})</summary>
                 <div class="ajustes-plantilla-contenido">
