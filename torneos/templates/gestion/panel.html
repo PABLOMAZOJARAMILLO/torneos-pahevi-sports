@@ -75,10 +75,12 @@
         <p class="muted">{{ total_documentos }} reglamentos, resoluciones y demandas</p>
     </a>
 
+    {% if request.user.is_superuser %}
     <a class="card" href="{% url 'gestion_actividad' %}">
         <h2>Auditoría de usuarios</h2>
         <p class="muted">Ingresos y modificaciones de administradores, delegados y planilleros</p>
     </a>
+    {% endif %}
     {% endif %}
 </div>
 {% endblock %}

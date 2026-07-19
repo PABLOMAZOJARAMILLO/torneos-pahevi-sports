@@ -92,7 +92,8 @@ class AuditoriaUsuariosTests(TestCase):
             descripcion="Actualizó el equipo.",
             datos={"tipo_usuario": "Delegado", "ruta": "/delegado/equipo/"},
         )
-        self.client.force_login(self.admin)
+        superusuario = User.objects.create_superuser("super-csv", password="clave")
+        self.client.force_login(superusuario)
         session = self.client.session
         session["torneo_id"] = self.torneo.id
         session.save()
@@ -145,7 +146,12 @@ class AuditoriaUsuariosTests(TestCase):
 
         respuesta_admin = self.client.get("/gestion/actividad/")
 
-        self.assertNotContains(respuesta_admin, "Visitas públicas anónimas")
+        self.assertEqual(respuesta_admin.status_code, 403)
+        self.assertContains(
+            respuesta_admin,
+            "únicamente para superusuarios",
+            status_code=403,
+        )
 
         superusuario = User.objects.create_superuser("super-auditoria", password="clave")
         self.client.force_login(superusuario)
@@ -157,6 +163,18 @@ class AuditoriaUsuariosTests(TestCase):
 
         self.assertContains(respuesta_superusuario, "Visitas públicas anónimas")
         self.assertContains(respuesta_superusuario, "Visible solo para superusuarios")
+
+    def test_admin_de_comite_no_ve_enlace_de_auditoria(self):
+        self.client.force_login(self.admin)
+        session = self.client.session
+        session["torneo_id"] = self.torneo.id
+        session.save()
+
+        respuesta = self.client.get("/gestion/")
+
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertNotContains(respuesta, "Auditoría de usuarios")
+        self.assertNotContains(respuesta, "/gestion/actividad/")
 
 
 class EscudoEquipoTests(TestCase):

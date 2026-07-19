@@ -5136,8 +5136,9 @@ def gestion_panel(request):
 
 
 @login_required
-@user_passes_test(es_editor_torneo)
 def gestion_actividad(request):
+    if not request.user.is_superuser:
+        return HttpResponseForbidden("La auditoría está disponible únicamente para superusuarios.")
     if usuario_solo_descarga_planillas(request.user, torneo_actual(request)):
         return denegar_permiso_torneo()
     if not tabla_disponible("torneos_registroactividad"):
