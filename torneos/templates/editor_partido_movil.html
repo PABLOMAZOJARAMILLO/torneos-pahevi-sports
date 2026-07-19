@@ -215,6 +215,92 @@
             font-size: 12px;
             white-space: nowrap;
         }
+        .selector-jugador-original {
+            display: none;
+        }
+        .selector-jugador-boton {
+            width: 100%;
+            min-width: 0;
+            border: 1px solid #00ff66;
+            border-radius: 13px;
+            background: #07111f;
+            color: white;
+            padding: 11px 36px 11px 11px;
+            font-size: 13px;
+            font-weight: 900;
+            text-align: left;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            cursor: pointer;
+            position: relative;
+        }
+        .selector-jugador-boton::after {
+            content: "\25BE";
+            position: absolute;
+            right: 13px;
+        }
+        .selector-jugador-fondo {
+            position: fixed;
+            inset: 0;
+            z-index: 200;
+            display: grid;
+            place-items: center;
+            padding: 18px;
+            background: rgba(0, 0, 0, .72);
+        }
+        .selector-jugador-dialogo {
+            width: min(100%, 460px);
+            max-height: 82vh;
+            display: flex;
+            flex-direction: column;
+            border: 1px solid #00ff66;
+            border-radius: 16px;
+            overflow: hidden;
+            background: #17202d;
+            box-shadow: 0 18px 50px rgba(0, 0, 0, .55);
+        }
+        .selector-jugador-cabecera {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 12px;
+            color: #00ff66;
+            font-size: 13px;
+            text-transform: uppercase;
+        }
+        .selector-jugador-cerrar {
+            border: 0;
+            border-radius: 10px;
+            padding: 7px 10px;
+            background: #334155;
+            color: white;
+            font-weight: 900;
+        }
+        .selector-jugador-opciones {
+            overflow-y: auto;
+        }
+        .selector-jugador-opcion {
+            display: block;
+            width: 100%;
+            border: 0;
+            border-top: 1px solid rgba(148, 163, 184, .25);
+            padding: 13px 14px;
+            background: #424242;
+            color: white;
+            font-size: 13px;
+            font-weight: 900;
+            line-height: 1.15;
+            text-align: left;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .selector-jugador-opcion.seleccionada {
+            color: #00ff66;
+            background: #303b36;
+        }
         textarea { min-height: 80px; resize: vertical; }
         .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
         .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
@@ -1663,7 +1749,69 @@ function filtrarJugadoresPorEquipo(form) {
         if (!seleccionada || seleccionada.hidden || seleccionada.disabled) {
             selector.value = primeraVisible;
         }
+        actualizarBotonSelectorJugador(selector);
     });
+}
+
+function actualizarBotonSelectorJugador(selector) {
+    if (!selector || !selector._botonJugador) return;
+    const opcion = selector.selectedOptions[0];
+    selector._botonJugador.textContent = opcion ? opcion.textContent.trim().replace(/\s+/g, ' ') : 'Seleccionar jugador';
+}
+
+function abrirSelectorJugador(selector) {
+    const fondo = document.createElement('div');
+    fondo.className = 'selector-jugador-fondo';
+
+    const dialogo = document.createElement('div');
+    dialogo.className = 'selector-jugador-dialogo';
+    const cabecera = document.createElement('div');
+    cabecera.className = 'selector-jugador-cabecera';
+    const titulo = document.createElement('span');
+    const etiqueta = selector.previousElementSibling;
+    titulo.textContent = etiqueta && etiqueta.tagName === 'LABEL' ? etiqueta.textContent.trim() : 'Seleccionar jugador';
+    const cerrar = document.createElement('button');
+    cerrar.type = 'button';
+    cerrar.className = 'selector-jugador-cerrar';
+    cerrar.textContent = 'Cerrar';
+    cabecera.append(titulo, cerrar);
+
+    const opciones = document.createElement('div');
+    opciones.className = 'selector-jugador-opciones';
+    Array.from(selector.options).forEach(function(opcion) {
+        if (opcion.hidden || opcion.disabled) return;
+        const boton = document.createElement('button');
+        boton.type = 'button';
+        boton.className = 'selector-jugador-opcion' + (opcion.selected ? ' seleccionada' : '');
+        boton.textContent = opcion.textContent.trim().replace(/\s+/g, ' ');
+        boton.addEventListener('click', function() {
+            selector.value = opcion.value;
+            selector.dispatchEvent(new Event('change', { bubbles: true }));
+            actualizarBotonSelectorJugador(selector);
+            fondo.remove();
+        });
+        opciones.appendChild(boton);
+    });
+
+    cerrar.addEventListener('click', function() { fondo.remove(); });
+    fondo.addEventListener('click', function(evento) {
+        if (evento.target === fondo) fondo.remove();
+    });
+    dialogo.append(cabecera, opciones);
+    fondo.appendChild(dialogo);
+    document.body.appendChild(fondo);
+}
+
+function inicializarSelectorJugador(selector) {
+    if (!selector || selector._botonJugador) return;
+    selector.classList.add('selector-jugador-original');
+    const boton = document.createElement('button');
+    boton.type = 'button';
+    boton.className = 'selector-jugador-boton';
+    selector.insertAdjacentElement('afterend', boton);
+    selector._botonJugador = boton;
+    actualizarBotonSelectorJugador(selector);
+    boton.addEventListener('click', function() { abrirSelectorJugador(selector); });
 }
 
 function activarHashInicial() {
@@ -1693,6 +1841,8 @@ document.querySelectorAll('input, select, textarea').forEach(function(campo) {
 });
 
 document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('select[name="jugador"], select[name="jugador_sale"], select[name="jugador_entra"]').forEach(inicializarSelectorJugador);
+
     document.querySelectorAll('[data-ajuste-comite]').forEach(function(control) {
         sincronizarAjusteComite(control);
         control.addEventListener('change', function() {
