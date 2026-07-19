@@ -174,6 +174,11 @@ class RegistroActividad(models.Model):
         verbose_name = "Registro de actividad"
         verbose_name_plural = "Registros de actividad"
         ordering = ["-creado_en"]
+        indexes = [
+            models.Index(fields=["usuario", "-creado_en"], name="actividad_usuario_fecha_idx"),
+            models.Index(fields=["torneo", "-creado_en"], name="actividad_torneo_fecha_idx"),
+            models.Index(fields=["accion", "-creado_en"], name="actividad_accion_fecha_idx"),
+        ]
 
     def __str__(self):
         usuario = self.usuario.username if self.usuario_id else "Sistema"

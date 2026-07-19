@@ -7,13 +7,15 @@ from types import SimpleNamespace
 from django.core.exceptions import ValidationError
 from django.contrib.auth.models import User
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.test import TestCase, TransactionTestCase, override_settings
+from django.http import HttpResponse
+from django.test import RequestFactory, TestCase, TransactionTestCase, override_settings
 from django.utils import timezone
 from openpyxl import Workbook
 from PIL import Image
 
 from .forms import JugadorForm, PartidoForm, TorneoForm
 from .models import AlineacionPartido, AdminOrganizador, AdminTorneo, Categoria, Documento, Equipo, Gol, Jugador, Organizador, Partido, ReglaEdadCategoria, RegistroActividad, SolicitudValidacion, SustitucionPartido, Tarjeta, Torneo, ruta_escudo_equipo
+from .middleware import AuditoriaModificacionesMiddleware
 from .planillas_pdf import _dorsal, _edad, _header_image_sources, _team_shield_source, _draw_team_watermark, _titulo_planilla
 from .storage_backends import CloudinaryMediaStorage
 from .views import buscar_planilleros_excel, construir_estructura, construir_estadisticas_foraneos, construir_partidos_portada, construir_partidos_programacion, _clave_orden_evento_resumen, _minuto_evento_en_vivo, _sincronizar_no_disponibles_por_tarjetas, etiqueta_edad_jugador, nombre_corto_jugador, nombre_resumen_jugador, puede_descargar_programacion, reglas_edad_para_frontend, texto_edad_jugador, tabla_general_mata_mata_ida_vuelta, validar_reglas_edad_titulares
@@ -33,6 +35,74 @@ class CloudinaryStorageTests(TestCase):
         self.assertIn("q_auto", url)
         self.assertIn("c_limit", url)
         self.assertIn("w_900", url)
+
+
+class AuditoriaUsuariosTests(TestCase):
+    def setUp(self):
+        self.torneo = Torneo.objects.create(nombre="Auditoría", fecha_inicio=date(2026, 1, 1))
+        self.categoria = Categoria.objects.create(
+            nombre="Senior",
+            edad_minima=18,
+            edad_maxima=80,
+            torneo=self.torneo,
+        )
+        self.delegado = User.objects.create_user("delegado-auditado", password="clave-segura")
+        Equipo.objects.create(nombre="Equipo auditado", categoria=self.categoria, responsable=self.delegado)
+        self.admin = User.objects.create_user("admin-auditoria", password="clave", is_staff=True)
+        AdminTorneo.objects.create(usuario=self.admin, torneo=self.torneo)
+
+    def test_registra_inicio_y_cierre_de_sesion_del_delegado(self):
+        respuesta = self.client.post("/ingresar/", {
+            "username": self.delegado.username,
+            "password": "clave-segura",
+        })
+
+        self.assertEqual(respuesta.status_code, 200)
+        ingreso = RegistroActividad.objects.get(usuario=self.delegado, accion="INICIAR_SESION")
+        self.assertEqual(ingreso.datos["tipo_usuario"], "Delegado")
+
+        self.client.get("/salir/")
+
+        self.assertTrue(RegistroActividad.objects.filter(
+            usuario=self.delegado,
+            accion="CERRAR_SESION",
+        ).exists())
+
+    def test_middleware_registra_una_modificacion_sin_guardar_formulario(self):
+        request = RequestFactory().post("/delegado/accion/", {"dato_sensible": "no guardar"})
+        request.user = self.delegado
+        request.session = {"torneo_id": self.torneo.id}
+        request.resolver_match = SimpleNamespace(url_name="accion_delegado")
+        middleware = AuditoriaModificacionesMiddleware(lambda _request: HttpResponse(status=302))
+
+        middleware(request)
+
+        registro = RegistroActividad.objects.get(usuario=self.delegado, accion="MODIFICAR")
+        self.assertEqual(registro.torneo, self.torneo)
+        self.assertEqual(registro.datos["tipo_usuario"], "Delegado")
+        self.assertEqual(registro.datos["ruta"], "/delegado/accion/")
+        self.assertNotIn("dato_sensible", registro.datos)
+
+    def test_admin_puede_descargar_auditoria_csv(self):
+        RegistroActividad.objects.create(
+            usuario=self.delegado,
+            torneo=self.torneo,
+            accion="EDITAR",
+            descripcion="Actualizó el equipo.",
+            datos={"tipo_usuario": "Delegado", "ruta": "/delegado/equipo/"},
+        )
+        self.client.force_login(self.admin)
+        session = self.client.session
+        session["torneo_id"] = self.torneo.id
+        session.save()
+
+        respuesta = self.client.get("/gestion/actividad/?formato=csv")
+
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertEqual(respuesta["Content-Type"], "text/csv; charset=utf-8")
+        contenido = respuesta.content.decode("utf-8-sig")
+        self.assertIn("delegado-auditado", contenido)
+        self.assertIn("Actualizó el equipo.", contenido)
 
 
 class EscudoEquipoTests(TestCase):

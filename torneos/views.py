@@ -1,5 +1,6 @@
 from collections import defaultdict
 import base64
+import csv
 from io import BytesIO
 from types import SimpleNamespace
 from datetime import date, datetime, time, timedelta
@@ -29,7 +30,7 @@ from django.template.loader import render_to_string
 from django.templatetags.static import static
 from django.utils.html import escape
 from django.utils.http import url_has_allowed_host_and_scheme
-from django.utils.dateparse import parse_datetime
+from django.utils.dateparse import parse_date, parse_datetime
 from django.utils.text import slugify
 from html2image import Html2Image
 import requests
@@ -376,6 +377,12 @@ class IngresoTorneosView(LoginView):
     def form_valid(self, form):
         auth_login(self.request, form.get_user())
         user = self.request.user
+        registrar_actividad(
+            self.request,
+            "INICIAR_SESION",
+            descripcion=f"{user.username} inicio sesion.",
+            datos={"ruta": self.request.path},
+        )
         if es_editor_torneo(user):
             mensaje = "Acceso exitoso. Bienvenido al panel de gestion."
             acciones = [
@@ -718,6 +725,9 @@ def registrar_actividad(request, accion, objeto=None, torneo=None, descripcion="
     if not torneo and objeto is not None:
         torneo = torneo_de_objeto(objeto)
 
+    datos_registro = dict(datos or {})
+    datos_registro.setdefault("tipo_usuario", tipo_usuario_actividad(request))
+
     RegistroActividad.objects.create(
         usuario=request.user if request.user.is_authenticated else None,
         torneo=torneo,
@@ -726,10 +736,34 @@ def registrar_actividad(request, accion, objeto=None, torneo=None, descripcion="
         objeto_id=getattr(objeto, "id", None),
         objeto_repr=str(objeto)[:255] if objeto is not None else "",
         descripcion=descripcion,
-        datos=datos or {},
+        datos=datos_registro,
         ip=ip_cliente(request),
         user_agent=(request.META.get("HTTP_USER_AGENT") or "")[:300],
     )
+    request._actividad_registrada = True
+
+
+def tipo_usuario_actividad(request):
+    cache = getattr(request, "_tipo_usuario_actividad", None)
+    if cache:
+        return cache
+
+    user = request.user
+    if not getattr(user, "is_authenticated", False):
+        tipo = "Público"
+    elif user.is_superuser:
+        tipo = "Superadministrador"
+    elif equipos_delegado_asignados(user).exists():
+        tipo = "Delegado"
+    elif user.partidos_planillero.exists():
+        tipo = "Planillero"
+    elif es_editor_torneo(user):
+        tipo = "Administrador"
+    else:
+        tipo = "Usuario"
+
+    request._tipo_usuario_actividad = tipo
+    return tipo
 
 
 def torneo_de_objeto(objeto):
@@ -798,6 +832,13 @@ def organizadores_para_portal(torneos):
 
 
 def cerrar_sesion(request):
+    if request.user.is_authenticated:
+        registrar_actividad(
+            request,
+            "CERRAR_SESION",
+            descripcion=f"{request.user.username} cerro sesion.",
+            datos={"ruta": request.path},
+        )
     logout(request)
     return redirect("panel")
 
@@ -5084,12 +5125,54 @@ def gestion_actividad(request):
 
     usuario_id = request.GET.get("usuario", "").strip()
     accion = request.GET.get("accion", "").strip()
+    fecha_desde = request.GET.get("desde", "").strip()
+    fecha_hasta = request.GET.get("hasta", "").strip()
+    busqueda = request.GET.get("q", "").strip()
 
     if usuario_id:
         registros = registros.filter(usuario_id=usuario_id)
 
     if accion:
         registros = registros.filter(accion=accion)
+
+    desde = parse_date(fecha_desde) if fecha_desde else None
+    hasta = parse_date(fecha_hasta) if fecha_hasta else None
+    if desde:
+        registros = registros.filter(creado_en__date__gte=desde)
+    if hasta:
+        registros = registros.filter(creado_en__date__lte=hasta)
+    if busqueda:
+        registros = registros.filter(
+            Q(usuario__username__icontains=busqueda)
+            | Q(usuario__first_name__icontains=busqueda)
+            | Q(usuario__last_name__icontains=busqueda)
+            | Q(descripcion__icontains=busqueda)
+            | Q(objeto_repr__icontains=busqueda)
+        )
+
+    if request.GET.get("formato") == "csv":
+        response = HttpResponse(content_type="text/csv; charset=utf-8")
+        response["Content-Disposition"] = 'attachment; filename="auditoria_usuarios.csv"'
+        response.write("\ufeff")
+        writer = csv.writer(response)
+        writer.writerow([
+            "Fecha", "Usuario", "Tipo de usuario", "Acción", "Torneo",
+            "Descripción", "Objeto", "Ruta", "IP", "Dispositivo",
+        ])
+        for registro in registros[:10000]:
+            writer.writerow([
+                timezone.localtime(registro.creado_en).strftime("%Y-%m-%d %H:%M:%S"),
+                registro.usuario.username if registro.usuario else "Sistema",
+                registro.datos.get("tipo_usuario", ""),
+                registro.accion,
+                registro.torneo.nombre if registro.torneo else "",
+                registro.descripcion,
+                registro.objeto_repr,
+                registro.datos.get("ruta", ""),
+                registro.ip or "",
+                registro.user_agent,
+            ])
+        return response
 
     acciones = RegistroActividad.objects.order_by("accion").values_list("accion", flat=True).distinct()
     usuarios = User.objects.filter(actividad_admin__isnull=False).distinct().order_by("username")
@@ -5101,6 +5184,9 @@ def gestion_actividad(request):
         "acciones": acciones,
         "usuario_id": usuario_id,
         "accion": accion,
+        "fecha_desde": fecha_desde,
+        "fecha_hasta": fecha_hasta,
+        "busqueda": busqueda,
     })
 
 
