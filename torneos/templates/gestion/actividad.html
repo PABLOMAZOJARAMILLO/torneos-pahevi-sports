@@ -4,6 +4,21 @@
 {% block heading %}Actividad{% endblock %}
 
 {% block content %}
+{% if visitas_publicas %}
+<section class="card" style="margin-bottom:16px;">
+    <h2>Visitas públicas anónimas</h2>
+    <p class="muted">Estimación de dispositivos únicos por torneo y día. Visible solo para superusuarios.</p>
+    <div class="grid">
+        <div class="card"><h2>{{ visitas_publicas.hoy }}</h2><p class="muted">Hoy</p></div>
+        <div class="card"><h2>{{ visitas_publicas.siete_dias }}</h2><p class="muted">Últimos 7 días</p></div>
+        <div class="card"><h2>{{ visitas_publicas.treinta_dias }}</h2><p class="muted">Últimos 30 días</p></div>
+        {% for canal in visitas_publicas.canales %}
+        <div class="card"><h2>{{ canal.total }}</h2><p class="muted">{{ canal.nombre }} · 30 días</p></div>
+        {% endfor %}
+    </div>
+</section>
+{% endif %}
+
 <form method="get" style="margin-bottom:16px;">
     <label for="q">Buscar</label>
     <input id="q" name="q" value="{{ busqueda }}" placeholder="Usuario, acción, equipo o jugador">

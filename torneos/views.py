@@ -22,7 +22,7 @@ from django.http import FileResponse, HttpResponse, HttpResponseForbidden
 from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
 from django.db import connection, transaction
-from django.db.models import Prefetch, Q, Sum
+from django.db.models import Count, Prefetch, Q, Sum
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
 from django.contrib.staticfiles import finders
@@ -38,7 +38,7 @@ from django.views.decorators.http import require_POST
 from openpyxl import load_workbook
 
 from .forms import TorneoForm, OrganizadorForm, CategoriaForm, ReglaEdadCategoriaFormSet, DocumentoForm, PlanillaJuegoUploadForm, EquipoForm, EquipoDelegadoForm, EquipoReinscripcionForm, JugadorForm, JugadorDelegadoForm, JugadorFotoDelegadoForm, PartidoForm, PartidoProgramacionForm, AdminTorneoForm, AdminOrganizadorForm, CrearAdminOrganizadorForm
-from .models import Torneo, Organizador, Categoria, Documento, Equipo, Partido, Gol, Tarjeta, Jugador, AlineacionPartido, SustitucionPartido, ReglaEdadCategoria, AdminTorneo, AdminOrganizador, RegistroActividad, SolicitudValidacion, limpiar_ruta_cloudinary
+from .models import Torneo, Organizador, Categoria, Documento, Equipo, Partido, Gol, Tarjeta, Jugador, AlineacionPartido, SustitucionPartido, ReglaEdadCategoria, AdminTorneo, AdminOrganizador, RegistroActividad, VisitaPublicaDiaria, SolicitudValidacion, limpiar_ruta_cloudinary
 from .planillas_pdf import generar_planilla_juego_pdf, nombre_archivo_planilla
 from django.utils import timezone
 
@@ -5176,6 +5176,28 @@ def gestion_actividad(request):
 
     acciones = RegistroActividad.objects.order_by("accion").values_list("accion", flat=True).distinct()
     usuarios = User.objects.filter(actividad_admin__isnull=False).distinct().order_by("username")
+    visitas_publicas = None
+    if request.user.is_superuser:
+        hoy = timezone.localdate()
+        visitas_qs = VisitaPublicaDiaria.objects.all()
+        if torneo:
+            visitas_qs = visitas_qs.filter(torneo=torneo)
+        canales = {
+            item["canal"]: item["total"]
+            for item in visitas_qs.filter(fecha__gte=hoy - timedelta(days=29))
+            .values("canal")
+            .annotate(total=Count("id"))
+        }
+        visitas_publicas = {
+            "hoy": visitas_qs.filter(fecha=hoy).count(),
+            "siete_dias": visitas_qs.filter(fecha__gte=hoy - timedelta(days=6)).count(),
+            "treinta_dias": visitas_qs.filter(fecha__gte=hoy - timedelta(days=29)).count(),
+            "canales": [
+                {"nombre": "Aplicación", "total": canales.get("APK", 0)},
+                {"nombre": "Navegador móvil", "total": canales.get("MOVIL", 0)},
+                {"nombre": "Computador", "total": canales.get("ESCRITORIO", 0)},
+            ],
+        }
 
     return render(request, "gestion/actividad.html", {
         "registros": registros[:250],
@@ -5187,6 +5209,7 @@ def gestion_actividad(request):
         "fecha_desde": fecha_desde,
         "fecha_hasta": fecha_hasta,
         "busqueda": busqueda,
+        "visitas_publicas": visitas_publicas,
     })
 
 

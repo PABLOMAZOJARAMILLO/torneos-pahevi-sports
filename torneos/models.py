@@ -185,6 +185,43 @@ class RegistroActividad(models.Model):
         return f"{self.creado_en:%Y-%m-%d %H:%M} - {usuario} - {self.accion}"
 
 
+class VisitaPublicaDiaria(models.Model):
+    CANALES = [
+        ("APK", "Aplicación"),
+        ("MOVIL", "Navegador móvil"),
+        ("ESCRITORIO", "Computador"),
+    ]
+
+    fecha = models.DateField()
+    torneo = models.ForeignKey(
+        Torneo,
+        on_delete=models.CASCADE,
+        related_name="visitas_publicas_diarias",
+        blank=True,
+        null=True,
+    )
+    visitante_hash = models.CharField(max_length=64)
+    canal = models.CharField(max_length=20, choices=CANALES)
+    primera_visita = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Visita pública diaria"
+        verbose_name_plural = "Visitas públicas diarias"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["fecha", "torneo", "visitante_hash"],
+                name="visita_publica_unica_dia_torneo",
+            ),
+        ]
+        indexes = [
+            models.Index(fields=["fecha", "torneo"], name="visita_fecha_torneo_idx"),
+            models.Index(fields=["fecha", "canal"], name="visita_fecha_canal_idx"),
+        ]
+
+    def __str__(self):
+        return f"{self.fecha} - {self.get_canal_display()}"
+
+
 class SolicitudValidacion(models.Model):
     TIPOS = [
         ("ESTADISTICAS", "Estadisticas de partido"),

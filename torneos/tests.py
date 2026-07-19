@@ -6,6 +6,7 @@ from types import SimpleNamespace
 
 from django.core.exceptions import ValidationError
 from django.contrib.auth.models import User
+from django.contrib.auth.models import AnonymousUser
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.http import HttpResponse
 from django.test import RequestFactory, TestCase, TransactionTestCase, override_settings
@@ -14,7 +15,7 @@ from openpyxl import Workbook
 from PIL import Image
 
 from .forms import JugadorForm, PartidoForm, TorneoForm
-from .models import AlineacionPartido, AdminOrganizador, AdminTorneo, Categoria, Documento, Equipo, Gol, Jugador, Organizador, Partido, ReglaEdadCategoria, RegistroActividad, SolicitudValidacion, SustitucionPartido, Tarjeta, Torneo, ruta_escudo_equipo
+from .models import AlineacionPartido, AdminOrganizador, AdminTorneo, Categoria, Documento, Equipo, Gol, Jugador, Organizador, Partido, ReglaEdadCategoria, RegistroActividad, VisitaPublicaDiaria, SolicitudValidacion, SustitucionPartido, Tarjeta, Torneo, ruta_escudo_equipo
 from .middleware import AuditoriaModificacionesMiddleware
 from .planillas_pdf import _dorsal, _edad, _header_image_sources, _team_shield_source, _draw_team_watermark, _titulo_planilla
 from .storage_backends import CloudinaryMediaStorage
@@ -103,6 +104,59 @@ class AuditoriaUsuariosTests(TestCase):
         contenido = respuesta.content.decode("utf-8-sig")
         self.assertIn("delegado-auditado", contenido)
         self.assertIn("Actualizó el equipo.", contenido)
+
+    def test_visita_publica_cuenta_una_vez_por_dispositivo_torneo_y_dia(self):
+        middleware = AuditoriaModificacionesMiddleware(lambda _request: HttpResponse(status=200))
+        request = RequestFactory().get("/")
+        request.user = AnonymousUser()
+        request.session = {"torneo_id": self.torneo.id}
+        request.resolver_match = SimpleNamespace(url_name="panel", kwargs={})
+
+        respuesta = middleware(request)
+
+        self.assertEqual(VisitaPublicaDiaria.objects.count(), 1)
+        visita = VisitaPublicaDiaria.objects.get()
+        self.assertEqual(visita.torneo, self.torneo)
+        self.assertEqual(visita.canal, "ESCRITORIO")
+        self.assertNotEqual(visita.visitante_hash, respuesta.cookies["pahevi_visitante"].value)
+
+        segundo_request = RequestFactory().get("/")
+        segundo_request.user = AnonymousUser()
+        segundo_request.session = {"torneo_id": self.torneo.id}
+        segundo_request.resolver_match = SimpleNamespace(url_name="panel", kwargs={})
+        segundo_request.COOKIES["pahevi_visitante"] = respuesta.cookies["pahevi_visitante"].value
+        segundo_request.COOKIES["pahevi_visita_contada"] = respuesta.cookies["pahevi_visita_contada"].value
+
+        middleware(segundo_request)
+
+        self.assertEqual(VisitaPublicaDiaria.objects.count(), 1)
+
+    def test_metricas_publicas_solo_son_visibles_para_superusuario(self):
+        VisitaPublicaDiaria.objects.create(
+            fecha=date.today(),
+            torneo=self.torneo,
+            visitante_hash="hash-anonimo",
+            canal="APK",
+        )
+        self.client.force_login(self.admin)
+        session = self.client.session
+        session["torneo_id"] = self.torneo.id
+        session.save()
+
+        respuesta_admin = self.client.get("/gestion/actividad/")
+
+        self.assertNotContains(respuesta_admin, "Visitas públicas anónimas")
+
+        superusuario = User.objects.create_superuser("super-auditoria", password="clave")
+        self.client.force_login(superusuario)
+        session = self.client.session
+        session["torneo_id"] = self.torneo.id
+        session.save()
+
+        respuesta_superusuario = self.client.get("/gestion/actividad/")
+
+        self.assertContains(respuesta_superusuario, "Visitas públicas anónimas")
+        self.assertContains(respuesta_superusuario, "Visible solo para superusuarios")
 
 
 class EscudoEquipoTests(TestCase):
