@@ -189,6 +189,9 @@
     <div class="topbar">
         <h1>{% block heading %}Gestión{% endblock %}</h1>
         <div class="topbar-actions">
+            {% if request.user.is_authenticated %}
+            <a class="btn secondary" href="{% url 'cambiar_contrasena' %}">Cambiar contraseña</a>
+            {% endif %}
             {% if request.user.is_superuser or puede_validar %}
             <a class="btn secondary bell" href="{% url 'gestion_validaciones' %}" aria-label="Validaciones pendientes">
                 &#128276;

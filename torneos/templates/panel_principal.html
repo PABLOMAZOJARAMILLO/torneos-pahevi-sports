@@ -5233,6 +5233,9 @@ body.solo-lectura .menu-principal{top:96px!important}
 
                     <div class="submenu-panel" data-submenu="admin">
                         <div class="submenu-ayuda">Opciones administrativas</div>
+                        {% if request.user.is_authenticated %}
+                            <button type="button" class="submenu-boton" onclick="window.location.href='{% url 'cambiar_contrasena' %}'">Cambiar mi contraseña</button>
+                        {% endif %}
                         {% if tiene_gestion_torneo %}
                             {% if puede_descargar_programacion %}
                             <button type="button" class="submenu-boton" onclick="accionAdmin('descargar')">Descargar programación</button>

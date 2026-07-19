@@ -34,6 +34,7 @@ urlpatterns = [
     path('ingresar/', views.IngresoTorneosView.as_view(), name='login'),
     path('sw.js', views.service_worker, name='service_worker'),
     path('salir/', views.cerrar_sesion, name='cerrar_sesion'),
+    path('mi-cuenta/cambiar-contrasena/', views.cambiar_contrasena, name='cambiar_contrasena'),
     path('partido/<int:partido_id>/', views.detalle_partido_publico, name='partido_detalle_publico'),
     path('documentos/<int:documento_id>/', views.documento_publico, name='documento_publico'),
     path('documentos/<int:documento_id>/archivo.pdf', views.documento_archivo_publico, name='documento_archivo_publico'),

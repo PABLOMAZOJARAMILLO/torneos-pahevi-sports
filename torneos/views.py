@@ -14,7 +14,8 @@ from urllib.parse import quote, urlencode
 
 from django.conf import settings
 from django.contrib import messages
-from django.contrib.auth import login as auth_login, logout
+from django.contrib.auth import login as auth_login, logout, update_session_auth_hash
+from django.contrib.auth.forms import PasswordChangeForm
 from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.views import LoginView
@@ -416,6 +417,8 @@ class IngresoTorneosView(LoginView):
         else:
             mensaje = "Acceso exitoso."
             acciones = [("Panel principal", reverse("panel"))]
+
+        acciones.append(("Cambiar mi contraseña", reverse("cambiar_contrasena")))
 
         botones = "".join(
             f'<a class="btn" href="{escape(url)}">{escape(texto)}</a>'
@@ -891,6 +894,38 @@ def cerrar_sesion(request):
         )
     logout(request)
     return redirect("panel")
+
+
+@login_required
+def cambiar_contrasena(request):
+    form = PasswordChangeForm(request.user, request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        usuario = form.save()
+        update_session_auth_hash(request, usuario)
+        registrar_actividad(
+            request,
+            "CAMBIAR_CONTRASENA",
+            descripcion=f"{usuario.username} cambió su propia contraseña.",
+            datos={"ruta": request.path},
+        )
+        messages.success(request, "Contraseña actualizada correctamente. Tu sesión continúa abierta.")
+        return redirect("cambiar_contrasena")
+
+    if es_editor_torneo(request.user):
+        volver_url = reverse("gestion_panel")
+    elif equipos_delegado_asignados(request.user).exists():
+        volver_url = reverse("delegado_mis_equipos")
+    elif request.user.partidos_planillero.exists():
+        volver_url = reverse("planillero_mis_partidos")
+    else:
+        volver_url = reverse("panel")
+
+    return render(request, "registration/cambiar_contrasena.html", {
+        "form": form,
+        "volver_url": volver_url,
+        "volver_panel_url": volver_url,
+        "volver_panel_text": "Volver",
+    })
 
 
 def service_worker(request):

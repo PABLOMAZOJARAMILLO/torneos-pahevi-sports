@@ -195,6 +195,42 @@ class AuditoriaUsuariosTests(TestCase):
         self.assertNotContains(respuesta, "/gestion/actividad/")
 
 
+class CambioContrasenaTests(TestCase):
+    def setUp(self):
+        self.torneo = Torneo.objects.create(nombre="Contraseñas", fecha_inicio=date(2026, 1, 1))
+        self.categoria = Categoria.objects.create(
+            nombre="Senior",
+            edad_minima=18,
+            edad_maxima=80,
+            torneo=self.torneo,
+        )
+        self.usuario = User.objects.create_user("delegado-clave", password="ClaveActual2026!")
+        Equipo.objects.create(nombre="Equipo clave", categoria=self.categoria, responsable=self.usuario)
+
+    def test_usuario_asignado_puede_cambiar_su_propia_contrasena_sin_cerrar_sesion(self):
+        self.client.force_login(self.usuario)
+
+        respuesta = self.client.post("/mi-cuenta/cambiar-contrasena/", {
+            "old_password": "ClaveActual2026!",
+            "new_password1": "NuevaClaveSegura2026!",
+            "new_password2": "NuevaClaveSegura2026!",
+        })
+
+        self.assertRedirects(respuesta, "/mi-cuenta/cambiar-contrasena/", fetch_redirect_response=False)
+        self.usuario.refresh_from_db()
+        self.assertTrue(self.usuario.check_password("NuevaClaveSegura2026!"))
+        self.assertIn("_auth_user_id", self.client.session)
+        registro = RegistroActividad.objects.get(usuario=self.usuario, accion="CAMBIAR_CONTRASENA")
+        self.assertEqual(registro.torneo, self.torneo)
+        self.assertNotIn("password", str(registro.datos).lower())
+
+    def test_visitante_no_puede_abrir_cambio_de_contrasena(self):
+        respuesta = self.client.get("/mi-cuenta/cambiar-contrasena/")
+
+        self.assertEqual(respuesta.status_code, 302)
+        self.assertIn("/ingresar/", respuesta.url)
+
+
 class EscudoEquipoTests(TestCase):
     def test_ruta_escudo_equipo_genera_nombre_unico_para_evitar_cache(self):
         torneo = Torneo.objects.create(nombre="Veranero", fecha_inicio=date(2026, 1, 1))
