@@ -15,7 +15,7 @@ from openpyxl import Workbook
 from PIL import Image
 
 from .forms import JugadorForm, PartidoForm, TorneoForm
-from .models import AlineacionPartido, EntregaAlineacionPartido, AdminOrganizador, AdminTorneo, Categoria, Documento, Equipo, Gol, Jugador, Organizador, Partido, ReglaEdadCategoria, RegistroActividad, VisitaPublicaDiaria, SolicitudValidacion, SustitucionPartido, Tarjeta, Torneo, ruta_escudo_equipo
+from .models import AlineacionPartido, EntregaAlineacionPartido, AdminOrganizador, AdminTorneo, Categoria, Documento, Equipo, Gol, IncidenciaReglaEdad, Jugador, Organizador, Partido, ReglaEdadCategoria, RegistroActividad, VisitaPublicaDiaria, SolicitudValidacion, SustitucionPartido, Tarjeta, Torneo, ruta_escudo_equipo
 from .middleware import AuditoriaModificacionesMiddleware
 from .planillas_pdf import _dorsal, _edad, _header_image_sources, _team_shield_source, _draw_team_watermark, _titulo_planilla
 from .storage_backends import CloudinaryMediaStorage
@@ -815,6 +815,103 @@ class CronometroEventoTests(TestCase):
         alineacion = AlineacionPartido.objects.get(partido=partido, jugador=jugador_entra)
         self.assertEqual(alineacion.equipo, equipo)
         self.assertEqual(alineacion.rol, "SUPLENTE")
+
+
+class IncidenciasReglasEdadEnJuegoTests(TestCase):
+    def setUp(self):
+        self.torneo = Torneo.objects.create(nombre="Control en juego", fecha_inicio=date(2026, 1, 1))
+        self.categoria = Categoria.objects.create(nombre="Senior", edad_minima=18, edad_maxima=80, torneo=self.torneo)
+        ReglaEdadCategoria.objects.create(
+            categoria=self.categoria,
+            etiqueta="+50",
+            edad_minima=50,
+            minimo_titulares=1,
+            orden=1,
+        )
+        self.equipo = Equipo.objects.create(nombre="Local", categoria=self.categoria)
+        self.rival = Equipo.objects.create(nombre="Visitante", categoria=self.categoria)
+        self.mayor = Jugador.objects.create(equipo=self.equipo, nombres="Mayor Titular", cedula="m1", fecha_nacimiento=date(1965, 1, 1))
+        self.mayor_dos = Jugador.objects.create(equipo=self.equipo, nombres="Mayor Suplente", cedula="m2", fecha_nacimiento=date(1966, 1, 1))
+        self.joven = Jugador.objects.create(equipo=self.equipo, nombres="Joven Titular", cedula="j1", fecha_nacimiento=date(1995, 1, 1))
+        self.joven_dos = Jugador.objects.create(equipo=self.equipo, nombres="Joven Suplente", cedula="j2", fecha_nacimiento=date(1996, 1, 1))
+        self.partido = Partido.objects.create(
+            categoria=self.categoria,
+            equipo_local=self.equipo,
+            equipo_visitante=self.rival,
+            fecha=date(2026, 7, 1),
+            hora=time(15, 0),
+            estado="EN_JUEGO",
+            periodo_en_vivo="PT",
+            cronometro_pausado=True,
+            segundos_acumulados=1200,
+        )
+        AlineacionPartido.objects.create(partido=self.partido, equipo=self.equipo, jugador=self.mayor, rol="TITULAR", posicion_cancha="DC")
+        AlineacionPartido.objects.create(partido=self.partido, equipo=self.equipo, jugador=self.joven, rol="TITULAR", posicion_cancha="MC1")
+        self.admin = User.objects.create_superuser("control-reglas", password="test")
+        self.client.force_login(self.admin)
+
+    def registrar_cambio(self, sale, entra):
+        return self.client.post(
+            f"/partido/{self.partido.id}/agregar-sustitucion-movil/",
+            {"equipo": self.equipo.id, "jugador_sale": sale.id, "jugador_entra": entra.id},
+        )
+
+    def test_detecta_y_corrige_incidencia_sin_modificar_once_inicial(self):
+        self.registrar_cambio(self.mayor, self.joven_dos)
+
+        incidencia = IncidenciaReglaEdad.objects.get(partido=self.partido, equipo=self.equipo)
+        self.assertEqual(incidencia.estado, "ABIERTA")
+        self.assertFalse(incidencia.confirmada)
+        self.assertTrue(any("+50" in error for error in incidencia.errores))
+        alineacion_inicial = AlineacionPartido.objects.get(partido=self.partido, jugador=self.mayor)
+        self.assertEqual(alineacion_inicial.rol, "TITULAR")
+        self.assertEqual(alineacion_inicial.posicion_cancha, "DC")
+        self.assertTrue(RegistroActividad.objects.filter(accion="ALERTA_REGLA_EDAD", usuario=self.admin).exists())
+
+        self.partido.segundos_acumulados = 1230
+        self.partido.save(update_fields=["segundos_acumulados"])
+        self.registrar_cambio(self.joven, self.mayor_dos)
+
+        incidencia.refresh_from_db()
+        self.assertEqual(incidencia.estado, "CORREGIDA")
+        self.assertEqual(incidencia.duracion_segundos, 30)
+        self.assertFalse(incidencia.confirmada)
+        self.assertTrue(RegistroActividad.objects.filter(accion="CORREGIR_REGLA_EDAD", usuario=self.admin).exists())
+
+    def test_entretiempo_evalua_todos_los_cambios_al_iniciar_segundo_tiempo(self):
+        self.partido.periodo_en_vivo = "ET"
+        self.partido.save(update_fields=["periodo_en_vivo"])
+
+        self.registrar_cambio(self.mayor, self.joven_dos)
+        self.assertFalse(IncidenciaReglaEdad.objects.filter(partido=self.partido).exists())
+
+        respuesta = self.client.get(f"/partido/{self.partido.id}/cronometro/segundo-tiempo/")
+
+        self.assertEqual(respuesta.status_code, 302)
+        incidencia = IncidenciaReglaEdad.objects.get(partido=self.partido, equipo=self.equipo)
+        self.assertEqual(incidencia.periodo_inicio, "ST")
+
+    @override_settings(STORAGES={
+        "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+        "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
+    })
+    def test_confirma_infraccion_si_supera_sesenta_segundos_de_juego(self):
+        self.registrar_cambio(self.mayor, self.joven_dos)
+        self.partido.segundos_acumulados = 1261
+        self.partido.save(update_fields=["segundos_acumulados"])
+
+        respuesta = self.client.get(f"/partido/{self.partido.id}/editor-movil/")
+
+        self.assertEqual(respuesta.status_code, 200)
+        incidencia = IncidenciaReglaEdad.objects.get(partido=self.partido, equipo=self.equipo)
+        self.assertTrue(incidencia.confirmada)
+        auditoria = RegistroActividad.objects.get(accion="ALERTA_REGLA_EDAD", usuario=self.admin)
+        self.assertIn("Mayor Titular", auditoria.descripcion)
+        self.assertIn("Joven Suplente", auditoria.descripcion)
+        self.assertIn("+50", auditoria.descripcion)
+        confirmacion = RegistroActividad.objects.get(accion="CONFIRMAR_INFRACCION_REGLA_EDAD")
+        self.assertIn("60 segundos", confirmacion.descripcion)
+        self.assertIn("+50", confirmacion.descripcion)
 
     def test_sustitucion_convierte_en_suplente_al_jugador_no_disponible(self):
         torneo = Torneo.objects.create(nombre="Veranero", fecha_inicio=date(2026, 1, 1))

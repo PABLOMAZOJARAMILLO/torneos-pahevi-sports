@@ -636,3 +636,42 @@ class SustitucionPartido(models.Model):
     def __str__(self):
         return f"{self.partido} - Sale {self.jugador_sale} / Entra {self.jugador_entra}"
 
+
+class IncidenciaReglaEdad(models.Model):
+    ESTADOS = [
+        ("ABIERTA", "Abierta"),
+        ("CORREGIDA", "Corregida"),
+    ]
+
+    partido = models.ForeignKey(Partido, on_delete=models.CASCADE, related_name="incidencias_reglas_edad")
+    equipo = models.ForeignKey(Equipo, on_delete=models.CASCADE, related_name="incidencias_reglas_edad")
+    sustitucion_inicio = models.ForeignKey(
+        SustitucionPartido,
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
+        related_name="incidencias_reglas_edad",
+    )
+    estado = models.CharField(max_length=15, choices=ESTADOS, default="ABIERTA")
+    errores = models.JSONField(default=list, blank=True)
+    segundo_inicio = models.PositiveIntegerField(default=0)
+    minuto_inicio = models.PositiveIntegerField(default=0)
+    periodo_inicio = models.CharField(max_length=5, blank=True)
+    iniciada_en = models.DateTimeField(auto_now_add=True)
+    segundo_fin = models.PositiveIntegerField(blank=True, null=True)
+    minuto_fin = models.PositiveIntegerField(blank=True, null=True)
+    finalizada_en = models.DateTimeField(blank=True, null=True)
+    duracion_segundos = models.PositiveIntegerField(blank=True, null=True)
+    confirmada = models.BooleanField(default=False)
+    creada_por = models.ForeignKey(User, on_delete=models.SET_NULL, blank=True, null=True, related_name="incidencias_regla_edad_creadas")
+    corregida_por = models.ForeignKey(User, on_delete=models.SET_NULL, blank=True, null=True, related_name="incidencias_regla_edad_corregidas")
+
+    class Meta:
+        ordering = ["-iniciada_en", "-id"]
+        indexes = [
+            models.Index(fields=["partido", "equipo", "estado"], name="inc_regla_part_eq_estado"),
+        ]
+
+    def __str__(self):
+        return f"{self.partido} - {self.equipo} - {self.estado}"
+

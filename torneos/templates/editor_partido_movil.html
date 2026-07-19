@@ -520,6 +520,13 @@
             font-size: 10px;
             font-weight: 700;
         }
+        .incidencia-regla {
+            border: 2px solid #facc15;
+            background: rgba(127, 29, 29, .78);
+        }
+        .incidencia-regla.confirmada {
+            border-color: #ef4444;
+        }
         .validacion-documentos {
             margin: 12px 0;
             padding: 10px;
@@ -1393,6 +1400,35 @@
                 <p class="nota">No hay sustituciones registradas.</p>
             {% endfor %}
         </div>
+
+        <div class="card">
+            <h2>Control de reglas en cancha</h2>
+            <p class="nota">Este control recalcula los jugadores en juego sin modificar ni mover los 11 titulares iniciales.</p>
+            {% for incidencia in incidencias_reglas_edad %}
+                <div class="lista-item incidencia-regla{% if incidencia.confirmada %} confirmada{% endif %}"
+                     {% if incidencia.estado == "ABIERTA" %}data-incidencia-abierta data-inicio-segundos="{{ incidencia.segundo_inicio }}" data-segundos-actuales="{{ segundos_vivos }}" data-tolerancia="{{ tolerancia_regla_edad_segundos }}" data-reloj-activo="{% if incidencia_reloj_activo %}1{% else %}0{% endif %}"{% endif %}>
+                    <div>
+                        <div class="item-title">
+                            {{ incidencia.equipo.nombre }} · Min {{ incidencia.minuto_inicio }} ·
+                            {% if incidencia.estado == "ABIERTA" %}
+                                {% if incidencia.confirmada %}INFRACCIÓN CONFIRMADA{% else %}<span data-estado-incidencia>Advertencia provisional</span>{% endif %}
+                            {% elif incidencia.confirmada %}Infracción corregida{% else %}Cambio transitorio corregido{% endif %}
+                        </div>
+                        {% for error in incidencia.errores %}<div class="item-sub">{{ error }}</div>{% endfor %}
+                        {% if incidencia.sustitucion_inicio %}
+                            <div class="item-sub">Entró {{ incidencia.sustitucion_inicio.jugador_entra.nombres|primeras_tres_palabras }} por {{ incidencia.sustitucion_inicio.jugador_sale.nombres|primeras_tres_palabras }}.</div>
+                        {% endif %}
+                        {% if incidencia.estado == "CORREGIDA" %}
+                            <div class="item-sub">Duración: {{ incidencia.duracion_segundos }} segundos · corregida en minuto {{ incidencia.minuto_fin }}.</div>
+                        {% elif not incidencia.confirmada %}
+                            <div class="item-sub" data-cuenta-incidencia>Tiempo para corregir sin confirmar: {{ tolerancia_regla_edad_segundos }} s.</div>
+                        {% endif %}
+                    </div>
+                </div>
+            {% empty %}
+                <p class="nota">No se han detectado incumplimientos durante las sustituciones.</p>
+            {% endfor %}
+        </div>
     </div>
 </div>
 
@@ -1840,6 +1876,31 @@ document.querySelectorAll('input, select, textarea').forEach(function(campo) {
 });
 
 document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('[data-incidencia-abierta]').forEach(function(fila) {
+        const inicio = Number(fila.dataset.inicioSegundos || 0);
+        const actuales = Number(fila.dataset.segundosActuales || 0);
+        const tolerancia = Number(fila.dataset.tolerancia || 60);
+        const relojActivo = fila.dataset.relojActivo === '1';
+        const comenzado = Date.now() - Math.max(actuales - inicio, 0) * 1000;
+        const cuenta = fila.querySelector('[data-cuenta-incidencia]');
+        const estado = fila.querySelector('[data-estado-incidencia]');
+        const refrescar = function() {
+            const transcurridos = relojActivo
+                ? Math.floor((Date.now() - comenzado) / 1000)
+                : Math.max(actuales - inicio, 0);
+            const restantes = Math.max(tolerancia - transcurridos, 0);
+            if (cuenta) cuenta.textContent = restantes > 0
+                ? 'Tiempo para corregir sin confirmar: ' + restantes + ' s.'
+                : 'La tolerancia terminó; la infracción queda confirmada.';
+            if (restantes === 0) {
+                fila.classList.add('confirmada');
+                if (estado) estado.textContent = 'INFRACCIÓN CONFIRMADA';
+            }
+        };
+        refrescar();
+        window.setInterval(refrescar, 1000);
+    });
+
     document.querySelectorAll('select[name="jugador"], select[name="jugador_sale"], select[name="jugador_entra"]').forEach(inicializarSelectorJugador);
 
     document.querySelectorAll('[data-ajuste-comite]').forEach(function(control) {

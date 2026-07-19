@@ -39,7 +39,7 @@ from django.views.decorators.http import require_POST
 from openpyxl import load_workbook
 
 from .forms import TorneoForm, OrganizadorForm, CategoriaForm, ReglaEdadCategoriaFormSet, DocumentoForm, PlanillaJuegoUploadForm, EquipoForm, EquipoDelegadoForm, EquipoReinscripcionForm, JugadorForm, JugadorDelegadoForm, JugadorFotoDelegadoForm, PartidoForm, PartidoProgramacionForm, AdminTorneoForm, AdminOrganizadorForm, CrearAdminOrganizadorForm
-from .models import Torneo, Organizador, Categoria, Documento, Equipo, Partido, Gol, Tarjeta, Jugador, AlineacionPartido, EntregaAlineacionPartido, SustitucionPartido, ReglaEdadCategoria, AdminTorneo, AdminOrganizador, RegistroActividad, VisitaPublicaDiaria, SolicitudValidacion, limpiar_ruta_cloudinary
+from .models import Torneo, Organizador, Categoria, Documento, Equipo, Partido, Gol, Tarjeta, Jugador, AlineacionPartido, EntregaAlineacionPartido, SustitucionPartido, IncidenciaReglaEdad, ReglaEdadCategoria, AdminTorneo, AdminOrganizador, RegistroActividad, VisitaPublicaDiaria, SolicitudValidacion, limpiar_ruta_cloudinary
 from .planillas_pdf import generar_planilla_juego_pdf, nombre_archivo_planilla
 from django.utils import timezone
 
@@ -2548,6 +2548,134 @@ def validar_reglas_edad_titulares(partido, equipo, titulares_ids):
     return errores
 
 
+TOLERANCIA_REGLA_EDAD_SEGUNDOS = 60
+
+
+def jugadores_actuales_en_cancha(partido, equipo):
+    """Calcula quienes juegan sin modificar la alineación inicial registrada."""
+    jugadores_ids = set(
+        AlineacionPartido.objects.filter(
+            partido=partido,
+            equipo=equipo,
+            rol="TITULAR",
+        ).values_list("jugador_id", flat=True)
+    )
+    sustituciones = SustitucionPartido.objects.filter(
+        partido=partido,
+        equipo=equipo,
+    ).order_by("creado_en", "id")
+    for cambio in sustituciones:
+        jugadores_ids.discard(cambio.jugador_sale_id)
+        jugadores_ids.add(cambio.jugador_entra_id)
+    return jugadores_ids
+
+
+def actualizar_incidencia_regla_edad(partido, equipo, request=None, sustitucion=None, permitir_crear=False):
+    incidencia = IncidenciaReglaEdad.objects.filter(
+        partido=partido,
+        equipo=equipo,
+        estado="ABIERTA",
+    ).order_by("-id").first()
+
+    # En el descanso se pueden registrar varios cambios; se evalúan juntos al iniciar el ST.
+    if partido.periodo_en_vivo == "ET":
+        return incidencia
+
+    segundos = segundos_vivos_partido(partido)
+    jugadores_ids = jugadores_actuales_en_cancha(partido, equipo)
+    errores = validar_reglas_edad_titulares(partido, equipo, jugadores_ids)
+
+    if errores:
+        if not incidencia and permitir_crear:
+            incidencia = IncidenciaReglaEdad.objects.create(
+                partido=partido,
+                equipo=equipo,
+                sustitucion_inicio=sustitucion,
+                errores=errores,
+                segundo_inicio=segundos,
+                minuto_inicio=max(segundos // 60, 1),
+                periodo_inicio=partido.periodo_en_vivo or "",
+                creada_por=request.user if request and request.user.is_authenticated else None,
+            )
+            if request:
+                detalle_cambio = ""
+                if sustitucion:
+                    detalle_cambio = f" Cambio: entró {sustitucion.jugador_entra.nombres} por {sustitucion.jugador_sale.nombres}."
+                registrar_actividad(
+                    request,
+                    "ALERTA_REGLA_EDAD",
+                    partido,
+                    descripcion=(
+                        f"Minuto {max(segundos // 60, 1)}: posible infracción de reglas de edad de {equipo.nombre}."
+                        f"{detalle_cambio} {' '.join(errores)}"
+                    ),
+                    datos={
+                        "equipo_id": equipo.id,
+                        "sustitucion_id": getattr(sustitucion, "id", None),
+                        "segundo_inicio": segundos,
+                        "errores": errores,
+                    },
+                )
+        elif incidencia:
+            cambios = []
+            se_confirmo = False
+            if incidencia.errores != errores:
+                incidencia.errores = errores
+                cambios.append("errores")
+            if not incidencia.confirmada and segundos - incidencia.segundo_inicio >= TOLERANCIA_REGLA_EDAD_SEGUNDOS:
+                incidencia.confirmada = True
+                cambios.append("confirmada")
+                se_confirmo = True
+            if cambios:
+                incidencia.save(update_fields=cambios)
+            if se_confirmo and request:
+                registrar_actividad(
+                    request,
+                    "CONFIRMAR_INFRACCION_REGLA_EDAD",
+                    partido,
+                    descripcion=(
+                        f"Minuto {max(segundos // 60, 1)}: se confirmó la infracción de reglas de edad de "
+                        f"{equipo.nombre} al superar {TOLERANCIA_REGLA_EDAD_SEGUNDOS} segundos. "
+                        f"{' '.join(incidencia.errores)}"
+                    ),
+                    datos={
+                        "equipo_id": equipo.id,
+                        "incidencia_id": incidencia.id,
+                        "duracion_segundos": segundos - incidencia.segundo_inicio,
+                        "errores": incidencia.errores,
+                    },
+                )
+        return incidencia
+
+    if incidencia:
+        duracion = max(segundos - incidencia.segundo_inicio, 0)
+        incidencia.estado = "CORREGIDA"
+        incidencia.segundo_fin = segundos
+        incidencia.minuto_fin = max(segundos // 60, 1)
+        incidencia.finalizada_en = timezone.now()
+        incidencia.duracion_segundos = duracion
+        incidencia.confirmada = incidencia.confirmada or duracion >= TOLERANCIA_REGLA_EDAD_SEGUNDOS
+        incidencia.corregida_por = request.user if request and request.user.is_authenticated else None
+        incidencia.save(update_fields=[
+            "estado", "segundo_fin", "minuto_fin", "finalizada_en",
+            "duracion_segundos", "confirmada", "corregida_por",
+        ])
+        if request:
+            registrar_actividad(
+                request,
+                "CORREGIR_REGLA_EDAD",
+                partido,
+                descripcion=f"Se corrigió la alineación en juego de {equipo.nombre} después de {duracion} segundos.",
+                datos={
+                    "equipo_id": equipo.id,
+                    "incidencia_id": incidencia.id,
+                    "duracion_segundos": duracion,
+                    "confirmada": incidencia.confirmada,
+                },
+            )
+    return incidencia
+
+
 def construir_partidos_portada(torneo=None):
     partidos = Partido.objects.filter(
         fecha__isnull=False,
@@ -4364,6 +4492,11 @@ def editor_partido_movil(request, partido_id):
     tarjetas = Tarjeta.objects.filter(partido=partido).select_related('jugador', 'equipo').order_by('equipo__nombre', 'tipo', 'jugador__nombres')
     alineaciones = AlineacionPartido.objects.filter(partido=partido).select_related('jugador', 'equipo').order_by('equipo__nombre', 'rol', 'jugador__nombres')
     sustituciones = SustitucionPartido.objects.filter(partido=partido).select_related('equipo', 'jugador_sale', 'jugador_entra').order_by('equipo__nombre', 'minuto', 'id')
+    for equipo_partido in (partido.equipo_local, partido.equipo_visitante):
+        actualizar_incidencia_regla_edad(partido, equipo_partido, request=request)
+    incidencias_reglas_edad = IncidenciaReglaEdad.objects.filter(partido=partido).select_related(
+        "equipo", "sustitucion_inicio", "sustitucion_inicio__jugador_sale", "sustitucion_inicio__jugador_entra",
+    ).order_by("-iniciada_en", "-id")
     alineaciones_por_jugador = {alineacion.jugador_id: alineacion for alineacion in alineaciones}
     jugadores_local = _marcar_roles_alineacion(jugadores_local, alineaciones_por_jugador, partido)
     jugadores_visitante = _marcar_roles_alineacion(jugadores_visitante, alineaciones_por_jugador, partido)
@@ -4377,6 +4510,10 @@ def editor_partido_movil(request, partido_id):
         'tarjetas': tarjetas,
         'alineaciones': alineaciones,
         'sustituciones': sustituciones,
+        'incidencias_reglas_edad': incidencias_reglas_edad,
+        'tolerancia_regla_edad_segundos': TOLERANCIA_REGLA_EDAD_SEGUNDOS,
+        'segundos_vivos': segundos_vivos_partido(partido),
+        'incidencia_reloj_activo': partido.estado == "EN_JUEGO" and not partido.cronometro_pausado and partido.periodo_en_vivo != "ET",
         'estados_partido': (
             Partido.ESTADOS
             if es_editor_torneo(request.user)
@@ -4678,7 +4815,7 @@ def agregar_sustitucion_movil(request, partido_id):
 
         if _validar_jugador_equipo(jugador_sale, equipo, partido) and _validar_jugador_equipo(jugador_entra, equipo, partido):
             with transaction.atomic():
-                SustitucionPartido.objects.create(
+                sustitucion = SustitucionPartido.objects.create(
                     partido=partido,
                     equipo=equipo,
                     jugador_sale=jugador_sale,
@@ -4700,6 +4837,13 @@ def agregar_sustitucion_movil(request, partido_id):
                     alineacion_entra.rol = "SUPLENTE"
                     alineacion_entra.posicion_cancha = ""
                     alineacion_entra.save(update_fields=["equipo", "rol", "posicion_cancha"])
+                actualizar_incidencia_regla_edad(
+                    partido,
+                    equipo,
+                    request=request,
+                    sustitucion=sustitucion,
+                    permitir_crear=True,
+                )
             _marcar_estadisticas_pendientes(partido, request.user)
             messages.success(request, 'Sustitución agregada correctamente.')
         else:
@@ -4756,7 +4900,10 @@ def eliminar_sustitucion_movil(request, sustitucion_id):
     partido_id = sustitucion.partido_id
     if not puede_diligenciar_partido(request.user, sustitucion.partido):
         return denegar_partido_no_autorizado()
+    partido = sustitucion.partido
+    equipo = sustitucion.equipo
     sustitucion.delete()
+    actualizar_incidencia_regla_edad(partido, equipo, request=request)
     _marcar_estadisticas_pendientes(sustitucion.partido, request.user)
     messages.success(request, 'Sustitución eliminada.')
     return redirect(_url_editor_partido(request, sustitucion.partido))
@@ -8121,6 +8268,8 @@ def cronometro_segundo_tiempo(request, partido_id):
     partido.cronometro_pausado = False
     partido.inicio_en_vivo = timezone.now()
     partido.save()
+    actualizar_incidencia_regla_edad(partido, partido.equipo_local, request=request, permitir_crear=True)
+    actualizar_incidencia_regla_edad(partido, partido.equipo_visitante, request=request, permitir_crear=True)
     return redirect("editor_partido_movil", partido_id=partido.id)
 
 
