@@ -506,12 +506,6 @@
         .ajustes-plantilla-contenido {
             padding: 0 8px 8px;
         }
-        .guardar-alineacion-btn {
-            position: sticky;
-            bottom: 8px;
-            z-index: 12;
-            box-shadow: 0 8px 20px rgba(0, 0, 0, .4);
-        }
         .documento-titular-check {
             display: inline-flex;
             align-items: center;
@@ -1117,7 +1111,7 @@
                 {% endfor %}
                 </div>
                 </details>
-                <button class="btn guardar-alineacion-btn" type="submit">Guardar {{ partido.equipo_local.nombre }}</button>
+                <button class="btn" type="submit">Guardar {{ partido.equipo_local.nombre }}</button>
             </form>
 
             <form class="alineacion-equipo-panel" data-alineacion-panel="visitante" method="POST" onsubmit="guardarContextoPanelEditor()" action="{% url 'guardar_alineacion_masiva_movil' partido.id %}" hidden>
@@ -1204,7 +1198,7 @@
                 {% endfor %}
                 </div>
                 </details>
-                <button class="btn guardar-alineacion-btn" type="submit">Guardar {{ partido.equipo_visitante.nombre }}</button>
+                <button class="btn" type="submit">Guardar {{ partido.equipo_visitante.nombre }}</button>
             </form>
         </div>
 
