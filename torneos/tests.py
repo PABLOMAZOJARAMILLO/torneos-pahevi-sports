@@ -61,6 +61,7 @@ class AuditoriaUsuariosTests(TestCase):
         self.assertEqual(respuesta.status_code, 200)
         ingreso = RegistroActividad.objects.get(usuario=self.delegado, accion="INICIAR_SESION")
         self.assertEqual(ingreso.datos["tipo_usuario"], "Delegado")
+        self.assertEqual(ingreso.torneo, self.torneo)
 
         self.client.get("/salir/")
 
@@ -83,6 +84,23 @@ class AuditoriaUsuariosTests(TestCase):
         self.assertEqual(registro.datos["tipo_usuario"], "Delegado")
         self.assertEqual(registro.datos["ruta"], "/delegado/accion/")
         self.assertNotIn("dato_sensible", registro.datos)
+
+    def test_middleware_asocia_torneo_desde_equipo_a_movimiento_delegado(self):
+        equipo = Equipo.objects.get(responsable=self.delegado)
+        request = RequestFactory().post(f"/equipos/delegado/{equipo.id}/editar/", {})
+        request.user = self.delegado
+        request.session = {}
+        request.resolver_match = SimpleNamespace(
+            url_name="delegado_equipo_editar",
+            kwargs={"equipo_id": equipo.id},
+        )
+        middleware = AuditoriaModificacionesMiddleware(lambda _request: HttpResponse(status=302))
+
+        middleware(request)
+
+        registro = RegistroActividad.objects.get(usuario=self.delegado, accion="MODIFICAR")
+        self.assertEqual(registro.torneo, self.torneo)
+        self.assertEqual(registro.datos["tipo_usuario"], "Delegado")
 
     def test_admin_puede_descargar_auditoria_csv(self):
         RegistroActividad.objects.create(
@@ -2906,6 +2924,12 @@ class DelegadoEquipoTests(TestCase):
         self.equipo.refresh_from_db()
         self.assertEqual(self.equipo.delegado, "Pablo Mazo")
         self.assertEqual(self.equipo.director_tecnico, "DT Uno")
+        self.assertTrue(RegistroActividad.objects.filter(
+            usuario=self.delegado,
+            torneo=self.torneo,
+            accion="EDITAR_EQUIPO_DELEGADO",
+            objeto_id=self.equipo.id,
+        ).exists())
 
     def test_delegado_ve_mensaje_de_acceso_exitoso_al_ingresar(self):
         respuesta = self.client.post(
@@ -3116,7 +3140,13 @@ class DelegadoEquipoTests(TestCase):
         )
 
         self.assertEqual(respuesta.status_code, 302)
-        self.assertTrue(Jugador.objects.filter(equipo=self.equipo, cedula="456", nombres="JUGADOR NUEVO").exists())
+        jugador = Jugador.objects.get(equipo=self.equipo, cedula="456", nombres="JUGADOR NUEVO")
+        self.assertTrue(RegistroActividad.objects.filter(
+            usuario=self.delegado,
+            torneo=self.torneo,
+            accion="CREAR_JUGADOR_DELEGADO",
+            objeto_id=jugador.id,
+        ).exists())
 
     def test_delegado_con_permiso_solo_fotos_no_edita_datos(self):
         self.equipo.delegado_puede_editar_equipo = False
@@ -3166,6 +3196,13 @@ class DelegadoEquipoTests(TestCase):
         self.jugador.refresh_from_db()
         self.assertTrue(self.jugador.foto.name)
         self.assertEqual(self.jugador.nombres, "Jugador Uno")
+        registro = RegistroActividad.objects.get(
+            usuario=self.delegado,
+            torneo=self.torneo,
+            accion="CARGAR_FOTOS_JUGADORES",
+            objeto_id=self.equipo.id,
+        )
+        self.assertEqual(registro.datos["cantidad"], 1)
 
     def test_delegado_sin_permiso_de_fotos_no_abre_carga_de_fotos(self):
         self.equipo.delegado_puede_cargar_fotos_jugadores = False
@@ -3438,6 +3475,14 @@ class DelegadoEquipoTests(TestCase):
         )
         self.assertTrue(AlineacionPartido.objects.filter(partido=partido, jugador=self.jugador).exists())
         self.assertFalse(EntregaAlineacionPartido.objects.filter(partido=partido, equipo=self.equipo).exists())
+        registro = RegistroActividad.objects.get(
+            usuario=self.delegado,
+            accion="GUARDAR_BORRADOR_ALINEACION",
+            objeto_id=partido.id,
+        )
+        self.assertEqual(registro.torneo, self.torneo)
+        self.assertEqual(registro.datos["equipo_id"], self.equipo.id)
+        self.assertEqual(registro.datos["titulares"], 1)
         self.assertEqual(
             self.client.get(f"/delegado/equipos/{self.equipo.id}/partidos/{partido.id}/alineacion/").status_code,
             200,

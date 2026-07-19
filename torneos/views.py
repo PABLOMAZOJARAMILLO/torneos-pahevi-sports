@@ -733,6 +733,8 @@ def registrar_actividad(request, accion, objeto=None, torneo=None, descripcion="
 
     if not torneo and objeto is not None:
         torneo = torneo_de_objeto(objeto)
+    if not torneo:
+        torneo = torneo_de_actividad_request(request)
 
     datos_registro = dict(datos or {})
     datos_registro.setdefault("tipo_usuario", tipo_usuario_actividad(request))
@@ -750,6 +752,45 @@ def registrar_actividad(request, accion, objeto=None, torneo=None, descripcion="
         user_agent=(request.META.get("HTTP_USER_AGENT") or "")[:300],
     )
     request._actividad_registrada = True
+
+
+def torneo_de_actividad_request(request):
+    torneo_id = request.session.get("torneo_id") if hasattr(request, "session") else None
+    if torneo_id:
+        torneo = Torneo.objects.filter(id=torneo_id).first()
+        if torneo:
+            return torneo
+
+    coincidencia = getattr(request, "resolver_match", None)
+    parametros = (getattr(coincidencia, "kwargs", {}) or {}) if coincidencia else {}
+    partido_id = parametros.get("partido_id")
+    if partido_id:
+        torneo = Torneo.objects.filter(categorias__partido__id=partido_id).first()
+        if torneo:
+            return torneo
+
+    equipo_id = parametros.get("equipo_id") or request.POST.get("equipo")
+    if equipo_id:
+        torneo = Torneo.objects.filter(categorias__equipos__id=equipo_id).first()
+        if torneo:
+            return torneo
+
+    jugador_id = parametros.get("jugador_id")
+    if jugador_id:
+        torneo = Torneo.objects.filter(categorias__equipos__jugadores__id=jugador_id).first()
+        if torneo:
+            return torneo
+
+    user = getattr(request, "user", None)
+    if getattr(user, "is_authenticated", False):
+        torneos_delegado = list(
+            Torneo.objects.filter(categorias__equipos__responsable=user)
+            .distinct()
+            .order_by("id")[:2]
+        )
+        if len(torneos_delegado) == 1:
+            return torneos_delegado[0]
+    return None
 
 
 def tipo_usuario_actividad(request):
@@ -4769,6 +4810,13 @@ def delegado_equipo_editar(request, equipo_id):
             equipo=equipo,
             datos={"equipo_id": equipo.id},
         )
+        registrar_actividad(
+            request,
+            "EDITAR_EQUIPO_DELEGADO",
+            equipo,
+            descripcion=f"El delegado actualizó los datos del equipo {equipo.nombre}.",
+            datos={"equipo_id": equipo.id, "escudo_actualizado": bool(request.FILES.get("escudo") or request.POST.get("imagen_cloudinary"))},
+        )
         messages.success(request, "Equipo actualizado correctamente.")
         return redirect("delegado_equipo_editar", equipo_id=equipo.id)
 
@@ -4812,8 +4860,16 @@ def delegado_fotos_jugadores(request, equipo_id):
                 equipo=equipo,
                 datos={"equipo_id": equipo.id, "accion": "FOTOS_JUGADORES", "cantidad": actualizados},
             )
+            registrar_actividad(
+                request,
+                "CARGAR_FOTOS_JUGADORES",
+                equipo,
+                descripcion=f"El delegado cargó o actualizó {actualizados} foto(s) de jugadores de {equipo.nombre}.",
+                datos={"equipo_id": equipo.id, "cantidad": actualizados},
+            )
             messages.success(request, f"Fotos actualizadas: {actualizados}.")
         else:
+            request._actividad_registrada = True
             messages.info(request, "No seleccionaste fotos nuevas para cargar.")
         return redirect("delegado_fotos_jugadores", equipo_id=equipo.id)
 
@@ -4950,7 +5006,19 @@ def delegado_alineacion_partido(request, equipo_id, partido_id):
                 datos={"equipo_id": equipo.id, "partido_id": partido.id},
             )
         else:
-            request._actividad_registrada = True
+            registrar_actividad(
+                request,
+                "GUARDAR_BORRADOR_ALINEACION",
+                partido,
+                descripcion=f"El delegado guardó un borrador de alineación de {equipo.nombre}.",
+                datos={
+                    "equipo_id": equipo.id,
+                    "partido_id": partido.id,
+                    "titulares": len(titulares),
+                    "suplentes": sum(1 for _, rol, _ in seleccionados if rol == "SUPLENTE"),
+                    "no_disponibles": sum(1 for _, rol, _ in seleccionados if rol == "NO_DISPONIBLE"),
+                },
+            )
 
         if sancionados_equipo:
             messages.warning(request, "Los jugadores sancionados quedaron como no disponibles.")
@@ -4998,6 +5066,13 @@ def delegado_jugador_nuevo(request, equipo_id):
             jugador=jugador,
             datos={"equipo_id": equipo.id, "jugador_id": jugador.id, "accion": "CREAR"},
         )
+        registrar_actividad(
+            request,
+            "CREAR_JUGADOR_DELEGADO",
+            jugador,
+            descripcion=f"El delegado agregó a {jugador.nombres} en {equipo.nombre}.",
+            datos={"equipo_id": equipo.id, "jugador_id": jugador.id, "foto_cargada": bool(request.FILES.get("foto"))},
+        )
         messages.success(request, "Jugador agregado correctamente.")
         return redirect("delegado_equipo_editar", equipo_id=equipo.id)
 
@@ -5037,6 +5112,13 @@ def delegado_jugador_editar(request, jugador_id):
             jugador=jugador,
             datos={"equipo_id": jugador.equipo_id, "jugador_id": jugador.id, "accion": "EDITAR"},
         )
+        registrar_actividad(
+            request,
+            "EDITAR_JUGADOR_DELEGADO",
+            jugador,
+            descripcion=f"El delegado actualizó a {jugador.nombres} en {jugador.equipo.nombre}.",
+            datos={"equipo_id": jugador.equipo_id, "jugador_id": jugador.id, "foto_actualizada": bool(request.FILES.get("foto"))},
+        )
         messages.success(request, "Jugador actualizado correctamente.")
         return redirect("delegado_equipo_editar", equipo_id=jugador.equipo_id)
 
@@ -5068,6 +5150,13 @@ def delegado_jugador_eliminar(request, jugador_id):
         user=request.user,
         equipo=equipo,
         datos={"equipo_id": equipo.id, "jugador_id": jugador.id, "accion": "ELIMINAR", "jugador": nombre},
+    )
+    registrar_actividad(
+        request,
+        "ELIMINAR_JUGADOR_DELEGADO",
+        jugador,
+        descripcion=f"El delegado eliminó a {nombre} del equipo {equipo.nombre}.",
+        datos={"equipo_id": equipo.id, "jugador_id": jugador.id, "jugador": nombre},
     )
     jugador.delete()
     messages.success(request, f"Jugador eliminado: {nombre}.")
