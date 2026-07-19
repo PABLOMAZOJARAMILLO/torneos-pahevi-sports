@@ -24,6 +24,7 @@
     }
 </style>
 <p class="muted">Estos son los equipos asignados a tu usuario para el torneo activo. Si el acceso esta vencido o sin fecha, pide al administrador actualizarlo.</p>
+<p><a class="btn secondary" href="{% url 'gestion_actividad' %}">Revisar movimientos del torneo</a></p>
 {% if torneo_actual %}
 <div class="card">
     <strong>Torneo activo:</strong> {{ torneo_actual.nombre }}

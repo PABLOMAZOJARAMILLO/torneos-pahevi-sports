@@ -4,6 +4,12 @@
 {% block heading %}Actividad{% endblock %}
 
 {% block content %}
+{% if es_auditoria_delegado %}
+<div class="card" style="margin-bottom:16px;">
+    <h2>Movimientos del torneo</h2>
+    <p class="muted">Puedes revisar los accesos y cambios de todos los usuarios vinculados a los torneos donde eres delegado. Solo el superusuario puede descargar el archivo de auditoría.</p>
+</div>
+{% endif %}
 {% if visitas_publicas %}
 <section class="card" style="margin-bottom:16px;">
     <h2>Visitas públicas anónimas</h2>
@@ -52,9 +58,9 @@
 
     <p style="display:flex;gap:8px;flex-wrap:wrap;">
         <button class="btn" type="submit">Filtrar</button>
-        <button class="btn secondary" type="submit" name="formato" value="csv">Descargar CSV</button>
+        {% if puede_descargar_auditoria %}<button class="btn secondary" type="submit" name="formato" value="csv">Descargar CSV</button>{% endif %}
         <a class="btn secondary" href="{% url 'gestion_actividad' %}">Limpiar</a>
-        <a class="btn secondary" href="{% url 'gestion_panel' %}">Volver</a>
+        <a class="btn secondary" href="{{ volver_actividad_url }}">Volver</a>
     </p>
 </form>
 
@@ -67,7 +73,7 @@
                 {% if registro.usuario %}{{ registro.usuario.get_full_name|default:registro.usuario.username }} ({{ registro.usuario.username }}){% else %}Sistema{% endif %}
                 {% if registro.datos.tipo_usuario %} - {{ registro.datos.tipo_usuario }}{% endif %}
                 {% if registro.torneo %} - {{ registro.torneo.nombre }}{% endif %}
-                {% if registro.ip %} - IP {{ registro.ip }}{% endif %}
+                {% if puede_descargar_auditoria and registro.ip %} - IP {{ registro.ip }}{% endif %}
             </div>
             {% if registro.descripcion %}
                 <p>{{ registro.descripcion }}</p>
@@ -78,7 +84,7 @@
             {% if registro.datos.ruta %}
                 <p class="muted">Ruta: {{ registro.datos.metodo }} {{ registro.datos.ruta }}</p>
             {% endif %}
-            {% if registro.user_agent %}
+            {% if puede_descargar_auditoria and registro.user_agent %}
                 <details class="muted"><summary>Dispositivo</summary>{{ registro.user_agent }}</details>
             {% endif %}
         </div>

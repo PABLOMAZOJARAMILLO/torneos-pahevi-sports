@@ -5244,6 +5244,7 @@ body.solo-lectura .menu-principal{top:96px!important}
                             <button type="button" class="submenu-boton" onclick="accionAdmin('salir')">Cerrar sesión</button>
                         {% elif tiene_equipos_delegado %}
                             <button type="button" class="submenu-boton" onclick="window.location.href='{% url 'delegado_mis_equipos' %}'">Mis equipos</button>
+                            <button type="button" class="submenu-boton" onclick="window.location.href='{% url 'gestion_actividad' %}'">Movimientos del torneo</button>
                             <button type="button" class="submenu-boton" onclick="accionAdmin('salir')">Cerrar sesion</button>
                         {% else %}
                             <button type="button" class="submenu-boton" onclick="accionAdmin('login')">Ingresar admin</button>

@@ -194,6 +194,36 @@ class AuditoriaUsuariosTests(TestCase):
         self.assertNotContains(respuesta, "Auditoría de usuarios")
         self.assertNotContains(respuesta, "/gestion/actividad/")
 
+    def test_delegado_ve_movimientos_de_todos_los_usuarios_de_su_torneo_sin_descarga(self):
+        otro_torneo = Torneo.objects.create(nombre="Otro torneo", fecha_inicio=date(2026, 2, 1))
+        RegistroActividad.objects.create(
+            usuario=self.admin,
+            torneo=self.torneo,
+            accion="EDITAR",
+            descripcion="Movimiento transparente del administrador.",
+            ip="10.0.0.8",
+            user_agent="Dispositivo privado",
+        )
+        RegistroActividad.objects.create(
+            usuario=self.admin,
+            torneo=otro_torneo,
+            accion="EDITAR",
+            descripcion="Movimiento de otro torneo oculto.",
+        )
+        self.client.force_login(self.delegado)
+
+        respuesta = self.client.get("/gestion/actividad/")
+
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertContains(respuesta, "Movimiento transparente del administrador.")
+        self.assertNotContains(respuesta, "Movimiento de otro torneo oculto.")
+        self.assertNotContains(respuesta, "Descargar CSV")
+        self.assertNotContains(respuesta, "10.0.0.8")
+        self.assertNotContains(respuesta, "Dispositivo privado")
+
+        respuesta_csv = self.client.get("/gestion/actividad/?formato=csv")
+        self.assertEqual(respuesta_csv.status_code, 403)
+
 
 class CambioContrasenaTests(TestCase):
     def setUp(self):

@@ -5306,8 +5306,11 @@ def gestion_panel(request):
 
 @login_required
 def gestion_actividad(request):
-    if not request.user.is_superuser:
-        return HttpResponseForbidden("La auditoría está disponible únicamente para superusuarios.")
+    es_delegado = equipos_delegado_asignados(request.user).exists()
+    if not request.user.is_superuser and not es_delegado:
+        return HttpResponseForbidden("La auditoría está disponible únicamente para superusuarios y delegados asignados.")
+    if request.GET.get("formato") == "csv" and not request.user.is_superuser:
+        return HttpResponseForbidden("La descarga de auditoría está disponible únicamente para superusuarios.")
     if usuario_solo_descarga_planillas(request.user, torneo_actual(request)):
         return denegar_permiso_torneo()
     if not tabla_disponible("torneos_registroactividad"):
@@ -5316,12 +5319,18 @@ def gestion_actividad(request):
 
     torneo = torneo_actual(request)
     registros = RegistroActividad.objects.select_related("usuario", "torneo").order_by("-creado_en")
-    torneos = torneos_para_usuario(request)
-
-    if not request.user.is_superuser:
-        registros = registros.filter(Q(torneo__in=torneos) | Q(torneo__isnull=True))
+    if es_delegado and not request.user.is_superuser:
+        torneos_delegado = Torneo.objects.filter(
+            categorias__equipos__responsable=request.user,
+        ).distinct()
+        registros = registros.filter(
+            Q(torneo__in=torneos_delegado)
+            | Q(usuario=request.user, torneo__isnull=True)
+        )
     elif torneo:
         registros = registros.filter(torneo=torneo)
+
+    registros_disponibles = registros
 
     usuario_id = request.GET.get("usuario", "").strip()
     accion = request.GET.get("accion", "").strip()
@@ -5374,8 +5383,11 @@ def gestion_actividad(request):
             ])
         return response
 
-    acciones = RegistroActividad.objects.order_by("accion").values_list("accion", flat=True).distinct()
-    usuarios = User.objects.filter(actividad_admin__isnull=False).distinct().order_by("username")
+    acciones = registros_disponibles.order_by("accion").values_list("accion", flat=True).distinct()
+    if request.user.is_superuser:
+        usuarios = User.objects.filter(actividad_admin__isnull=False).distinct().order_by("username")
+    else:
+        usuarios = User.objects.filter(actividad_admin__in=registros_disponibles).distinct().order_by("username")
     visitas_publicas = None
     if request.user.is_superuser:
         hoy = timezone.localdate()
@@ -5410,6 +5422,9 @@ def gestion_actividad(request):
         "fecha_hasta": fecha_hasta,
         "busqueda": busqueda,
         "visitas_publicas": visitas_publicas,
+        "puede_descargar_auditoria": request.user.is_superuser,
+        "es_auditoria_delegado": es_delegado and not request.user.is_superuser,
+        "volver_actividad_url": reverse("delegado_mis_equipos") if es_delegado and not request.user.is_superuser else reverse("gestion_panel"),
     })
 
 
