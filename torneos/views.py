@@ -1087,7 +1087,9 @@ def aplicar_imagenes_torneo_cloudinary(torneo, archivos):
 
 
 def documentos_publicos_por_tipo(torneo=None):
-    documentos = Documento.objects.select_related("categoria").filter(activo=True).order_by("tipo", "-creado_en", "titulo")
+    documentos = Documento.objects.select_related(
+        "categoria", "equipo_local", "equipo_visitante",
+    ).filter(activo=True).order_by("tipo", "-creado_en", "titulo")
     if torneo:
         documentos = documentos.filter(torneo=torneo)
     else:
@@ -1187,6 +1189,8 @@ def documento_visible_en_torneo_actual(request, documento_id):
 
 def documento_publico(request, documento_id):
     documento = documento_visible_en_torneo_actual(request, documento_id)
+    if documento.tipo == "PLANILLA_JUEGO":
+        return redirect(documento.archivo)
     archivo_url = request.build_absolute_uri(reverse("documento_archivo_publico", args=[documento.id]))
     visor_url = f"https://docs.google.com/gview?embedded=1&url={quote(archivo_url, safe='')}"
     return redirect(visor_url)
@@ -2666,6 +2670,23 @@ def panel_principal(request):
     logos = logos_torneo(request, torneo)
     partidos_portada = construir_partidos_portada(torneo)
     documentos = documentos_publicos_por_tipo(torneo)
+    planillas_publicas = list(documentos["planillas"])
+    categorias_planillas = {}
+    for documento in planillas_publicas:
+        categoria_nombre = documento.categoria.nombre if documento.categoria else "Sin categoría"
+        fecha_nombre = documento.numero_fecha or "Sin fecha del fixture"
+        categoria = categorias_planillas.setdefault(categoria_nombre, {})
+        categoria.setdefault(fecha_nombre, []).append(documento)
+    planillas_agrupadas = [
+        SimpleNamespace(
+            nombre=categoria_nombre,
+            fechas=[
+                SimpleNamespace(nombre=fecha_nombre, documentos=documentos_fecha)
+                for fecha_nombre, documentos_fecha in fechas.items()
+            ],
+        )
+        for categoria_nombre, fechas in categorias_planillas.items()
+    ]
     fechas_grupos = sorted(
         {
             p["numero_fecha"]
@@ -2747,7 +2768,8 @@ def panel_principal(request):
         "resoluciones": documentos["resoluciones"],
         "demandas": documentos["demandas"],
         "comunicados": documentos["comunicados"],
-        "planillas": documentos["planillas"],
+        "planillas": planillas_publicas,
+        "planillas_agrupadas": planillas_agrupadas,
         "otros": documentos["otros"],
         "logo_alcaldia": logos["logo_alcaldia"],
         "logo_torneo": logos["logo_torneo"],

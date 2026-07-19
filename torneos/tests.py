@@ -240,11 +240,22 @@ class DocumentosTorneoTests(TestCase):
         "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
     })
     def test_panel_publico_muestra_planillas_activas_del_torneo(self):
+        categoria = Categoria.objects.create(
+            torneo=self.torneo,
+            nombre="Senior Master",
+            edad_minima=40,
+            edad_maxima=80,
+        )
+        local = Equipo.objects.create(nombre="Templarios", categoria=categoria)
+        visitante = Equipo.objects.create(nombre="Villamatoso", categoria=categoria)
         Documento.objects.create(
             torneo=self.torneo,
             tipo="PLANILLA_JUEGO",
             titulo="Planilla Mama Mata Fecha 1",
             archivo="https://example.com/planilla-mama-mata.jpg",
+            categoria=categoria,
+            equipo_local=local,
+            equipo_visitante=visitante,
             numero_fecha="Fecha 1",
             activo=True,
         )
@@ -261,7 +272,29 @@ class DocumentosTorneoTests(TestCase):
 
         self.assertContains(response, 'data-documento-seccion="planillas"')
         self.assertContains(response, "Planilla Mama Mata Fecha 1")
+        self.assertContains(response, '<details class="planillas-categoria"')
+        self.assertContains(response, "Senior Master")
+        self.assertContains(response, '<details class="planillas-fecha"')
+        self.assertContains(response, "Fecha 1")
         self.assertNotContains(response, "Planilla Copa Antigua")
+
+    def test_planilla_publica_abre_archivo_original_sin_visor_de_google(self):
+        documento = Documento.objects.create(
+            torneo=self.torneo,
+            tipo="PLANILLA_JUEGO",
+            titulo="Planilla en imagen",
+            archivo="https://example.com/planilla.jpg",
+            activo=True,
+        )
+        self.seleccionar_torneo()
+
+        response = self.client.get(f"/documentos/{documento.id}/")
+
+        self.assertRedirects(
+            response,
+            "https://example.com/planilla.jpg",
+            fetch_redirect_response=False,
+        )
 
     @override_settings(STORAGES={
         "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},

@@ -2000,6 +2000,55 @@ body.solo-lectura .menu-principal {
     white-space: nowrap;
 }
 
+.planillas-submenus,
+.planillas-fechas {
+    display: grid;
+    gap: 10px;
+}
+
+.planillas-categoria,
+.planillas-fecha {
+    border: 1px solid #cbd5e1;
+    border-radius: 12px;
+    background: #ffffff;
+    overflow: hidden;
+}
+
+.planillas-categoria > summary,
+.planillas-fecha > summary {
+    cursor: pointer;
+    list-style: none;
+    padding: 13px 16px;
+    color: #10213f;
+    font-weight: 900;
+}
+
+.planillas-categoria > summary {
+    background: #10213f;
+    color: #00ff66;
+    text-transform: uppercase;
+}
+
+.planillas-fecha > summary {
+    background: #e8f0f8;
+}
+
+.planillas-categoria > summary::after,
+.planillas-fecha > summary::after {
+    content: "▾";
+    float: right;
+}
+
+.planillas-categoria:not([open]) > summary::after,
+.planillas-fecha:not([open]) > summary::after {
+    content: "▸";
+}
+
+.planillas-fechas,
+.planillas-fecha .documentos-lista {
+    padding: 10px;
+}
+
 .subtabs-partidos {
     display: flex;
     gap: 8px;
@@ -5365,19 +5414,33 @@ body.solo-lectura .menu-principal{top:96px!important}
 
     <section class="portada-seccion seccion-documentos seccion-principal" id="planillas" data-seccion-principal="planillas">
         <h2>Planillas de juego</h2>
-        <div class="documentos-lista">
-            {% for documento in planillas %}
-                <a class="documento-card" href="{% url 'documento_publico' documento.id %}" target="_blank" rel="noopener">
-                    <div>
-                        <strong>{{ documento.titulo }}</strong>
-                        <span>
-                            {% if documento.categoria %}{{ documento.categoria.nombre }}{% endif %}
-                            {% if documento.numero_fecha %} · {{ documento.numero_fecha }}{% endif %}
-                            {% if documento.fecha_partido %} · {{ documento.fecha_partido|date:"d/m/Y" }}{% endif %}
-                        </span>
-                    </div>
-                    <em>Ver</em>
-                </a>
+        <div class="planillas-submenus">
+            {% for categoria in planillas_agrupadas %}
+            <details class="planillas-categoria" {% if forloop.first %}open{% endif %}>
+                <summary>{{ categoria.nombre }}</summary>
+                <div class="planillas-fechas">
+                    {% for fecha in categoria.fechas %}
+                    <details class="planillas-fecha" {% if forloop.first %}open{% endif %}>
+                        <summary>{{ fecha.nombre }}</summary>
+                        <div class="documentos-lista">
+                            {% for documento in fecha.documentos %}
+                            <a class="documento-card" href="{% url 'documento_publico' documento.id %}" target="_blank" rel="noopener">
+                                <div>
+                                    <strong>{{ documento.titulo }}</strong>
+                                    <span>
+                                        {% if documento.equipo_local %}{{ documento.equipo_local.nombre }}{% endif %}
+                                        {% if documento.equipo_visitante %} vs {{ documento.equipo_visitante.nombre }}{% endif %}
+                                        {% if documento.fecha_partido %} · {{ documento.fecha_partido|date:"d/m/Y" }}{% endif %}
+                                    </span>
+                                </div>
+                                <em>Ver</em>
+                            </a>
+                            {% endfor %}
+                        </div>
+                    </details>
+                    {% endfor %}
+                </div>
+            </details>
             {% empty %}
                 <div class="partido-portada">Aún no hay planillas de juego publicadas.</div>
             {% endfor %}
