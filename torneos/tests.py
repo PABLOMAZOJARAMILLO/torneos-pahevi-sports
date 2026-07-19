@@ -15,7 +15,7 @@ from openpyxl import Workbook
 from PIL import Image
 
 from .forms import JugadorForm, PartidoForm, TorneoForm
-from .models import AlineacionPartido, AdminOrganizador, AdminTorneo, Categoria, Documento, Equipo, Gol, Jugador, Organizador, Partido, ReglaEdadCategoria, RegistroActividad, VisitaPublicaDiaria, SolicitudValidacion, SustitucionPartido, Tarjeta, Torneo, ruta_escudo_equipo
+from .models import AlineacionPartido, EntregaAlineacionPartido, AdminOrganizador, AdminTorneo, Categoria, Documento, Equipo, Gol, Jugador, Organizador, Partido, ReglaEdadCategoria, RegistroActividad, VisitaPublicaDiaria, SolicitudValidacion, SustitucionPartido, Tarjeta, Torneo, ruta_escudo_equipo
 from .middleware import AuditoriaModificacionesMiddleware
 from .planillas_pdf import _dorsal, _edad, _header_image_sources, _team_shield_source, _draw_team_watermark, _titulo_planilla
 from .storage_backends import CloudinaryMediaStorage
@@ -3257,8 +3257,8 @@ class DelegadoEquipoTests(TestCase):
             categoria=self.categoria,
             equipo_local=self.equipo,
             equipo_visitante=self.otro_equipo,
-            fecha=(ahora_local + timedelta(hours=1)).date(),
-            hora=(ahora_local + timedelta(hours=1)).time(),
+            fecha=(ahora_local + timedelta(hours=1, minutes=5)).date(),
+            hora=(ahora_local + timedelta(hours=1, minutes=5)).time(),
             estado="PROGRAMADO",
         )
         self.client.force_login(self.delegado)
@@ -3274,7 +3274,7 @@ class DelegadoEquipoTests(TestCase):
         self.assertEqual(respuesta.status_code, 403)
         self.assertFalse(AlineacionPartido.objects.filter(partido=partido).exists())
 
-    def test_delegado_no_puede_guardar_alineacion_despues_de_diez_minutos_en_juego(self):
+    def test_delegado_no_puede_guardar_alineacion_despues_de_quince_minutos_en_juego(self):
         ahora_local = timezone.localtime()
         partido = Partido.objects.create(
             categoria=self.categoria,
@@ -3283,7 +3283,7 @@ class DelegadoEquipoTests(TestCase):
             fecha=ahora_local.date(),
             hora=(ahora_local - timedelta(hours=1)).time(),
             estado="EN_JUEGO",
-            inicio_en_vivo=timezone.now() - timedelta(minutes=11),
+            inicio_en_vivo=timezone.now() - timedelta(minutes=16),
         )
         self.client.force_login(self.delegado)
 
@@ -3297,6 +3297,98 @@ class DelegadoEquipoTests(TestCase):
 
         self.assertEqual(respuesta.status_code, 403)
         self.assertFalse(AlineacionPartido.objects.filter(partido=partido).exists())
+
+    def test_delegado_puede_abrir_alineacion_una_hora_antes(self):
+        ahora_local = timezone.localtime()
+        partido = Partido.objects.create(
+            categoria=self.categoria,
+            equipo_local=self.equipo,
+            equipo_visitante=self.otro_equipo,
+            fecha=(ahora_local + timedelta(minutes=59)).date(),
+            hora=(ahora_local + timedelta(minutes=59)).time(),
+            estado="PROGRAMADO",
+        )
+        self.client.force_login(self.delegado)
+
+        respuesta = self.client.get(
+            f"/delegado/equipos/{self.equipo.id}/partidos/{partido.id}/alineacion/",
+        )
+
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertContains(respuesta, "Guardar borrador")
+        self.assertContains(respuesta, "Enviar alineación definitiva")
+
+    def test_borrador_persiste_y_no_cierra_la_alineacion(self):
+        ahora_local = timezone.localtime()
+        partido = Partido.objects.create(
+            categoria=self.categoria,
+            equipo_local=self.equipo,
+            equipo_visitante=self.otro_equipo,
+            fecha=ahora_local.date(),
+            hora=ahora_local.time(),
+            estado="PROGRAMADO",
+        )
+        self.client.force_login(self.delegado)
+
+        respuesta = self.client.post(
+            f"/delegado/equipos/{self.equipo.id}/partidos/{partido.id}/alineacion/",
+            {
+                "accion": "guardar_borrador",
+                f"rol_{self.jugador.id}": "TITULAR",
+                f"posicion_{self.jugador.id}": "DC",
+            },
+        )
+
+        self.assertRedirects(
+            respuesta,
+            f"/delegado/equipos/{self.equipo.id}/partidos/{partido.id}/alineacion/",
+            fetch_redirect_response=False,
+        )
+        self.assertTrue(AlineacionPartido.objects.filter(partido=partido, jugador=self.jugador).exists())
+        self.assertFalse(EntregaAlineacionPartido.objects.filter(partido=partido, equipo=self.equipo).exists())
+        self.assertEqual(
+            self.client.get(f"/delegado/equipos/{self.equipo.id}/partidos/{partido.id}/alineacion/").status_code,
+            200,
+        )
+
+    def test_envio_definitivo_cierra_inmediatamente_acceso_del_delegado(self):
+        ahora_local = timezone.localtime()
+        partido = Partido.objects.create(
+            categoria=self.categoria,
+            equipo_local=self.equipo,
+            equipo_visitante=self.otro_equipo,
+            fecha=ahora_local.date(),
+            hora=ahora_local.time(),
+            estado="PROGRAMADO",
+        )
+        self.client.force_login(self.delegado)
+
+        respuesta = self.client.post(
+            f"/delegado/equipos/{self.equipo.id}/partidos/{partido.id}/alineacion/",
+            {
+                "accion": "enviar_definitiva",
+                f"rol_{self.jugador.id}": "TITULAR",
+                f"posicion_{self.jugador.id}": "DC",
+            },
+        )
+
+        self.assertRedirects(
+            respuesta,
+            f"/delegado/equipos/{self.equipo.id}/partidos/",
+            fetch_redirect_response=False,
+        )
+        entrega = EntregaAlineacionPartido.objects.get(partido=partido, equipo=self.equipo)
+        self.assertEqual(entrega.enviada_por, self.delegado)
+        bloqueado = self.client.get(
+            f"/delegado/equipos/{self.equipo.id}/partidos/{partido.id}/alineacion/",
+        )
+        self.assertEqual(bloqueado.status_code, 403)
+        self.assertContains(bloqueado, "definitiva ya fue enviada", status_code=403)
+        listado = self.client.get(f"/delegado/equipos/{self.equipo.id}/partidos/")
+        self.assertNotContains(
+            listado,
+            f"/delegado/equipos/{self.equipo.id}/partidos/{partido.id}/alineacion/",
+        )
 
     def test_delegado_asignado_como_planillero_no_abre_editor_completo(self):
         ahora_local = timezone.localtime()

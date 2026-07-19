@@ -11,6 +11,7 @@
     <div>{{ partido.equipo_local.nombre }} vs {{ partido.equipo_visitante.nombre }}</div>
     <div class="muted">{{ partido.fecha|date:"d/m/Y" }} - {{ partido.hora|time:"H:i" }} - {{ partido.estado }}</div>
     <div class="muted">Equipo a cargar: {{ equipo.nombre }}</div>
+    <div class="muted">Puedes guardar borradores sin cerrar la entrega. Al enviar la alineación definitiva ya no podrás volver a editarla.</div>
 </div>
 
 <style>
@@ -327,7 +328,11 @@
         {% endfor %}
     </div>
 
-    <p><button class="btn" type="submit">Guardar alineacion</button></p>
+    <p class="muted" data-autoguardado-estado>Los cambios se guardan automáticamente.</p>
+    <div style="display:grid;gap:10px;grid-template-columns:1fr 1fr;">
+        <button class="btn secondary" type="submit" name="accion" value="guardar_borrador">Guardar borrador</button>
+        <button class="btn" type="submit" name="accion" value="enviar_definitiva" data-enviar-definitiva>Enviar alineación definitiva</button>
+    </div>
 </form>
 
 <script>
@@ -338,10 +343,44 @@
         const selects = Array.from(form.querySelectorAll('[data-cancha-select]'));
         const counter = form.querySelector('[data-titulares-count]');
         const ageAlert = form.querySelector('[data-alineacion-alerta-edad]');
+        const saveStatus = form.querySelector('[data-autoguardado-estado]');
+        const finalButton = form.querySelector('[data-enviar-definitiva]');
+        let saveTimer = null;
+        let saving = false;
+        let finalSending = false;
 
         function shortName(name) {
             const parts = (name || '').trim().split(/\s+/).filter(Boolean);
-            return (parts.length > 1 ? parts[0] + ' ' + parts[1] : (parts[0] || 'Seleccionar')).toUpperCase();
+            return (parts.slice(0, 3).join(' ') || 'Seleccionar').toUpperCase();
+        }
+
+        async function saveDraft(useKeepalive) {
+            if (saving || finalSending) return;
+            saving = true;
+            if (saveStatus) saveStatus.textContent = 'Guardando borrador...';
+            const data = new FormData(form);
+            data.set('accion', 'guardar_borrador');
+            try {
+                const response = await fetch(form.action || window.location.href, {
+                    method: 'POST',
+                    body: data,
+                    credentials: 'same-origin',
+                    keepalive: Boolean(useKeepalive),
+                });
+                if (!response.ok) throw new Error('No se pudo guardar');
+                if (saveStatus) saveStatus.textContent = 'Borrador guardado automáticamente.';
+            } catch (error) {
+                if (saveStatus) saveStatus.textContent = 'No se pudo autoguardar. Usa “Guardar borrador”.';
+            } finally {
+                saving = false;
+            }
+        }
+
+        function scheduleSave() {
+            if (finalSending) return;
+            window.clearTimeout(saveTimer);
+            if (saveStatus) saveStatus.textContent = 'Cambios pendientes de guardar...';
+            saveTimer = window.setTimeout(function () { saveDraft(false); }, 1800);
         }
 
         function paintSlot(select) {
@@ -478,6 +517,7 @@
         selects.forEach((select) => {
             select.addEventListener('change', function () {
                 syncOptions();
+                scheduleSave();
             });
         });
 
@@ -494,7 +534,26 @@
                     clearPlayerFromField(playerId);
                     syncOptions();
                 }
+                scheduleSave();
             });
+        });
+
+        if (finalButton) {
+            finalButton.addEventListener('click', function (event) {
+                if (!window.confirm('La alineación quedará definitiva y ya no podrás volver a editarla. ¿Deseas enviarla?')) {
+                    event.preventDefault();
+                    return;
+                }
+                finalSending = true;
+                window.clearTimeout(saveTimer);
+            });
+        }
+
+        document.addEventListener('visibilitychange', function () {
+            if (document.visibilityState === 'hidden' && !finalSending) {
+                window.clearTimeout(saveTimer);
+                saveDraft(true);
+            }
         });
 
         syncOptions();

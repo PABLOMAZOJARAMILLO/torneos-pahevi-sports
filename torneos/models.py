@@ -602,6 +602,23 @@ class AlineacionPartido(models.Model):
         return f"{self.partido} - {self.jugador} ({self.rol})"
 
 
+class EntregaAlineacionPartido(models.Model):
+    partido = models.ForeignKey(Partido, on_delete=models.CASCADE, related_name="alineaciones_definitivas")
+    equipo = models.ForeignKey(Equipo, on_delete=models.CASCADE, related_name="alineaciones_definitivas")
+    enviada_por = models.ForeignKey(User, on_delete=models.SET_NULL, blank=True, null=True, related_name="alineaciones_definitivas_enviadas")
+    enviada_en = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Entrega definitiva de alineación"
+        verbose_name_plural = "Entregas definitivas de alineación"
+        constraints = [
+            models.UniqueConstraint(fields=["partido", "equipo"], name="alineacion_definitiva_unica_equipo"),
+        ]
+
+    def __str__(self):
+        return f"{self.partido} - {self.equipo}"
+
+
 class SustitucionPartido(models.Model):
     partido = models.ForeignKey(Partido, on_delete=models.CASCADE, related_name='sustituciones')
     equipo = models.ForeignKey(Equipo, on_delete=models.CASCADE, related_name='sustituciones_partido')

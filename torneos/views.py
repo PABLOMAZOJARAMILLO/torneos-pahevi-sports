@@ -38,7 +38,7 @@ from django.views.decorators.http import require_POST
 from openpyxl import load_workbook
 
 from .forms import TorneoForm, OrganizadorForm, CategoriaForm, ReglaEdadCategoriaFormSet, DocumentoForm, PlanillaJuegoUploadForm, EquipoForm, EquipoDelegadoForm, EquipoReinscripcionForm, JugadorForm, JugadorDelegadoForm, JugadorFotoDelegadoForm, PartidoForm, PartidoProgramacionForm, AdminTorneoForm, AdminOrganizadorForm, CrearAdminOrganizadorForm
-from .models import Torneo, Organizador, Categoria, Documento, Equipo, Partido, Gol, Tarjeta, Jugador, AlineacionPartido, SustitucionPartido, ReglaEdadCategoria, AdminTorneo, AdminOrganizador, RegistroActividad, VisitaPublicaDiaria, SolicitudValidacion, limpiar_ruta_cloudinary
+from .models import Torneo, Organizador, Categoria, Documento, Equipo, Partido, Gol, Tarjeta, Jugador, AlineacionPartido, EntregaAlineacionPartido, SustitucionPartido, ReglaEdadCategoria, AdminTorneo, AdminOrganizador, RegistroActividad, VisitaPublicaDiaria, SolicitudValidacion, limpiar_ruta_cloudinary
 from .planillas_pdf import generar_planilla_juego_pdf, nombre_archivo_planilla
 from django.utils import timezone
 
@@ -275,23 +275,27 @@ def inicio_programado_partido(partido):
     return inicio
 
 
-def ventana_alineacion_delegado(partido, ahora=None):
+def ventana_alineacion_delegado(partido, equipo=None, ahora=None):
     ahora = ahora or timezone.now()
+    if equipo and EntregaAlineacionPartido.objects.filter(partido=partido, equipo=equipo).exists():
+        return False, "La alineación definitiva ya fue enviada."
+
+    inicio = inicio_programado_partido(partido)
+    if not inicio:
+        return False, "Sin fecha u hora programada."
+    apertura = inicio - timedelta(hours=1)
+    if ahora < apertura:
+        return False, f"Disponible desde {apertura.strftime('%d/%m/%Y %H:%M')}."
+
     if partido.estado == "PROGRAMADO":
-        inicio = inicio_programado_partido(partido)
-        if not inicio:
-            return False, "Sin fecha u hora programada."
-        if ahora < inicio:
-            return False, f"Disponible desde {inicio.strftime('%d/%m/%Y %H:%M')}."
-        return True, "Disponible por hora programada."
+        return True, "Disponible desde una hora antes y hasta 15 minutos después del inicio real."
     if partido.estado == "EN_JUEGO":
-        if not partido.inicio_en_vivo:
-            return False, "El partido esta en juego, pero no tiene hora de inicio registrada."
-        cierre = partido.inicio_en_vivo + timedelta(minutes=10)
+        inicio_real = partido.inicio_en_vivo or inicio
+        cierre = inicio_real + timedelta(minutes=15)
         if ahora <= cierre:
             return True, f"Disponible hasta {cierre.strftime('%H:%M')}."
-        return False, "La ventana de 10 minutos ya finalizo."
-    return False, "Disponible solo en partidos programados o en los primeros 10 minutos de juego."
+        return False, "La ventana de 15 minutos después del inicio ya finalizó."
+    return False, "Disponible solo antes del partido o durante sus primeros 15 minutos."
 
 
 def partido_pertenece_equipo(partido, equipo):
@@ -309,7 +313,7 @@ def puede_editar_alineacion_delegado(user, partido, equipo):
         return False
     if not partido_pertenece_equipo(partido, equipo):
         return False
-    habilitado, _ = ventana_alineacion_delegado(partido)
+    habilitado, _ = ventana_alineacion_delegado(partido, equipo)
     return habilitado
 
 
@@ -326,9 +330,14 @@ def partidos_alineacion_para_equipo(equipo):
         estado__in=["PROGRAMADO", "EN_JUEGO"]
     ).order_by("fecha", "hora", "id")
 
+    entregados = set(
+        EntregaAlineacionPartido.objects.filter(equipo=equipo).values_list("partido_id", flat=True)
+    )
     items = []
     for partido in partidos:
-        habilitado, motivo = ventana_alineacion_delegado(partido)
+        if partido.id in entregados:
+            continue
+        habilitado, motivo = ventana_alineacion_delegado(partido, equipo)
         items.append(SimpleNamespace(
             partido=partido,
             rival=partido.equipo_visitante if partido.equipo_local_id == equipo.id else partido.equipo_local,
@@ -350,7 +359,7 @@ def url_alineacion_delegado_si_aplica(user, partido):
     equipo = equipo_delegado_para_partido(user, partido)
     if not equipo:
         return ""
-    habilitado, _ = ventana_alineacion_delegado(partido)
+    habilitado, _ = ventana_alineacion_delegado(partido, equipo)
     if not habilitado:
         return ""
     return reverse("delegado_alineacion_partido", args=[equipo.id, partido.id])
@@ -4237,7 +4246,7 @@ def editor_partido_movil(request, partido_id):
     if equipo_delegado:
         if puede_editar_alineacion_delegado(request.user, partido, equipo_delegado):
             return redirect("delegado_alineacion_partido", equipo_id=equipo_delegado.id, partido_id=partido.id)
-        _, motivo = ventana_alineacion_delegado(partido)
+        _, motivo = ventana_alineacion_delegado(partido, equipo_delegado)
         return HttpResponseForbidden(f"Los delegados solo pueden editar la alineacion de su equipo. {motivo}")
     if not puede_diligenciar_partido(request.user, partido):
         return denegar_partido_no_autorizado()
@@ -4801,7 +4810,7 @@ def delegado_alineacion_partido(request, equipo_id, partido_id):
     if not partido_pertenece_equipo(partido, equipo):
         return HttpResponseForbidden("Este equipo no pertenece al partido.")
     if not puede_editar_alineacion_delegado(request.user, partido, equipo):
-        _, motivo = ventana_alineacion_delegado(partido)
+        _, motivo = ventana_alineacion_delegado(partido, equipo)
         return HttpResponseForbidden(f"No puedes editar esta alineacion en este momento. {motivo}")
 
     sancionados_tarjetas = _sincronizar_no_disponibles_por_tarjetas(partido)
@@ -4816,6 +4825,8 @@ def delegado_alineacion_partido(request, equipo_id, partido_id):
     }
 
     if request.method == "POST":
+        accion_envio = request.POST.get("accion") or "guardar_borrador"
+        es_definitiva = accion_envio == "enviar_definitiva"
         jugadores_validos = {str(jugador.id) for jugador in jugadores}
         roles_validos = {"TITULAR", "SUPLENTE", "NO_DISPONIBLE"}
         posiciones_validas = {codigo for codigo, _ in AlineacionPartido.POSICIONES_CANCHA}
@@ -4880,12 +4891,31 @@ def delegado_alineacion_partido(request, equipo_id, partido_id):
         ])
         _marcar_estadisticas_pendientes(partido, request.user)
 
+        if es_definitiva:
+            EntregaAlineacionPartido.objects.get_or_create(
+                partido=partido,
+                equipo=equipo,
+                defaults={"enviada_por": request.user},
+            )
+            registrar_actividad(
+                request,
+                "ENVIAR_ALINEACION_DEFINITIVA",
+                partido,
+                descripcion=f"El delegado envió la alineación definitiva de {equipo.nombre}.",
+                datos={"equipo_id": equipo.id, "partido_id": partido.id},
+            )
+        else:
+            request._actividad_registrada = True
+
         if sancionados_equipo:
             messages.warning(request, "Los jugadores sancionados quedaron como no disponibles.")
         if errores_edad:
             messages.warning(request, "Advertencia de reglas de edad: " + " ".join(errores_edad))
-        messages.success(request, f"Alineacion guardada para {equipo.nombre}.")
-        return redirect("delegado_partidos_equipo", equipo_id=equipo.id)
+        if es_definitiva:
+            messages.success(request, f"Alineación definitiva enviada para {equipo.nombre}.")
+            return redirect("delegado_partidos_equipo", equipo_id=equipo.id)
+        messages.success(request, f"Borrador de alineación guardado para {equipo.nombre}.")
+        return redirect("delegado_alineacion_partido", equipo_id=equipo.id, partido_id=partido.id)
 
     return render(request, "equipos/delegado_alineacion_partido.html", {
         "equipo": equipo,
