@@ -478,6 +478,30 @@
             font-size: 11px;
             font-weight: 800;
         }
+        .ajustes-plantilla {
+            margin-top: 12px;
+            border: 1px solid rgba(0, 255, 102, .35);
+            border-radius: 14px;
+            background: rgba(7, 17, 31, .72);
+            overflow: hidden;
+        }
+        .ajustes-plantilla summary {
+            padding: 12px;
+            color: #00ff66;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 1000;
+            text-transform: uppercase;
+        }
+        .ajustes-plantilla-contenido {
+            padding: 0 8px 8px;
+        }
+        .guardar-alineacion-btn {
+            position: sticky;
+            bottom: 8px;
+            z-index: 12;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, .4);
+        }
         .documento-titular-check {
             display: inline-flex;
             align-items: center;
@@ -1048,7 +1072,6 @@
                                 <span>{{ j.nombres|texto_limpio }}</span>
                                 {% if j.texto_edad %}<span class="edad-badge">{{ j.texto_edad }}</span>{% endif %}
                             </div>
-                            <div class="documento-titular-meta">Comparar con cedula fisica entregada.</div>
                         </div>
                         <label class="documento-titular-check">
                             <input type="checkbox" name="documento_validado" value="{{ j.id }}" data-documento-titular-check {% if j.documento_validado_alineacion %}checked{% endif %}>
@@ -1057,6 +1080,9 @@
                     </div>
                     {% endfor %}
                 </section>
+                <details class="ajustes-plantilla">
+                <summary>Ajustar banco, fuera y no disponibles ({{ jugadores_local|length }})</summary>
+                <div class="ajustes-plantilla-contenido">
                 {% for j in jugadores_local %}
                 <div class="jugador-lineup-row" data-jugador-id="{{ j.id }}" data-edad="{{ j.texto_edad }}" data-etiqueta-edad="{{ j.etiqueta_edad }}" data-nombre="{{ j.nombres|texto_limpio }}" data-dorsal="{% if j.dorsal %}{{ j.dorsal }}{% endif %}" data-foto="{{ j.foto_alineacion }}" data-iniciales="{{ j.iniciales_alineacion }}">
                     <div class="jugador-lineup-head">
@@ -1079,7 +1105,9 @@
                 {% empty %}
                     <p class="nota">Este equipo no tiene jugadores activos registrados.</p>
                 {% endfor %}
-                <button class="btn" type="submit">Guardar {{ partido.equipo_local.nombre }}</button>
+                </div>
+                </details>
+                <button class="btn guardar-alineacion-btn" type="submit">Guardar {{ partido.equipo_local.nombre }}</button>
             </form>
 
             <form class="alineacion-equipo-panel" data-alineacion-panel="visitante" method="POST" onsubmit="guardarContextoPanelEditor()" action="{% url 'guardar_alineacion_masiva_movil' partido.id %}" hidden>
@@ -1131,7 +1159,6 @@
                                 <span>{{ j.nombres|texto_limpio }}</span>
                                 {% if j.texto_edad %}<span class="edad-badge">{{ j.texto_edad }}</span>{% endif %}
                             </div>
-                            <div class="documento-titular-meta">Comparar con cedula fisica entregada.</div>
                         </div>
                         <label class="documento-titular-check">
                             <input type="checkbox" name="documento_validado" value="{{ j.id }}" data-documento-titular-check {% if j.documento_validado_alineacion %}checked{% endif %}>
@@ -1140,6 +1167,9 @@
                     </div>
                     {% endfor %}
                 </section>
+                <details class="ajustes-plantilla">
+                <summary>Ajustar banco, fuera y no disponibles ({{ jugadores_visitante|length }})</summary>
+                <div class="ajustes-plantilla-contenido">
                 {% for j in jugadores_visitante %}
                 <div class="jugador-lineup-row" data-jugador-id="{{ j.id }}" data-edad="{{ j.texto_edad }}" data-etiqueta-edad="{{ j.etiqueta_edad }}" data-nombre="{{ j.nombres|texto_limpio }}" data-dorsal="{% if j.dorsal %}{{ j.dorsal }}{% endif %}" data-foto="{{ j.foto_alineacion }}" data-iniciales="{{ j.iniciales_alineacion }}">
                     <div class="jugador-lineup-head">
@@ -1162,7 +1192,9 @@
                 {% empty %}
                     <p class="nota">Este equipo no tiene jugadores activos registrados.</p>
                 {% endfor %}
-                <button class="btn" type="submit">Guardar {{ partido.equipo_visitante.nombre }}</button>
+                </div>
+                </details>
+                <button class="btn guardar-alineacion-btn" type="submit">Guardar {{ partido.equipo_visitante.nombre }}</button>
             </form>
         </div>
 
