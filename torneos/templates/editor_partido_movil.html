@@ -1355,10 +1355,10 @@
                 <label>Jugador que entra</label>
                 <select name="jugador_entra" required>
                     <optgroup label="{{ partido.equipo_local.nombre }}">
-                        {% for j in jugadores_local %}<option value="{{ j.id }}" data-equipo-id="{{ partido.equipo_local.id }}" data-en-cancha="{% if j.en_cancha_actual %}1{% else %}0{% endif %}">{% if j.dorsal %}#{{ j.dorsal }} - {% endif %}{{ j.nombres|primeras_tres_palabras }}</option>{% endfor %}
+                        {% for j in jugadores_local %}<option value="{{ j.id }}" data-equipo-id="{{ partido.equipo_local.id }}" data-en-cancha="{% if j.en_cancha_actual %}1{% else %}0{% endif %}" data-puede-entrar="{% if j.puede_entrar_actual %}1{% else %}0{% endif %}">{% if j.dorsal %}#{{ j.dorsal }} - {% endif %}{{ j.nombres|primeras_tres_palabras }}</option>{% endfor %}
                     </optgroup>
                     <optgroup label="{{ partido.equipo_visitante.nombre }}">
-                        {% for j in jugadores_visitante %}<option value="{{ j.id }}" data-equipo-id="{{ partido.equipo_visitante.id }}" data-en-cancha="{% if j.en_cancha_actual %}1{% else %}0{% endif %}">{% if j.dorsal %}#{{ j.dorsal }} - {% endif %}{{ j.nombres|primeras_tres_palabras }}</option>{% endfor %}
+                        {% for j in jugadores_visitante %}<option value="{{ j.id }}" data-equipo-id="{{ partido.equipo_visitante.id }}" data-en-cancha="{% if j.en_cancha_actual %}1{% else %}0{% endif %}" data-puede-entrar="{% if j.puede_entrar_actual %}1{% else %}0{% endif %}">{% if j.dorsal %}#{{ j.dorsal }} - {% endif %}{{ j.nombres|primeras_tres_palabras }}</option>{% endfor %}
                     </optgroup>
                 </select>
 
@@ -1769,7 +1769,7 @@ function filtrarJugadoresPorEquipo(form) {
             const esEntrada = selector.name === 'jugador_entra';
             const estadoValido = (!esSalida && !esEntrada)
                 || (esSalida && option.dataset.enCancha === '1')
-                || (esEntrada && option.dataset.enCancha === '0');
+                || (esEntrada && option.dataset.puedeEntrar === '1');
             const visible = pertenece && estadoValido;
             option.hidden = !visible;
             option.disabled = !visible;

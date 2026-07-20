@@ -2551,6 +2551,11 @@ def validar_reglas_edad_titulares(partido, equipo, titulares_ids):
 TOLERANCIA_REGLA_EDAD_SEGUNDOS = 60
 
 
+def categoria_permite_reingresos(categoria):
+    """Senior Master y Plus 50 usan sustituciones libres con reingreso."""
+    return slugify(categoria.nombre or "") in {"senior-master", "plus-50"}
+
+
 def jugadores_actuales_en_cancha(partido, equipo):
     """Calcula quienes juegan sin modificar la alineación inicial registrada."""
     jugadores_ids = set(
@@ -4502,10 +4507,22 @@ def editor_partido_movil(request, partido_id):
     jugadores_visitante = _marcar_roles_alineacion(jugadores_visitante, alineaciones_por_jugador, partido)
     jugadores_en_cancha_local = jugadores_actuales_en_cancha(partido, partido.equipo_local)
     jugadores_en_cancha_visitante = jugadores_actuales_en_cancha(partido, partido.equipo_visitante)
+    jugadores_que_salieron = set(
+        SustitucionPartido.objects.filter(partido=partido).values_list("jugador_sale_id", flat=True)
+    )
+    permite_reingresos = categoria_permite_reingresos(partido.categoria)
     for jugador in jugadores_local:
         jugador.en_cancha_actual = jugador.id in jugadores_en_cancha_local
+        jugador.puede_entrar_actual = (
+            not jugador.en_cancha_actual
+            and (permite_reingresos or jugador.id not in jugadores_que_salieron)
+        )
     for jugador in jugadores_visitante:
         jugador.en_cancha_actual = jugador.id in jugadores_en_cancha_visitante
+        jugador.puede_entrar_actual = (
+            not jugador.en_cancha_actual
+            and (permite_reingresos or jugador.id not in jugadores_que_salieron)
+        )
     volver_url = _volver_editor_partido_url(request, partido)
 
     return render(request, 'editor_partido_movil.html', {
@@ -4833,6 +4850,18 @@ def agregar_sustitucion_movil(request, partido_id):
             messages.error(request, f'{jugador_sale.nombres} no puede salir porque no está actualmente en cancha.')
         elif jugador_entra.id in jugadores_en_cancha:
             messages.error(request, f'{jugador_entra.nombres} no puede entrar porque ya está actualmente en cancha.')
+        elif (
+            not categoria_permite_reingresos(partido.categoria)
+            and SustitucionPartido.objects.filter(
+                partido=partido,
+                equipo=equipo,
+                jugador_sale=jugador_entra,
+            ).exists()
+        ):
+            messages.error(
+                request,
+                f'{jugador_entra.nombres} no puede volver a ingresar en esta categoría después de haber salido.',
+            )
         else:
             with transaction.atomic():
                 sustitucion = SustitucionPartido.objects.create(

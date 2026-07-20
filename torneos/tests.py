@@ -19,7 +19,7 @@ from .models import AlineacionPartido, EntregaAlineacionPartido, AdminOrganizado
 from .middleware import AuditoriaModificacionesMiddleware
 from .planillas_pdf import _dorsal, _edad, _header_image_sources, _team_shield_source, _draw_team_watermark, _titulo_planilla
 from .storage_backends import CloudinaryMediaStorage
-from .views import buscar_planilleros_excel, construir_estructura, construir_estadisticas_foraneos, construir_partidos_portada, construir_partidos_programacion, _clave_orden_evento_resumen, _minuto_evento_en_vivo, _sincronizar_no_disponibles_por_tarjetas, etiqueta_edad_jugador, nombre_corto_jugador, nombre_resumen_jugador, puede_descargar_programacion, reglas_edad_para_frontend, texto_edad_jugador, tabla_general_mata_mata_ida_vuelta, validar_reglas_edad_titulares
+from .views import buscar_planilleros_excel, construir_estructura, construir_estadisticas_foraneos, construir_partidos_portada, construir_partidos_programacion, _clave_orden_evento_resumen, _minuto_evento_en_vivo, _sincronizar_no_disponibles_por_tarjetas, etiqueta_edad_jugador, jugadores_actuales_en_cancha, nombre_corto_jugador, nombre_resumen_jugador, puede_descargar_programacion, reglas_edad_para_frontend, texto_edad_jugador, tabla_general_mata_mata_ida_vuelta, validar_reglas_edad_titulares
 
 
 class CloudinaryStorageTests(TestCase):
@@ -905,6 +905,27 @@ class IncidenciasReglasEdadEnJuegoTests(TestCase):
 
         self.assertEqual(respuesta.status_code, 302)
         self.assertFalse(SustitucionPartido.objects.filter(partido=self.partido).exists())
+
+    def test_senior_master_permite_que_un_jugador_salga_y_vuelva_a_entrar(self):
+        self.categoria.nombre = "Senior Master"
+        self.categoria.save(update_fields=["nombre"])
+
+        self.registrar_cambio(self.mayor, self.joven_dos)
+        self.registrar_cambio(self.joven_dos, self.mayor)
+
+        self.assertEqual(SustitucionPartido.objects.filter(partido=self.partido).count(), 2)
+        self.assertIn(self.mayor.id, jugadores_actuales_en_cancha(self.partido, self.equipo))
+
+    def test_interbarrios_no_permite_reingreso_despues_de_salir(self):
+        self.categoria.nombre = "Interbarrios"
+        self.categoria.save(update_fields=["nombre"])
+
+        self.registrar_cambio(self.mayor, self.joven_dos)
+        respuesta = self.registrar_cambio(self.joven_dos, self.mayor)
+
+        self.assertEqual(respuesta.status_code, 302)
+        self.assertEqual(SustitucionPartido.objects.filter(partido=self.partido).count(), 1)
+        self.assertNotIn(self.mayor.id, jugadores_actuales_en_cancha(self.partido, self.equipo))
 
     @override_settings(STORAGES={
         "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
