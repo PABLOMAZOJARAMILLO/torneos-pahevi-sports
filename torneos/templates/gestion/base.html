@@ -160,7 +160,7 @@
             .topbar-actions {
                 width: 100%;
                 display: grid;
-                grid-template-columns: 52px minmax(0, 1fr);
+                grid-template-columns: minmax(0, 1fr) 52px;
                 gap: 8px;
             }
             .topbar-actions .btn {
@@ -169,15 +169,22 @@
                 border-radius: 18px;
                 font-size: 15px;
                 line-height: 1.1;
-                white-space: normal;
+                white-space: nowrap;
             }
-            .topbar-actions .btn:only-child {
-                grid-column: 1 / -1;
+            .topbar-actions .account-password {
+                grid-column: 1;
+                width: 100%;
             }
             .topbar-actions .bell {
+                grid-column: 2;
+                grid-row: 1;
                 min-width: 0;
                 width: 52px;
                 font-size: 18px;
+            }
+            .topbar-actions .back-panel {
+                grid-column: 1 / -1;
+                width: 100%;
             }
             .row { align-items: flex-start; flex-direction: column; }
             .row .btn { width: 100%; }
@@ -190,7 +197,7 @@
         <h1>{% block heading %}Gestión{% endblock %}</h1>
         <div class="topbar-actions">
             {% if request.user.is_authenticated %}
-            <a class="btn secondary" href="{% url 'cambiar_contrasena' %}">Cambiar contraseña</a>
+            <a class="btn secondary account-password" href="{% url 'cambiar_contrasena' %}">Cambiar contraseña</a>
             {% endif %}
             {% if request.user.is_superuser or puede_validar %}
             <a class="btn secondary bell" href="{% url 'gestion_validaciones' %}" aria-label="Validaciones pendientes">
@@ -201,9 +208,9 @@
             </a>
             {% endif %}
             {% if volver_panel_url %}
-            <a class="btn secondary" href="{{ volver_panel_url }}">{{ volver_panel_text|default:'Volver al panel' }}</a>
+            <a class="btn secondary back-panel" href="{{ volver_panel_url }}">{{ volver_panel_text|default:'Volver al panel' }}</a>
             {% else %}
-            <a class="btn secondary" href="{% url 'panel' %}">Volver al panel</a>
+            <a class="btn secondary back-panel" href="{% url 'panel' %}">Volver al panel</a>
             {% endif %}
         </div>
     </div>
