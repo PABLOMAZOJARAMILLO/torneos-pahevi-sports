@@ -4344,6 +4344,71 @@ def asignar_posiciones_titulares_automaticas(seleccionados, indice_rol=1, indice
         nuevos.append(tuple(valores))
     return nuevos
 
+
+def preparar_dorsales_alineacion(request, equipo, jugadores):
+    """Valida los dorsales publicados y devuelve los jugadores que deben actualizarse."""
+    jugadores_editables = {jugador.id for jugador in jugadores}
+    jugadores = list(Jugador.objects.filter(equipo=equipo).only("id", "nombres", "dorsal"))
+    dorsales_propuestos = {jugador.id: jugador.dorsal for jugador in jugadores}
+    errores = []
+
+    for jugador in jugadores:
+        llave = f"dorsal_{jugador.id}"
+        if jugador.id not in jugadores_editables or llave not in request.POST:
+            continue
+        valor = (request.POST.get(llave) or "").strip()
+        if not valor:
+            dorsales_propuestos[jugador.id] = None
+        elif not valor.isdigit() or not 1 <= int(valor) <= 999:
+            errores.append(f"El dorsal de {jugador.nombres} debe ser un número entre 1 y 999.")
+        else:
+            dorsales_propuestos[jugador.id] = int(valor)
+
+    por_dorsal = defaultdict(list)
+    for jugador in jugadores:
+        dorsal = dorsales_propuestos[jugador.id]
+        if dorsal is not None:
+            por_dorsal[dorsal].append(jugador.nombres)
+    for dorsal, nombres in por_dorsal.items():
+        if len(nombres) > 1:
+            errores.append(f"El dorsal #{dorsal} está repetido en {equipo.nombre}: {', '.join(nombres)}.")
+
+    if errores:
+        return [], errores
+
+    actualizados = []
+    for jugador in jugadores:
+        nuevo_dorsal = dorsales_propuestos[jugador.id]
+        if jugador.dorsal != nuevo_dorsal:
+            jugador.dorsal = nuevo_dorsal
+            actualizados.append(jugador)
+    return actualizados, []
+
+
+def guardar_dorsales_alineacion(request, equipo, jugadores_actualizados):
+    if not jugadores_actualizados:
+        return
+    Jugador.objects.bulk_update(jugadores_actualizados, ["dorsal"])
+    registrar_actividad(
+        request,
+        "ACTUALIZAR_DORSALES_ALINEACION",
+        equipo,
+        descripcion=(
+            f"Actualizó dorsales desde la alineación de {equipo.nombre}: "
+            + ", ".join(
+                f"{jugador.nombres} #{jugador.dorsal}" if jugador.dorsal else f"{jugador.nombres} sin dorsal"
+                for jugador in jugadores_actualizados
+            )
+        ),
+        datos={
+            "equipo_id": equipo.id,
+            "jugadores": [
+                {"jugador_id": jugador.id, "dorsal": jugador.dorsal}
+                for jugador in jugadores_actualizados
+            ],
+        },
+    )
+
 def _registrar_alertas_validacion_alineacion(partido, equipo, user, seleccionados, errores_edad):
     titulares = [int(jugador_id) for jugador_id, rol, _, _ in seleccionados if rol == "TITULAR"]
     documentos_faltantes = [int(jugador_id) for jugador_id, rol, _, documento_ok in seleccionados if rol == "TITULAR" and not documento_ok]
@@ -4728,8 +4793,12 @@ def guardar_alineacion_masiva_movil(request, partido_id):
         messages.error(request, "Ese equipo no pertenece al partido.")
         return redirect(_url_editor_partido(request, partido, "alineacion"))
 
-    jugadores_equipo = Jugador.objects.filter(equipo=equipo).only("id")
+    jugadores_equipo = list(Jugador.objects.filter(equipo=equipo).only("id", "nombres", "dorsal"))
     jugadores_validos = {str(jugador.id) for jugador in jugadores_equipo}
+    dorsales_actualizados, errores_dorsales = preparar_dorsales_alineacion(request, equipo, jugadores_equipo)
+    if errores_dorsales:
+        messages.error(request, " ".join(errores_dorsales))
+        return redirect(_url_editor_partido(request, partido, "alineacion"))
     roles_validos = {"TITULAR", "SUPLENTE", "NO_DISPONIBLE"}
     posiciones_validas = {codigo for codigo, _ in AlineacionPartido.POSICIONES_CANCHA}
     sancionados_equipo = {
@@ -4775,22 +4844,24 @@ def guardar_alineacion_masiva_movil(request, partido_id):
     errores_edad = validar_reglas_edad_titulares(partido, equipo, titulares)
     seleccionados = asignar_posiciones_titulares_automaticas(seleccionados, indice_rol=1, indice_posicion=2)
 
-    AlineacionPartido.objects.filter(partido=partido, equipo=equipo).delete()
-    ahora_validacion = timezone.now()
-    nuevas_alineaciones = [
-        AlineacionPartido(
-            partido=partido,
-            equipo=equipo,
-            jugador_id=jugador_id,
-            rol=rol,
-            posicion_cancha=posicion,
-            documento_validado=documento_validado,
-            documento_validado_por=request.user if documento_validado else None,
-            documento_validado_en=ahora_validacion if documento_validado else None,
-        )
-        for jugador_id, rol, posicion, documento_validado in seleccionados
-    ]
-    AlineacionPartido.objects.bulk_create(nuevas_alineaciones)
+    with transaction.atomic():
+        guardar_dorsales_alineacion(request, equipo, dorsales_actualizados)
+        AlineacionPartido.objects.filter(partido=partido, equipo=equipo).delete()
+        ahora_validacion = timezone.now()
+        nuevas_alineaciones = [
+            AlineacionPartido(
+                partido=partido,
+                equipo=equipo,
+                jugador_id=jugador_id,
+                rol=rol,
+                posicion_cancha=posicion,
+                documento_validado=documento_validado,
+                documento_validado_por=request.user if documento_validado else None,
+                documento_validado_en=ahora_validacion if documento_validado else None,
+            )
+            for jugador_id, rol, posicion, documento_validado in seleccionados
+        ]
+        AlineacionPartido.objects.bulk_create(nuevas_alineaciones)
     _marcar_estadisticas_pendientes(partido, request.user)
     _registrar_alertas_validacion_alineacion(partido, equipo, request.user, seleccionados, errores_edad)
 
@@ -5163,6 +5234,10 @@ def delegado_alineacion_partido(request, equipo_id, partido_id):
         posiciones_usadas = set()
         jugadores_en_cancha = {}
         seleccionados = []
+        dorsales_actualizados, errores_dorsales = preparar_dorsales_alineacion(request, equipo, jugadores)
+        if errores_dorsales:
+            messages.error(request, " ".join(errores_dorsales))
+            return redirect("delegado_alineacion_partido", equipo_id=equipo.id, partido_id=partido.id)
 
         for posicion in posiciones_validas:
             jugador_id = request.POST.get(f"cancha_{posicion}") or ""
@@ -5214,11 +5289,13 @@ def delegado_alineacion_partido(request, equipo_id, partido_id):
 
         errores_edad = validar_reglas_edad_titulares(partido, equipo, titulares)
         seleccionados = asignar_posiciones_titulares_automaticas(seleccionados, indice_rol=1, indice_posicion=2)
-        AlineacionPartido.objects.filter(partido=partido, equipo=equipo).delete()
-        AlineacionPartido.objects.bulk_create([
-            AlineacionPartido(partido=partido, equipo=equipo, jugador_id=jugador_id, rol=rol, posicion_cancha=posicion)
-            for jugador_id, rol, posicion in seleccionados
-        ])
+        with transaction.atomic():
+            guardar_dorsales_alineacion(request, equipo, dorsales_actualizados)
+            AlineacionPartido.objects.filter(partido=partido, equipo=equipo).delete()
+            AlineacionPartido.objects.bulk_create([
+                AlineacionPartido(partido=partido, equipo=equipo, jugador_id=jugador_id, rol=rol, posicion_cancha=posicion)
+                for jugador_id, rol, posicion in seleccionados
+            ])
         _marcar_estadisticas_pendientes(partido, request.user)
 
         if es_definitiva:

@@ -1628,6 +1628,52 @@ class PlanilleroPartidoTests(TestCase):
         self.assertEqual(alineacion.rol, "TITULAR")
         self.assertIn(alineacion.posicion_cancha, {codigo for codigo, _ in AlineacionPartido.POSICIONES_CANCHA})
 
+    def test_planillero_puede_actualizar_dorsal_desde_alineacion(self):
+        self.client.force_login(self.planillero)
+
+        respuesta = self.client.post(
+            f"/partido/{self.partido.id}/guardar-alineacion-movil/",
+            {
+                "equipo": self.local.id,
+                f"rol_{self.jugador.id}": "TITULAR",
+                f"dorsal_{self.jugador.id}": "27",
+            },
+        )
+
+        self.assertEqual(respuesta.status_code, 302)
+        self.jugador.refresh_from_db()
+        self.assertEqual(self.jugador.dorsal, 27)
+        self.assertTrue(RegistroActividad.objects.filter(
+            usuario=self.planillero,
+            accion="ACTUALIZAR_DORSALES_ALINEACION",
+            objeto_id=self.local.id,
+        ).exists())
+
+    def test_no_permite_dorsal_repetido_en_alineacion(self):
+        otro = Jugador.objects.create(
+            equipo=self.local,
+            dorsal=15,
+            nombres="Otro Jugador",
+            cedula="PG2",
+            fecha_nacimiento=date(1991, 1, 1),
+        )
+        self.client.force_login(self.planillero)
+
+        self.client.post(
+            f"/partido/{self.partido.id}/guardar-alineacion-movil/",
+            {
+                "equipo": self.local.id,
+                f"rol_{self.jugador.id}": "TITULAR",
+                f"rol_{otro.id}": "SUPLENTE",
+                f"dorsal_{self.jugador.id}": "15",
+                f"dorsal_{otro.id}": "15",
+            },
+        )
+
+        self.jugador.refresh_from_db()
+        self.assertEqual(self.jugador.dorsal, 9)
+        self.assertFalse(AlineacionPartido.objects.filter(partido=self.partido).exists())
+
     @override_settings(STORAGES={
         "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
         "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
@@ -3692,6 +3738,36 @@ class DelegadoEquipoTests(TestCase):
             self.client.get(f"/delegado/equipos/{self.equipo.id}/partidos/{partido.id}/alineacion/").status_code,
             200,
         )
+
+    def test_delegado_puede_actualizar_dorsal_desde_borrador_alineacion(self):
+        ahora_local = timezone.localtime()
+        partido = Partido.objects.create(
+            categoria=self.categoria,
+            equipo_local=self.equipo,
+            equipo_visitante=self.otro_equipo,
+            fecha=ahora_local.date(),
+            hora=ahora_local.time(),
+            estado="PROGRAMADO",
+        )
+        self.client.force_login(self.delegado)
+
+        respuesta = self.client.post(
+            f"/delegado/equipos/{self.equipo.id}/partidos/{partido.id}/alineacion/",
+            {
+                "accion": "guardar_borrador",
+                f"rol_{self.jugador.id}": "SUPLENTE",
+                f"dorsal_{self.jugador.id}": "18",
+            },
+        )
+
+        self.assertEqual(respuesta.status_code, 302)
+        self.jugador.refresh_from_db()
+        self.assertEqual(self.jugador.dorsal, 18)
+        self.assertTrue(RegistroActividad.objects.filter(
+            usuario=self.delegado,
+            accion="ACTUALIZAR_DORSALES_ALINEACION",
+            objeto_id=self.equipo.id,
+        ).exists())
 
     def test_envio_definitivo_cierra_inmediatamente_acceso_del_delegado(self):
         ahora_local = timezone.localtime()

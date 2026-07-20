@@ -204,6 +204,28 @@
         border-radius: 14px;
         background: #101d30;
     }
+    .jugador-identificacion-delegado {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 8px;
+    }
+    .dorsal-delegado {
+        display: grid;
+        grid-template-columns: auto 72px;
+        align-items: center;
+        gap: 6px;
+        margin: 0;
+        color: #bbf7d0;
+        font-size: 12px;
+        white-space: nowrap;
+    }
+    .dorsal-delegado input {
+        width: 72px;
+        min-height: 36px;
+        padding: 5px 7px;
+        text-align: center;
+    }
     .edad-badge {
         display: inline-flex;
         margin-left: 6px;
@@ -310,11 +332,14 @@
     <div class="banco-lista">
         {% for jugador in jugadores %}
         <section class="banco-jugador" data-jugador-row="{{ jugador.id }}">
-            <div>
+            <div class="jugador-identificacion-delegado">
                 <div>{% if jugador.dorsal %}#{{ jugador.dorsal }} - {% endif %}{{ jugador.nombres|texto_limpio }}{% if jugador.texto_edad %}<span class="edad-badge">{{ jugador.texto_edad }}</span>{% endif %}</div>
                 {% if jugador.id in sancionados_tarjetas %}
                     <div class="muted">Sancionado: queda como no disponible.</div>
                 {% endif %}
+                <label class="dorsal-delegado">Dorsal
+                    <input type="number" name="dorsal_{{ jugador.id }}" min="1" max="999" inputmode="numeric" value="{{ jugador.dorsal|default_if_none:'' }}" placeholder="S/D">
+                </label>
             </div>
             <div class="rol-switch">
                 <label><input type="radio" name="rol_{{ jugador.id }}" value="TITULAR" data-titular-banco {% if jugador.rol_alineacion == "TITULAR" %}checked{% endif %}><span>Titular</span></label>
@@ -536,6 +561,11 @@
                 }
                 scheduleSave();
             });
+        });
+
+        form.querySelectorAll('input[name^="dorsal_"]').forEach((input) => {
+            input.addEventListener('input', scheduleSave);
+            input.addEventListener('change', scheduleSave);
         });
 
         if (finalButton) {

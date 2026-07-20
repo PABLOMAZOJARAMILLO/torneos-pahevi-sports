@@ -422,6 +422,22 @@
             color: #00ff66;
             white-space: nowrap;
         }
+        .dorsal-alineacion-field {
+            display: grid;
+            grid-template-columns: auto 76px;
+            align-items: center;
+            justify-content: end;
+            gap: 6px;
+            color: #bbf7d0;
+            font-size: 11px;
+            white-space: nowrap;
+        }
+        .dorsal-alineacion-input {
+            min-height: 34px;
+            height: 34px;
+            padding: 5px 8px;
+            text-align: center;
+        }
         .validacion-box {
             background: rgba(250, 204, 21, 0.14);
             border: 1px solid rgba(250, 204, 21, 0.52);
@@ -1183,7 +1199,9 @@
                 <div class="jugador-lineup-row" data-jugador-id="{{ j.id }}" data-edad="{{ j.texto_edad }}" data-etiqueta-edad="{{ j.etiqueta_edad }}" data-nombre="{{ j.nombres|texto_limpio }}" data-dorsal="{% if j.dorsal %}{{ j.dorsal }}{% endif %}" data-foto="{{ j.foto_alineacion }}" data-iniciales="{{ j.iniciales_alineacion }}">
                     <div class="jugador-lineup-head">
                         <span>{{ j.nombres|texto_limpio }}{% if j.texto_edad %}<span class="edad-badge">{{ j.texto_edad }}</span>{% endif %}</span>
-                        <span class="jugador-lineup-dorsal">{% if j.dorsal %}#{{ j.dorsal }}{% else %}S/D{% endif %}</span>
+                        <label class="dorsal-alineacion-field">Dorsal
+                            <input class="dorsal-alineacion-input" type="number" name="dorsal_{{ j.id }}" min="1" max="999" inputmode="numeric" value="{{ j.dorsal|default_if_none:'' }}" placeholder="S/D">
+                        </label>
                     </div>
                     <div class="rol-switch">
                         <label><input type="radio" name="rol_{{ j.id }}" value="" {% if not j.rol_alineacion %}checked{% endif %}><span>Fuera</span></label>
@@ -1270,7 +1288,9 @@
                 <div class="jugador-lineup-row" data-jugador-id="{{ j.id }}" data-edad="{{ j.texto_edad }}" data-etiqueta-edad="{{ j.etiqueta_edad }}" data-nombre="{{ j.nombres|texto_limpio }}" data-dorsal="{% if j.dorsal %}{{ j.dorsal }}{% endif %}" data-foto="{{ j.foto_alineacion }}" data-iniciales="{{ j.iniciales_alineacion }}">
                     <div class="jugador-lineup-head">
                         <span>{{ j.nombres|texto_limpio }}{% if j.texto_edad %}<span class="edad-badge">{{ j.texto_edad }}</span>{% endif %}</span>
-                        <span class="jugador-lineup-dorsal">{% if j.dorsal %}#{{ j.dorsal }}{% else %}S/D{% endif %}</span>
+                        <label class="dorsal-alineacion-field">Dorsal
+                            <input class="dorsal-alineacion-input" type="number" name="dorsal_{{ j.id }}" min="1" max="999" inputmode="numeric" value="{{ j.dorsal|default_if_none:'' }}" placeholder="S/D">
+                        </label>
                     </div>
                     <div class="rol-switch">
                         <label><input type="radio" name="rol_{{ j.id }}" value="" {% if not j.rol_alineacion %}checked{% endif %}><span>Fuera</span></label>
