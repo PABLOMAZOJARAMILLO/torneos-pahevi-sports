@@ -798,6 +798,9 @@ class CronometroEventoTests(TestCase):
             cronometro_pausado=True,
         )
         admin = User.objects.create_user("admin-crono", password="test", is_staff=True, is_superuser=True)
+        AlineacionPartido.objects.create(
+            partido=partido, equipo=equipo, jugador=jugador_sale, rol="TITULAR"
+        )
 
         self.client.force_login(admin)
         respuesta = self.client.post(
@@ -891,6 +894,18 @@ class IncidenciasReglasEdadEnJuegoTests(TestCase):
         incidencia = IncidenciaReglaEdad.objects.get(partido=self.partido, equipo=self.equipo)
         self.assertEqual(incidencia.periodo_inicio, "ST")
 
+    def test_no_permite_sustitucion_entre_dos_jugadores_del_banco(self):
+        respuesta = self.registrar_cambio(self.joven_dos, self.mayor_dos)
+
+        self.assertEqual(respuesta.status_code, 302)
+        self.assertFalse(SustitucionPartido.objects.filter(partido=self.partido).exists())
+
+    def test_no_permite_que_entre_un_jugador_que_ya_esta_en_cancha(self):
+        respuesta = self.registrar_cambio(self.joven, self.mayor)
+
+        self.assertEqual(respuesta.status_code, 302)
+        self.assertFalse(SustitucionPartido.objects.filter(partido=self.partido).exists())
+
     @override_settings(STORAGES={
         "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
         "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
@@ -927,6 +942,12 @@ class IncidenciasReglasEdadEnJuegoTests(TestCase):
             fecha=date(2026, 6, 1),
             hora=time(16, 0),
             estado="EN_JUEGO",
+        )
+        AlineacionPartido.objects.create(
+            partido=partido,
+            equipo=equipo,
+            jugador=jugador_sale,
+            rol="TITULAR",
         )
         AlineacionPartido.objects.create(
             partido=partido,

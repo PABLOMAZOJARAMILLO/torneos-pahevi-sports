@@ -4500,6 +4500,12 @@ def editor_partido_movil(request, partido_id):
     alineaciones_por_jugador = {alineacion.jugador_id: alineacion for alineacion in alineaciones}
     jugadores_local = _marcar_roles_alineacion(jugadores_local, alineaciones_por_jugador, partido)
     jugadores_visitante = _marcar_roles_alineacion(jugadores_visitante, alineaciones_por_jugador, partido)
+    jugadores_en_cancha_local = jugadores_actuales_en_cancha(partido, partido.equipo_local)
+    jugadores_en_cancha_visitante = jugadores_actuales_en_cancha(partido, partido.equipo_visitante)
+    for jugador in jugadores_local:
+        jugador.en_cancha_actual = jugador.id in jugadores_en_cancha_local
+    for jugador in jugadores_visitante:
+        jugador.en_cancha_actual = jugador.id in jugadores_en_cancha_visitante
     volver_url = _volver_editor_partido_url(request, partido)
 
     return render(request, 'editor_partido_movil.html', {
@@ -4813,7 +4819,21 @@ def agregar_sustitucion_movil(request, partido_id):
         jugador_sale = get_object_or_404(Jugador, id=jugador_sale_id)
         jugador_entra = get_object_or_404(Jugador, id=jugador_entra_id)
 
-        if _validar_jugador_equipo(jugador_sale, equipo, partido) and _validar_jugador_equipo(jugador_entra, equipo, partido):
+        jugadores_en_cancha = jugadores_actuales_en_cancha(partido, equipo)
+        jugadores_validos = (
+            _validar_jugador_equipo(jugador_sale, equipo, partido)
+            and _validar_jugador_equipo(jugador_entra, equipo, partido)
+        )
+
+        if not jugadores_validos:
+            messages.error(request, 'Los jugadores deben pertenecer al equipo seleccionado.')
+        elif jugador_sale.id == jugador_entra.id:
+            messages.error(request, 'El jugador que entra debe ser distinto del jugador que sale.')
+        elif jugador_sale.id not in jugadores_en_cancha:
+            messages.error(request, f'{jugador_sale.nombres} no puede salir porque no está actualmente en cancha.')
+        elif jugador_entra.id in jugadores_en_cancha:
+            messages.error(request, f'{jugador_entra.nombres} no puede entrar porque ya está actualmente en cancha.')
+        else:
             with transaction.atomic():
                 sustitucion = SustitucionPartido.objects.create(
                     partido=partido,
@@ -4846,8 +4866,6 @@ def agregar_sustitucion_movil(request, partido_id):
                 )
             _marcar_estadisticas_pendientes(partido, request.user)
             messages.success(request, 'Sustitución agregada correctamente.')
-        else:
-            messages.error(request, 'Los jugadores deben pertenecer al equipo seleccionado.')
 
     return redirect(_url_editor_partido(request, partido))
 
