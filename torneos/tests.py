@@ -2466,6 +2466,25 @@ class DescargaProgramacionFiltrosTests(TestCase):
         self.assertEqual(len(partidos), 1)
         self.assertEqual(partidos[0]["local"], "Local")
 
+    def test_descarga_de_fechas_fase_incluye_finalizado_con_resultado(self):
+        self.partido.estado = "FINALIZADO"
+        self.partido.goles_local = 3
+        self.partido.goles_visitante = 1
+        self.partido.save(update_fields=["estado", "goles_local", "goles_visitante"])
+        request = self.client.get("/descargar/programacion/").wsgi_request
+
+        programacion_normal = construir_partidos_programacion(request, self.categoria)
+        programacion_fechas_fase = construir_partidos_programacion(
+            request,
+            self.categoria,
+            incluir_resultados=True,
+        )
+
+        self.assertEqual(programacion_normal, [])
+        self.assertEqual(len(programacion_fechas_fase), 1)
+        self.assertEqual(programacion_fechas_fase[0]["marcador_texto"], "3 - 1")
+        self.assertTrue(programacion_fechas_fase[0]["finalizado"])
+
 
 class FixtureProgramacionBalanceadaTests(TestCase):
     def setUp(self):

@@ -454,7 +454,7 @@ body {
                     <div class="nombre-equipo">{{ p.local }}</div>
                 </div>
 
-                <div class="vs-estado" style="background: {{ p.color_categoria }}; color: {{ p.color_texto_categoria }};">VS</div>
+                <div class="vs-estado" style="background: {{ p.color_categoria }}; color: {{ p.color_texto_categoria }};">{{ p.marcador_texto }}</div>
 
                 <div class="equipo-estado visitante">
                     <div class="nombre-equipo">{{ p.visitante }}</div>
@@ -498,7 +498,7 @@ body {
                     <div>{{ p.local }}</div>
                 </div>
 
-                <div class="vs">VS</div>
+                <div class="vs">{{ p.marcador_texto }}</div>
 
                 <div class="equipo">
                     {% if p.escudo_visitante %}

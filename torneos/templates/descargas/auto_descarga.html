@@ -13,7 +13,7 @@ body {
     background: #020617;
 }
 
-#zona-descarga {
+.zona-descarga {
     width: fit-content;
     margin: 0 auto;
 }
@@ -56,9 +56,17 @@ body {
 
 <button class="volver" type="button" onclick="volverDespuesDescarga()">Volver</button>
 
-<div id="zona-descarga">
+{% if paginas %}
+{% for pagina in paginas %}
+<div class="zona-descarga" data-nombre-archivo="{{ pagina.nombre_archivo }}">
+    {{ pagina.contenido_html|safe }}
+</div>
+{% endfor %}
+{% else %}
+<div class="zona-descarga" data-nombre-archivo="{{ nombre_archivo }}">
     {{ contenido_html|safe }}
 </div>
+{% endif %}
 
 <script>
 function volverDespuesDescarga() {
@@ -71,45 +79,54 @@ function volverAutomaticamente() {
 }
 
 window.onload = function() {
-    const elemento = document.getElementById("zona-descarga");
+    const elementos = Array.from(document.querySelectorAll(".zona-descarga"));
+
+    function guardarCanvas(canvas, nombreArchivo) {
+        const dataUrl = canvas.toDataURL("image/png");
+        if (window.AndroidDownloader) {
+            if (typeof window.AndroidDownloader.guardarImagen === "function") {
+                window.AndroidDownloader.guardarImagen(dataUrl, nombreArchivo);
+            } else if (typeof window.AndroidDownloader.postMessage === "function") {
+                window.AndroidDownloader.postMessage(JSON.stringify({
+                    dataUrl: dataUrl,
+                    nombreArchivo: nombreArchivo
+                }));
+            } else {
+                throw new Error("La APK no pudo recibir la imagen");
+            }
+            return;
+        }
+        const enlace = document.createElement("a");
+        enlace.download = nombreArchivo;
+        enlace.href = dataUrl;
+        enlace.click();
+    }
+
+    async function generarPaginas() {
+        for (let indice = 0; indice < elementos.length; indice += 1) {
+            const elemento = elementos[indice];
+            document.querySelector(".mensaje").innerText =
+                "Generando imagen " + (indice + 1) + " de " + elementos.length + "...";
+            const canvas = await html2canvas(elemento, {
+                scale: 2,
+                useCORS: true,
+                backgroundColor: "#020617",
+                width: elemento.scrollWidth,
+                height: elemento.scrollHeight,
+                windowWidth: elemento.scrollWidth,
+                windowHeight: elemento.scrollHeight
+            });
+            guardarCanvas(canvas, elemento.dataset.nombreArchivo);
+            await new Promise(function(resolve) { setTimeout(resolve, 350); });
+        }
+        document.querySelector(".mensaje").innerText =
+            elementos.length > 1 ? "Imágenes generadas. Volviendo..." : "Imagen generada. Volviendo...";
+        volverAutomaticamente();
+    }
 
     setTimeout(function() {
-        html2canvas(elemento, {
-            scale: 2,
-            useCORS: true,
-            backgroundColor: "#020617",
-            width: elemento.scrollWidth,
-            height: elemento.scrollHeight,
-            windowWidth: elemento.scrollWidth,
-            windowHeight: elemento.scrollHeight
-        }).then(function(canvas) {
-            const dataUrl = canvas.toDataURL("image/png");
-
-            if (window.AndroidDownloader) {
-                if (typeof window.AndroidDownloader.guardarImagen === "function") {
-                    window.AndroidDownloader.guardarImagen(dataUrl, "{{ nombre_archivo }}");
-                } else if (typeof window.AndroidDownloader.postMessage === "function") {
-                    window.AndroidDownloader.postMessage(JSON.stringify({
-                        dataUrl: dataUrl,
-                        nombreArchivo: "{{ nombre_archivo }}"
-                    }));
-                } else {
-                    document.querySelector(".mensaje").innerText = "La APK no pudo recibir la imagen";
-                    return;
-                }
-
-                document.querySelector(".mensaje").innerText = "Guardando imagen en Fotos/TorneosPaheviSports...";
-                volverAutomaticamente();
-                return;
-            }
-
-            const enlace = document.createElement("a");
-            enlace.download = "{{ nombre_archivo }}";
-            enlace.href = dataUrl;
-            enlace.click();
-
-            document.querySelector(".mensaje").innerText = "Imagen generada. Volviendo...";
-            volverAutomaticamente();
+        generarPaginas().catch(function(error) {
+            document.querySelector(".mensaje").innerText = error.message || "No se pudieron generar las imágenes";
         });
     }, 1000);
 }

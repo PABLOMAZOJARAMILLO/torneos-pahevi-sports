@@ -3120,6 +3120,13 @@ def crear_imagen_desde_html(html, nombre_archivo, ancho=1600, alto=1800, volver_
     )
 
 
+def crear_imagenes_desde_html(paginas, volver_url="/"):
+    return render(None, "descargas/auto_descarga.html", {
+        "paginas": paginas,
+        "volver_url": volver_url,
+    })
+
+
 @login_required
 @user_passes_test(es_editor_torneo)
 def descargar_tabla_grupo(request, categoria, grupo):
@@ -3270,17 +3277,36 @@ def descargar_foraneos_categoria(request, categoria):
     datos_categoria = preparar_categoria_para_descarga(request, datos_categoria)
     logos = logos_torneo(request, torneo)
 
-    html = render_to_string("descargas/foraneos_categoria.html", {
-        "categoria": categoria,
-        "datos_categoria": datos_categoria,
-        "logo_alcaldia": logos["logo_alcaldia"],
-        "logo_torneo": logos["logo_torneo"],
-        "logo_imcred": logos["logo_imcred"],
-        "tiene_equipos_delegado": equipos_delegado_asignados(request.user).exists(),
-    })
+    foraneos = list(datos_categoria.get("foraneos") or [])
+    tamano_pagina = 22
+    total_paginas = max(1, (len(foraneos) + tamano_pagina - 1) // tamano_pagina)
+    paginas = []
+    for indice_pagina in range(total_paginas):
+        inicio = indice_pagina * tamano_pagina
+        filas = [
+            SimpleNamespace(numero=inicio + indice + 1, datos=fila)
+            for indice, fila in enumerate(foraneos[inicio:inicio + tamano_pagina])
+        ]
+        datos_pagina = dict(datos_categoria)
+        datos_pagina["foraneos_paginados"] = filas
+        html = render_to_string("descargas/foraneos_categoria.html", {
+            "categoria": categoria,
+            "datos_categoria": datos_pagina,
+            "pagina_actual": indice_pagina + 1,
+            "total_paginas": total_paginas,
+            "logo_alcaldia": logos["logo_alcaldia"],
+            "logo_torneo": logos["logo_torneo"],
+            "logo_imcred": logos["logo_imcred"],
+            "tiene_equipos_delegado": equipos_delegado_asignados(request.user).exists(),
+        })
+        paginas.append({
+            "contenido_html": html,
+            "nombre_archivo": limpiar_nombre(
+                f"FORANEOS_{categoria}_PAGINA_{indice_pagina + 1}_DE_{total_paginas}.png"
+            ),
+        })
 
-    nombre = limpiar_nombre(f"FORANEOS_{categoria}.png")
-    return crear_imagen_desde_html(html, nombre, 1800, 2000, url_retorno_descarga(request))
+    return crear_imagenes_desde_html(paginas, url_retorno_descarga(request))
 
 
 @login_required
@@ -3819,7 +3845,7 @@ def generar_tercer_puesto(request, categoria):
 
     messages.success(request, f"Partido por tercer puesto generado correctamente para {categoria}.")
     return redirect("panel")
-def construir_partidos_programacion(request, categoria_obj=None, numero_fecha="", dia=None):
+def construir_partidos_programacion(request, categoria_obj=None, numero_fecha="", dia=None, incluir_resultados=False):
     dias_semana = {
         0: "LUNES",
         1: "MARTES",
@@ -3846,7 +3872,6 @@ def construir_partidos_programacion(request, categoria_obj=None, numero_fecha=""
 
     torneo = torneo_actual(request)
     partidos = Partido.objects.filter(
-        estado="PROGRAMADO",
         estado_programacion__in=["MANUAL", "OFICIAL"],
         fecha__isnull=False,
         hora__isnull=False,
@@ -3872,6 +3897,9 @@ def construir_partidos_programacion(request, categoria_obj=None, numero_fecha=""
 
     if torneo:
         partidos = partidos.filter(categoria__torneo=torneo)
+
+    if not incluir_resultados:
+        partidos = partidos.filter(estado="PROGRAMADO")
 
     if categoria_obj:
         partidos = partidos.filter(categoria=categoria_obj)
@@ -3930,6 +3958,8 @@ def construir_partidos_programacion(request, categoria_obj=None, numero_fecha=""
             "grupo": p.grupo,
             "fase": fase,
             "estado": p.estado,
+            "finalizado": p.estado == "FINALIZADO",
+            "marcador_texto": f"{p.goles_local} - {p.goles_visitante}" if p.estado == "FINALIZADO" else "VS",
             "dia_semana": dia_semana,
             "fecha": p.fecha,
             "hora": p.hora,
@@ -4066,7 +4096,13 @@ def descargar_programacion_categoria(request, categoria):
     if not categoria_obj:
         return HttpResponse("Categoría no encontrada")
 
-    partidos_programacion = construir_partidos_programacion(request, categoria_obj, numero_fecha, dia)
+    partidos_programacion = construir_partidos_programacion(
+        request,
+        categoria_obj,
+        numero_fecha,
+        dia,
+        incluir_resultados=True,
+    )
 
     if not partidos_programacion:
         return respuesta_descarga_sin_partidos(request, "No hay partidos programados con fecha, hora y cancha para esta categoria.")
