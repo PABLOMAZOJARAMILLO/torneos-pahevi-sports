@@ -434,6 +434,28 @@
             age.style.display = option.dataset.edad ? 'block' : 'none';
         }
 
+        function solicitarDorsalDesdeCancha(select) {
+            const option = select.selectedOptions[0];
+            if (!option || !option.value) return;
+            const playerId = option.value;
+            const name = option.dataset.nombre || option.textContent.trim();
+            const currentDorsal = option.dataset.dorsal || '';
+            const response = window.prompt('Dorsal de ' + name + ' (vacío = sin dorsal)', currentDorsal);
+            if (response === null) return;
+            const dorsal = response.trim();
+            if (dorsal && (!/^\d+$/.test(dorsal) || Number(dorsal) < 1 || Number(dorsal) > 999)) {
+                window.alert('El dorsal debe ser un número entre 1 y 999.');
+                return;
+            }
+
+            const input = form.querySelector('input[name="dorsal_' + playerId + '"]');
+            if (input) input.value = dorsal;
+            selects.forEach((field) => {
+                const playerOption = Array.from(field.options).find((item) => item.value === playerId);
+                if (playerOption) playerOption.dataset.dorsal = dorsal;
+            });
+        }
+
         function syncBenchRoles() {
             const titulares = new Set(selects.filter((select) => select.value).map((select) => select.value));
             form.querySelectorAll('[data-titular-banco]').forEach((input) => {
@@ -541,6 +563,7 @@
 
         selects.forEach((select) => {
             select.addEventListener('change', function () {
+                if (select.value) solicitarDorsalDesdeCancha(select);
                 syncOptions();
                 scheduleSave();
             });

@@ -1712,6 +1712,8 @@ function asignarJugadorASlot(panel, selectorSlot) {
     const jugadorId = selectorSlot.value;
     const posicion = selectorSlot.dataset.posicionSlot || '';
 
+    if (jugadorId) solicitarDorsalDesdeCancha(panel, selectorSlot);
+
     panel.querySelectorAll('[data-slot-select]').forEach(function(otro) {
         if (otro !== selectorSlot && jugadorId && otro.value === jugadorId) {
             otro.value = '';
@@ -1746,6 +1748,29 @@ function asignarJugadorASlot(panel, selectorSlot) {
     pintarSlot(selectorSlot.closest('[data-slot]'), selectorSlot.selectedOptions[0]);
     actualizarConteoTitulares(panel);
     actualizarSelectoresPosicion(panel);
+}
+
+function solicitarDorsalDesdeCancha(panel, selectorSlot) {
+    const opcion = selectorSlot.selectedOptions[0];
+    if (!opcion || !opcion.value) return;
+    const jugadorId = opcion.value;
+    const nombre = opcion.dataset.nombre || opcion.textContent.trim();
+    const dorsalActual = opcion.dataset.dorsal || '';
+    const respuesta = window.prompt('Dorsal de ' + nombre + ' (vacío = sin dorsal)', dorsalActual);
+    if (respuesta === null) return;
+    const dorsal = respuesta.trim();
+    if (dorsal && (!/^\d+$/.test(dorsal) || Number(dorsal) < 1 || Number(dorsal) > 999)) {
+        window.alert('El dorsal debe ser un número entre 1 y 999.');
+        return;
+    }
+
+    const input = panel.querySelector('input[name="dorsal_' + jugadorId + '"]');
+    if (input) input.value = dorsal;
+    panel.querySelectorAll('option[value="' + jugadorId + '"]').forEach(function(item) {
+        item.dataset.dorsal = dorsal;
+    });
+    const fila = panel.querySelector('.jugador-lineup-row[data-jugador-id="' + jugadorId + '"]');
+    if (fila) fila.dataset.dorsal = dorsal;
 }
 
 function activarEquipoAlineacion(equipo) {
