@@ -5876,13 +5876,18 @@ body.solo-lectura .menu-principal{top:96px!important}
 
             {% if puede_descargar_programacion %}
             <div class="descargas-tab">
-                <a class="boton" href="{% url 'descargar_programacion_categoria' categoria %}?volver={{ request.get_full_path|urlencode }}">Descargar programación</a>
+                <a class="boton descarga-programacion-fecha"
+                   href="{% for fecha, partidos_fecha in datos_categoria.partidos_por_fecha.items %}{% if forloop.first %}{% url 'descargar_programacion_categoria' categoria %}?fecha_fixture={{ fecha|urlencode }}&volver={{ request.get_full_path|urlencode }}{% endif %}{% endfor %}">
+                    Descargar fecha seleccionada
+                </a>
             </div>
             {% endif %}
 
             <div class="fechas-menu">
                 {% for fecha, partidos_fecha in datos_categoria.partidos_por_fecha.items %}
                     <button class="btn-fecha"
+                            data-fecha-etiqueta="{{ fecha }}"
+                            data-descarga-url="{% url 'descargar_programacion_categoria' categoria %}?fecha_fixture={{ fecha|urlencode }}&volver={{ request.get_full_path|urlencode }}"
                             onclick="mostrarFechaCategoria('categoria-{{ forloop.parentloop.counter }}', 'fecha-{{ forloop.parentloop.counter }}-{{ forloop.counter }}', this)">
                         {{ fecha }}
                     </button>
@@ -6773,6 +6778,11 @@ function mostrarFechaCategoria(idCategoria, idFecha, boton) {
         bloqueSeleccionado.style.display = 'flex';
         bloqueSeleccionado.classList.add('activa');
         boton.classList.add('activa');
+        const descargaFecha = categoria.querySelector('.tab-content[data-tab="fase1"] .descarga-programacion-fecha');
+        if (descargaFecha && boton.dataset.descargaUrl) {
+            descargaFecha.href = boton.dataset.descargaUrl;
+            descargaFecha.textContent = 'Descargar: ' + (boton.dataset.fechaEtiqueta || 'fecha seleccionada');
+        }
     }
 }
 
