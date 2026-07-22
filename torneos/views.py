@@ -2434,6 +2434,39 @@ def foto_jugador_url(jugador):
     return ""
 
 
+def cuerpo_tecnico_live(equipo):
+    personas = []
+    personas_por_nombre = {}
+    integrantes = (
+        ("Director técnico", equipo.director_tecnico, equipo.foto_director_tecnico),
+        ("Asistente técnico", equipo.asistente_tecnico, equipo.foto_asistente_tecnico),
+        ("Delegado", equipo.delegado, equipo.foto_delegado),
+    )
+
+    for indice, (cargo, nombre, foto) in enumerate(integrantes):
+        nombre = str(nombre or "").strip()
+        clave = slugify(nombre) if nombre else f"sin-registrar-{indice}"
+        persona = personas_por_nombre.get(clave)
+        if persona:
+            persona.cargos.append(cargo)
+            persona.cargo = " / ".join(persona.cargos)
+            if not persona.foto and foto:
+                persona.foto = foto
+            continue
+
+        persona = SimpleNamespace(
+            nombre=nombre or "No registrado",
+            cargos=[cargo],
+            cargo=cargo,
+            foto=foto,
+            iniciales={"Director técnico": "DT", "Asistente técnico": "AT", "Delegado": "DE"}[cargo],
+        )
+        personas_por_nombre[clave] = persona
+        personas.append(persona)
+
+    return personas
+
+
 def iniciales_jugador(jugador):
     nombre = (getattr(jugador, "nombres", "") or "").strip()
     partes = [parte[0] for parte in nombre.split()[:2] if parte]
@@ -8421,6 +8454,8 @@ def partido_live(request, partido_id):
         "suplentes_visitante": suplentes_visitante,
         "no_disponibles_local": no_disponibles_local,
         "no_disponibles_visitante": no_disponibles_visitante,
+        "cuerpo_tecnico_local": cuerpo_tecnico_live(partido.equipo_local),
+        "cuerpo_tecnico_visitante": cuerpo_tecnico_live(partido.equipo_visitante),
         "eventos_live": eventos_live,
         "eventos_live_grupos": eventos_live_grupos,
         "segundos_vivos": segundos_vivos_partido(partido),

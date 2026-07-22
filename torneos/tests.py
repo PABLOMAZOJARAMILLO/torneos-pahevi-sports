@@ -1598,6 +1598,23 @@ class PlanilleroPartidoTests(TestCase):
         "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
         "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
     })
+    def test_live_no_repite_persona_con_varios_cargos(self):
+        self.local.director_tecnico = "José Pérez"
+        self.local.asistente_tecnico = "JOSE PEREZ"
+        self.local.delegado = " jose  perez "
+        self.local.save(update_fields=["director_tecnico", "asistente_tecnico", "delegado"])
+
+        respuesta = self.client.get(f"/partido/{self.partido.id}/live/")
+
+        personas = respuesta.context["cuerpo_tecnico_local"]
+        self.assertEqual(len(personas), 1)
+        self.assertEqual(personas[0].nombre, "José Pérez")
+        self.assertEqual(personas[0].cargo, "Director técnico / Asistente técnico / Delegado")
+
+    @override_settings(STORAGES={
+        "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+        "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
+    })
     def test_editor_movil_muestra_selector_de_equipos_debajo_de_cada_cancha(self):
         self.client.force_login(self.planillero)
 
