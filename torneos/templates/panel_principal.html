@@ -778,6 +778,14 @@
         font-size: 15px;
     }
 
+    .tabla-foraneos th {
+        text-align: center !important;
+        vertical-align: middle;
+        white-space: nowrap;
+        padding: 8px 6px;
+        font-size: 13px;
+    }
+
     td {
         border-bottom: 1px solid #31455f;
         padding: 10px;
@@ -5833,16 +5841,16 @@ body.solo-lectura .menu-principal{top:96px!important}
                 </a>
             </div>
 
-            <div class="tabla-responsive tabla-posiciones">
+            <div class="tabla-responsive tabla-posiciones tabla-foraneos">
                 <table>
                     <tr>
                         <th>#</th>
                         <th class="col-jugador">Jugador</th>
                         <th class="col-equipo">Equipo</th>
-                        <th>Partidos jugados por el jugador</th>
-                        <th>Mínimo de partidos exigido</th>
-                        <th>Partidos del equipo en la primera fase</th>
-                        <th>Estado del jugador</th>
+                        <th>Partidos del jugador</th>
+                        <th>Mínimo exigido</th>
+                        <th>Partidos equipos 1.ª fase</th>
+                        <th>Estado</th>
                     </tr>
 
                     {% for f in datos_categoria.foraneos %}

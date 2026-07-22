@@ -65,7 +65,7 @@ h1 {
     background: rgba(0, 255, 102, 0.12);
     border: 1px solid rgba(0, 255, 102, 0.35);
     color: #d7ffe6;
-    font-size: 18px;
+    font-size: 15px;
     font-weight: 800;
 }
 
@@ -79,6 +79,13 @@ th {
     color: black;
     padding: 9px 8px;
     font-size: 18px;
+    text-align: center;
+    vertical-align: middle;
+}
+
+th.col-jugador,
+th.col-equipo {
+    text-align: center;
 }
 
 td {
@@ -182,10 +189,10 @@ td {
 <th>#</th>
 <th>Jugador</th>
 <th>Equipo</th>
-<th>Partidos jugados<br>por el jugador</th>
-<th>Minimo de partidos<br>exigido</th>
-<th>Partidos del equipo<br>en primera fase</th>
-<th>Estado del<br>jugador</th>
+<th>Partidos del jugador</th>
+<th>Minimo exigido</th>
+<th>Partidos equipos 1.a fase</th>
+<th>Estado</th>
 </tr>
 
 {% for fila in datos_categoria.foraneos_paginados %}
