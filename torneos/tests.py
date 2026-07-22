@@ -2538,13 +2538,13 @@ class DescargaProgramacionFiltrosTests(TestCase):
         self.assertContains(respuesta, "18/07/2026")
         self.assertContains(respuesta, f'value="{self.categoria.id}"')
 
-    def test_etiquetas_de_valla_muestran_fechas_y_fases_completas(self):
-        self.assertEqual(etiqueta_columna_planilla("1"), "Fecha 1")
-        self.assertEqual(etiqueta_columna_planilla("Fecha 2"), "Fecha 2")
-        self.assertEqual(etiqueta_columna_planilla("CUARTOS"), "Cuartos")
-        self.assertEqual(etiqueta_columna_planilla("SEMIFINAL"), "Semifinal")
-        self.assertEqual(etiqueta_columna_planilla("TERCER_PUESTO"), "Tercer puesto")
-        self.assertEqual(etiqueta_columna_planilla("FINAL"), "Final")
+    def test_etiquetas_de_valla_abrevian_fechas_y_fases(self):
+        self.assertEqual(etiqueta_columna_planilla("1"), "F1")
+        self.assertEqual(etiqueta_columna_planilla("Fecha 2"), "F2")
+        self.assertEqual(etiqueta_columna_planilla("CUARTOS"), "CT")
+        self.assertEqual(etiqueta_columna_planilla("SEMIFINAL"), "SM")
+        self.assertEqual(etiqueta_columna_planilla("TERCER_PUESTO"), "TP")
+        self.assertEqual(etiqueta_columna_planilla("FINAL"), "F")
 
     def test_constructor_filtra_programacion_por_categoria_fecha_y_dia(self):
         request = self.client.get("/descargar/programacion/").wsgi_request

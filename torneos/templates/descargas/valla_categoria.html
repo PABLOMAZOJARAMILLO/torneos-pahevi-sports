@@ -63,6 +63,17 @@ th {
     background: #00ff66;
     color: black;
     padding: 6px;
+    text-align: center;
+    vertical-align: middle;
+}
+
+.col-valla-fase {
+    width: 42px;
+    min-width: 42px;
+    padding-left: 4px;
+    padding-right: 4px;
+    text-align: center;
+    white-space: nowrap;
 }
 
 td {
@@ -125,7 +136,7 @@ td {
 <tr>
 
 {% for col in datos_categoria.columnas_planilla_display %}
-<th>{{ col.etiqueta }}</th>
+<th class="col-valla-fase">{{ col.etiqueta }}</th>
 {% endfor %}
 </tr>
 
@@ -142,7 +153,7 @@ td {
     </div>
 </td>
 {% for val in v.celdas %}
-<td>{{ val }}</td>
+<td class="col-valla-fase">{{ val }}</td>
 {% endfor %}
 
 <td>{{ v.pj }}</td>

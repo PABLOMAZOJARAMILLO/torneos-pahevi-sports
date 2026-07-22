@@ -778,12 +778,31 @@
         font-size: 15px;
     }
 
+    .tabla-responsive th {
+        text-align: center !important;
+        vertical-align: middle !important;
+    }
+
     .tabla-foraneos th {
         text-align: center !important;
         vertical-align: middle;
         white-space: nowrap;
         padding: 8px 6px;
         font-size: 13px;
+    }
+
+    .tabla-valla th {
+        text-align: center !important;
+        vertical-align: middle;
+    }
+
+    .tabla-valla .col-valla-fase {
+        width: 42px;
+        min-width: 42px;
+        padding-left: 5px !important;
+        padding-right: 5px !important;
+        text-align: center !important;
+        white-space: nowrap;
     }
 
     td {
@@ -2389,6 +2408,11 @@ body.solo-lectura .menu-principal {
     td {
         padding: 7px 8px !important;
         font-size: 13px !important;
+    }
+
+    .tabla-responsive th {
+        padding: 6px !important;
+        line-height: 1.05 !important;
     }
 
     .tabla-posiciones th:nth-child(1),
@@ -5630,7 +5654,7 @@ body.solo-lectura .menu-principal{top:96px!important}
 
             <p class="aviso-deslizar">← Desliza la tabla hacia los lados para verla completa →</p>
 
-            <div class="tabla-responsive">
+            <div class="tabla-responsive tabla-valla">
                 <table>
                     <tr>
                         <th>#</th>
@@ -5687,14 +5711,14 @@ body.solo-lectura .menu-principal{top:96px!important}
                     <tr>
                         <th rowspan="2">#</th>
                         <th rowspan="2" class="col-equipo">Equipo</th>
-                        <th colspan="{{ datos_categoria.columnas_planilla_display|length }}">Goles recibidos por fechas y fases</th>
+                        <th class="grupo-valla" colspan="{{ datos_categoria.columnas_planilla_display|length }}">Goles recibidos por fechas y fases</th>
                         <th rowspan="2">PJ</th>
                         <th rowspan="2">GC</th>
                         <th rowspan="2">Promedio</th>
                     </tr>
                     <tr>
                         {% for col in datos_categoria.columnas_planilla_display %}
-                            <th>{{ col.etiqueta }}</th>
+                            <th class="col-valla-fase">{{ col.etiqueta }}</th>
                         {% endfor %}
                     </tr>
 
@@ -5710,7 +5734,7 @@ body.solo-lectura .menu-principal{top:96px!important}
                             </div>
                         </td>
                         {% for valor in v.celdas %}
-                            <td>{{ valor }}</td>
+                            <td class="col-valla-fase">{{ valor }}</td>
                         {% endfor %}
                         <td>{{ v.pj }}</td>
                         <td>{{ v.gc }}</td>
