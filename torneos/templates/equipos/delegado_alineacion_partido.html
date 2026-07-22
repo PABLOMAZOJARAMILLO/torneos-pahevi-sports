@@ -288,7 +288,7 @@
 </style>
 
 {{ reglas_edad_alineacion|json_script:"reglas-edad-alineacion" }}
-<form method="post" data-delegado-alineacion-form>
+<form method="post" data-delegado-alineacion-form novalidate>
     {% csrf_token %}
 
     <div class="card">
@@ -338,7 +338,7 @@
                     <div class="muted">Sancionado: queda como no disponible.</div>
                 {% endif %}
                 <label class="dorsal-delegado">Dorsal
-                    <input type="number" name="dorsal_{{ jugador.id }}" min="1" max="999" inputmode="numeric" value="{{ jugador.dorsal|default_if_none:'' }}" placeholder="S/D">
+                    <input type="text" name="dorsal_{{ jugador.id }}" inputmode="numeric" value="{{ jugador.dorsal|default_if_none:'' }}" placeholder="S/D">
                 </label>
             </div>
             <div class="rol-switch">

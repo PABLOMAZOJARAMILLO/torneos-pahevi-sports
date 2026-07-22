@@ -1135,7 +1135,7 @@
 
             <div class="alineacion-alerta" data-alineacion-alerta></div>
 
-            <form class="alineacion-equipo-panel" data-alineacion-panel="local" method="POST" onsubmit="guardarContextoPanelEditor()" action="{% url 'guardar_alineacion_masiva_movil' partido.id %}">
+            <form class="alineacion-equipo-panel" data-alineacion-panel="local" method="POST" novalidate onsubmit="guardarContextoPanelEditor()" action="{% url 'guardar_alineacion_masiva_movil' partido.id %}">
                 {% csrf_token %}
                 <input type="hidden" name="equipo" value="{{ partido.equipo_local.id }}">
                 <div class="alineacion-resumen">
@@ -1200,7 +1200,7 @@
                     <div class="jugador-lineup-head">
                         <span>{{ j.nombres|texto_limpio }}{% if j.texto_edad %}<span class="edad-badge">{{ j.texto_edad }}</span>{% endif %}</span>
                         <label class="dorsal-alineacion-field">Dorsal
-                            <input class="dorsal-alineacion-input" type="number" name="dorsal_{{ j.id }}" min="1" max="999" inputmode="numeric" value="{{ j.dorsal|default_if_none:'' }}" placeholder="S/D">
+                            <input class="dorsal-alineacion-input" type="text" name="dorsal_{{ j.id }}" inputmode="numeric" value="{{ j.dorsal|default_if_none:'' }}" placeholder="S/D">
                         </label>
                     </div>
                     <div class="rol-switch">
@@ -1224,7 +1224,7 @@
                 <button class="btn" type="submit">Guardar {{ partido.equipo_local.nombre }}</button>
             </form>
 
-            <form class="alineacion-equipo-panel" data-alineacion-panel="visitante" method="POST" onsubmit="guardarContextoPanelEditor()" action="{% url 'guardar_alineacion_masiva_movil' partido.id %}" hidden>
+            <form class="alineacion-equipo-panel" data-alineacion-panel="visitante" method="POST" novalidate onsubmit="guardarContextoPanelEditor()" action="{% url 'guardar_alineacion_masiva_movil' partido.id %}" hidden>
                 {% csrf_token %}
                 <input type="hidden" name="equipo" value="{{ partido.equipo_visitante.id }}">
                 <div class="alineacion-resumen">
@@ -1289,7 +1289,7 @@
                     <div class="jugador-lineup-head">
                         <span>{{ j.nombres|texto_limpio }}{% if j.texto_edad %}<span class="edad-badge">{{ j.texto_edad }}</span>{% endif %}</span>
                         <label class="dorsal-alineacion-field">Dorsal
-                            <input class="dorsal-alineacion-input" type="number" name="dorsal_{{ j.id }}" min="1" max="999" inputmode="numeric" value="{{ j.dorsal|default_if_none:'' }}" placeholder="S/D">
+                            <input class="dorsal-alineacion-input" type="text" name="dorsal_{{ j.id }}" inputmode="numeric" value="{{ j.dorsal|default_if_none:'' }}" placeholder="S/D">
                         </label>
                     </div>
                     <div class="rol-switch">

@@ -4396,18 +4396,11 @@ def preparar_dorsales_alineacion(request, equipo, jugadores):
         if not valor:
             dorsales_propuestos[jugador.id] = None
         elif not valor.isdigit() or not 1 <= int(valor) <= 999:
-            errores.append(f"El dorsal de {jugador.nombres} debe ser un número entre 1 y 999.")
+            # Un dorsal antiguo o mal digitado nunca debe impedir guardar la alineación.
+            # Se conserva el valor que ya tenía el jugador.
+            continue
         else:
             dorsales_propuestos[jugador.id] = int(valor)
-
-    por_dorsal = defaultdict(list)
-    for jugador in jugadores:
-        dorsal = dorsales_propuestos[jugador.id]
-        if dorsal is not None:
-            por_dorsal[dorsal].append(jugador.nombres)
-    for dorsal, nombres in por_dorsal.items():
-        if len(nombres) > 1:
-            errores.append(f"El dorsal #{dorsal} está repetido en {equipo.nombre}: {', '.join(nombres)}.")
 
     if errores:
         return [], errores

@@ -1649,7 +1649,7 @@ class PlanilleroPartidoTests(TestCase):
             objeto_id=self.local.id,
         ).exists())
 
-    def test_no_permite_dorsal_repetido_en_alineacion(self):
+    def test_dorsal_repetido_no_impide_guardar_alineacion(self):
         otro = Jugador.objects.create(
             equipo=self.local,
             dorsal=15,
@@ -1671,8 +1671,44 @@ class PlanilleroPartidoTests(TestCase):
         )
 
         self.jugador.refresh_from_db()
-        self.assertEqual(self.jugador.dorsal, 9)
-        self.assertFalse(AlineacionPartido.objects.filter(partido=self.partido).exists())
+        self.assertEqual(self.jugador.dorsal, 15)
+        self.assertEqual(
+            AlineacionPartido.objects.filter(partido=self.partido, equipo=self.local).count(),
+            2,
+        )
+
+    def test_planillero_guarda_once_completo_de_titulares_en_vivo(self):
+        jugadores = [self.jugador]
+        for indice in range(2, 12):
+            jugadores.append(Jugador.objects.create(
+                equipo=self.local,
+                dorsal=indice,
+                nombres=f"Titular {indice}",
+                cedula=f"ONCE-{indice}",
+                fecha_nacimiento=date(1990, 1, 1),
+            ))
+        self.partido.estado = "EN_JUEGO"
+        self.partido.save(update_fields=["estado"])
+        self.client.force_login(self.planillero)
+        datos = {"equipo": self.local.id}
+        for jugador in jugadores:
+            datos[f"rol_{jugador.id}"] = "TITULAR"
+            datos[f"dorsal_{jugador.id}"] = str(jugador.dorsal or "")
+
+        respuesta = self.client.post(
+            f"/partido/{self.partido.id}/guardar-alineacion-movil/",
+            datos,
+        )
+
+        self.assertEqual(respuesta.status_code, 302)
+        self.assertEqual(
+            AlineacionPartido.objects.filter(
+                partido=self.partido,
+                equipo=self.local,
+                rol="TITULAR",
+            ).count(),
+            11,
+        )
 
     @override_settings(STORAGES={
         "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
