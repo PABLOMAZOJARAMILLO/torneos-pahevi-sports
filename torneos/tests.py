@@ -3564,6 +3564,11 @@ class DelegadoEquipoTests(TestCase):
         self.assertContains(respuesta_fotos, 'accept="image/*"')
         self.assertContains(respuesta_fotos, 'capture="environment"')
         self.assertContains(respuesta_fotos, 'data-photo-resize="jugador"')
+        self.assertContains(respuesta_fotos, "Cuerpo t&eacute;cnico y Admin App", html=True)
+        self.assertContains(respuesta_fotos, 'name="cuerpo-foto_director_tecnico"')
+        self.assertContains(respuesta_fotos, 'name="cuerpo-foto_asistente_tecnico"')
+        self.assertContains(respuesta_fotos, 'name="cuerpo-foto_delegado"')
+        self.assertContains(respuesta_fotos, 'name="cuerpo-foto_administrador_app"')
         self.assertRedirects(
             respuesta_editar,
             f"/delegado/equipos/{self.equipo.id}/fotos-jugadores/",
@@ -3601,6 +3606,36 @@ class DelegadoEquipoTests(TestCase):
             objeto_id=self.equipo.id,
         )
         self.assertEqual(registro.datos["cantidad"], 1)
+
+    def test_delegado_con_permiso_solo_fotos_puede_cargar_foto_cuerpo_tecnico(self):
+        self.equipo.delegado_puede_editar_equipo = False
+        self.equipo.delegado_puede_cargar_fotos_jugadores = True
+        self.equipo.director_tecnico = "Director Uno"
+        self.equipo.save(update_fields=["delegado_puede_editar_equipo", "delegado_puede_cargar_fotos_jugadores", "director_tecnico"])
+        self.client.force_login(self.delegado)
+        imagen_bytes = BytesIO()
+        Image.new("RGB", (8, 8), "#00ff66").save(imagen_bytes, format="PNG")
+        imagen_bytes.seek(0)
+        archivo = SimpleUploadedFile("director.png", imagen_bytes.read(), content_type="image/png")
+
+        respuesta = self.client.post(
+            f"/delegado/equipos/{self.equipo.id}/fotos-jugadores/",
+            {"cuerpo-foto_director_tecnico": archivo},
+        )
+
+        self.assertRedirects(
+            respuesta,
+            f"/delegado/equipos/{self.equipo.id}/fotos-jugadores/",
+            fetch_redirect_response=False,
+        )
+        self.equipo.refresh_from_db()
+        self.assertTrue(self.equipo.foto_director_tecnico.name)
+        self.assertEqual(self.equipo.director_tecnico, "Director Uno")
+        self.assertTrue(RegistroActividad.objects.filter(
+            usuario=self.delegado,
+            accion="CARGAR_FOTOS_JUGADORES",
+            datos__cuerpo_tecnico=True,
+        ).exists())
 
     def test_delegado_sin_permiso_de_fotos_no_abre_carga_de_fotos(self):
         self.equipo.delegado_puede_cargar_fotos_jugadores = False

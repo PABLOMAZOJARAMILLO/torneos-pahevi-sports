@@ -38,7 +38,7 @@ import requests
 from django.views.decorators.http import require_POST
 from openpyxl import load_workbook
 
-from .forms import TorneoForm, OrganizadorForm, CategoriaForm, ReglaEdadCategoriaFormSet, DocumentoForm, PlanillaJuegoUploadForm, EquipoForm, EquipoDelegadoForm, EquipoReinscripcionForm, JugadorForm, JugadorDelegadoForm, JugadorFotoDelegadoForm, PartidoForm, PartidoProgramacionForm, AdminTorneoForm, AdminOrganizadorForm, CrearAdminOrganizadorForm
+from .forms import TorneoForm, OrganizadorForm, CategoriaForm, ReglaEdadCategoriaFormSet, DocumentoForm, PlanillaJuegoUploadForm, EquipoForm, EquipoDelegadoForm, EquipoFotosCuerpoTecnicoDelegadoForm, EquipoReinscripcionForm, JugadorForm, JugadorDelegadoForm, JugadorFotoDelegadoForm, PartidoForm, PartidoProgramacionForm, AdminTorneoForm, AdminOrganizadorForm, CrearAdminOrganizadorForm
 from .models import Torneo, Organizador, Categoria, Documento, Equipo, Partido, Gol, Tarjeta, Jugador, AlineacionPartido, EntregaAlineacionPartido, SustitucionPartido, IncidenciaReglaEdad, ReglaEdadCategoria, AdminTorneo, AdminOrganizador, RegistroActividad, VisitaPublicaDiaria, SolicitudValidacion, limpiar_ruta_cloudinary
 from .planillas_pdf import generar_planilla_juego_pdf, nombre_archivo_planilla
 from django.utils import timezone
@@ -5219,9 +5219,19 @@ def delegado_fotos_jugadores(request, equipo_id):
         return HttpResponseForbidden("No tienes permiso para cargar fotos de jugadores de este equipo.")
 
     jugadores = list(equipo.jugadores.order_by("dorsal", "nombres"))
+    cuerpo_form = EquipoFotosCuerpoTecnicoDelegadoForm(
+        request.POST or None,
+        request.FILES or None,
+        instance=equipo,
+        prefix="cuerpo",
+    )
 
     if request.method == "POST":
         actualizados = 0
+        cuerpo_actualizado = False
+        if cuerpo_form.is_valid() and cuerpo_form.has_changed():
+            cuerpo_form.save()
+            cuerpo_actualizado = True
         for jugador in jugadores:
             form = JugadorFotoDelegadoForm(
                 request.POST,
@@ -5232,23 +5242,29 @@ def delegado_fotos_jugadores(request, equipo_id):
             if form.is_valid() and form.cleaned_data.get("foto"):
                 form.save()
                 actualizados += 1
-        if actualizados:
+        if actualizados or cuerpo_actualizado:
+            partes = []
+            if cuerpo_actualizado:
+                partes.append("fotos del cuerpo técnico")
+            if actualizados:
+                partes.append(f"{actualizados} foto(s) de jugadores")
+            resumen_fotos = " y ".join(partes)
             crear_solicitud_validacion(
                 "JUGADOR",
-                f"Validar fotos de jugadores: {equipo.nombre}",
-                descripcion=f"El delegado cargo o actualizo {actualizados} foto(s) de jugadores en {equipo.nombre}.",
+                f"Validar fotos del equipo: {equipo.nombre}",
+                descripcion=f"El delegado cargó o actualizó {resumen_fotos} en {equipo.nombre}.",
                 user=request.user,
                 equipo=equipo,
-                datos={"equipo_id": equipo.id, "accion": "FOTOS_JUGADORES", "cantidad": actualizados},
+                datos={"equipo_id": equipo.id, "accion": "FOTOS_EQUIPO", "cantidad": actualizados, "cantidad_jugadores": actualizados, "cuerpo_tecnico": cuerpo_actualizado},
             )
             registrar_actividad(
                 request,
                 "CARGAR_FOTOS_JUGADORES",
                 equipo,
-                descripcion=f"El delegado cargó o actualizó {actualizados} foto(s) de jugadores de {equipo.nombre}.",
-                datos={"equipo_id": equipo.id, "cantidad": actualizados},
+                descripcion=f"El delegado cargó o actualizó {resumen_fotos} de {equipo.nombre}.",
+                datos={"equipo_id": equipo.id, "cantidad": actualizados, "cantidad_jugadores": actualizados, "cuerpo_tecnico": cuerpo_actualizado},
             )
-            messages.success(request, f"Fotos actualizadas: {actualizados}.")
+            messages.success(request, f"Fotos actualizadas: {resumen_fotos}.")
         else:
             request._actividad_registrada = True
             messages.info(request, "No seleccionaste fotos nuevas para cargar.")
@@ -5263,10 +5279,27 @@ def delegado_fotos_jugadores(request, equipo_id):
         for jugador in jugadores
     ]
 
+    def url_archivo(archivo):
+        if not archivo:
+            return ""
+        try:
+            return archivo.url
+        except Exception:
+            return ""
+
+    fotos_cuerpo = [
+        {"cargo": "Director técnico", "nombre": equipo.director_tecnico or "No registrado", "foto_url": url_archivo(equipo.foto_director_tecnico), "field": cuerpo_form["foto_director_tecnico"]},
+        {"cargo": "Asistente técnico", "nombre": equipo.asistente_tecnico or "No registrado", "foto_url": url_archivo(equipo.foto_asistente_tecnico), "field": cuerpo_form["foto_asistente_tecnico"]},
+        {"cargo": "Delegado", "nombre": equipo.delegado or "No registrado", "foto_url": url_archivo(equipo.foto_delegado), "field": cuerpo_form["foto_delegado"]},
+        {"cargo": "Admin App", "nombre": equipo.administrador_app or "No registrado", "foto_url": url_archivo(equipo.foto_administrador_app), "field": cuerpo_form["foto_administrador_app"]},
+    ]
+
     return render(request, "equipos/delegado_fotos_jugadores.html", {
-        "titulo": f"Fotos de jugadores: {equipo.nombre}",
+        "titulo": f"Fotos del equipo: {equipo.nombre}",
         "equipo": equipo,
         "filas": filas,
+        "fotos_cuerpo": fotos_cuerpo,
+        "cuerpo_form": cuerpo_form,
     })
 
 

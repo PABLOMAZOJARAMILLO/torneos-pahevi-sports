@@ -2,7 +2,7 @@
 {% load texto_limpio %}
 
 {% block title %}{{ titulo }}{% endblock %}
-{% block heading %}Fotos de jugadores{% endblock %}
+{% block heading %}Fotos del equipo{% endblock %}
 
 {% block content %}
 <style>
@@ -77,11 +77,45 @@
 
 <div class="card">
     <strong>{{ equipo.nombre }}</strong>
-    <div class="muted">Solo puedes cargar o reemplazar fotos. Los datos de jugadores no se modifican desde esta pantalla.</div>
+    <div class="muted">Solo puedes cargar o reemplazar fotos del cuerpo t&eacute;cnico y de los jugadores. Sus datos no se modifican desde esta pantalla.</div>
 </div>
 
 <form method="post" enctype="multipart/form-data">
     {% csrf_token %}
+    <h2>Cuerpo t&eacute;cnico y Admin App</h2>
+    <div class="foto-jugadores-lista">
+        {% for fila in fotos_cuerpo %}
+            <div class="foto-jugador-card">
+                {% if fila.foto_url %}
+                    <img data-photo-preview src="{{ fila.foto_url }}" alt="Foto de {{ fila.nombre }}">
+                {% else %}
+                    <div class="foto-jugador-placeholder" data-photo-placeholder>Foto</div>
+                {% endif %}
+                <div>
+                    <div><strong>{{ fila.cargo }}</strong></div>
+                    <div class="muted">{{ fila.nombre }}</div>
+                </div>
+                <div>
+                    <div class="foto-opciones">
+                        <div>
+                            <span class="foto-opcion-label">Tomar foto</span>
+                            {{ fila.field }}
+                        </div>
+                        <div>
+                            <label class="foto-opcion-label" for="galeria-cuerpo-{{ forloop.counter }}">Subir de galer&iacute;a</label>
+                            <input id="galeria-cuerpo-{{ forloop.counter }}" type="file" name="{{ fila.field.html_name }}" accept="image/*" data-photo-resize="jugador">
+                        </div>
+                    </div>
+                    <span class="foto-jugador-status" data-photo-status></span>
+                    {% for error in fila.field.errors %}
+                        <div class="message">{{ error }}</div>
+                    {% endfor %}
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+
+    <h2>Jugadores</h2>
     <div class="foto-jugadores-lista">
         {% for fila in filas %}
             <div class="foto-jugador-card">
@@ -116,9 +150,7 @@
         {% endfor %}
     </div>
 
-    {% if filas %}
-        <p><button class="btn" type="submit">Guardar fotos</button></p>
-    {% endif %}
+    <p><button class="btn" type="submit">Guardar fotos</button></p>
 </form>
 
 <script>

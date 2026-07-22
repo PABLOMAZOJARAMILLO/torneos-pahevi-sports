@@ -452,6 +452,39 @@ class EquipoDelegadoForm(forms.ModelForm):
         ]
 
 
+class EquipoFotosCuerpoTecnicoDelegadoForm(forms.ModelForm):
+    class Meta:
+        model = Equipo
+        fields = [
+            "foto_director_tecnico",
+            "foto_asistente_tecnico",
+            "foto_delegado",
+            "foto_administrador_app",
+        ]
+        widgets = {
+            "foto_director_tecnico": forms.ClearableFileInput(attrs={
+                "accept": "image/*",
+                "capture": "environment",
+                "data-photo-resize": "jugador",
+            }),
+            "foto_asistente_tecnico": forms.ClearableFileInput(attrs={
+                "accept": "image/*",
+                "capture": "environment",
+                "data-photo-resize": "jugador",
+            }),
+            "foto_delegado": forms.ClearableFileInput(attrs={
+                "accept": "image/*",
+                "capture": "environment",
+                "data-photo-resize": "jugador",
+            }),
+            "foto_administrador_app": forms.ClearableFileInput(attrs={
+                "accept": "image/*",
+                "capture": "environment",
+                "data-photo-resize": "jugador",
+            }),
+        }
+
+
 class EquipoReinscripcionForm(forms.Form):
     categoria_destino = forms.ModelChoiceField(
         queryset=Categoria.objects.none(),
