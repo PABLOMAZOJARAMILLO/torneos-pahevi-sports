@@ -760,7 +760,7 @@ a { color: inherit; text-decoration: none; }
 }
 .subs-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
     gap: 14px;
     padding: 16px;
 }
@@ -799,11 +799,25 @@ a { color: inherit; text-decoration: none; }
 .sub-in,
 .sub-out {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: 6px;
     min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    overflow: visible;
+}
+.sub-in > span:last-child,
+.sub-out > span:last-child {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 3px 6px;
+    min-width: 0;
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+.sub-in .edad-badge,
+.sub-out .edad-badge {
+    flex: 0 0 auto;
+    margin-left: 0;
 }
 .lineup-extra {
     margin-top: 14px;
@@ -873,10 +887,13 @@ a { color: inherit; text-decoration: none; }
     font-weight: 900;
     line-height: 1.15;
 }
-.roster-name .edad-badge,
+.roster-name .edad-badge {
+    margin-left: 6px;
+    vertical-align: middle;
+}
 .sub-in .edad-badge,
 .sub-out .edad-badge {
-    margin-left: 6px;
+    margin-left: 0;
     vertical-align: middle;
 }
 .roster-meta {
@@ -1017,11 +1034,11 @@ a { color: inherit; text-decoration: none; }
         width: 100% !important;
         box-sizing: border-box !important;
     }
-    .sub-in span:last-child,
-    .sub-out span:last-child {
-        overflow: hidden !important;
-        text-overflow: ellipsis !important;
-        white-space: nowrap !important;
+    .sub-in > span:last-child,
+    .sub-out > span:last-child {
+        white-space: normal !important;
+        overflow: visible !important;
+        text-overflow: clip !important;
     }
 }
 </style>
