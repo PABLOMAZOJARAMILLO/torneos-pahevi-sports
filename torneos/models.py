@@ -361,6 +361,7 @@ class Equipo(models.Model):
     delegado_puede_editar_equipo = models.BooleanField(default=True, verbose_name='Delegado puede editar equipo y jugadores')
     delegado_puede_cargar_fotos_jugadores = models.BooleanField(default=True, verbose_name='Delegado puede cargar fotos de jugadores')
     delegado = models.CharField(max_length=120, blank=True, null=True, verbose_name='Delegado')
+    foto_delegado = models.ImageField(upload_to=ruta_foto_cuerpo_tecnico, blank=True, null=True, verbose_name='Foto delegado')
     telefono = models.CharField(max_length=30, blank=True, null=True, verbose_name='Celular delegado')
     director_tecnico = models.CharField(max_length=150, blank=True, null=True, verbose_name='Director técnico')
     foto_director_tecnico = models.ImageField(upload_to=ruta_foto_cuerpo_tecnico, blank=True, null=True, verbose_name='Foto director técnico')

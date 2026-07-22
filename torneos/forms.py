@@ -399,6 +399,7 @@ class EquipoForm(forms.ModelForm):
             "delegado_puede_editar_equipo",
             "delegado_puede_cargar_fotos_jugadores",
             "delegado",
+            "foto_delegado",
             "telefono",
             "director_tecnico",
             "foto_director_tecnico",
@@ -435,6 +436,7 @@ class EquipoDelegadoForm(forms.ModelForm):
         model = Equipo
         fields = [
             "delegado",
+            "foto_delegado",
             "telefono",
             "director_tecnico",
             "foto_director_tecnico",

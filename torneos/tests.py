@@ -1566,7 +1566,8 @@ class PlanilleroPartidoTests(TestCase):
     def test_live_muestra_cuerpo_tecnico_y_avatares_en_sustituciones(self):
         self.local.director_tecnico = "Director Local"
         self.local.asistente_tecnico = "Asistente Local"
-        self.local.save(update_fields=["director_tecnico", "asistente_tecnico"])
+        self.local.delegado = "Delegado Local"
+        self.local.save(update_fields=["director_tecnico", "asistente_tecnico", "delegado"])
         entra = Jugador.objects.create(
             equipo=self.local,
             nombres="Jugador Entra",
@@ -1585,6 +1586,8 @@ class PlanilleroPartidoTests(TestCase):
 
         self.assertContains(respuesta, "Director Local")
         self.assertContains(respuesta, "Asistente Local")
+        self.assertContains(respuesta, "Delegado Local")
+        self.assertContains(respuesta, '<div class="staff-role">Delegado</div>')
         self.assertContains(respuesta, 'class="sub-player-avatar"', count=2)
         self.assertEqual(
             [item.jugador.id for item in respuesta.context["suplentes_local"]],
@@ -3299,6 +3302,7 @@ class DelegadoEquipoTests(TestCase):
 
         self.assertContains(respuesta, 'name="foto_director_tecnico"')
         self.assertContains(respuesta, 'name="foto_asistente_tecnico"')
+        self.assertContains(respuesta, 'name="foto_delegado"')
 
     def test_delegado_ve_mensaje_de_acceso_exitoso_al_ingresar(self):
         respuesta = self.client.post(
