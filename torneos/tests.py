@@ -1549,6 +1549,34 @@ class PlanilleroPartidoTests(TestCase):
         "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
         "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
     })
+    def test_live_muestra_cuerpo_tecnico_y_avatares_en_sustituciones(self):
+        self.local.director_tecnico = "Director Local"
+        self.local.asistente_tecnico = "Asistente Local"
+        self.local.save(update_fields=["director_tecnico", "asistente_tecnico"])
+        entra = Jugador.objects.create(
+            equipo=self.local,
+            nombres="Jugador Entra",
+            cedula="SUB-FOTO",
+            fecha_nacimiento=date(1992, 1, 1),
+        )
+        SustitucionPartido.objects.create(
+            partido=self.partido,
+            equipo=self.local,
+            jugador_sale=self.jugador,
+            jugador_entra=entra,
+            minuto=20,
+        )
+
+        respuesta = self.client.get(f"/partido/{self.partido.id}/live/")
+
+        self.assertContains(respuesta, "Director Local")
+        self.assertContains(respuesta, "Asistente Local")
+        self.assertContains(respuesta, 'class="sub-player-avatar"', count=2)
+
+    @override_settings(STORAGES={
+        "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+        "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
+    })
     def test_editor_movil_muestra_selector_de_equipos_debajo_de_cada_cancha(self):
         self.client.force_login(self.planillero)
 
@@ -3237,6 +3265,14 @@ class DelegadoEquipoTests(TestCase):
             accion="EDITAR_EQUIPO_DELEGADO",
             objeto_id=self.equipo.id,
         ).exists())
+
+    def test_formulario_delegado_permite_fotos_del_cuerpo_tecnico(self):
+        self.client.force_login(self.delegado)
+
+        respuesta = self.client.get(f"/delegado/equipos/{self.equipo.id}/editar/")
+
+        self.assertContains(respuesta, 'name="foto_director_tecnico"')
+        self.assertContains(respuesta, 'name="foto_asistente_tecnico"')
 
     def test_delegado_ve_mensaje_de_acceso_exitoso_al_ingresar(self):
         respuesta = self.client.post(

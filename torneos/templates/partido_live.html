@@ -798,12 +798,62 @@ a { color: inherit; text-decoration: none; }
 }
 .sub-in,
 .sub-out {
-    display: flex;
-    align-items: flex-start;
+    display: grid;
+    grid-template-columns: 20px 34px minmax(0, 1fr);
+    align-items: center;
     gap: 6px;
     min-width: 0;
     overflow: visible;
 }
+.sub-player-avatar {
+    display: grid;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    overflow: hidden;
+    border: 1px solid #cbd5e1;
+    border-radius: 50%;
+    background: #e2e8f0;
+    color: #0f172a;
+    font-size: 10px;
+    font-weight: 1000;
+}
+.sub-player-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+.staff-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    padding: 0 16px 16px;
+}
+.staff-card {
+    display: grid;
+    grid-template-columns: 48px minmax(0, 1fr);
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    background: #f8fafc;
+}
+.staff-photo {
+    display: grid;
+    place-items: center;
+    width: 46px;
+    height: 46px;
+    overflow: hidden;
+    border-radius: 50%;
+    background: #0f172a;
+    color: #ffffff;
+    font-size: 11px;
+    font-weight: 1000;
+}
+.staff-photo img { width: 100%; height: 100%; object-fit: cover; }
+.staff-role { color: #64748b; font-size: 10px; font-weight: 900; text-transform: uppercase; }
+.staff-name { color: #0f172a; font-size: 13px; font-weight: 1000; overflow-wrap: anywhere; }
 .sub-in > span:last-child,
 .sub-out > span:last-child {
     display: flex;
@@ -993,7 +1043,7 @@ a { color: inherit; text-decoration: none; }
     .sub-in,
     .sub-out {
         display: grid;
-        grid-template-columns: 22px minmax(0, 1fr);
+        grid-template-columns: 22px 34px minmax(0, 1fr);
         align-items: center;
         font-size: 13px;
         line-height: 1.12;
@@ -1039,6 +1089,9 @@ a { color: inherit; text-decoration: none; }
         white-space: normal !important;
         overflow: visible !important;
         text-overflow: clip !important;
+    }
+    .staff-grid {
+        grid-template-columns: 1fr;
     }
 }
 </style>
@@ -1253,8 +1306,8 @@ a { color: inherit; text-decoration: none; }
                         <div class="sub-card">
                             <div class="sub-minute">{% if cambio.minuto %}{{ cambio.minuto }}'{% else %}--{% endif %}</div>
                             <div>
-                                <div class="sub-in"><span class="sub-arrow">&uarr;</span> <span>{{ cambio.jugador_entra_corto }}{% if cambio.jugador_entra_edad %}<span class="edad-badge">{{ cambio.jugador_entra_edad }}</span>{% endif %}</span></div>
-                                <div class="sub-out"><span class="sub-arrow">&darr;</span> <span>{{ cambio.jugador_sale_corto }}{% if cambio.jugador_sale_edad %}<span class="edad-badge">{{ cambio.jugador_sale_edad }}</span>{% endif %}</span></div>
+                                <div class="sub-in"><span class="sub-arrow">&uarr;</span><span class="sub-player-avatar">{% if cambio.jugador_entra_foto %}<img src="{{ cambio.jugador_entra_foto }}" alt="">{% else %}{{ cambio.jugador_entra_iniciales }}{% endif %}</span><span>{{ cambio.jugador_entra_corto }}{% if cambio.jugador_entra_edad %}<span class="edad-badge">{{ cambio.jugador_entra_edad }}</span>{% endif %}</span></div>
+                                <div class="sub-out"><span class="sub-arrow">&darr;</span><span class="sub-player-avatar">{% if cambio.jugador_sale_foto %}<img src="{{ cambio.jugador_sale_foto }}" alt="">{% else %}{{ cambio.jugador_sale_iniciales }}{% endif %}</span><span>{{ cambio.jugador_sale_corto }}{% if cambio.jugador_sale_edad %}<span class="edad-badge">{{ cambio.jugador_sale_edad }}</span>{% endif %}</span></div>
                             </div>
                         </div>
                     {% endfor %}
@@ -1262,6 +1315,10 @@ a { color: inherit; text-decoration: none; }
                 {% else %}
                 <div class="empty-state">No hay sustituciones registradas.</div>
                 {% endif %}
+                <div class="staff-grid">
+                    <div class="staff-card"><span class="staff-photo">{% if partido.equipo_local.foto_director_tecnico %}<img src="{{ partido.equipo_local.foto_director_tecnico.url }}" alt="">{% else %}DT{% endif %}</span><div><div class="staff-role">Director técnico</div><div class="staff-name">{{ partido.equipo_local.director_tecnico|default:"No registrado" }}</div></div></div>
+                    <div class="staff-card"><span class="staff-photo">{% if partido.equipo_local.foto_asistente_tecnico %}<img src="{{ partido.equipo_local.foto_asistente_tecnico.url }}" alt="">{% else %}AT{% endif %}</span><div><div class="staff-role">Asistente técnico</div><div class="staff-name">{{ partido.equipo_local.asistente_tecnico|default:"No registrado" }}</div></div></div>
+                </div>
             </div>
 
             <div class="roster-card">
@@ -1319,8 +1376,8 @@ a { color: inherit; text-decoration: none; }
                         <div class="sub-card">
                             <div class="sub-minute">{% if cambio.minuto %}{{ cambio.minuto }}'{% else %}--{% endif %}</div>
                             <div>
-                                <div class="sub-in"><span class="sub-arrow">&uarr;</span> <span>{{ cambio.jugador_entra_corto }}{% if cambio.jugador_entra_edad %}<span class="edad-badge">{{ cambio.jugador_entra_edad }}</span>{% endif %}</span></div>
-                                <div class="sub-out"><span class="sub-arrow">&darr;</span> <span>{{ cambio.jugador_sale_corto }}{% if cambio.jugador_sale_edad %}<span class="edad-badge">{{ cambio.jugador_sale_edad }}</span>{% endif %}</span></div>
+                                <div class="sub-in"><span class="sub-arrow">&uarr;</span><span class="sub-player-avatar">{% if cambio.jugador_entra_foto %}<img src="{{ cambio.jugador_entra_foto }}" alt="">{% else %}{{ cambio.jugador_entra_iniciales }}{% endif %}</span><span>{{ cambio.jugador_entra_corto }}{% if cambio.jugador_entra_edad %}<span class="edad-badge">{{ cambio.jugador_entra_edad }}</span>{% endif %}</span></div>
+                                <div class="sub-out"><span class="sub-arrow">&darr;</span><span class="sub-player-avatar">{% if cambio.jugador_sale_foto %}<img src="{{ cambio.jugador_sale_foto }}" alt="">{% else %}{{ cambio.jugador_sale_iniciales }}{% endif %}</span><span>{{ cambio.jugador_sale_corto }}{% if cambio.jugador_sale_edad %}<span class="edad-badge">{{ cambio.jugador_sale_edad }}</span>{% endif %}</span></div>
                             </div>
                         </div>
                     {% endfor %}
@@ -1328,6 +1385,10 @@ a { color: inherit; text-decoration: none; }
                 {% else %}
                 <div class="empty-state">No hay sustituciones registradas.</div>
                 {% endif %}
+                <div class="staff-grid">
+                    <div class="staff-card"><span class="staff-photo">{% if partido.equipo_visitante.foto_director_tecnico %}<img src="{{ partido.equipo_visitante.foto_director_tecnico.url }}" alt="">{% else %}DT{% endif %}</span><div><div class="staff-role">Director técnico</div><div class="staff-name">{{ partido.equipo_visitante.director_tecnico|default:"No registrado" }}</div></div></div>
+                    <div class="staff-card"><span class="staff-photo">{% if partido.equipo_visitante.foto_asistente_tecnico %}<img src="{{ partido.equipo_visitante.foto_asistente_tecnico.url }}" alt="">{% else %}AT{% endif %}</span><div><div class="staff-role">Asistente técnico</div><div class="staff-name">{{ partido.equipo_visitante.asistente_tecnico|default:"No registrado" }}</div></div></div>
+                </div>
             </div>
 
             <div class="roster-card">

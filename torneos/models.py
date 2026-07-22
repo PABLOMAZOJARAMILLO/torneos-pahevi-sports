@@ -35,6 +35,13 @@ def ruta_foto_jugador(instance, filename):
     return f"jugadores/{categoria}/{equipo_nombre}/{jugador}{extension_archivo(filename)}"
 
 
+def ruta_foto_cuerpo_tecnico(instance, filename):
+    categoria = limpiar_ruta_cloudinary(getattr(instance.categoria, "nombre", "SIN_CATEGORIA"))
+    equipo = limpiar_ruta_cloudinary(instance.nombre)
+    sufijo = uuid.uuid4().hex[:12]
+    return f"equipos/{categoria}/{equipo}/cuerpo_tecnico_{sufijo}{extension_archivo(filename)}"
+
+
 def ruta_documento(instance, filename):
     tipo = limpiar_ruta_cloudinary(instance.tipo)
     titulo = limpiar_ruta_cloudinary(instance.titulo)
@@ -356,8 +363,10 @@ class Equipo(models.Model):
     delegado = models.CharField(max_length=120, blank=True, null=True, verbose_name='Delegado')
     telefono = models.CharField(max_length=30, blank=True, null=True, verbose_name='Celular delegado')
     director_tecnico = models.CharField(max_length=150, blank=True, null=True, verbose_name='Director técnico')
+    foto_director_tecnico = models.ImageField(upload_to=ruta_foto_cuerpo_tecnico, blank=True, null=True, verbose_name='Foto director técnico')
     telefono_dt = models.CharField(max_length=30, blank=True, null=True, verbose_name='Celular DT')
     asistente_tecnico = models.CharField(max_length=150, blank=True, null=True, verbose_name='Asistente técnico')
+    foto_asistente_tecnico = models.ImageField(upload_to=ruta_foto_cuerpo_tecnico, blank=True, null=True, verbose_name='Foto asistente técnico')
     telefono_at = models.CharField(max_length=30, blank=True, null=True, verbose_name='Celular AT')
     escudo = models.ImageField(upload_to=ruta_escudo_equipo, blank=True, null=True, verbose_name='Escudo')
     activo = models.BooleanField(default=True, verbose_name='Activo')

@@ -8196,6 +8196,10 @@ def partido_live(request, partido_id):
         cambio.jugador_sale_corto = nombre_corto_jugador(cambio.jugador_sale)
         cambio.jugador_entra_edad = etiqueta_edad_jugador(cambio.jugador_entra, partido.categoria, partido.fecha)
         cambio.jugador_sale_edad = etiqueta_edad_jugador(cambio.jugador_sale, partido.categoria, partido.fecha)
+        cambio.jugador_entra_foto = foto_jugador_url(cambio.jugador_entra)
+        cambio.jugador_sale_foto = foto_jugador_url(cambio.jugador_sale)
+        cambio.jugador_entra_iniciales = iniciales_jugador(cambio.jugador_entra)
+        cambio.jugador_sale_iniciales = iniciales_jugador(cambio.jugador_sale)
 
     eventos_por_jugador = defaultdict(dict)
 
