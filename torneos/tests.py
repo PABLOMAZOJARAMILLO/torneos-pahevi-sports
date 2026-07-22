@@ -1586,6 +1586,10 @@ class PlanilleroPartidoTests(TestCase):
         self.assertContains(respuesta, "Director Local")
         self.assertContains(respuesta, "Asistente Local")
         self.assertContains(respuesta, 'class="sub-player-avatar"', count=2)
+        self.assertEqual(
+            [item.jugador.id for item in respuesta.context["suplentes_local"]],
+            [entra.id],
+        )
 
     @override_settings(STORAGES={
         "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},

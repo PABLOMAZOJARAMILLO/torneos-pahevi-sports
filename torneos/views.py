@@ -8278,20 +8278,31 @@ def partido_live(request, partido_id):
     suplentes_visitante = []
     no_disponibles_local = []
     no_disponibles_visitante = []
-    for alineacion in alineaciones:
-        jugador = alineacion.jugador
-        item = SimpleNamespace(
+
+    def item_alineacion_live(jugador, rol, posicion="", orden_ingreso=9999):
+        return SimpleNamespace(
             jugador=jugador,
             nombre=jugador.nombres,
             nombre_corto=nombre_corto_jugador(jugador),
             dorsal=jugador.dorsal,
-            rol=alineacion.rol,
-            posicion=alineacion.posicion_cancha,
+            rol=rol,
+            posicion=posicion,
             foto=foto_jugador_url(jugador),
             iniciales=iniciales_jugador(jugador),
             etiqueta_edad=etiqueta_edad_jugador(jugador, partido.categoria, partido.fecha),
             eventos=list(eventos_por_jugador.get(jugador.id, {}).values()),
-            orden_ingreso=orden_ingreso_suplente.get(jugador.id, 9999),
+            orden_ingreso=orden_ingreso,
+        )
+
+    jugadores_con_alineacion = set()
+    for alineacion in alineaciones:
+        jugador = alineacion.jugador
+        jugadores_con_alineacion.add(jugador.id)
+        item = item_alineacion_live(
+            jugador,
+            alineacion.rol,
+            alineacion.posicion_cancha,
+            orden_ingreso_suplente.get(jugador.id, 9999),
         )
         if alineacion.equipo_id == partido.equipo_local_id:
             if alineacion.rol == "SUPLENTE":
@@ -8307,6 +8318,24 @@ def partido_live(request, partido_id):
                 no_disponibles_visitante.append(item)
             else:
                 alineaciones_visitante.append(item)
+
+    # Una sustitucion registrada demuestra que el jugador participo como
+    # suplente, aunque no hubiera sido marcado manualmente en la alineacion.
+    # Los titulares iniciales conservan su rol porque ya estan incluidos arriba.
+    for sustitucion in sustituciones:
+        jugador = sustitucion.jugador_entra
+        if jugador.id in jugadores_con_alineacion:
+            continue
+        jugadores_con_alineacion.add(jugador.id)
+        item = item_alineacion_live(
+            jugador,
+            "SUPLENTE",
+            orden_ingreso=orden_ingreso_suplente.get(jugador.id, 9999),
+        )
+        if sustitucion.equipo_id == partido.equipo_local_id:
+            suplentes_local.append(item)
+        elif sustitucion.equipo_id == partido.equipo_visitante_id:
+            suplentes_visitante.append(item)
 
     alineaciones_local = _ordenar_titulares_cancha(alineaciones_local)
     alineaciones_visitante = _ordenar_titulares_cancha(alineaciones_visitante)
