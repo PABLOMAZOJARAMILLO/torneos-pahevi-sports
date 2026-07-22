@@ -3930,7 +3930,7 @@ def construir_partidos_programacion(request, categoria_obj=None, numero_fecha=""
             hora = p.hora.hour
             periodo = "AM" if hora < 12 else "PM"
             hora_12 = hora % 12 or 12
-            minuto = f":{p.hora.minute:02d}" if p.hora.minute else ""
+            minuto = f":{p.hora.minute:02d}"
             hora_12 = f"{hora_12}{minuto} {periodo}"
 
         categoria_nombre = p.categoria.nombre if p.categoria else ""

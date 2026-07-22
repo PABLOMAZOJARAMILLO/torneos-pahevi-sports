@@ -2501,6 +2501,7 @@ class DescargaProgramacionFiltrosTests(TestCase):
 
         self.assertEqual(len(partidos), 1)
         self.assertEqual(partidos[0]["local"], "Local")
+        self.assertEqual(partidos[0]["hora_texto"], "4:00 PM")
 
     def test_descarga_de_fechas_fase_incluye_finalizado_con_resultado(self):
         self.partido.estado = "FINALIZADO"
