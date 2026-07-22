@@ -5820,9 +5820,9 @@ body.solo-lectura .menu-principal{top:96px!important}
     <!-- ===================== FORÁNEOS ===================== -->
     <div class="tab-content" data-tab="foraneos">
         <div class="bloque">
-            <h2>Control de jugadores foráneos</h2>
+            <h2>Cumplimiento de partidos de jugadores foráneos</h2>
             {% if datos_categoria.controlar_foraneos %}
-                <p class="aviso-deslizar">Regla activa: mínimo {{ datos_categoria.porcentaje_foraneos }}% de partidos jugados en fase 1. Si el resultado da decimal, se toma el número por debajo.</p>
+                <p class="aviso-deslizar"><strong>¿Cómo se interpreta?</strong> El jugador queda habilitado cuando sus partidos jugados alcanzan el mínimo exigido, calculado sobre los partidos que su equipo tiene asignados en la primera fase. Regla: {{ datos_categoria.porcentaje_foraneos }}%; si el cálculo da decimal, se toma el número inferior.</p>
             {% else %}
                 <p class="aviso-deslizar">Esta categoría no tiene activo el control automático de foráneos.</p>
             {% endif %}
@@ -5839,10 +5839,10 @@ body.solo-lectura .menu-principal{top:96px!important}
                         <th>#</th>
                         <th class="col-jugador">Jugador</th>
                         <th class="col-equipo">Equipo</th>
-                        <th>Jugados</th>
-                        <th>Mínimo</th>
-                        <th>Fase 1</th>
-                        <th>Estado</th>
+                        <th>Partidos jugados por el jugador</th>
+                        <th>Mínimo de partidos exigido</th>
+                        <th>Partidos del equipo en la primera fase</th>
+                        <th>Estado del jugador</th>
                     </tr>
 
                     {% for f in datos_categoria.foraneos %}

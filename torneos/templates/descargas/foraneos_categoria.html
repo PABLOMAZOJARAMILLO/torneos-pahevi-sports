@@ -166,7 +166,7 @@ td {
 
     <div class="titulo">
         <img src="{{ logo_torneo }}" class="logo-central">
-        <h1>CONTROL DE FORANEOS</h1>
+        <h1>CUMPLIMIENTO DE JUGADORES FORANEOS</h1>
         <div class="sub">{{ categoria }}</div>
     </div>
 
@@ -174,7 +174,7 @@ td {
 </div>
 
 <div class="regla">
-    Minimo {{ datos_categoria.porcentaje_foraneos }}% de partidos jugados en fase 1. Si da decimal, se toma el numero por debajo.
+    El jugador queda habilitado al cumplir el minimo exigido sobre los partidos asignados a su equipo en la primera fase. Regla: {{ datos_categoria.porcentaje_foraneos }}%; si da decimal, se toma el numero inferior.
 </div>
 
 <table>
@@ -182,10 +182,10 @@ td {
 <th>#</th>
 <th>Jugador</th>
 <th>Equipo</th>
-<th>Jugados</th>
-<th>Minimo</th>
-<th>Fase 1</th>
-<th>Estado</th>
+<th>Partidos jugados<br>por el jugador</th>
+<th>Minimo de partidos<br>exigido</th>
+<th>Partidos del equipo<br>en primera fase</th>
+<th>Estado del<br>jugador</th>
 </tr>
 
 {% for fila in datos_categoria.foraneos_paginados %}
