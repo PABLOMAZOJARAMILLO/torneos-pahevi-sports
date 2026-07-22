@@ -28,6 +28,9 @@ public class MainActivity extends BridgeActivity {
 
         getBridge().getWebView().clearCache(true);
         getBridge().getWebView().getSettings().setCacheMode(WebSettings.LOAD_NO_CACHE);
+        getBridge().getWebView().getSettings().setSupportZoom(true);
+        getBridge().getWebView().getSettings().setBuiltInZoomControls(true);
+        getBridge().getWebView().getSettings().setDisplayZoomControls(false);
 
         getBridge().getWebView().setDownloadListener((url, userAgent, contentDisposition, mimetype, contentLength) -> {
             if (url != null && url.startsWith("data:image/png;base64,")) {

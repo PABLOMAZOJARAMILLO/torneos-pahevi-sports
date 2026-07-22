@@ -1588,6 +1588,8 @@ class PlanilleroPartidoTests(TestCase):
         self.assertContains(respuesta, "Asistente Local")
         self.assertContains(respuesta, "Delegado Local")
         self.assertContains(respuesta, '<div class="staff-role">Delegado</div>')
+        self.assertContains(respuesta, 'data-avatar-zoom')
+        self.assertContains(respuesta, 'maximum-scale=6.0, user-scalable=yes')
         self.assertContains(respuesta, 'class="sub-player-avatar"', count=2)
         self.assertEqual(
             [item.jugador.id for item in respuesta.context["suplentes_local"]],
