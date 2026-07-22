@@ -977,10 +977,15 @@ def listar_imagenes_cloudinary(max_results=80):
         else:
             for recurso in respuesta.get("resources", []):
                 public_id = recurso.get("public_id", "")
-                url = recurso.get("secure_url") or recurso.get("url")
-                if not public_id or not url:
+                if not public_id:
                     continue
                 if public_id.startswith("documentos/"):
+                    continue
+
+                url = url_imagen_cloudinary(public_id, ancho=320)
+                if not url:
+                    url = recurso.get("secure_url") or recurso.get("url")
+                if not url:
                     continue
 
                 carpeta = public_id.split("/", 1)[0] if "/" in public_id else "General"
@@ -1029,7 +1034,7 @@ def listar_imagenes_usadas():
     return imagenes
 
 
-def url_imagen_cloudinary(public_id):
+def url_imagen_cloudinary(public_id, ancho=900):
     if not public_id:
         return ""
 
@@ -1044,6 +1049,12 @@ def url_imagen_cloudinary(public_id):
             str(public_id),
             resource_type="image",
             secure=True,
+            transformation=[{
+                "width": ancho,
+                "crop": "limit",
+                "quality": "auto",
+                "fetch_format": "auto",
+            }],
         )[0]
     except Exception:
         return ""
