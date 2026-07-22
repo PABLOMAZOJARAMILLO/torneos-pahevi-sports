@@ -5677,14 +5677,17 @@ body.solo-lectura .menu-principal{top:96px!important}
             <div class="tabla-responsive">
                 <table>
                     <tr>
-                        <th>#</th>
-                        <th class="col-equipo">Equipo</th>
+                        <th rowspan="2">#</th>
+                        <th rowspan="2" class="col-equipo">Equipo</th>
+                        <th colspan="{{ datos_categoria.columnas_planilla_display|length }}">Goles recibidos por fechas y fases</th>
+                        <th rowspan="2">PJ</th>
+                        <th rowspan="2">GC</th>
+                        <th rowspan="2">Promedio</th>
+                    </tr>
+                    <tr>
                         {% for col in datos_categoria.columnas_planilla_display %}
                             <th>{{ col.etiqueta }}</th>
                         {% endfor %}
-                        <th>PJ</th>
-                        <th>GC</th>
-                        <th>Promedio</th>
                     </tr>
 
                     {% for v in datos_categoria.valla_planilla %}

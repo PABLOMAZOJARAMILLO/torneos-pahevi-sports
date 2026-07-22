@@ -1656,12 +1656,19 @@ def nombre_columna_partido(partido):
 
 def etiqueta_columna_planilla(columna):
     etiquetas = {
-        "CUARTOS": "CTOS",
-        "SEMIFINAL": "SF",
-        "TERCER_PUESTO": "TP",
-        "FINAL": "F",
+        "CUARTOS": "Cuartos",
+        "SEMIFINAL": "Semifinal",
+        "TERCER_PUESTO": "Tercer puesto",
+        "FINAL": "Final",
     }
-    return etiquetas.get(columna, columna)
+    if columna in etiquetas:
+        return etiquetas[columna]
+    texto = str(columna or "").strip()
+    if not texto or texto.upper() == "SIN FECHA":
+        return "Sin fecha"
+    if texto.lower().startswith("fecha"):
+        return f"Fecha {texto[5:].strip()}" if texto[5:].strip() else "Fecha"
+    return f"Fecha {texto}"
 
 
 ESTADOS_PARTIDO_CERRADO = ["FINALIZADO", "DECIDIDO_COMITE", "WO"]

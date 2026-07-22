@@ -19,7 +19,7 @@ from .models import AlineacionPartido, EntregaAlineacionPartido, AdminOrganizado
 from .middleware import AuditoriaModificacionesMiddleware
 from .planillas_pdf import _dorsal, _edad, _header_image_sources, _team_shield_source, _draw_team_watermark, _titulo_planilla
 from .storage_backends import CloudinaryMediaStorage
-from .views import buscar_planilleros_excel, construir_estructura, construir_estadisticas_foraneos, construir_partidos_portada, construir_partidos_programacion, _clave_orden_evento_resumen, _minuto_evento_en_vivo, _sincronizar_no_disponibles_por_tarjetas, etiqueta_edad_jugador, jugadores_actuales_en_cancha, nombre_corto_jugador, nombre_resumen_jugador, puede_descargar_programacion, reglas_edad_para_frontend, texto_edad_jugador, tabla_general_mata_mata_ida_vuelta, validar_reglas_edad_titulares
+from .views import buscar_planilleros_excel, construir_estructura, construir_estadisticas_foraneos, construir_partidos_portada, construir_partidos_programacion, _clave_orden_evento_resumen, _minuto_evento_en_vivo, _sincronizar_no_disponibles_por_tarjetas, etiqueta_columna_planilla, etiqueta_edad_jugador, jugadores_actuales_en_cancha, nombre_corto_jugador, nombre_resumen_jugador, puede_descargar_programacion, reglas_edad_para_frontend, texto_edad_jugador, tabla_general_mata_mata_ida_vuelta, validar_reglas_edad_titulares
 
 
 class CloudinaryStorageTests(TestCase):
@@ -2516,6 +2516,14 @@ class DescargaProgramacionFiltrosTests(TestCase):
         self.assertContains(respuesta, "Fecha 1")
         self.assertContains(respuesta, "18/07/2026")
         self.assertContains(respuesta, f'value="{self.categoria.id}"')
+
+    def test_etiquetas_de_valla_muestran_fechas_y_fases_completas(self):
+        self.assertEqual(etiqueta_columna_planilla("1"), "Fecha 1")
+        self.assertEqual(etiqueta_columna_planilla("Fecha 2"), "Fecha 2")
+        self.assertEqual(etiqueta_columna_planilla("CUARTOS"), "Cuartos")
+        self.assertEqual(etiqueta_columna_planilla("SEMIFINAL"), "Semifinal")
+        self.assertEqual(etiqueta_columna_planilla("TERCER_PUESTO"), "Tercer puesto")
+        self.assertEqual(etiqueta_columna_planilla("FINAL"), "Final")
 
     def test_constructor_filtra_programacion_por_categoria_fecha_y_dia(self):
         request = self.client.get("/descargar/programacion/").wsgi_request
