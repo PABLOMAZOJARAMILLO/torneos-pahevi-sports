@@ -400,6 +400,8 @@ class EquipoForm(forms.ModelForm):
             "delegado_puede_cargar_fotos_jugadores",
             "delegado",
             "foto_delegado",
+            "administrador_app",
+            "foto_administrador_app",
             "telefono",
             "director_tecnico",
             "foto_director_tecnico",
@@ -437,6 +439,8 @@ class EquipoDelegadoForm(forms.ModelForm):
         fields = [
             "delegado",
             "foto_delegado",
+            "administrador_app",
+            "foto_administrador_app",
             "telefono",
             "director_tecnico",
             "foto_director_tecnico",

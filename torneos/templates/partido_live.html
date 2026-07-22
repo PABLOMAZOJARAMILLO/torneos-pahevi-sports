@@ -1379,7 +1379,7 @@ a { color: inherit; text-decoration: none; }
 
         <div class="lineup-extra" data-extra="local">
             <div class="roster-card">
-                <div class="roster-title">Cuerpo t&eacute;cnico y delegado</div>
+                <div class="roster-title">Cuerpo t&eacute;cnico y Admin App</div>
                 <div class="staff-grid">
                     {% for persona in cuerpo_tecnico_local %}
                     <div class="staff-card"><span class="staff-photo">{% if persona.foto %}<img src="{{ persona.foto.url }}" alt="{{ persona.nombre }}">{% else %}{{ persona.iniciales }}{% endif %}</span><div><div class="staff-role">{{ persona.cargo }}</div><div class="staff-name">{{ persona.nombre }}</div></div></div>
@@ -1454,7 +1454,7 @@ a { color: inherit; text-decoration: none; }
 
         <div class="lineup-extra" data-extra="visitante" hidden>
             <div class="roster-card">
-                <div class="roster-title">Cuerpo t&eacute;cnico y delegado</div>
+                <div class="roster-title">Cuerpo t&eacute;cnico y Admin App</div>
                 <div class="staff-grid">
                     {% for persona in cuerpo_tecnico_visitante %}
                     <div class="staff-card"><span class="staff-photo">{% if persona.foto %}<img src="{{ persona.foto.url }}" alt="{{ persona.nombre }}">{% else %}{{ persona.iniciales }}{% endif %}</span><div><div class="staff-role">{{ persona.cargo }}</div><div class="staff-name">{{ persona.nombre }}</div></div></div>

@@ -1567,7 +1567,8 @@ class PlanilleroPartidoTests(TestCase):
         self.local.director_tecnico = "Director Local"
         self.local.asistente_tecnico = "Asistente Local"
         self.local.delegado = "Delegado Local"
-        self.local.save(update_fields=["director_tecnico", "asistente_tecnico", "delegado"])
+        self.local.administrador_app = "Administrador Local"
+        self.local.save(update_fields=["director_tecnico", "asistente_tecnico", "delegado", "administrador_app"])
         entra = Jugador.objects.create(
             equipo=self.local,
             nombres="Jugador Entra",
@@ -1587,7 +1588,9 @@ class PlanilleroPartidoTests(TestCase):
         self.assertContains(respuesta, "Director Local")
         self.assertContains(respuesta, "Asistente Local")
         self.assertContains(respuesta, "Delegado Local")
+        self.assertContains(respuesta, "Administrador Local")
         self.assertContains(respuesta, '<div class="staff-role">Delegado</div>')
+        self.assertContains(respuesta, '<div class="staff-role">Admin App</div>')
         self.assertContains(respuesta, 'data-avatar-zoom')
         self.assertContains(respuesta, 'maximum-scale=6.0, user-scalable=yes')
         self.assertContains(respuesta, 'class="sub-player-avatar"', count=2)
@@ -1604,14 +1607,15 @@ class PlanilleroPartidoTests(TestCase):
         self.local.director_tecnico = "José Pérez"
         self.local.asistente_tecnico = "JOSE PEREZ"
         self.local.delegado = " jose  perez "
-        self.local.save(update_fields=["director_tecnico", "asistente_tecnico", "delegado"])
+        self.local.administrador_app = "josé pérez"
+        self.local.save(update_fields=["director_tecnico", "asistente_tecnico", "delegado", "administrador_app"])
 
         respuesta = self.client.get(f"/partido/{self.partido.id}/live/")
 
         personas = respuesta.context["cuerpo_tecnico_local"]
         self.assertEqual(len(personas), 1)
         self.assertEqual(personas[0].nombre, "José Pérez")
-        self.assertEqual(personas[0].cargo, "Director técnico / Asistente técnico / Delegado")
+        self.assertEqual(personas[0].cargo, "Director técnico / Asistente técnico / Delegado / Admin App")
 
     @override_settings(STORAGES={
         "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
@@ -3322,6 +3326,8 @@ class DelegadoEquipoTests(TestCase):
         self.assertContains(respuesta, 'name="foto_director_tecnico"')
         self.assertContains(respuesta, 'name="foto_asistente_tecnico"')
         self.assertContains(respuesta, 'name="foto_delegado"')
+        self.assertContains(respuesta, 'name="administrador_app"')
+        self.assertContains(respuesta, 'name="foto_administrador_app"')
 
     def test_delegado_ve_mensaje_de_acceso_exitoso_al_ingresar(self):
         respuesta = self.client.post(

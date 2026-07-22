@@ -2441,6 +2441,7 @@ def cuerpo_tecnico_live(equipo):
         ("Director técnico", equipo.director_tecnico, equipo.foto_director_tecnico),
         ("Asistente técnico", equipo.asistente_tecnico, equipo.foto_asistente_tecnico),
         ("Delegado", equipo.delegado, equipo.foto_delegado),
+        ("Admin App", equipo.administrador_app, equipo.foto_administrador_app),
     )
 
     for indice, (cargo, nombre, foto) in enumerate(integrantes):
@@ -2459,7 +2460,7 @@ def cuerpo_tecnico_live(equipo):
             cargos=[cargo],
             cargo=cargo,
             foto=foto,
-            iniciales={"Director técnico": "DT", "Asistente técnico": "AT", "Delegado": "DE"}[cargo],
+            iniciales={"Director técnico": "DT", "Asistente técnico": "AT", "Delegado": "DE", "Admin App": "APP"}[cargo],
         )
         personas_por_nombre[clave] = persona
         personas.append(persona)
@@ -7432,6 +7433,8 @@ def gestion_equipo_reinscribir(request, equipo_id):
                 acceso_delegado_hasta=equipo.acceso_delegado_hasta if form.cleaned_data["conservar_acceso_delegado"] else None,
                 delegado=equipo.delegado,
                 foto_delegado=equipo.foto_delegado,
+                administrador_app=equipo.administrador_app,
+                foto_administrador_app=equipo.foto_administrador_app,
                 telefono=equipo.telefono,
                 director_tecnico=equipo.director_tecnico,
                 foto_director_tecnico=equipo.foto_director_tecnico,
