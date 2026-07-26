@@ -100,7 +100,7 @@
 
     <section class="hero">
         <div class="meta">
-            {{ partido.categoria.nombre }} · {{ partido.numero_fecha|default:"Sin fecha fixture" }} · {{ partido.grupo|default:"Sin grupo" }} · {{ partido.estado }}
+            {{ partido.categoria.nombre }} · {{ partido.numero_fecha|etiqueta_fecha|default:"Sin fecha fixture" }} · {{ partido.grupo|default:"Sin grupo" }} · {{ partido.estado }}
         </div>
 
         <div class="scoreboard">

@@ -1,3 +1,5 @@
+import re
+
 from django import template
 
 register = template.Library()
@@ -39,3 +41,20 @@ def texto_limpio(valor):
 def primeras_tres_palabras(valor):
     limpio = texto_limpio(valor)
     return " ".join(limpio.split()[:3])
+
+
+@register.filter
+def etiqueta_fecha(valor):
+    if valor is None:
+        return ""
+    texto = str(valor).strip()
+    if re.fullmatch(r"\d+", texto):
+        return f"Fecha {texto}"
+    return texto
+
+
+@register.filter
+def fecha_en_titulo(valor):
+    if valor is None:
+        return ""
+    return re.sub(r"(?<= - )(\d+)(?= - )", r"Fecha \1", str(valor))

@@ -1,4 +1,5 @@
 {% extends "gestion/base.html" %}
+{% load texto_limpio %}
 
 {% block title %}Alineacion de partidos{% endblock %}
 {% block heading %}Alineacion{% endblock %}
@@ -16,7 +17,7 @@
     <div>
         <div>{{ item.partido.equipo_local.nombre }} vs {{ item.partido.equipo_visitante.nombre }}</div>
         <div class="muted">
-            {{ item.partido.categoria.torneo.nombre }} - {{ item.partido.categoria.nombre }} - {{ item.partido.numero_fecha|default:"Sin fecha fixture" }}
+            {{ item.partido.categoria.torneo.nombre }} - {{ item.partido.categoria.nombre }} - {{ item.partido.numero_fecha|etiqueta_fecha|default:"Sin fecha fixture" }}
         </div>
         <div class="muted">
             {{ item.partido.fecha|date:"d/m/Y" }} - {{ item.partido.hora|time:"H:i" }} - {{ item.partido.estado }} - Rival: {{ item.rival.nombre }}

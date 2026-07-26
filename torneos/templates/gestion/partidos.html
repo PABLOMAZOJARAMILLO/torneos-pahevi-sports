@@ -1,4 +1,5 @@
 {% extends "gestion/base.html" %}
+{% load texto_limpio %}
 
 {% block title %}Partidos{% endblock %}
 {% block heading %}Partidos{% endblock %}
@@ -86,7 +87,7 @@
     <div>
         <div>{{ partido.equipo_local.nombre }} vs {{ partido.equipo_visitante.nombre }}</div>
         <div class="muted">
-            {{ partido.categoria.nombre }} - {{ partido.numero_fecha|default:"Sin fecha fixture" }} - {{ partido.grupo|default:"Sin grupo" }}
+            {{ partido.categoria.nombre }} - {{ partido.numero_fecha|etiqueta_fecha|default:"Sin fecha fixture" }} - {{ partido.grupo|default:"Sin grupo" }}
         </div>
         <div class="muted">
             {{ partido.fecha|default:"Sin dia" }} - {{ partido.hora|default:"Sin hora" }} - {{ partido.cancha|default:"Sin cancha" }} - {{ partido.estado }}

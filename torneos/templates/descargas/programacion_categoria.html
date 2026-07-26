@@ -1,3 +1,4 @@
+{% load texto_limpio %}
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -439,7 +440,7 @@ body {
             <div class="partido-estado">
             <div class="meta-partido">
                 {% if mostrar_categoria %}{{ p.categoria }} - {% endif %}
-                {% if p.numero_fecha %}FECHA {{ p.numero_fecha }} - {% endif %}
+                {% if p.numero_fecha %}{{ p.numero_fecha|etiqueta_fecha|upper }} - {% endif %}
                 GRUPO {{ p.grupo }}{% if p.fase and p.fase != "GRUPOS" %} - {{ p.fase }}{% endif %}
             </div>
             <div class="fila-programacion">

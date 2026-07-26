@@ -1,4 +1,5 @@
 {% extends "gestion/base.html" %}
+{% load texto_limpio %}
 
 {% block title %}Descargar programacion{% endblock %}
 {% block heading %}Descargar programacion{% endblock %}
@@ -30,7 +31,7 @@
     <select id="fecha_fixture" name="fecha_fixture">
         <option value="">Todas las fechas del fixture</option>
         {% for fecha in fechas_fixture %}
-            <option value="{{ fecha }}">{{ fecha }}</option>
+            <option value="{{ fecha }}">{{ fecha|etiqueta_fecha }}</option>
         {% endfor %}
     </select>
 

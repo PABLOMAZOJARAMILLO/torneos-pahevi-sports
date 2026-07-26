@@ -1,4 +1,5 @@
 {% extends "gestion/base.html" %}
+{% load texto_limpio %}
 
 {% block title %}Documentos{% endblock %}
 {% block heading %}Documentos{% endblock %}
@@ -28,7 +29,7 @@
 {% for documento in documentos %}
 <div class="row">
     <div>
-        <strong>{{ documento.get_tipo_display }} - {{ documento.titulo }}</strong>
+        <strong>{{ documento.get_tipo_display }} - {{ documento.titulo|fecha_en_titulo }}</strong>
         {% if documento.descripcion %}
             <div class="muted">{{ documento.descripcion }}</div>
         {% endif %}

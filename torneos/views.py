@@ -41,6 +41,7 @@ from openpyxl import load_workbook
 from .forms import TorneoForm, OrganizadorForm, CategoriaForm, ReglaEdadCategoriaFormSet, DocumentoForm, PlanillaJuegoUploadForm, EquipoForm, EquipoDelegadoForm, EquipoFotosCuerpoTecnicoDelegadoForm, EquipoReinscripcionForm, JugadorForm, JugadorDelegadoForm, JugadorFotoDelegadoForm, PartidoForm, PartidoProgramacionForm, AdminTorneoForm, AdminOrganizadorForm, CrearAdminOrganizadorForm
 from .models import Torneo, Organizador, Categoria, Documento, Equipo, Partido, Gol, Tarjeta, Jugador, AlineacionPartido, EntregaAlineacionPartido, SustitucionPartido, IncidenciaReglaEdad, ReglaEdadCategoria, AdminTorneo, AdminOrganizador, RegistroActividad, VisitaPublicaDiaria, SolicitudValidacion, limpiar_ruta_cloudinary
 from .planillas_pdf import generar_planilla_juego_pdf, nombre_archivo_planilla
+from .templatetags.texto_limpio import etiqueta_fecha
 from django.utils import timezone
 
 def puede_gestionar_organizadores(user):
@@ -4101,7 +4102,7 @@ def titulo_descarga_programacion(categoria_obj=None, numero_fecha="", dia=None):
     else:
         partes.append("TODAS LAS CATEGORIAS")
     if numero_fecha:
-        partes.append(str(numero_fecha).upper())
+        partes.append(etiqueta_fecha(numero_fecha).upper())
     if dia:
         partes.append(f"DIA {dia.strftime('%d/%m/%Y')}")
     return " - ".join(partes)
@@ -6417,7 +6418,7 @@ def _agrupar_planillas_juego(documentos):
             )
         categoria = categorias[categoria_id]
 
-        fecha_nombre = documento.numero_fecha or "Sin fecha fixture"
+        fecha_nombre = etiqueta_fecha(documento.numero_fecha) or "Sin fecha fixture"
         if fecha_nombre not in categoria.fechas:
             categoria.fechas[fecha_nombre] = SimpleNamespace(
                 nombre=fecha_nombre,
@@ -6464,7 +6465,7 @@ def _agrupar_partidos_planillas(partidos, documentos):
             )
         categoria = categorias[categoria_id]
 
-        fecha_nombre = partido.numero_fecha or "Sin fecha fixture"
+        fecha_nombre = etiqueta_fecha(partido.numero_fecha) or "Sin fecha fixture"
         if fecha_nombre not in categoria.fechas:
             categoria.fechas[fecha_nombre] = SimpleNamespace(nombre=fecha_nombre, partidos={})
         fecha = categoria.fechas[fecha_nombre]
@@ -6560,7 +6561,7 @@ def gestion_planilla_juego_nueva(request):
             "fecha": partido.fecha.isoformat(),
             "hora": partido.hora.strftime("%H:%M"),
             "label": (
-                f"{partido.categoria.nombre} - {partido.numero_fecha or 'Sin fecha'} - "
+                f"{partido.categoria.nombre} - {etiqueta_fecha(partido.numero_fecha) or 'Sin fecha'} - "
                 f"{partido.equipo_local.nombre} vs {partido.equipo_visitante.nombre} - "
                 f"{partido.fecha.strftime('%d/%m/%Y')} {partido.hora.strftime('%H:%M')}"
             ),
@@ -6587,7 +6588,7 @@ def gestion_planilla_juego_nueva(request):
         creados = 0
 
         for archivo in archivos:
-            titulo = f"Planilla {categoria.nombre} - {numero_fecha or 'Sin fecha'} - {equipo_local.nombre} vs {equipo_visitante.nombre}"
+            titulo = f"Planilla {categoria.nombre} - {etiqueta_fecha(numero_fecha) or 'Sin fecha'} - {equipo_local.nombre} vs {equipo_visitante.nombre}"
             documento = Documento.objects.create(
                 tipo="PLANILLA_JUEGO",
                 torneo=categoria.torneo,

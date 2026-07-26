@@ -1,4 +1,5 @@
 {% extends "gestion/base.html" %}
+{% load texto_limpio %}
 
 {% block title %}Planillas de juego{% endblock %}
 {% block heading %}Planillas de juego{% endblock %}
@@ -93,7 +94,7 @@
             <select id="fecha" name="fecha">
                 <option value="">Todas</option>
                 {% for fecha in fechas %}
-                    <option value="{{ fecha }}" {% if fecha == numero_fecha %}selected{% endif %}>{{ fecha }}</option>
+                    <option value="{{ fecha }}" {% if fecha == numero_fecha %}selected{% endif %}>{{ fecha|etiqueta_fecha }}</option>
                 {% endfor %}
             </select>
         </div>

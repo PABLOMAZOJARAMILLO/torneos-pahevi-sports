@@ -1,4 +1,5 @@
 {% extends "gestion/base.html" %}
+{% load texto_limpio %}
 
 {% block title %}Mis partidos{% endblock %}
 {% block heading %}Mis partidos{% endblock %}
@@ -71,7 +72,7 @@
         <strong>{{ item.partido.equipo_local.nombre }} vs {{ item.partido.equipo_visitante.nombre }}</strong>
         <div class="match-meta">
             <span class="pill">{{ item.partido.categoria.nombre }}</span>
-            {% if item.partido.numero_fecha %}<span class="pill">{{ item.partido.numero_fecha }}</span>{% endif %}
+            {% if item.partido.numero_fecha %}<span class="pill">{{ item.partido.numero_fecha|etiqueta_fecha }}</span>{% endif %}
             {% if item.partido.grupo %}<span class="pill">Grupo {{ item.partido.grupo }}</span>{% endif %}
             <span class="pill">{{ item.partido.fecha|date:"d/m/Y" }} {{ item.partido.hora|time:"H:i" }}</span>
             {% if item.partido.cancha %}<span class="pill">{{ item.partido.cancha }}</span>{% endif %}

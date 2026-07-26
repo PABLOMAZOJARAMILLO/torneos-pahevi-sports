@@ -1,4 +1,4 @@
-{% load static %}
+{% load static texto_limpio %}
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -1182,7 +1182,7 @@ a { color: inherit; text-decoration: none; }
         <a class="live-icon" href="{{ volver_url }}">&larr;</a>
         <div class="live-title">
             <strong>{{ partido.categoria.torneo.nombre|default:"Torneo" }}</strong>
-            <span>{{ partido.categoria.nombre }} &middot; {% if partido.numero_fecha %}Fecha {{ partido.numero_fecha }}{% else %}{{ partido.get_fase_display }}{% endif %}</span>
+            <span>{{ partido.categoria.nombre }} &middot; {% if partido.numero_fecha %}{{ partido.numero_fecha|etiqueta_fecha }}{% else %}{{ partido.get_fase_display }}{% endif %}</span>
             <span class="live-match-meta">
                 {% if partido.fecha %}{{ partido.fecha|date:"d/m/Y" }}{% else %}Fecha por definir{% endif %}
                 &middot;
