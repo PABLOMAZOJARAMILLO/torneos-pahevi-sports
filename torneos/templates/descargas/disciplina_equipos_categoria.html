@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<style>
+body {
+    margin: 0;
+    padding: 30px;
+    background: radial-gradient(circle at top, #12345a, #07111f);
+    color: white;
+    font-family: Arial, sans-serif;
+}
+.contenedor {
+    border: 3px solid #00ff66;
+    border-radius: 20px;
+    padding: 25px;
+    background: #0b1626;
+}
+.encabezado {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 35px;
+}
+.logo {
+    width: 150px;
+    height: 150px;
+    object-fit: contain;
+    background: white;
+    border-radius: 50%;
+    padding: 5px;
+}
+.logo-central {
+    width: 280px;
+    height: 130px;
+    object-fit: contain;
+}
+.titulo {
+    text-align: center;
+}
+h1 {
+    margin: 10px 0;
+    color: #00ff66;
+}
+.sub {
+    font-size: 20px;
+}
+.criterio {
+    margin: 0 0 22px;
+    color: #bbf7d0;
+    text-align: center;
+    font-size: 18px;
+}
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+th {
+    background: #00ff66;
+    color: black;
+    padding: 12px;
+    font-size: 20px;
+}
+td {
+    padding: 12px;
+    text-align: center;
+    border-bottom: 1px solid #2c3e50;
+    font-size: 20px;
+}
+.equipo-logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    text-align: left;
+    font-weight: bold;
+}
+.logo-equipo {
+    width: 52px;
+    height: 52px;
+    object-fit: contain;
+    background: white;
+    border-radius: 50%;
+    padding: 3px;
+}
+.valor {
+    color: #00ff66;
+    font-size: 24px;
+    font-weight: bold;
+}
+</style>
+</head>
+<body>
+<div class="contenedor">
+    <div class="encabezado">
+        <img src="{{ logo_alcaldia }}" class="logo">
+        <div class="titulo">
+            <img src="{{ logo_torneo }}" class="logo-central">
+            <h1>CLASIFICACIÓN DISCIPLINARIA</h1>
+            <div class="sub">{{ categoria }}</div>
+        </div>
+        <img src="{{ logo_imcred }}" class="logo">
+    </div>
+    <p class="criterio">Amarilla: 1 punto · Roja: 3 puntos · Menor valor es mejor</p>
+    <table>
+        <tr>
+            <th>#</th>
+            <th>Equipo</th>
+            <th>Amarillas</th>
+            <th>Rojas</th>
+            <th>Valor de clasificación</th>
+        </tr>
+        {% for equipo in equipos %}
+        <tr>
+            <td>{{ forloop.counter }}</td>
+            <td>
+                <div class="equipo-logo">
+                    {% if equipo.escudo %}<img src="{{ equipo.escudo }}" class="logo-equipo">{% endif %}
+                    <span>{{ equipo.equipo }}</span>
+                </div>
+            </td>
+            <td>{{ equipo.ta }}</td>
+            <td>{{ equipo.tr }}</td>
+            <td class="valor">{{ equipo.puntos_disciplina }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="5">Sin equipos registrados</td></tr>
+        {% endfor %}
+    </table>
+</div>
+</body>
+</html>

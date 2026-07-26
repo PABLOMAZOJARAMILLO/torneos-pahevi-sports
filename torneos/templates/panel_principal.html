@@ -5810,42 +5810,6 @@ body.solo-lectura .menu-principal{top:96px!important}
     <!-- ===================== TARJETAS Y ALERTAS ===================== -->
     <div class="tab-content" data-tab="tarjetas">
         <div class="bloque">
-            <h2>Clasificación disciplinaria por equipos</h2>
-            <p class="muted">Este valor se usa internamente para desempatar la tabla de posiciones. Amarilla: 1 punto; roja: 3 puntos. Menor valor es mejor.</p>
-            <div class="tabla-responsive tabla-posiciones">
-                <table>
-                    <tr>
-                        <th>#</th>
-                        <th class="col-equipo">Equipo</th>
-                        <th>Amarillas</th>
-                        <th>Rojas</th>
-                        <th>Valor de clasificación</th>
-                    </tr>
-                    {% for equipo in datos_categoria.disciplina_equipos %}
-                    <tr>
-                        <td>{{ forloop.counter }}</td>
-                        <td class="col-equipo">
-                            <div class="equipo-logo">
-                                {% if equipo.escudo %}
-                                    <img src="{{ equipo.escudo }}" class="logo-equipo">
-                                {% endif %}
-                                <span>{{ equipo.equipo }}</span>
-                            </div>
-                        </td>
-                        <td>{{ equipo.ta }}</td>
-                        <td>{{ equipo.tr }}</td>
-                        <td class="celda-total">{{ equipo.puntos_disciplina }}</td>
-                    </tr>
-                    {% empty %}
-                    <tr>
-                        <td colspan="5">Sin equipos registrados</td>
-                    </tr>
-                    {% endfor %}
-                </table>
-            </div>
-        </div>
-
-        <div class="bloque">
             <h2>Tarjetas por fechas y fases</h2>
 
             {% if request.user.is_staff %}
@@ -5892,6 +5856,49 @@ body.solo-lectura .menu-principal{top:96px!important}
                     {% empty %}
                     <tr>
                         <td colspan="50">Sin tarjetas registradas</td>
+                    </tr>
+                    {% endfor %}
+                </table>
+            </div>
+        </div>
+
+        <div class="bloque">
+            <h2>Clasificación disciplinaria por equipos</h2>
+            {% if request.user.is_staff %}
+            <div class="descargas-tab">
+                <a class="boton" href="{% url 'descargar_disciplina_equipos_categoria' categoria %}">
+                    Descargar suma de tarjetas por equipos
+                </a>
+            </div>
+            {% endif %}
+            <p class="muted">Este valor se usa internamente para desempatar la tabla de posiciones. Amarilla: 1 punto; roja: 3 puntos. Menor valor es mejor.</p>
+            <div class="tabla-responsive tabla-posiciones">
+                <table>
+                    <tr>
+                        <th>#</th>
+                        <th class="col-equipo">Equipo</th>
+                        <th>Amarillas</th>
+                        <th>Rojas</th>
+                        <th>Valor de clasificación</th>
+                    </tr>
+                    {% for equipo in datos_categoria.disciplina_equipos %}
+                    <tr>
+                        <td>{{ forloop.counter }}</td>
+                        <td class="col-equipo">
+                            <div class="equipo-logo">
+                                {% if equipo.escudo %}
+                                    <img src="{{ equipo.escudo }}" class="logo-equipo">
+                                {% endif %}
+                                <span>{{ equipo.equipo }}</span>
+                            </div>
+                        </td>
+                        <td>{{ equipo.ta }}</td>
+                        <td>{{ equipo.tr }}</td>
+                        <td class="celda-total">{{ equipo.puntos_disciplina }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5">Sin equipos registrados</td>
                     </tr>
                     {% endfor %}
                 </table>

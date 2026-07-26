@@ -3368,6 +3368,29 @@ def descargar_tarjetas_categoria(request, categoria):
 
 @login_required
 @user_passes_test(es_editor_torneo)
+def descargar_disciplina_equipos_categoria(request, categoria):
+    torneo = torneo_actual(request)
+    estructura = construir_estructura(torneo)
+    datos_categoria = estructura.get(categoria)
+
+    if not datos_categoria:
+        return HttpResponse("Categoría no encontrada")
+
+    logos = logos_torneo(request, torneo)
+    html = render_to_string("descargas/disciplina_equipos_categoria.html", {
+        "categoria": categoria,
+        "equipos": datos_categoria.get("disciplina_equipos") or [],
+        "logo_alcaldia": logos["logo_alcaldia"],
+        "logo_torneo": logos["logo_torneo"],
+        "logo_imcred": logos["logo_imcred"],
+    })
+
+    nombre = limpiar_nombre(f"CLASIFICACION_DISCIPLINARIA_EQUIPOS_{categoria}.png")
+    return crear_imagen_desde_html(html, nombre, 1600, 1400, url_retorno_descarga(request))
+
+
+@login_required
+@user_passes_test(es_editor_torneo)
 def descargar_valla_categoria(request, categoria):
     torneo = torneo_actual(request)
     estructura = construir_estructura(torneo)

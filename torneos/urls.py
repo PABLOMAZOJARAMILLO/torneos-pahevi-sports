@@ -6,6 +6,7 @@ from .views import (
     descargar_tabla_general_mata_mata,
     descargar_goleadores_categoria,
     descargar_tarjetas_categoria,
+    descargar_disciplina_equipos_categoria,
     descargar_valla_categoria,
     descargar_foraneos_categoria,
     generar_llaves_cuartos,
@@ -64,6 +65,11 @@ urlpatterns = [
         'descargar/tarjetas/<str:categoria>/',
         descargar_tarjetas_categoria,
         name='descargar_tarjetas_categoria'
+    ),
+    path(
+        'descargar/disciplina-equipos/<str:categoria>/',
+        descargar_disciplina_equipos_categoria,
+        name='descargar_disciplina_equipos_categoria'
     ),
 
     path(
