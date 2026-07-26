@@ -4108,6 +4108,20 @@ def titulo_descarga_programacion(categoria_obj=None, numero_fecha="", dia=None):
     return " - ".join(partes)
 
 
+def fechas_presentes_en_programacion(partidos_programacion):
+    fechas = []
+    for partido in partidos_programacion:
+        numero_fecha = str(partido.get("numero_fecha") or "").strip()
+        if numero_fecha and numero_fecha not in fechas:
+            fechas.append(numero_fecha)
+    if len(fechas) == 1:
+        return fechas[0]
+    if len(fechas) > 1:
+        etiquetas = [re.sub(r"^fecha\s+", "", etiqueta_fecha(fecha), flags=re.IGNORECASE) for fecha in fechas]
+        return f"FECHAS {' Y '.join(etiquetas)}"
+    return ""
+
+
 @login_required
 @user_passes_test(puede_descargar_programacion)
 def seleccionar_descarga_programacion(request):
@@ -4191,6 +4205,9 @@ def descargar_programacion_general(request):
 
     if not partidos_programacion:
         return respuesta_descarga_sin_partidos(request, "No hay partidos programados con fecha, hora y cancha asignada.")
+
+    if not numero_fecha:
+        numero_fecha = fechas_presentes_en_programacion(partidos_programacion)
 
     logos = logos_torneo(request, torneo)
     cantidad = len(partidos_programacion)

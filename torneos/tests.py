@@ -19,7 +19,7 @@ from .models import AlineacionPartido, EntregaAlineacionPartido, AdminOrganizado
 from .middleware import AuditoriaModificacionesMiddleware
 from .planillas_pdf import _dorsal, _edad, _header_image_sources, _team_shield_source, _draw_team_watermark, _titulo_planilla
 from .storage_backends import CloudinaryMediaStorage
-from .views import buscar_planilleros_excel, construir_estructura, construir_estadisticas_foraneos, construir_partidos_portada, construir_partidos_programacion, _clave_orden_evento_resumen, _minuto_evento_en_vivo, _sincronizar_no_disponibles_por_tarjetas, etiqueta_columna_planilla, etiqueta_edad_jugador, jugadores_actuales_en_cancha, nombre_corto_jugador, nombre_resumen_jugador, puede_descargar_programacion, reglas_edad_para_frontend, texto_edad_jugador, tabla_general_mata_mata_ida_vuelta, url_imagen_cloudinary, validar_reglas_edad_titulares
+from .views import buscar_planilleros_excel, construir_estructura, construir_estadisticas_foraneos, construir_partidos_portada, construir_partidos_programacion, fechas_presentes_en_programacion, _clave_orden_evento_resumen, _minuto_evento_en_vivo, _sincronizar_no_disponibles_por_tarjetas, etiqueta_columna_planilla, etiqueta_edad_jugador, jugadores_actuales_en_cancha, nombre_corto_jugador, nombre_resumen_jugador, puede_descargar_programacion, reglas_edad_para_frontend, texto_edad_jugador, tabla_general_mata_mata_ida_vuelta, url_imagen_cloudinary, validar_reglas_edad_titulares
 
 
 class CloudinaryStorageTests(TestCase):
@@ -2582,6 +2582,14 @@ class DescargaProgramacionFiltrosTests(TestCase):
         self.assertEqual(len(partidos), 1)
         self.assertEqual(partidos[0]["local"], "Local")
         self.assertEqual(partidos[0]["hora_texto"], "4:00 PM")
+
+    def test_descarga_por_dia_conserva_numero_de_fecha_en_el_titulo(self):
+        partidos = [
+            {"numero_fecha": "2"},
+            {"numero_fecha": "2"},
+        ]
+
+        self.assertEqual(fechas_presentes_en_programacion(partidos), "2")
 
     def test_descarga_de_fechas_fase_incluye_finalizado_con_resultado(self):
         self.partido.estado = "FINALIZADO"
