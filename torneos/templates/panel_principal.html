@@ -2039,12 +2039,24 @@ body.solo-lectura .menu-principal {
     gap: 4px;
     padding: 3px 7px;
     border-radius: 999px;
-    background: #ef4444;
+    background: #f59e0b;
     color: #fff;
     font-size: 11px;
     font-weight: 1000;
     line-height: 1;
-    box-shadow: 0 0 12px rgba(239,68,68,.4);
+    box-shadow: 0 0 12px rgba(245,158,11,.4);
+}
+.marcador-en-vivo.ganando {
+    background: #22a447;
+    box-shadow: 0 0 12px rgba(34,164,71,.45);
+}
+.marcador-en-vivo.perdiendo {
+    background: #f43f5e;
+    box-shadow: 0 0 12px rgba(244,63,94,.45);
+}
+.marcador-en-vivo.empatando {
+    background: #f59e0b;
+    box-shadow: 0 0 12px rgba(245,158,11,.4);
 }
 .marcador-en-vivo::before {
     content: "";
@@ -5595,7 +5607,7 @@ body.solo-lectura .menu-principal{top:96px!important}
                                         {% if equipo.partidos_en_vivo %}
                                         <span class="marcadores-en-vivo">
                                             {% for vivo in equipo.partidos_en_vivo %}
-                                            <a class="marcador-en-vivo" href="{% url 'partido_live' vivo.partido_id %}" title="{{ vivo.local }} vs {{ vivo.visitante }}">EN VIVO {{ vivo.marcador }}</a>
+                                            <a class="marcador-en-vivo {{ vivo.estado_equipo }}" href="{% url 'partido_live' vivo.partido_id %}" title="{{ vivo.local }} vs {{ vivo.visitante }}">EN VIVO {{ vivo.marcador }}</a>
                                             {% endfor %}
                                         </span>
                                         {% endif %}
@@ -5656,7 +5668,7 @@ body.solo-lectura .menu-principal{top:96px!important}
                                         {% if equipo.partidos_en_vivo %}
                                         <span class="marcadores-en-vivo">
                                             {% for vivo in equipo.partidos_en_vivo %}
-                                            <a class="marcador-en-vivo" href="{% url 'partido_live' vivo.partido_id %}" title="{{ vivo.local }} vs {{ vivo.visitante }}">EN VIVO {{ vivo.marcador }}</a>
+                                            <a class="marcador-en-vivo {{ vivo.estado_equipo }}" href="{% url 'partido_live' vivo.partido_id %}" title="{{ vivo.local }} vs {{ vivo.visitante }}">EN VIVO {{ vivo.marcador }}</a>
                                             {% endfor %}
                                         </span>
                                         {% endif %}

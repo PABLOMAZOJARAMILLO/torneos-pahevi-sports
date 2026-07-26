@@ -1936,6 +1936,13 @@ class PlanilleroPartidoTests(TestCase):
         self.assertEqual(fila_local["gc"], 1)
         self.assertEqual(fila_local["pts"], 3)
         self.assertEqual(fila_local["partidos_en_vivo"][0]["marcador"], "2-1")
+        self.assertEqual(fila_local["partidos_en_vivo"][0]["estado_equipo"], "ganando")
+        fila_visitante = next(
+            fila for fila in datos["grupos"]["SIN GRUPO"]["tabla"]
+            if fila["id"] == self.visitante.id
+        )
+        self.assertEqual(fila_visitante["partidos_en_vivo"][0]["marcador"], "2-1")
+        self.assertEqual(fila_visitante["partidos_en_vivo"][0]["estado_equipo"], "perdiendo")
 
     def test_admin_valida_estadisticas_y_entran_a_reportes(self):
         self.partido.estado = "FINALIZADO"

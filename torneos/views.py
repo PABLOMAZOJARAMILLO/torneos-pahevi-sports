@@ -1886,14 +1886,26 @@ def construir_estructura(torneo=None):
 
             if resultado_en_vivo:
                 estructura[categoria]["hay_partidos_en_vivo"] = True
-                marcador = {
+                marcador_base = {
                     "partido_id": partido.id,
                     "marcador": f"{gl}-{gv}",
                     "local": partido.equipo_local.nombre,
                     "visitante": partido.equipo_visitante.nombre,
                 }
-                local["partidos_en_vivo"].append(marcador)
-                visitante["partidos_en_vivo"].append(marcador)
+                if gl > gv:
+                    estado_local, estado_visitante = "ganando", "perdiendo"
+                elif gl < gv:
+                    estado_local, estado_visitante = "perdiendo", "ganando"
+                else:
+                    estado_local = estado_visitante = "empatando"
+                local["partidos_en_vivo"].append({
+                    **marcador_base,
+                    "estado_equipo": estado_local,
+                })
+                visitante["partidos_en_vivo"].append({
+                    **marcador_base,
+                    "estado_equipo": estado_visitante,
+                })
 
             local["pj"] += 1
             visitante["pj"] += 1
