@@ -1638,6 +1638,7 @@ def estructura_base_categoria():
     return {
         "grupos": {},
         "hay_partidos_en_vivo": False,
+        "disciplina_equipos": [],
         "tabla_general_mata_mata": [],
         "partidos_por_fecha": {},
         "columnas_planilla": [],
@@ -1952,9 +1953,21 @@ def construir_estructura(torneo=None):
 
     for categoria, datos_categoria in estructura.items():
         tabla_general_mata = {}
+        disciplina_equipos = {}
         for grupo, datos_grupo in datos_categoria["grupos"].items():
             for equipo in datos_grupo["tabla"].values():
                 equipo["dg"] = equipo["gf"] - equipo["gc"]
+                disciplina = disciplina_equipos.setdefault(equipo["id"], {
+                    "id": equipo["id"],
+                    "equipo": equipo["equipo"],
+                    "escudo": equipo["escudo"],
+                    "ta": 0,
+                    "tr": 0,
+                    "puntos_disciplina": 0,
+                })
+                disciplina["ta"] += equipo["ta"]
+                disciplina["tr"] += equipo["tr"]
+                disciplina["puntos_disciplina"] += equipo["puntos_disciplina"]
 
                 if str(grupo).startswith("MATA "):
                     acumulado = tabla_general_mata.setdefault(equipo["id"], {
@@ -1990,6 +2003,10 @@ def construir_estructura(torneo=None):
                 ),
             )
 
+        datos_categoria["disciplina_equipos"] = sorted(
+            disciplina_equipos.values(),
+            key=lambda x: (x["puntos_disciplina"], x["equipo"].casefold()),
+        )
         datos_categoria["tabla_general_mata_mata"] = sorted(
             tabla_general_mata.values(),
             key=lambda x: (

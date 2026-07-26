@@ -1104,6 +1104,11 @@ class TablaPosicionesDesempateTarjetasTests(TestCase):
         self.assertLess(posicion_limpio, posicion_sancionado)
         self.assertEqual(tabla[posicion_limpio]["puntos_disciplina"], 0)
         self.assertEqual(tabla[posicion_sancionado]["puntos_disciplina"], 1)
+        disciplina = construir_estructura(torneo)[categoria.nombre]["disciplina_equipos"]
+        fila_disciplina = next(fila for fila in disciplina if fila["id"] == equipo_sancionado.id)
+        self.assertEqual(fila_disciplina["ta"], 1)
+        self.assertEqual(fila_disciplina["tr"], 0)
+        self.assertEqual(fila_disciplina["puntos_disciplina"], 1)
 
 
 class ReglasEdadCategoriaTests(TestCase):
