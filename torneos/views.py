@@ -1637,6 +1637,7 @@ def logos_torneo(request, torneo=None):
 def estructura_base_categoria():
     return {
         "grupos": {},
+        "hay_partidos_en_vivo": False,
         "tabla_general_mata_mata": [],
         "partidos_por_fecha": {},
         "columnas_planilla": [],
@@ -1871,14 +1872,28 @@ def construir_estructura(torneo=None):
                     "gc": 0,
                     "dg": 0,
                     "pts": 0,
+                    "partidos_en_vivo": [],
                 })
 
-        if partido.estado in ESTADOS_PARTIDO_CERRADO and partido.estadisticas_validadas:
+        resultado_en_vivo = partido.estado == "EN_JUEGO"
+        resultado_oficial = partido.estado in ESTADOS_PARTIDO_CERRADO and partido.estadisticas_validadas
+        if resultado_en_vivo or resultado_oficial:
             gl = partido.goles_local or 0
             gv = partido.goles_visitante or 0
 
             local = datos_grupo["tabla"][partido.equipo_local_id]
             visitante = datos_grupo["tabla"][partido.equipo_visitante_id]
+
+            if resultado_en_vivo:
+                estructura[categoria]["hay_partidos_en_vivo"] = True
+                marcador = {
+                    "partido_id": partido.id,
+                    "marcador": f"{gl}-{gv}",
+                    "local": partido.equipo_local.nombre,
+                    "visitante": partido.equipo_visitante.nombre,
+                }
+                local["partidos_en_vivo"].append(marcador)
+                visitante["partidos_en_vivo"].append(marcador)
 
             local["pj"] += 1
             visitante["pj"] += 1
@@ -1905,8 +1920,9 @@ def construir_estructura(torneo=None):
                 local["pts"] += 1
                 visitante["pts"] += 1
 
-            local["pts"] += partido.ajuste_puntos_local or 0
-            visitante["pts"] += partido.ajuste_puntos_visitante or 0
+            if resultado_oficial:
+                local["pts"] += partido.ajuste_puntos_local or 0
+                visitante["pts"] += partido.ajuste_puntos_visitante or 0
 
     for categoria, datos_categoria in estructura.items():
         tabla_general_mata = {}
@@ -1927,10 +1943,12 @@ def construir_estructura(torneo=None):
                         "gc": 0,
                         "dg": 0,
                         "pts": 0,
+                        "partidos_en_vivo": [],
                     })
                     for campo in ["pj", "pg", "pe", "pp", "gf", "gc", "pts"]:
                         acumulado[campo] += equipo[campo]
                     acumulado["dg"] = acumulado["gf"] - acumulado["gc"]
+                    acumulado["partidos_en_vivo"].extend(equipo["partidos_en_vivo"])
 
             datos_grupo["tabla"] = sorted(
                 datos_grupo["tabla"].values(),

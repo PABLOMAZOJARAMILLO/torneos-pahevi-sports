@@ -874,7 +874,7 @@
         background: #07111f !important;
     }
 
-    .tabla-posiciones .col-equipo {
+.tabla-posiciones .col-equipo {
         left: 48px !important;
     }
 
@@ -2025,6 +2025,37 @@ body.solo-lectura .menu-principal {
     font-style: normal;
     font-weight: 900;
     white-space: nowrap;
+}
+.marcadores-en-vivo {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-left: 8px;
+    vertical-align: middle;
+}
+.marcador-en-vivo {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 7px;
+    border-radius: 999px;
+    background: #ef4444;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 1000;
+    line-height: 1;
+    box-shadow: 0 0 12px rgba(239,68,68,.4);
+}
+.marcador-en-vivo::before {
+    content: "";
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #fff;
+    animation: pulso-marcador-vivo 1.2s infinite;
+}
+@keyframes pulso-marcador-vivo {
+    50% { opacity: .25; }
 }
 
 .planillas-submenus,
@@ -5504,7 +5535,7 @@ body.solo-lectura .menu-principal{top:96px!important}
 {% if renderizar_categorias_detalle %}
 <div id="categoria-detalle"></div>
 {% for categoria, datos_categoria in estructura.items %}
-<div class="categoria" id="categoria-{{ forloop.counter }}">
+<div class="categoria" id="categoria-{{ forloop.counter }}" data-partidos-en-vivo="{% if datos_categoria.hay_partidos_en_vivo %}1{% else %}0{% endif %}">
 
     <div class="categoria-barra-interna">
         <button class="btn-volver" onclick="volverCategorias()">Volver a categorías</button>
@@ -5561,6 +5592,13 @@ body.solo-lectura .menu-principal{top:96px!important}
                                             <img src="{{ equipo.escudo }}" class="logo-equipo">
                                         {% endif %}
                                         <span>{{ equipo.equipo }}</span>
+                                        {% if equipo.partidos_en_vivo %}
+                                        <span class="marcadores-en-vivo">
+                                            {% for vivo in equipo.partidos_en_vivo %}
+                                            <a class="marcador-en-vivo" href="{% url 'partido_live' vivo.partido_id %}" title="{{ vivo.local }} vs {{ vivo.visitante }}">EN VIVO {{ vivo.marcador }}</a>
+                                            {% endfor %}
+                                        </span>
+                                        {% endif %}
                                     </div>
                                 </td>
                                 <td>{{ equipo.pj }}</td>
@@ -5615,6 +5653,13 @@ body.solo-lectura .menu-principal{top:96px!important}
                                             <img src="{{ equipo.escudo }}" class="logo-equipo">
                                         {% endif %}
                                         <span>{{ equipo.equipo }}</span>
+                                        {% if equipo.partidos_en_vivo %}
+                                        <span class="marcadores-en-vivo">
+                                            {% for vivo in equipo.partidos_en_vivo %}
+                                            <a class="marcador-en-vivo" href="{% url 'partido_live' vivo.partido_id %}" title="{{ vivo.local }} vs {{ vivo.visitante }}">EN VIVO {{ vivo.marcador }}</a>
+                                            {% endfor %}
+                                        </span>
+                                        {% endif %}
                                     </div>
                                 </td>
                                 <td>{{ equipo.pj }}</td>
@@ -6934,6 +6979,42 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 120);
     }
 });
+
+(function actualizarTablaPosicionesEnVivo() {
+    let actualizando = false;
+
+    async function consultar() {
+        const categoriasEnVivo = Array.from(document.querySelectorAll('.categoria[data-partidos-en-vivo="1"]'));
+        if (!categoriasEnVivo.length || actualizando || document.hidden) return;
+        actualizando = true;
+        try {
+            const respuesta = await fetch(window.location.href, {
+                credentials: 'same-origin',
+                cache: 'no-store',
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            });
+            if (!respuesta.ok) throw new Error('No se pudo actualizar la tabla');
+            const documentoNuevo = new DOMParser().parseFromString(await respuesta.text(), 'text/html');
+
+            categoriasEnVivo.forEach(function(categoriaActual) {
+                const categoriaNueva = documentoNuevo.getElementById(categoriaActual.id);
+                if (!categoriaNueva) return;
+                const posicionesActuales = categoriaActual.querySelector('.tab-content[data-tab="posiciones"]');
+                const posicionesNuevas = categoriaNueva.querySelector('.tab-content[data-tab="posiciones"]');
+                if (posicionesActuales && posicionesNuevas) {
+                    posicionesActuales.innerHTML = posicionesNuevas.innerHTML;
+                }
+                categoriaActual.dataset.partidosEnVivo = categoriaNueva.dataset.partidosEnVivo || '0';
+            });
+        } catch (error) {
+            console.warn('Actualización de tabla en vivo pendiente:', error);
+        } finally {
+            actualizando = false;
+        }
+    }
+
+    window.setInterval(consultar, 8000);
+})();
 </script>
 <script>
 function actualizarRelojesLive() {

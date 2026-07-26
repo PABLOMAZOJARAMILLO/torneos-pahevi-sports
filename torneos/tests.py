@@ -1915,6 +1915,28 @@ class PlanilleroPartidoTests(TestCase):
         self.assertEqual(fila_local["pj"], 0)
         self.assertEqual(estructura["Senior"]["goleadores_planilla"], [])
 
+    def test_partido_en_vivo_actualiza_tabla_provisional_y_muestra_marcador(self):
+        self.partido.estado = "EN_JUEGO"
+        self.partido.goles_local = 2
+        self.partido.goles_visitante = 1
+        self.partido.estadisticas_validadas = False
+        self.partido.save()
+
+        estructura = construir_estructura(self.torneo)
+        datos = estructura["Senior"]
+        fila_local = next(
+            fila for fila in datos["grupos"]["SIN GRUPO"]["tabla"]
+            if fila["id"] == self.local.id
+        )
+
+        self.assertTrue(datos["hay_partidos_en_vivo"])
+        self.assertEqual(fila_local["pj"], 1)
+        self.assertEqual(fila_local["pg"], 1)
+        self.assertEqual(fila_local["gf"], 2)
+        self.assertEqual(fila_local["gc"], 1)
+        self.assertEqual(fila_local["pts"], 3)
+        self.assertEqual(fila_local["partidos_en_vivo"][0]["marcador"], "2-1")
+
     def test_admin_valida_estadisticas_y_entran_a_reportes(self):
         self.partido.estado = "FINALIZADO"
         self.partido.goles_local = 2
