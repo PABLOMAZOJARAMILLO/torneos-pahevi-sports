@@ -1050,6 +1050,62 @@ class TablaPosicionesWoTests(TestCase):
         self.assertEqual(fila_perdedor["pts"], 0)
 
 
+class TablaPosicionesDesempateTarjetasTests(TestCase):
+    def test_menos_tarjetas_desempata_equipos_con_igual_rendimiento(self):
+        torneo = Torneo.objects.create(nombre="Fair Play", fecha_inicio=date(2026, 1, 1))
+        categoria = Categoria.objects.create(
+            nombre="Senior Disciplina",
+            edad_minima=18,
+            edad_maxima=60,
+            torneo=torneo,
+        )
+        equipo_limpio = Equipo.objects.create(nombre="Equipo Limpio", categoria=categoria)
+        equipo_sancionado = Equipo.objects.create(nombre="Equipo Sancionado", categoria=categoria)
+        rival_limpio = Equipo.objects.create(nombre="Rival Limpio", categoria=categoria)
+        rival_sancionado = Equipo.objects.create(nombre="Rival Sancionado", categoria=categoria)
+        jugador = Jugador.objects.create(
+            equipo=equipo_sancionado,
+            nombres="Jugador Sancionado",
+            cedula="DISC-1",
+            fecha_nacimiento=date(1990, 1, 1),
+        )
+        datos_partido = {
+            "categoria": categoria,
+            "fecha": date(2026, 7, 26),
+            "hora": time(15, 0),
+            "estado": "FINALIZADO",
+            "estadisticas_validadas": True,
+            "fase": "GRUPOS",
+            "grupo": "A",
+            "goles_local": 1,
+            "goles_visitante": 0,
+        }
+        Partido.objects.create(
+            equipo_local=equipo_limpio,
+            equipo_visitante=rival_limpio,
+            **datos_partido,
+        )
+        partido_sancionado = Partido.objects.create(
+            equipo_local=equipo_sancionado,
+            equipo_visitante=rival_sancionado,
+            **datos_partido,
+        )
+        Tarjeta.objects.create(
+            partido=partido_sancionado,
+            jugador=jugador,
+            equipo=equipo_sancionado,
+            tipo="AMARILLA",
+        )
+
+        tabla = construir_estructura(torneo)[categoria.nombre]["grupos"]["A"]["tabla"]
+        posicion_limpio = next(i for i, fila in enumerate(tabla) if fila["id"] == equipo_limpio.id)
+        posicion_sancionado = next(i for i, fila in enumerate(tabla) if fila["id"] == equipo_sancionado.id)
+
+        self.assertLess(posicion_limpio, posicion_sancionado)
+        self.assertEqual(tabla[posicion_limpio]["puntos_disciplina"], 0)
+        self.assertEqual(tabla[posicion_sancionado]["puntos_disciplina"], 1)
+
+
 class ReglasEdadCategoriaTests(TestCase):
     def setUp(self):
         self.torneo = Torneo.objects.create(

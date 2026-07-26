@@ -1815,7 +1815,7 @@ def construir_estructura(torneo=None):
         "categoria",
         "equipo_local",
         "equipo_visitante"
-    ).order_by(
+    ).prefetch_related("tarjetas").order_by(
         "categoria__nombre",
         "grupo",
         "numero_fecha",
@@ -1872,6 +1872,9 @@ def construir_estructura(torneo=None):
                     "gc": 0,
                     "dg": 0,
                     "pts": 0,
+                    "ta": 0,
+                    "tr": 0,
+                    "puntos_disciplina": 0,
                     "partidos_en_vivo": [],
                 })
 
@@ -1936,6 +1939,17 @@ def construir_estructura(torneo=None):
                 local["pts"] += partido.ajuste_puntos_local or 0
                 visitante["pts"] += partido.ajuste_puntos_visitante or 0
 
+            for tarjeta in partido.tarjetas.all():
+                fila_equipo = datos_grupo["tabla"].get(tarjeta.equipo_id)
+                if not fila_equipo:
+                    continue
+                if tarjeta.tipo == "ROJA":
+                    fila_equipo["tr"] += 1
+                    fila_equipo["puntos_disciplina"] += 3
+                else:
+                    fila_equipo["ta"] += 1
+                    fila_equipo["puntos_disciplina"] += 1
+
     for categoria, datos_categoria in estructura.items():
         tabla_general_mata = {}
         for grupo, datos_grupo in datos_categoria["grupos"].items():
@@ -1955,23 +1969,36 @@ def construir_estructura(torneo=None):
                         "gc": 0,
                         "dg": 0,
                         "pts": 0,
+                        "ta": 0,
+                        "tr": 0,
+                        "puntos_disciplina": 0,
                         "partidos_en_vivo": [],
                     })
-                    for campo in ["pj", "pg", "pe", "pp", "gf", "gc", "pts"]:
+                    for campo in ["pj", "pg", "pe", "pp", "gf", "gc", "pts", "ta", "tr", "puntos_disciplina"]:
                         acumulado[campo] += equipo[campo]
                     acumulado["dg"] = acumulado["gf"] - acumulado["gc"]
                     acumulado["partidos_en_vivo"].extend(equipo["partidos_en_vivo"])
 
             datos_grupo["tabla"] = sorted(
                 datos_grupo["tabla"].values(),
-                key=lambda x: (x["pts"], x["dg"], x["gf"]),
-                reverse=True
+                key=lambda x: (
+                    -x["pts"],
+                    -x["dg"],
+                    -x["gf"],
+                    x["puntos_disciplina"],
+                    x["equipo"].casefold(),
+                ),
             )
 
         datos_categoria["tabla_general_mata_mata"] = sorted(
             tabla_general_mata.values(),
-            key=lambda x: (x["pts"], x["dg"], x["gf"], x["equipo"]),
-            reverse=True,
+            key=lambda x: (
+                -x["pts"],
+                -x["dg"],
+                -x["gf"],
+                x["puntos_disciplina"],
+                x["equipo"].casefold(),
+            ),
         )
 
     goleadores_temp = defaultdict(lambda: defaultdict(lambda: {

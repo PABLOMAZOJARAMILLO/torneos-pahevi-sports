@@ -5593,6 +5593,7 @@ body.solo-lectura .menu-principal{top:96px!important}
                                 <th>GF</th>
                                 <th>GC</th>
                                 <th>DG</th>
+                                <th title="Disciplina: amarilla 1 punto, roja 3. Menor es mejor.">DISC</th>
                                 <th>PTS</th>
                             </tr>
                             {% for equipo in datos_categoria.tabla_general_mata_mata %}
@@ -5620,6 +5621,7 @@ body.solo-lectura .menu-principal{top:96px!important}
                                 <td>{{ equipo.gf }}</td>
                                 <td>{{ equipo.gc }}</td>
                                 <td>{{ equipo.dg }}</td>
+                                <td title="{{ equipo.ta }} amarillas / {{ equipo.tr }} rojas">{{ equipo.puntos_disciplina }}</td>
                                 <td class="celda-total">{{ equipo.pts }}</td>
                             </tr>
                             {% endfor %}
@@ -5653,6 +5655,7 @@ body.solo-lectura .menu-principal{top:96px!important}
                                 <th>GF</th>
                                 <th>GC</th>
                                 <th>DG</th>
+                                <th title="Disciplina: amarilla 1 punto, roja 3. Menor es mejor.">DISC</th>
                                 <th>PTS</th>
                             </tr>
 
@@ -5681,11 +5684,12 @@ body.solo-lectura .menu-principal{top:96px!important}
                                 <td>{{ equipo.gf }}</td>
                                 <td>{{ equipo.gc }}</td>
                                 <td>{{ equipo.dg }}</td>
+                                <td title="{{ equipo.ta }} amarillas / {{ equipo.tr }} rojas">{{ equipo.puntos_disciplina }}</td>
                                 <td class="celda-total">{{ equipo.pts }}</td>
                             </tr>
                             {% empty %}
                             <tr>
-                                <td colspan="10">Sin datos registrados</td>
+                                <td colspan="11">Sin datos registrados</td>
                             </tr>
                             {% endfor %}
                         </table>
