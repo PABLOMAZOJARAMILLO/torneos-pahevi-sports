@@ -90,6 +90,12 @@ a { color: inherit; text-decoration: none; }
     font-size: 24px;
     font-weight: 900;
 }
+button.live-icon {
+    border: 0;
+    color: inherit;
+    cursor: pointer;
+    font-family: inherit;
+}
 .live-title {
     text-align: center;
     min-width: 0;
@@ -1191,7 +1197,7 @@ a { color: inherit; text-decoration: none; }
                 {{ partido.cancha|default:"Cancha por definir" }}
             </span>
         </div>
-        <a class="live-icon" href="javascript:navigator.share ? navigator.share({title: document.title, url: location.href}) : void 0">&nearr;</a>
+        <button class="live-icon" type="button" data-compartir-partido aria-label="Compartir partido">&nearr;</button>
     </div>
 
     {% if delegado_alineacion_url %}
@@ -1537,6 +1543,61 @@ a { color: inherit; text-decoration: none; }
 </div>
 
 <script>
+async function compartirPartido() {
+    const url = new URL(window.location.href);
+    url.searchParams.delete("volver");
+    const enlace = url.toString();
+    const datos = {
+        title: document.title,
+        text: "{{ partido.equipo_local.nombre|escapejs }} vs {{ partido.equipo_visitante.nombre|escapejs }}",
+        url: enlace
+    };
+
+    if (navigator.share) {
+        try {
+            await navigator.share(datos);
+            return;
+        } catch (error) {
+            if (error && error.name === "AbortError") return;
+        }
+    }
+
+    let copiado = false;
+    if (navigator.clipboard && window.isSecureContext) {
+        try {
+            await navigator.clipboard.writeText(enlace);
+            copiado = true;
+        } catch (error) {
+            copiado = false;
+        }
+    }
+
+    if (!copiado) {
+        const campo = document.createElement("textarea");
+        campo.value = enlace;
+        campo.setAttribute("readonly", "");
+        campo.style.position = "fixed";
+        campo.style.opacity = "0";
+        document.body.appendChild(campo);
+        campo.select();
+        campo.setSelectionRange(0, campo.value.length);
+        try {
+            copiado = document.execCommand("copy");
+        } catch (error) {
+            copiado = false;
+        }
+        campo.remove();
+    }
+
+    if (copiado) {
+        window.alert("Enlace del partido copiado. Ya puedes compartirlo.");
+    } else {
+        window.prompt("Copia este enlace para compartir el partido:", enlace);
+    }
+}
+
+document.querySelector("[data-compartir-partido]").addEventListener("click", compartirPartido);
+
 function etiquetaPeriodo(periodo) {
     if (periodo === "ST") return "\uD83D\uDD35 2T";
     if (periodo === "ET") return "\uD83D\uDFE0 ET";
