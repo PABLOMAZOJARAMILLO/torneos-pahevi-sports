@@ -99,6 +99,7 @@ class Torneo(models.Model):
     ESTADOS = [
         ('ACTIVO', 'Activo'),
         ('FINALIZADO', 'Finalizado'),
+        ('ARCHIVADO', 'Archivado'),
         ('SUSPENDIDO', 'Suspendido'),
     ]
 
@@ -112,6 +113,11 @@ class Torneo(models.Model):
     logo_derecho = models.ImageField(upload_to=ruta_logo_derecho_torneo, blank=True, null=True, verbose_name='Logo derecho del encabezado')
     fecha_inicio = models.DateField(verbose_name='Fecha de inicio')
     fecha_fin = models.DateField(blank=True, null=True, verbose_name='Fecha de finalización')
+    canchas_habilitadas = models.TextField(
+        blank=True,
+        verbose_name='Canchas habilitadas',
+        help_text='Escribe una cancha por línea.',
+    )
     estado = models.CharField(max_length=20, choices=ESTADOS, default='ACTIVO', verbose_name='Estado')
     creado_en = models.DateTimeField(auto_now_add=True, verbose_name='Creado en')
 
@@ -122,6 +128,17 @@ class Torneo(models.Model):
 
     def __str__(self):
         return self.nombre
+
+    def lista_canchas(self):
+        canchas = []
+        nombres_normalizados = set()
+        for linea in (self.canchas_habilitadas or "").replace(",", "\n").splitlines():
+            cancha = linea.strip()
+            normalizada = cancha.casefold()
+            if cancha and normalizada not in nombres_normalizados:
+                canchas.append(cancha)
+                nombres_normalizados.add(normalizada)
+        return canchas
 
 
 class AdminTorneo(models.Model):

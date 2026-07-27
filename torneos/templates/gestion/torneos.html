@@ -22,6 +22,16 @@
             {% if torneo.descripcion %}
                 <p class="muted">{{ torneo.descripcion }}</p>
             {% endif %}
+            {% if torneo.estado == "ARCHIVADO" and torneo.podios_archivo %}
+                <div class="card" style="margin-top:10px;padding:12px;">
+                    {% for podio in torneo.podios_archivo %}
+                        <div>
+                            <strong>{{ podio.categoria.nombre }}</strong>:
+                            Campeón {{ podio.campeon.nombre }} · Subcampeón {{ podio.subcampeon.nombre }}
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
             {% if torneo_seleccionado and torneo.id == torneo_seleccionado.id %}
                 <div class="message" style="display:inline-block;margin-top:8px;">Seleccionado actualmente</div>
             {% endif %}
@@ -35,6 +45,22 @@
                 {% csrf_token %}
                 <button class="btn" type="submit">Gestionar</button>
             </form>
+            {% if torneo.estado == "FINALIZADO" %}
+            <form method="post" action="{% url 'gestion_torneo_archivar' torneo.id %}" style="padding:0;border:0;background:transparent;box-shadow:none;" onsubmit="return confirm('Archivar este torneo y mostrar públicamente solo campeón y subcampeón?');">
+                {% csrf_token %}
+                <button class="btn" type="submit">Archivar</button>
+            </form>
+            {% elif torneo.estado == "ARCHIVADO" %}
+            <form method="post" action="{% url 'gestion_torneo_desarchivar' torneo.id %}" style="padding:0;border:0;background:transparent;box-shadow:none;">
+                {% csrf_token %}
+                <button class="btn secondary" type="submit">Desarchivar</button>
+            </form>
+            {% else %}
+            <form method="post" action="{% url 'gestion_torneo_finalizar' torneo.id %}" style="padding:0;border:0;background:transparent;box-shadow:none;" onsubmit="return confirm('Marcar este torneo como finalizado?');">
+                {% csrf_token %}
+                <button class="btn secondary" type="submit">Finalizar</button>
+            </form>
+            {% endif %}
             {% if request.user.is_superuser %}
             <form class="inline-form" method="post" action="{% url 'gestion_torneo_eliminar' torneo.id %}" onsubmit="return confirm('Eliminar este torneo borrara tambien sus categorias, equipos, jugadores y partidos. Continuar?');">
                 {% csrf_token %}

@@ -15,13 +15,13 @@ from django.utils import timezone
 from openpyxl import Workbook
 from PIL import Image
 
-from .forms import JugadorForm, PartidoForm, TorneoForm
+from .forms import JugadorForm, PartidoForm, PartidoProgramacionForm, TorneoForm
 from .models import AlineacionPartido, EntregaAlineacionPartido, AdminOrganizador, AdminTorneo, Categoria, Documento, Equipo, Gol, IncidenciaReglaEdad, Jugador, Organizador, Partido, ReglaEdadCategoria, RegistroActividad, VisitaPublicaDiaria, SolicitudValidacion, SustitucionPartido, Tarjeta, Torneo, ruta_escudo_equipo
 from .middleware import AuditoriaModificacionesMiddleware
 from .media_cleanup import eliminar_imagenes_sin_referencia, nombres_imagenes_instancias
 from .planillas_pdf import _dorsal, _edad, _header_image_sources, _team_shield_source, _draw_team_watermark, _titulo_planilla
 from .storage_backends import CloudinaryMediaStorage
-from .views import buscar_planilleros_excel, construir_estructura, construir_estadisticas_foraneos, construir_partidos_portada, construir_partidos_programacion, fechas_presentes_en_programacion, _clave_orden_evento_resumen, _minuto_evento_en_vivo, _sincronizar_no_disponibles_por_tarjetas, etiqueta_columna_planilla, etiqueta_edad_jugador, jugadores_actuales_en_cancha, nombre_corto_jugador, nombre_resumen_jugador, puede_descargar_programacion, reglas_edad_para_frontend, texto_edad_jugador, tabla_general_mata_mata_ida_vuelta, url_imagen_cloudinary, validar_reglas_edad_titulares
+from .views import buscar_planilleros_excel, construir_estructura, construir_estadisticas_foraneos, construir_partidos_portada, construir_partidos_programacion, fechas_presentes_en_programacion, _clave_orden_evento_resumen, _minuto_evento_en_vivo, _sincronizar_no_disponibles_por_tarjetas, etiqueta_columna_planilla, etiqueta_edad_jugador, jugadores_actuales_en_cancha, nombre_corto_jugador, nombre_resumen_jugador, puede_descargar_programacion, podios_torneo, reglas_edad_para_frontend, texto_edad_jugador, tabla_general_mata_mata_ida_vuelta, url_imagen_cloudinary, validar_reglas_edad_titulares
 
 
 class CloudinaryStorageTests(TestCase):
@@ -134,6 +134,95 @@ class LimpiezaImagenesTests(TestCase):
 
         self.assertCountEqual(eliminadas, imagenes)
         self.assertCountEqual(storage.eliminadas, imagenes)
+
+
+@override_settings(STORAGES={
+    "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+    "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
+})
+class ArchivoTorneoYCanchasTests(TestCase):
+    def setUp(self):
+        self.admin = User.objects.create_superuser(
+            username="admin-archivo",
+            email="admin@example.com",
+            password="clave",
+        )
+        self.torneo = Torneo.objects.create(
+            nombre="Copa Municipal",
+            fecha_inicio=date(2026, 1, 1),
+            canchas_habilitadas="Estadio Municipal\nCancha Auxiliar\nestadio municipal",
+        )
+        self.categoria = Categoria.objects.create(
+            nombre="Senior",
+            edad_minima=18,
+            edad_maxima=80,
+            torneo=self.torneo,
+        )
+        self.campeon = Equipo.objects.create(nombre="Equipo Campeon", categoria=self.categoria)
+        self.subcampeon = Equipo.objects.create(nombre="Equipo Subcampeon", categoria=self.categoria)
+
+    def crear_final(self):
+        return Partido.objects.create(
+            categoria=self.categoria,
+            equipo_local=self.campeon,
+            equipo_visitante=self.subcampeon,
+            fecha=date(2026, 12, 20),
+            hora=time(16, 0),
+            fase="FINAL",
+            estado="FINALIZADO",
+            goles_local=2,
+            goles_visitante=1,
+        )
+
+    def test_torneo_normaliza_canchas_y_formulario_usa_selector(self):
+        self.assertEqual(
+            self.torneo.lista_canchas(),
+            ["Estadio Municipal", "Cancha Auxiliar"],
+        )
+
+        form = PartidoProgramacionForm(torneo=self.torneo)
+
+        self.assertEqual(
+            list(form.fields["cancha"].choices),
+            [
+                ("", "Selecciona una cancha"),
+                ("Estadio Municipal", "Estadio Municipal"),
+                ("Cancha Auxiliar", "Cancha Auxiliar"),
+            ],
+        )
+
+    def test_finalizar_y_archivar_muestra_solo_podio_al_publico(self):
+        self.crear_final()
+        self.client.force_login(self.admin)
+
+        respuesta = self.client.post(f"/gestion/torneos/{self.torneo.id}/finalizar/")
+        self.assertRedirects(respuesta, "/gestion/torneos/")
+        self.torneo.refresh_from_db()
+        self.assertEqual(self.torneo.estado, "FINALIZADO")
+        self.assertIsNotNone(self.torneo.fecha_fin)
+
+        respuesta = self.client.post(f"/gestion/torneos/{self.torneo.id}/archivar/")
+        self.assertRedirects(respuesta, "/gestion/torneos/")
+        self.torneo.refresh_from_db()
+        self.assertEqual(self.torneo.estado, "ARCHIVADO")
+
+        self.client.logout()
+        respuesta = self.client.get(f"/?torneo={self.torneo.id}")
+        self.assertContains(respuesta, "Torneo finalizado y archivado")
+        self.assertContains(respuesta, "Equipo Campeon")
+        self.assertContains(respuesta, "Equipo Subcampeon")
+        self.assertNotContains(respuesta, "PROGRAMACIÓN DE PARTIDOS")
+
+    def test_no_archiva_sin_final_cerrada(self):
+        self.torneo.estado = "FINALIZADO"
+        self.torneo.save(update_fields=["estado"])
+        self.client.force_login(self.admin)
+
+        self.client.post(f"/gestion/torneos/{self.torneo.id}/archivar/")
+
+        self.torneo.refresh_from_db()
+        self.assertEqual(self.torneo.estado, "FINALIZADO")
+        self.assertEqual(podios_torneo(self.torneo), [])
 
 
 class AuditoriaUsuariosTests(TestCase):

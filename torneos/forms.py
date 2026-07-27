@@ -35,16 +35,24 @@ class TorneoForm(forms.ModelForm):
             "logo_derecho",
             "fecha_inicio",
             "fecha_fin",
+            "canchas_habilitadas",
             "estado",
         ]
         widgets = {
             "fecha_inicio": forms.DateInput(attrs={"type": "date"}),
             "fecha_fin": forms.DateInput(attrs={"type": "date"}),
             "descripcion": forms.Textarea(attrs={"rows": 3}),
+            "canchas_habilitadas": forms.Textarea(attrs={
+                "rows": 4,
+                "placeholder": "Cancha principal\nCancha auxiliar\nEstadio municipal",
+            }),
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        if not self.instance or not self.instance.pk:
+            self.fields["canchas_habilitadas"].required = True
+            self.fields["canchas_habilitadas"].help_text = "Registra al menos una cancha; escribe una por línea."
         if self.instance and self.instance.pk:
             self.fields.pop("fecha_inicio", None)
             self.fields.pop("fecha_fin", None)
@@ -638,6 +646,8 @@ class PartidoForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         torneo = kwargs.pop("torneo", None)
         super().__init__(*args, **kwargs)
+        if not torneo and self.instance and self.instance.pk and self.instance.categoria_id:
+            torneo = self.instance.categoria.torneo
         categorias = Categoria.objects.order_by("nombre")
         equipos = Equipo.objects.select_related("categoria").order_by("categoria__nombre", "nombre")
         if torneo:
@@ -650,6 +660,17 @@ class PartidoForm(forms.ModelForm):
         self.fields["equipo_local"].label_from_instance = lambda obj: f"{obj.categoria.nombre} - {obj.nombre}"
         self.fields["equipo_visitante"].label_from_instance = lambda obj: f"{obj.categoria.nombre} - {obj.nombre}"
         self.fields["fecha"].input_formats = ["%Y-%m-%d"]
+        if torneo and torneo.lista_canchas():
+            cancha_actual = (self.instance.cancha or "").strip() if self.instance and self.instance.pk else ""
+            opciones = [(cancha, cancha) for cancha in torneo.lista_canchas()]
+            nombres_opciones = {cancha.casefold() for cancha, _ in opciones}
+            if cancha_actual and cancha_actual.casefold() not in nombres_opciones:
+                opciones.append((cancha_actual, f"{cancha_actual} (cancha anterior)"))
+            self.fields["cancha"] = forms.ChoiceField(
+                choices=[("", "Selecciona una cancha")] + opciones,
+                required=False,
+                label="Cancha",
+            )
         planilleros_asignados = []
         if self.instance and self.instance.pk:
             planilleros_asignados = list(self.instance.planilleros.values_list("id", flat=True))

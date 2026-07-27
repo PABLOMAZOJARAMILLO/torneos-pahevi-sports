@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ torneo.nombre }} - Archivo</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            min-height: 100vh;
+            background: #061426;
+            color: #ffffff;
+            font-family: Arial, Helvetica, sans-serif;
+        }
+        header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 14px;
+            padding: 16px 20px;
+            border-bottom: 3px solid #00df67;
+        }
+        header img {
+            width: 76px;
+            height: 76px;
+            object-fit: contain;
+        }
+        .volver {
+            color: #061426;
+            background: #00df67;
+            border-radius: 999px;
+            padding: 11px 16px;
+            text-decoration: none;
+            font-weight: 900;
+        }
+        main {
+            width: min(920px, calc(100% - 28px));
+            margin: 0 auto;
+            padding: 42px 0 70px;
+        }
+        .titulo {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+        .titulo h1 {
+            margin: 0 0 10px;
+            color: #00df67;
+            font-size: clamp(30px, 7vw, 54px);
+            text-transform: uppercase;
+        }
+        .estado {
+            display: inline-block;
+            padding: 7px 14px;
+            border-radius: 999px;
+            background: #14243b;
+            color: #dbeafe;
+            font-weight: 900;
+            text-transform: uppercase;
+        }
+        .podios {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 20px;
+        }
+        .podio {
+            background: #102038;
+            border: 1px solid rgba(0, 223, 103, .45);
+            border-radius: 20px;
+            padding: 22px;
+            text-align: center;
+        }
+        .podio h2 {
+            margin: 0 0 20px;
+            color: #00df67;
+            text-transform: uppercase;
+        }
+        .equipo {
+            display: grid;
+            justify-items: center;
+            gap: 8px;
+            padding: 14px;
+            border-radius: 16px;
+            background: #071426;
+        }
+        .equipo + .equipo { margin-top: 12px; }
+        .equipo img {
+            width: 92px;
+            height: 92px;
+            object-fit: contain;
+        }
+        .puesto {
+            color: #a8b7ca;
+            font-size: 13px;
+            font-weight: 900;
+            text-transform: uppercase;
+        }
+        .nombre {
+            font-size: 21px;
+            font-weight: 900;
+        }
+        .vacio {
+            padding: 24px;
+            border-radius: 16px;
+            background: #102038;
+            text-align: center;
+            font-weight: 800;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <img src="{{ logo_app }}" alt="Pahevi Sports">
+        <a class="volver" href="{% url 'panel' %}?portal=1{% if organizador_portal_id %}&organizador={{ organizador_portal_id }}{% endif %}">Volver a torneos</a>
+    </header>
+    <main>
+        <section class="titulo">
+            <h1>{{ torneo.nombre }}</h1>
+            <span class="estado">Torneo finalizado y archivado</span>
+        </section>
+        {% if podios %}
+            <section class="podios">
+                {% for podio in podios %}
+                    <article class="podio">
+                        <h2>{{ podio.categoria.nombre }}</h2>
+                        <div class="equipo">
+                            <span class="puesto">🏆 Campeón</span>
+                            {% if podio.campeon.escudo %}
+                                <img src="{{ podio.campeon.escudo.url }}" alt="{{ podio.campeon.nombre }}">
+                            {% endif %}
+                            <span class="nombre">{{ podio.campeon.nombre }}</span>
+                        </div>
+                        <div class="equipo">
+                            <span class="puesto">🥈 Subcampeón</span>
+                            {% if podio.subcampeon.escudo %}
+                                <img src="{{ podio.subcampeon.escudo.url }}" alt="{{ podio.subcampeon.nombre }}">
+                            {% endif %}
+                            <span class="nombre">{{ podio.subcampeon.nombre }}</span>
+                        </div>
+                    </article>
+                {% endfor %}
+            </section>
+        {% else %}
+            <div class="vacio">El podio de este torneo todavía no está disponible.</div>
+        {% endif %}
+    </main>
+</body>
+</html>

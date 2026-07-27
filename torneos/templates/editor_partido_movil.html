@@ -956,7 +956,12 @@
                 </div>
 
                 <label>Cancha</label>
-                <input type="text" name="cancha" value="{{ partido.cancha|default:'' }}">
+                <select name="cancha">
+                    <option value="">Selecciona una cancha</option>
+                    {% for cancha in canchas_partido %}
+                        <option value="{{ cancha }}" {% if partido.cancha == cancha %}selected{% endif %}>{{ cancha }}</option>
+                    {% endfor %}
+                </select>
 
                 <div class="grid-2">
                     <div>

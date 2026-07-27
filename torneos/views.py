@@ -1693,6 +1693,37 @@ def etiqueta_columna_planilla(columna):
 ESTADOS_PARTIDO_CERRADO = ["FINALIZADO", "DECIDIDO_COMITE", "WO"]
 
 
+def podios_torneo(torneo):
+    podios = {}
+    finales = Partido.objects.filter(
+        categoria__torneo=torneo,
+        fase="FINAL",
+        estado__in=ESTADOS_PARTIDO_CERRADO,
+    ).select_related(
+        "categoria",
+        "equipo_local",
+        "equipo_visitante",
+    ).order_by("categoria__nombre", "fecha", "hora", "id")
+
+    for partido in finales:
+        campeon = ganador_partido(partido)
+        if not campeon:
+            continue
+        subcampeon = (
+            partido.equipo_visitante
+            if campeon.id == partido.equipo_local_id
+            else partido.equipo_local
+        )
+        podios[partido.categoria_id] = SimpleNamespace(
+            categoria=partido.categoria,
+            campeon=campeon,
+            subcampeon=subcampeon,
+            partido=partido,
+        )
+
+    return sorted(podios.values(), key=lambda podio: podio.categoria.nombre)
+
+
 def _marcar_estadisticas_pendientes(partido, user=None):
     if user is not None and es_editor_torneo(user):
         return
@@ -2976,6 +3007,14 @@ def panel_principal(request):
                     nombre=organizador.nombre,
                 )
 
+        torneos_portal = list(torneos_portal)
+        for torneo_portal in torneos_portal:
+            torneo_portal.podios_archivo = (
+                podios_torneo(torneo_portal)
+                if torneo_portal.estado == "ARCHIVADO"
+                else []
+            )
+
         logos = rutas_logos(request)
         return render(request, "portal_torneos.html", {
             "torneos_menu": torneos_portal,
@@ -2993,6 +3032,16 @@ def panel_principal(request):
         torneos_menu = torneos_menu.filter(organizador_id=torneo.organizador_id)
     else:
         torneos_menu = torneos_menu.filter(id=torneo.id)
+
+    if torneo.estado == "ARCHIVADO" and not es_editor_torneo(request.user):
+        logos = logos_torneo(request, torneo)
+        return render(request, "torneo_archivado.html", {
+            "torneo": torneo,
+            "podios": podios_torneo(torneo),
+            "organizador_portal_id": torneo.organizador_id,
+            "logo_app": rutas_logos(request)["logo_app"],
+            "logo_torneo": logos["logo_torneo"],
+        })
 
     categoria_seleccionada = request.GET.get("categoria", "").strip()
     categorias = Categoria.objects.order_by("nombre")
@@ -4806,6 +4855,9 @@ def editor_partido_movil(request, partido_id):
         SustitucionPartido.objects.filter(partido=partido).values_list("jugador_sale_id", flat=True)
     )
     permite_reingresos = categoria_permite_reingresos(partido.categoria)
+    canchas_partido = partido.categoria.torneo.lista_canchas()
+    if partido.cancha and partido.cancha.casefold() not in {cancha.casefold() for cancha in canchas_partido}:
+        canchas_partido.append(partido.cancha)
     for jugador in jugadores_local:
         jugador.en_cancha_actual = jugador.id in jugadores_en_cancha_local
         jugador.puede_entrar_actual = (
@@ -4842,6 +4894,7 @@ def editor_partido_movil(request, partido_id):
         'reglas_edad_alineacion': reglas_edad_para_frontend(partido.categoria),
         'sancionados_tarjetas': sancionados_tarjetas,
         'puede_editar_programacion': es_editor_torneo(request.user),
+        'canchas_partido': canchas_partido,
         'ajuste_puntos_local_abs': abs(partido.ajuste_puntos_local or 0),
         'ajuste_puntos_visitante_abs': abs(partido.ajuste_puntos_visitante or 0),
         'ajuste_puntos_local_signo': '-' if (partido.ajuste_puntos_local or 0) < 0 else '+',
@@ -6174,7 +6227,9 @@ def gestion_organizador_admin_eliminar(request, asignacion_id):
 def gestion_torneos(request):
     if usuario_solo_descarga_planillas(request.user, torneo_actual(request)):
         return denegar_permiso_torneo()
-    torneos = torneos_para_usuario(request)
+    torneos = list(torneos_para_usuario(request))
+    for torneo in torneos:
+        torneo.podios_archivo = podios_torneo(torneo) if torneo.estado == "ARCHIVADO" else []
 
     return render(request, "gestion/torneos.html", {
         "torneos": torneos,
@@ -6300,15 +6355,98 @@ def gestion_torneo_activar(request, torneo_id):
 
 
 @login_required
+@user_passes_test(es_editor_torneo)
+@require_POST
+def gestion_torneo_finalizar(request, torneo_id):
+    torneo = get_object_or_404(torneos_para_usuario(request), id=torneo_id)
+    if not puede_gestionar_torneo(request, torneo, "editar"):
+        return denegar_permiso_torneo()
+    if Partido.objects.filter(categoria__torneo=torneo, estado="EN_JUEGO").exists():
+        messages.error(request, "No puedes finalizar el torneo mientras haya partidos en vivo.")
+        return redirect("gestion_torneos")
+
+    torneo.estado = "FINALIZADO"
+    if not torneo.fecha_fin:
+        torneo.fecha_fin = timezone.localdate()
+    torneo.save(update_fields=["estado", "fecha_fin"])
+    registrar_actividad(request, "FINALIZAR_TORNEO", torneo, descripcion=f"Finalizo torneo {torneo.nombre}.")
+    messages.success(request, f"Torneo marcado como finalizado: {torneo.nombre}.")
+    return redirect("gestion_torneos")
+
+
+@login_required
+@user_passes_test(es_editor_torneo)
+@require_POST
+def gestion_torneo_archivar(request, torneo_id):
+    torneo = get_object_or_404(torneos_para_usuario(request), id=torneo_id)
+    if not puede_gestionar_torneo(request, torneo, "editar"):
+        return denegar_permiso_torneo()
+    if torneo.estado != "FINALIZADO":
+        messages.error(request, "Primero debes marcar el torneo como finalizado.")
+        return redirect("gestion_torneos")
+    podios = podios_torneo(torneo)
+    categorias_con_equipos = Categoria.objects.filter(
+        torneo=torneo,
+        equipos__isnull=False,
+    ).distinct()
+    categorias_con_podio = {podio.categoria.id for podio in podios}
+    categorias_pendientes = [
+        categoria.nombre
+        for categoria in categorias_con_equipos
+        if categoria.id not in categorias_con_podio
+    ]
+    if not podios:
+        messages.error(request, "No se puede archivar: falta una final cerrada que defina campeón y subcampeón.")
+        return redirect("gestion_torneos")
+    if categorias_pendientes:
+        messages.error(
+            request,
+            "No se puede archivar: falta definir campeón y subcampeón en "
+            + ", ".join(categorias_pendientes)
+            + ".",
+        )
+        return redirect("gestion_torneos")
+
+    torneo.estado = "ARCHIVADO"
+    torneo.save(update_fields=["estado"])
+    if request.session.get("torneo_id") == torneo.id:
+        request.session.pop("torneo_id", None)
+    registrar_actividad(request, "ARCHIVAR_TORNEO", torneo, descripcion=f"Archivo torneo {torneo.nombre}.")
+    messages.success(request, f"Torneo archivado: {torneo.nombre}.")
+    return redirect("gestion_torneos")
+
+
+@login_required
+@user_passes_test(es_editor_torneo)
+@require_POST
+def gestion_torneo_desarchivar(request, torneo_id):
+    torneo = get_object_or_404(torneos_para_usuario(request), id=torneo_id)
+    if not puede_gestionar_torneo(request, torneo, "editar"):
+        return denegar_permiso_torneo()
+    torneo.estado = "FINALIZADO"
+    torneo.save(update_fields=["estado"])
+    registrar_actividad(request, "DESARCHIVAR_TORNEO", torneo, descripcion=f"Desarchivo torneo {torneo.nombre}.")
+    messages.success(request, f"Torneo restaurado como finalizado: {torneo.nombre}.")
+    return redirect("gestion_torneos")
+
+
+@login_required
 @user_passes_test(es_superadmin)
 @require_POST
 def gestion_torneo_eliminar(request, torneo_id):
     torneo = get_object_or_404(torneos_para_usuario(request), id=torneo_id)
     nombre = torneo.nombre
+    equipos = Equipo.objects.filter(categoria__torneo=torneo).prefetch_related("jugadores")
+    instancias_con_imagenes = [torneo]
+    for equipo in equipos:
+        instancias_con_imagenes.append(equipo)
+        instancias_con_imagenes.extend(equipo.jugadores.all())
+    imagenes = nombres_imagenes_instancias(instancias_con_imagenes)
     if request.session.get("torneo_id") == torneo.id:
         request.session.pop("torneo_id", None)
     registrar_actividad(request, "ELIMINAR", torneo, descripcion=f"Elimino torneo {nombre}.")
     torneo.delete()
+    programar_limpieza_imagenes(imagenes)
     messages.success(request, f"Torneo eliminado: {nombre}.")
     return redirect("gestion_torneos")
 
@@ -7070,8 +7208,12 @@ def gestion_generar_fixture(request):
         reemplazar = request.POST.get("reemplazar") == "on"
         generar_programacion = request.POST.get("generar_programacion") == "on"
         fecha_inicio_programacion = fecha_desde_texto(request.POST.get("fecha_inicio_programacion"))
-        canchas_programacion = canchas_desde_texto(request.POST.get("canchas_programacion")) or ["Principal", "Porvenir"]
-        cancha_obligatoria = (request.POST.get("cancha_obligatoria") or "Porvenir").strip()
+        canchas_programacion = (
+            canchas_desde_texto(request.POST.get("canchas_programacion"))
+            or torneo.lista_canchas()
+            or ["Principal"]
+        )
+        cancha_obligatoria = (request.POST.get("cancha_obligatoria") or canchas_programacion[0]).strip()
         franjas_seleccionadas = request.POST.getlist("franjas_programacion")
         franjas_programacion = [
             franja for franja in FRANJAS_PROGRAMACION_FIXTURE
@@ -7261,6 +7403,7 @@ def gestion_generar_fixture(request):
         "parejas_mata_mata": parejas_mata_mata,
         "grupos_generados": grupos_generados,
         "franjas_programacion": FRANJAS_PROGRAMACION_FIXTURE,
+        "canchas_torneo": torneo.lista_canchas() if torneo else [],
         "resumen_programacion": resumen_programacion,
     })
 

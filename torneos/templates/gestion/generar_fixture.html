@@ -114,11 +114,17 @@
         <input id="fecha_inicio_programacion" type="date" name="fecha_inicio_programacion">
 
         <label for="canchas_programacion">Canchas disponibles, una por linea</label>
-        <textarea id="canchas_programacion" name="canchas_programacion" rows="3">Principal
-Porvenir</textarea>
+        <textarea id="canchas_programacion" name="canchas_programacion" rows="3">{% for cancha in canchas_torneo %}{{ cancha }}{% if not forloop.last %}
+{% endif %}{% empty %}Principal{% endfor %}</textarea>
 
         <label for="cancha_obligatoria">Cancha de reparto obligatorio</label>
-        <input id="cancha_obligatoria" type="text" name="cancha_obligatoria" value="Porvenir">
+        <select id="cancha_obligatoria" name="cancha_obligatoria">
+            {% for cancha in canchas_torneo %}
+                <option value="{{ cancha }}">{{ cancha }}</option>
+            {% empty %}
+                <option value="Principal">Principal</option>
+            {% endfor %}
+        </select>
 
         <label>Franjas disponibles</label>
         <div class="grid">

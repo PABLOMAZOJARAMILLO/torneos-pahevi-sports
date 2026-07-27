@@ -148,6 +148,37 @@
             padding: 22px;
             font-weight: 800;
         }
+        .torneo-archivado {
+            background: #ffffff;
+            border: 2px solid #d7dde8;
+            border-radius: 18px;
+            padding: 16px;
+        }
+        .torneo-estado {
+            display: inline-flex;
+            justify-self: center;
+            padding: 6px 12px;
+            border-radius: 999px;
+            background: #071b36;
+            color: #00df67;
+            font-size: 12px;
+            text-transform: uppercase;
+        }
+        .podio-archivo {
+            display: grid;
+            gap: 8px;
+            width: 100%;
+            color: #1f2937;
+            font-size: 14px;
+            text-align: left;
+        }
+        .podio-archivo-item {
+            border-top: 1px solid #d7dde8;
+            padding-top: 8px;
+        }
+        .podio-archivo strong {
+            color: #0b2a63;
+        }
         @media (max-width: 640px) {
             .portal-top {
                 min-height: 172px;
@@ -211,7 +242,7 @@
         {% if organizador_actual and torneos_menu %}
             <section class="torneos-grid">
                 {% for torneo in torneos_menu %}
-                    <a class="torneo-card" href="{% url 'panel' %}?torneo={{ torneo.id }}">
+                    <a class="torneo-card{% if torneo.estado == 'ARCHIVADO' %} torneo-archivado{% endif %}" href="{% url 'panel' %}?torneo={{ torneo.id }}">
                         {% if torneo.logo_portada %}
                             <img src="{{ torneo.logo_portada.url }}" class="torneo-card-imagen" alt="{{ torneo.nombre }}">
                         {% else %}
@@ -223,6 +254,20 @@
                                 <small class="torneo-card-lema">{{ torneo.lema }}</small>
                             {% endif %}
                         </span>
+                        {% if torneo.estado == "ARCHIVADO" %}
+                            <small class="torneo-estado">Torneo archivado</small>
+                            <span class="podio-archivo">
+                                {% for podio in torneo.podios_archivo %}
+                                    <span class="podio-archivo-item">
+                                        <strong>{{ podio.categoria.nombre }}</strong><br>
+                                        🏆 Campeón: {{ podio.campeon.nombre }}<br>
+                                        🥈 Subcampeón: {{ podio.subcampeon.nombre }}
+                                    </span>
+                                {% empty %}
+                                    <span>Podio pendiente de registrar.</span>
+                                {% endfor %}
+                            </span>
+                        {% endif %}
                     </a>
                 {% endfor %}
             </section>
