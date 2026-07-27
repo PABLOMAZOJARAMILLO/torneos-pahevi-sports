@@ -58,6 +58,14 @@ class CloudinaryMediaStorage(Storage):
             return "raw"
         return "image"
 
+    def _image_width(self, name):
+        clean_name = str(name).replace("\\", "/").lower()
+        if clean_name.startswith("jugadores/"):
+            return 320
+        if "/escudo" in clean_name or "/cuerpo_tecnico_" in clean_name:
+            return 320
+        return 900
+
     def _save(self, name, content):
         import cloudinary.uploader
 
@@ -95,7 +103,7 @@ class CloudinaryMediaStorage(Storage):
         if resource_type == "image":
             options["transformation"] = [
                 {
-                    "width": 900,
+                    "width": self._image_width(name),
                     "crop": "limit",
                     "quality": "auto",
                     "fetch_format": "auto",

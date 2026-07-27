@@ -23,6 +23,14 @@ from .views import buscar_planilleros_excel, construir_estructura, construir_est
 
 
 class CloudinaryStorageTests(TestCase):
+    def test_tamanos_segun_tipo_de_imagen(self):
+        storage = CloudinaryMediaStorage()
+
+        self.assertEqual(storage._image_width("equipos/senior/escudo.png"), 320)
+        self.assertEqual(storage._image_width("jugadores/senior/jugador.jpg"), 320)
+        self.assertEqual(storage._image_width("equipos/senior/cuerpo_tecnico_1.jpg"), 320)
+        self.assertEqual(storage._image_width("torneos/veranero/imagen_central.jpg"), 900)
+
     @override_settings(CLOUDINARY_URL="cloudinary://key:secret@test-cloud")
     def test_url_de_imagen_usa_transformacion_liviana(self):
         try:
@@ -35,7 +43,13 @@ class CloudinaryStorageTests(TestCase):
         self.assertIn("f_auto", url)
         self.assertIn("q_auto", url)
         self.assertIn("c_limit", url)
-        self.assertIn("w_900", url)
+        self.assertIn("w_320", url)
+
+        foto = CloudinaryMediaStorage().url("jugadores/senior/equipo/jugador.jpg")
+        portada = CloudinaryMediaStorage().url("torneos/veranero/imagen_central.jpg")
+
+        self.assertIn("w_320", foto)
+        self.assertIn("w_900", portada)
 
     @override_settings(CLOUDINARY_URL="cloudinary://key:secret@test-cloud")
     def test_miniatura_cloudinary_usa_transformacion_liviana(self):

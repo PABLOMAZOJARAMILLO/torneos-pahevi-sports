@@ -1565,6 +1565,10 @@ def escudo_url(equipo):
         return escudo_default_url()
 
     if equipo.escudo:
+        if getattr(settings, "USE_CLOUDINARY_STORAGE", False):
+            miniatura = url_imagen_cloudinary(equipo.escudo.name, ancho=320)
+            if miniatura:
+                return miniatura
         try:
             if equipo.escudo.url:
                 return equipo.escudo.url
@@ -2502,6 +2506,10 @@ def segundos_vivos_partido(partido):
 
 def foto_jugador_url(jugador):
     if jugador and jugador.foto:
+        if getattr(settings, "USE_CLOUDINARY_STORAGE", False):
+            miniatura = url_imagen_cloudinary(jugador.foto.name, ancho=320)
+            if miniatura:
+                return miniatura
         try:
             return jugador.foto.url
         except Exception:
