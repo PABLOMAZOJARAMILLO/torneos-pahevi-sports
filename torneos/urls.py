@@ -32,6 +32,7 @@ from .views import (
 
 urlpatterns = [
     path('', panel_principal, name='panel'),
+    path('actualizaciones/posiciones-en-vivo/', views.panel_posiciones_en_vivo, name='panel_posiciones_en_vivo'),
     path('ingresar/', views.IngresoTorneosView.as_view(), name='login'),
     path('sw.js', views.service_worker, name='service_worker'),
     path('salir/', views.cerrar_sesion, name='cerrar_sesion'),

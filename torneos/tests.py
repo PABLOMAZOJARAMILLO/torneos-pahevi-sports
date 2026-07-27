@@ -2005,6 +2005,32 @@ class PlanilleroPartidoTests(TestCase):
         self.assertEqual(fila_visitante["partidos_en_vivo"][0]["marcador"], "2-1")
         self.assertEqual(fila_visitante["partidos_en_vivo"][0]["estado_equipo"], "perdiendo")
 
+    def test_endpoint_en_vivo_devuelve_solo_datos_de_posiciones(self):
+        self.partido.estado = "EN_JUEGO"
+        self.partido.goles_local = 2
+        self.partido.goles_visitante = 1
+        self.partido.save()
+        session = self.client.session
+        session["torneo_id"] = self.torneo.id
+        session.save()
+
+        respuesta = self.client.get(
+            "/actualizaciones/posiciones-en-vivo/",
+            {"categoria": self.categoria.nombre},
+        )
+
+        self.assertEqual(respuesta.status_code, 200)
+        datos = respuesta.json()
+        self.assertTrue(datos["activo"])
+        self.assertEqual(datos["tablas"][0]["clave"], "grupo:SIN GRUPO")
+        self.assertEqual(datos["tablas"][0]["filas"][0]["id"], self.local.id)
+        self.assertEqual(datos["tablas"][0]["filas"][0]["pts"], 3)
+        self.assertEqual(
+            datos["tablas"][0]["filas"][0]["partidos_en_vivo"][0]["marcador"],
+            "2-1",
+        )
+        self.assertNotContains(respuesta, "<html")
+
     def test_admin_valida_estadisticas_y_entran_a_reportes(self):
         self.partido.estado = "FINALIZADO"
         self.partido.goles_local = 2

@@ -19,7 +19,7 @@ from django.contrib.auth.forms import PasswordChangeForm
 from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.views import LoginView
-from django.http import FileResponse, HttpResponse, HttpResponseForbidden
+from django.http import FileResponse, HttpResponse, HttpResponseForbidden, JsonResponse
 from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
 from django.db import connection, transaction
@@ -3121,6 +3121,53 @@ def panel_principal(request):
         "tiene_gestion_torneo": es_editor_torneo(request.user),
         "puede_descargar_programacion": puede_descargar_programacion(request.user),
         "tiene_equipos_delegado": equipos_delegado_asignados(request.user).exists(),
+    })
+
+
+def panel_posiciones_en_vivo(request):
+    torneo = torneo_actual(request, auto_seleccionar=False)
+    categoria_nombre = request.GET.get("categoria", "").strip()
+    if not torneo or not categoria_nombre:
+        return JsonResponse({"activo": False, "tablas": []})
+
+    categoria = Categoria.objects.filter(torneo=torneo, nombre=categoria_nombre).first()
+    if not categoria:
+        return JsonResponse({"activo": False, "tablas": []}, status=404)
+
+    datos_categoria = construir_estructura(torneo).get(categoria.nombre) or {}
+
+    def serializar_fila(fila):
+        return {
+            "id": fila["id"],
+            "pj": fila["pj"],
+            "pg": fila["pg"],
+            "pe": fila["pe"],
+            "pp": fila["pp"],
+            "gf": fila["gf"],
+            "gc": fila["gc"],
+            "dg": fila["dg"],
+            "pts": fila["pts"],
+            "partidos_en_vivo": fila.get("partidos_en_vivo", []),
+        }
+
+    tablas = []
+    tabla_general = datos_categoria.get("tabla_general_mata_mata") or []
+    if tabla_general:
+        tablas.append({
+            "clave": "general",
+            "filas": [serializar_fila(fila) for fila in tabla_general],
+        })
+
+    for grupo, datos_grupo in (datos_categoria.get("grupos") or {}).items():
+        if grupo != "FINAL":
+            tablas.append({
+                "clave": f"grupo:{grupo}",
+                "filas": [serializar_fila(fila) for fila in datos_grupo.get("tabla", [])],
+            })
+
+    return JsonResponse({
+        "activo": bool(datos_categoria.get("hay_partidos_en_vivo")),
+        "tablas": tablas,
     })
 
 

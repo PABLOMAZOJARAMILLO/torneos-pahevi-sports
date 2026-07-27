@@ -5582,7 +5582,7 @@ body.solo-lectura .menu-principal{top:96px!important}
                     </div>
                     {% endif %}
                     <div class="tabla-responsive tabla-posiciones">
-                        <table>
+                        <table data-tabla-live="general">
                             <tr>
                                 <th>#</th>
                                 <th class="col-equipo">Equipo</th>
@@ -5596,7 +5596,7 @@ body.solo-lectura .menu-principal{top:96px!important}
                                 <th>PTS</th>
                             </tr>
                             {% for equipo in datos_categoria.tabla_general_mata_mata %}
-                            <tr>
+                            <tr data-equipo-id="{{ equipo.id }}">
                                 <td>{{ forloop.counter }}</td>
                                 <td class="col-equipo">
                                     <div class="equipo-logo">
@@ -5642,7 +5642,7 @@ body.solo-lectura .menu-principal{top:96px!important}
                     {% endif %}
 
                     <div class="tabla-responsive tabla-posiciones">
-                        <table>
+                        <table data-tabla-live="grupo:{{ grupo }}">
                             <tr>
                                 <th>#</th>
                                 <th class="col-equipo">Equipo</th>
@@ -5657,7 +5657,7 @@ body.solo-lectura .menu-principal{top:96px!important}
                             </tr>
 
                             {% for equipo in datos_grupo.tabla %}
-                            <tr>
+                            <tr data-equipo-id="{{ equipo.id }}">
                                 <td>{{ forloop.counter }}</td>
                                 <td class="col-equipo">
                                     <div class="equipo-logo">
@@ -7038,33 +7038,74 @@ document.addEventListener('DOMContentLoaded', function() {
 (function actualizarTablaPosicionesEnVivo() {
     let actualizando = false;
 
+    function actualizarMarcadores(fila, partidos) {
+        const contenedorEquipo = fila.querySelector('.equipo-logo');
+        if (!contenedorEquipo) return;
+        const anterior = contenedorEquipo.querySelector('.marcadores-en-vivo');
+        if (anterior) anterior.remove();
+        if (!partidos || !partidos.length) return;
+
+        const contenedor = document.createElement('span');
+        contenedor.className = 'marcadores-en-vivo';
+        partidos.forEach(function(partido) {
+            const enlace = document.createElement('a');
+            enlace.className = 'marcador-en-vivo ' + partido.estado_equipo;
+            enlace.href = '/partido/' + partido.partido_id + '/live/';
+            enlace.title = partido.local + ' vs ' + partido.visitante;
+            enlace.textContent = 'EN VIVO ' + partido.marcador;
+            contenedor.appendChild(enlace);
+        });
+        contenedorEquipo.appendChild(contenedor);
+    }
+
+    function actualizarTabla(tabla, filasNuevas) {
+        const cuerpo = tabla.tBodies[0] || tabla;
+        const filasActuales = new Map();
+        tabla.querySelectorAll('tr[data-equipo-id]').forEach(function(fila) {
+            filasActuales.set(String(fila.dataset.equipoId), fila);
+        });
+
+        filasNuevas.forEach(function(datos, indice) {
+            const fila = filasActuales.get(String(datos.id));
+            if (!fila) return;
+            const celdas = fila.querySelectorAll('td');
+            const valores = [indice + 1, null, datos.pj, datos.pg, datos.pe, datos.pp, datos.gf, datos.gc, datos.dg, datos.pts];
+            valores.forEach(function(valor, posicion) {
+                if (valor !== null && celdas[posicion]) {
+                    celdas[posicion].textContent = valor;
+                }
+            });
+            actualizarMarcadores(fila, datos.partidos_en_vivo);
+            cuerpo.appendChild(fila);
+        });
+    }
+
     async function consultar() {
         const categoriasEnVivo = Array.from(document.querySelectorAll('.categoria[data-partidos-en-vivo="1"]'));
         if (!categoriasEnVivo.length || actualizando || document.hidden) return;
         actualizando = true;
         try {
-            const respuesta = await fetch(window.location.href, {
+            const parametros = new URLSearchParams(window.location.search);
+            const categoria = parametros.get('categoria');
+            if (!categoria) return;
+            const url = '{% url "panel_posiciones_en_vivo" %}?categoria=' + encodeURIComponent(categoria);
+            const respuesta = await fetch(url, {
                 credentials: 'same-origin',
                 cache: 'no-store',
-                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                headers: { 'Accept': 'application/json' }
             });
             if (!respuesta.ok) throw new Error('No se pudo actualizar la tabla');
-            const documentoNuevo = new DOMParser().parseFromString(await respuesta.text(), 'text/html');
+            const datos = await respuesta.json();
 
             categoriasEnVivo.forEach(function(categoriaActual) {
-                const categoriaNueva = documentoNuevo.getElementById(categoriaActual.id);
-                if (!categoriaNueva) return;
-                const posicionesActuales = categoriaActual.querySelector('.tab-content[data-tab="posiciones"]');
-                const posicionesNuevas = categoriaNueva.querySelector('.tab-content[data-tab="posiciones"]');
-                if (posicionesActuales && posicionesNuevas) {
-                    posicionesActuales.innerHTML = posicionesNuevas.innerHTML;
-                }
-                const tarjetasActuales = categoriaActual.querySelector('.tab-content[data-tab="tarjetas"]');
-                const tarjetasNuevas = categoriaNueva.querySelector('.tab-content[data-tab="tarjetas"]');
-                if (tarjetasActuales && tarjetasNuevas) {
-                    tarjetasActuales.innerHTML = tarjetasNuevas.innerHTML;
-                }
-                categoriaActual.dataset.partidosEnVivo = categoriaNueva.dataset.partidosEnVivo || '0';
+                (datos.tablas || []).forEach(function(datosTabla) {
+                    categoriaActual.querySelectorAll('table[data-tabla-live]').forEach(function(tabla) {
+                        if (tabla.dataset.tablaLive === datosTabla.clave) {
+                            actualizarTabla(tabla, datosTabla.filas || []);
+                        }
+                    });
+                });
+                categoriaActual.dataset.partidosEnVivo = datos.activo ? '1' : '0';
             });
         } catch (error) {
             console.warn('Actualización de tabla en vivo pendiente:', error);
