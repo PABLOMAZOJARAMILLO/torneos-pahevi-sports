@@ -4178,6 +4178,17 @@ def fechas_presentes_en_programacion(partidos_programacion):
         numero_fecha = str(partido.get("numero_fecha") or "").strip()
         if numero_fecha and numero_fecha not in fechas:
             fechas.append(numero_fecha)
+    cuartos_esperados = {"CUARTOS #1", "CUARTOS #2", "CUARTOS #3", "CUARTOS #4"}
+    cuartos_presentes = {fecha.upper() for fecha in fechas}
+    if cuartos_presentes == cuartos_esperados:
+        return "CUARTOS DE FINAL · SEMIFINAL 1: LLAVES 1 Y 4 · SEMIFINAL 2: LLAVES 2 Y 3"
+    orden_cuartos = {
+        "CUARTOS #1": 1,
+        "CUARTOS #4": 2,
+        "CUARTOS #2": 3,
+        "CUARTOS #3": 4,
+    }
+    fechas.sort(key=lambda fecha: (orden_cuartos.get(fecha.upper(), 99), fecha.upper()))
     if len(fechas) == 1:
         return fechas[0]
     if len(fechas) > 1:

@@ -2681,6 +2681,19 @@ class DescargaProgramacionFiltrosTests(TestCase):
 
         self.assertEqual(fechas_presentes_en_programacion(partidos), "2")
 
+    def test_encabezado_cuartos_explica_cruces_de_semifinales(self):
+        partidos = [
+            {"numero_fecha": "CUARTOS #4"},
+            {"numero_fecha": "CUARTOS #2"},
+            {"numero_fecha": "CUARTOS #3"},
+            {"numero_fecha": "CUARTOS #1"},
+        ]
+
+        self.assertEqual(
+            fechas_presentes_en_programacion(partidos),
+            "CUARTOS DE FINAL · SEMIFINAL 1: LLAVES 1 Y 4 · SEMIFINAL 2: LLAVES 2 Y 3",
+        )
+
     def test_descarga_de_fechas_fase_incluye_finalizado_con_resultado(self):
         self.partido.estado = "FINALIZADO"
         self.partido.goles_local = 3
