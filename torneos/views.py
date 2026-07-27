@@ -3498,7 +3498,7 @@ def tabla_general_mata_mata_ida_vuelta(categoria):
         categoria=categoria,
         fase="GRUPOS",
         grupo__startswith="MATA ",
-    ).select_related("equipo_local", "equipo_visitante")
+    )
 
     if not partidos.exists():
         return []
@@ -3506,56 +3506,12 @@ def tabla_general_mata_mata_ida_vuelta(categoria):
     if partidos.exclude(estado__in=ESTADOS_PARTIDO_CERRADO).exists():
         return []
 
-    tabla = {}
+    if partidos.filter(estadisticas_validadas=False).exists():
+        return []
 
-    def fila(equipo):
-        return tabla.setdefault(equipo.id, {
-            "id": equipo.id,
-            "equipo": equipo.nombre,
-            "pj": 0,
-            "pg": 0,
-            "pe": 0,
-            "pp": 0,
-            "gf": 0,
-            "gc": 0,
-            "dg": 0,
-            "pts": 0,
-        })
-
-    for partido in partidos:
-        local = fila(partido.equipo_local)
-        visitante = fila(partido.equipo_visitante)
-        gl = partido.goles_local or 0
-        gv = partido.goles_visitante or 0
-        local["pj"] += 1
-        visitante["pj"] += 1
-        local["gf"] += gl
-        local["gc"] += gv
-        visitante["gf"] += gv
-        visitante["gc"] += gl
-
-        if gl > gv:
-            local["pg"] += 1
-            visitante["pp"] += 1
-            local["pts"] += 3
-        elif gv > gl:
-            visitante["pg"] += 1
-            local["pp"] += 1
-            visitante["pts"] += 3
-        else:
-            local["pe"] += 1
-            visitante["pe"] += 1
-            local["pts"] += 1
-            visitante["pts"] += 1
-
-    for item in tabla.values():
-        item["dg"] = item["gf"] - item["gc"]
-
-    return sorted(
-        tabla.values(),
-        key=lambda item: (item["pts"], item["dg"], item["gf"], item["equipo"]),
-        reverse=True,
-    )
+    estructura = construir_estructura(categoria.torneo)
+    datos_categoria = estructura.get(categoria.nombre) or {}
+    return list(datos_categoria.get("tabla_general_mata_mata") or [])
 
 
 def crear_partidos_mata_mata_desde_parejas(parejas):

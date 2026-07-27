@@ -2925,8 +2925,13 @@ class FixtureProgramacionBalanceadaTests(TestCase):
             partido.estado = "FINALIZADO"
             partido.save(update_fields=["goles_local", "goles_visitante", "estado"])
 
-        tabla = tabla_general_mata_mata_ida_vuelta(self.categoria)
-        clasificados = tabla[:8]
+        tabla_visible = construir_estructura(self.torneo)["Senior"]["tabla_general_mata_mata"]
+        tabla_generador = tabla_general_mata_mata_ida_vuelta(self.categoria)
+        self.assertEqual(
+            [fila["id"] for fila in tabla_generador],
+            [fila["id"] for fila in tabla_visible],
+        )
+        clasificados = tabla_visible[:8]
 
         respuesta = self.client.get(f"/generar-llaves/{self.categoria.nombre}/")
 
