@@ -1,5 +1,6 @@
 from datetime import date, time, timedelta
 from io import BytesIO
+import os
 from unittest.mock import patch
 
 from types import SimpleNamespace
@@ -17,6 +18,7 @@ from PIL import Image
 from .forms import JugadorForm, PartidoForm, TorneoForm
 from .models import AlineacionPartido, EntregaAlineacionPartido, AdminOrganizador, AdminTorneo, Categoria, Documento, Equipo, Gol, IncidenciaReglaEdad, Jugador, Organizador, Partido, ReglaEdadCategoria, RegistroActividad, VisitaPublicaDiaria, SolicitudValidacion, SustitucionPartido, Tarjeta, Torneo, ruta_escudo_equipo
 from .middleware import AuditoriaModificacionesMiddleware
+from .media_cleanup import eliminar_imagenes_sin_referencia, nombres_imagenes_instancias
 from .planillas_pdf import _dorsal, _edad, _header_image_sources, _team_shield_source, _draw_team_watermark, _titulo_planilla
 from .storage_backends import CloudinaryMediaStorage
 from .views import buscar_planilleros_excel, construir_estructura, construir_estadisticas_foraneos, construir_partidos_portada, construir_partidos_programacion, fechas_presentes_en_programacion, _clave_orden_evento_resumen, _minuto_evento_en_vivo, _sincronizar_no_disponibles_por_tarjetas, etiqueta_columna_planilla, etiqueta_edad_jugador, jugadores_actuales_en_cancha, nombre_corto_jugador, nombre_resumen_jugador, puede_descargar_programacion, reglas_edad_para_frontend, texto_edad_jugador, tabla_general_mata_mata_ida_vuelta, url_imagen_cloudinary, validar_reglas_edad_titulares
@@ -64,6 +66,74 @@ class CloudinaryStorageTests(TestCase):
         self.assertIn("q_auto", url)
         self.assertIn("c_limit", url)
         self.assertIn("w_320", url)
+
+
+class LimpiezaImagenesTests(TestCase):
+    class StorageFalso:
+        def __init__(self):
+            self.eliminadas = []
+
+        def _public_id(self, name):
+            nombre = str(name).replace("\\", "/").lstrip("/")
+            return os.path.splitext(nombre)[0]
+
+        def delete(self, name):
+            self.eliminadas.append(name)
+
+    def setUp(self):
+        self.torneo = Torneo.objects.create(
+            nombre="Torneo limpieza",
+            fecha_inicio=date(2026, 1, 1),
+        )
+        self.categoria = Categoria.objects.create(
+            nombre="Senior",
+            edad_minima=18,
+            edad_maxima=80,
+            torneo=self.torneo,
+        )
+
+    def test_conserva_imagen_compartida_por_reinscripcion(self):
+        origen = Equipo.objects.create(
+            nombre="Equipo origen",
+            categoria=self.categoria,
+            escudo="equipos/senior/equipo/escudo.png",
+        )
+        destino = Equipo.objects.create(
+            nombre="Equipo destino",
+            categoria=self.categoria,
+            escudo="equipos/senior/equipo/escudo",
+        )
+        storage = self.StorageFalso()
+        imagenes = nombres_imagenes_instancias([origen])
+
+        origen.delete()
+        eliminadas = eliminar_imagenes_sin_referencia(imagenes, storage=storage)
+
+        self.assertEqual(eliminadas, [])
+        self.assertEqual(storage.eliminadas, [])
+        self.assertTrue(Equipo.objects.filter(pk=destino.pk).exists())
+
+    def test_elimina_imagen_cuando_desaparece_la_ultima_referencia(self):
+        equipo = Equipo.objects.create(
+            nombre="Equipo unico",
+            categoria=self.categoria,
+            escudo="equipos/senior/unico/escudo.png",
+        )
+        jugador = Jugador.objects.create(
+            equipo=equipo,
+            nombres="Jugador unico",
+            cedula="123456",
+            fecha_nacimiento=date(1990, 1, 1),
+            foto="jugadores/senior/unico/123456.jpg",
+        )
+        storage = self.StorageFalso()
+        imagenes = nombres_imagenes_instancias([equipo, jugador])
+
+        equipo.delete()
+        eliminadas = eliminar_imagenes_sin_referencia(imagenes, storage=storage)
+
+        self.assertCountEqual(eliminadas, imagenes)
+        self.assertCountEqual(storage.eliminadas, imagenes)
 
 
 class AuditoriaUsuariosTests(TestCase):

@@ -40,6 +40,7 @@ from openpyxl import load_workbook
 
 from .forms import TorneoForm, OrganizadorForm, CategoriaForm, ReglaEdadCategoriaFormSet, DocumentoForm, PlanillaJuegoUploadForm, EquipoForm, EquipoDelegadoForm, EquipoFotosCuerpoTecnicoDelegadoForm, EquipoReinscripcionForm, JugadorForm, JugadorDelegadoForm, JugadorFotoDelegadoForm, PartidoForm, PartidoProgramacionForm, AdminTorneoForm, AdminOrganizadorForm, CrearAdminOrganizadorForm
 from .models import Torneo, Organizador, Categoria, Documento, Equipo, Partido, Gol, Tarjeta, Jugador, AlineacionPartido, EntregaAlineacionPartido, SustitucionPartido, IncidenciaReglaEdad, ReglaEdadCategoria, AdminTorneo, AdminOrganizador, RegistroActividad, VisitaPublicaDiaria, SolicitudValidacion, limpiar_ruta_cloudinary
+from .media_cleanup import nombres_imagenes_instancias, programar_limpieza_imagenes
 from .planillas_pdf import generar_planilla_juego_pdf, nombre_archivo_planilla
 from .templatetags.texto_limpio import etiqueta_fecha
 from django.utils import timezone
@@ -5726,7 +5727,9 @@ def delegado_jugador_eliminar(request, jugador_id):
         descripcion=f"El delegado eliminó a {nombre} del equipo {equipo.nombre}.",
         datos={"equipo_id": equipo.id, "jugador_id": jugador.id, "jugador": nombre},
     )
+    imagenes = nombres_imagenes_instancias([jugador])
     jugador.delete()
+    programar_limpieza_imagenes(imagenes)
     messages.success(request, f"Jugador eliminado: {nombre}.")
     return redirect("delegado_equipo_editar", equipo_id=equipo_id)
 
@@ -7763,7 +7766,9 @@ def gestion_equipo_eliminar(request, equipo_id):
         return denegar_permiso_torneo()
     nombre = equipo.nombre
     registrar_actividad(request, "ELIMINAR", equipo, descripcion=f"Elimino equipo {nombre}.")
+    imagenes = nombres_imagenes_instancias([equipo, *equipo.jugadores.all()])
     equipo.delete()
+    programar_limpieza_imagenes(imagenes)
     messages.success(request, f"Equipo eliminado: {nombre}.")
     return redirect("gestion_equipos")
 
@@ -7888,7 +7893,9 @@ def gestion_jugador_eliminar(request, jugador_id):
     jugador = get_object_or_404(jugadores, id=jugador_id)
     nombre = jugador.nombres
     registrar_actividad(request, "ELIMINAR", jugador, descripcion=f"Elimino jugador {nombre}.")
+    imagenes = nombres_imagenes_instancias([jugador])
     jugador.delete()
+    programar_limpieza_imagenes(imagenes)
     messages.success(request, f"Jugador eliminado: {nombre}.")
     return redirect("gestion_jugadores")
 

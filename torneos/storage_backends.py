@@ -91,6 +91,19 @@ class CloudinaryMediaStorage(Storage):
     def exists(self, name):
         return False
 
+    def delete(self, name):
+        if not name:
+            return
+
+        import cloudinary.uploader
+
+        self._configure()
+        cloudinary.uploader.destroy(
+            self._public_id(name),
+            resource_type=self._resource_type(name),
+            invalidate=True,
+        )
+
     def url(self, name):
         import cloudinary.utils
 
