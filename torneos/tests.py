@@ -2700,6 +2700,35 @@ class DescargaProgramacionFiltrosTests(TestCase):
         self.assertEqual(programacion_fechas_fase[0]["marcador_texto"], "3 - 1")
         self.assertTrue(programacion_fechas_fase[0]["finalizado"])
 
+    def test_programacion_cuartos_especifica_cruces_de_semifinales(self):
+        cuarto_uno = Partido.objects.create(
+            categoria=self.categoria,
+            equipo_local=self.local,
+            equipo_visitante=self.visitante,
+            fecha=date(2026, 7, 26),
+            hora=time(14, 0),
+            estado="PROGRAMADO",
+            estado_programacion="OFICIAL",
+            numero_fecha="CUARTOS #1",
+            cancha="Teresa Sierra",
+            grupo="FINAL",
+            fase="CUARTOS",
+        )
+        request = self.client.get("/descargar/programacion/").wsgi_request
+
+        partidos = construir_partidos_programacion(
+            request,
+            categoria_obj=self.categoria,
+            numero_fecha=cuarto_uno.numero_fecha,
+            dia=cuarto_uno.fecha,
+        )
+
+        self.assertEqual(len(partidos), 1)
+        self.assertEqual(
+            partidos[0]["destino_eliminatoria"],
+            "GANADOR LLAVE 1 vs GANADOR LLAVE 4 · SEMIFINAL 1",
+        )
+
 
 class FixtureProgramacionBalanceadaTests(TestCase):
     def setUp(self):

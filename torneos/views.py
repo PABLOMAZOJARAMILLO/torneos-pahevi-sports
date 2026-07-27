@@ -4054,6 +4054,16 @@ def construir_partidos_programacion(request, categoria_obj=None, numero_fecha=""
             color_categoria = "#f1db19"
             color_texto_categoria = "#111827"
 
+        destinos_cuartos = {
+            "CUARTOS #1": "GANADOR LLAVE 1 vs GANADOR LLAVE 4 · SEMIFINAL 1",
+            "CUARTOS #4": "GANADOR LLAVE 4 vs GANADOR LLAVE 1 · SEMIFINAL 1",
+            "CUARTOS #2": "GANADOR LLAVE 2 vs GANADOR LLAVE 3 · SEMIFINAL 2",
+            "CUARTOS #3": "GANADOR LLAVE 3 vs GANADOR LLAVE 2 · SEMIFINAL 2",
+        }
+        destino_eliminatoria = ""
+        if fase == "CUARTOS":
+            destino_eliminatoria = destinos_cuartos.get((p.numero_fecha or "").upper(), "")
+
         partidos_programacion.append({
             "categoria": categoria_nombre,
             "color_categoria": color_categoria,
@@ -4063,6 +4073,7 @@ def construir_partidos_programacion(request, categoria_obj=None, numero_fecha=""
             "numero_fecha": p.numero_fecha or "",
             "grupo": p.grupo,
             "fase": fase,
+            "destino_eliminatoria": destino_eliminatoria,
             "estado": p.estado,
             "finalizado": p.estado == "FINALIZADO",
             "marcador_texto": f"{p.goles_local} - {p.goles_visitante}" if p.estado == "FINALIZADO" else "VS",

@@ -288,6 +288,22 @@ body {
     width: 94%;
     margin: 0 auto;
 }
+.avance-eliminatoria {
+    margin: 8px auto 0;
+    padding: 6px 12px;
+    border-radius: 999px;
+    background: rgba(0, 255, 102, .14);
+    color: #00ff66;
+    font-size: 16px;
+    font-weight: 900;
+    text-align: center;
+    letter-spacing: .3px;
+}
+.contenedor.compacta .avance-eliminatoria {
+    margin-top: 4px;
+    padding: 4px 8px;
+    font-size: 12px;
+}
 
 .contenedor.compacta .programacion-estado {
     display: block;
@@ -464,6 +480,9 @@ body {
                     {% endif %}
                 </div>
             </div>
+            {% if p.destino_eliminatoria %}
+            <div class="avance-eliminatoria">{{ p.destino_eliminatoria }}</div>
+            {% endif %}
             </div>
             {% endfor %}
         </div>
@@ -487,6 +506,7 @@ body {
 
             <div class="grupo">
                 {% if mostrar_categoria %}{{ p.categoria }} - {% endif %}
+                {% if p.numero_fecha %}{{ p.numero_fecha|upper }} &middot; {% endif %}
                 GRUPO {{ p.grupo }}{% if p.fase and p.fase != "GRUPOS" %} - {{ p.fase }}{% endif %}
             </div>
 
@@ -509,6 +529,10 @@ body {
                 </div>
 
             </div>
+
+            {% if p.destino_eliminatoria %}
+            <div class="avance-eliminatoria">{{ p.destino_eliminatoria }}</div>
+            {% endif %}
 
         </div>
         {% empty %}
