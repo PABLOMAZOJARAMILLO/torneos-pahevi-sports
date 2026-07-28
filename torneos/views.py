@@ -3033,7 +3033,7 @@ def panel_principal(request):
     else:
         torneos_menu = torneos_menu.filter(id=torneo.id)
 
-    if torneo.estado == "ARCHIVADO" and not es_editor_torneo(request.user):
+    if torneo.estado == "ARCHIVADO":
         logos = logos_torneo(request, torneo)
         return render(request, "torneo_archivado.html", {
             "torneo": torneo,

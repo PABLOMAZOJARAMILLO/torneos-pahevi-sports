@@ -213,6 +213,11 @@ class ArchivoTorneoYCanchasTests(TestCase):
         self.assertContains(respuesta, "Equipo Subcampeon")
         self.assertNotContains(respuesta, "PROGRAMACIÓN DE PARTIDOS")
 
+        self.client.force_login(self.admin)
+        respuesta = self.client.get(f"/?torneo={self.torneo.id}")
+        self.assertContains(respuesta, "Torneo finalizado y archivado")
+        self.assertNotContains(respuesta, "PROGRAMACIÓN DE PARTIDOS")
+
     def test_no_archiva_sin_final_cerrada(self):
         self.torneo.estado = "FINALIZADO"
         self.torneo.save(update_fields=["estado"])
