@@ -1,0 +1,234 @@
+{% load texto_limpio %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<style>
+* { box-sizing: border-box; }
+body {
+    width: 1600px;
+    height: 900px;
+    margin: 0;
+    overflow: hidden;
+    font-family: Arial, sans-serif;
+    color: #fff;
+    background: #090d43;
+}
+.lienzo {
+    width: 1600px;
+    height: 900px;
+    padding: 22px 34px 30px;
+    background:
+        radial-gradient(circle at 50% 45%, rgba(44, 61, 170, .36), transparent 36%),
+        linear-gradient(135deg, #070b36, #101653 52%, #070b36);
+}
+.cabecera {
+    height: 118px;
+    display: grid;
+    grid-template-columns: 260px 1fr 260px;
+    align-items: center;
+}
+.cabecera img {
+    width: 220px;
+    height: 88px;
+    object-fit: contain;
+}
+.cabecera .derecha { justify-self: end; }
+.titulo { text-align: center; text-transform: uppercase; }
+.titulo h1 {
+    margin: 0;
+    color: #fff;
+    font-size: 38px;
+    line-height: 1;
+    letter-spacing: 2px;
+}
+.titulo h2 {
+    margin: 8px 0 0;
+    color: #8bf5bb;
+    font-size: 22px;
+    letter-spacing: 3px;
+}
+.regla {
+    height: 34px;
+    color: #cbd5ff;
+    font-size: 15px;
+    font-weight: 800;
+    text-align: center;
+    text-transform: uppercase;
+}
+.cuadro {
+    height: 680px;
+    display: grid;
+    grid-template-columns: 270px 250px 330px 250px 270px;
+    gap: 24px;
+    align-items: stretch;
+}
+.columna {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 26px;
+}
+.columna h3 {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    margin: 0;
+    color: #fff;
+    font-size: 18px;
+    text-align: center;
+    text-transform: uppercase;
+}
+.cuartos { justify-content: space-around; padding-top: 45px; }
+.semifinal { padding-top: 45px; }
+.final {
+    padding: 54px 18px 18px;
+    border: 2px solid rgba(191, 203, 255, .55);
+    border-radius: 18px;
+    background: rgba(7, 11, 54, .42);
+}
+.partido {
+    position: relative;
+    min-height: 152px;
+    padding: 10px;
+    border: 1px solid rgba(135, 154, 255, .58);
+    border-radius: 12px;
+    background: rgba(7, 11, 54, .88);
+    box-shadow: 0 9px 22px rgba(0, 0, 0, .25);
+}
+.etiqueta {
+    margin-bottom: 7px;
+    color: #bfcaff;
+    font-size: 13px;
+    font-weight: 900;
+    text-align: center;
+    text-transform: uppercase;
+}
+.equipo {
+    height: 42px;
+    display: grid;
+    grid-template-columns: 38px 1fr;
+    align-items: center;
+    gap: 7px;
+    padding: 3px 9px;
+    border-radius: 7px;
+    background: #f8fafc;
+    color: #10153f;
+    font-size: 14px;
+    font-weight: 900;
+    text-transform: uppercase;
+}
+.equipo img {
+    width: 34px;
+    height: 34px;
+    object-fit: contain;
+}
+.vs {
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #9fb1ff;
+    font-size: 12px;
+    font-weight: 900;
+}
+.meta {
+    margin-top: 7px;
+    color: #e2e8ff;
+    font-size: 11px;
+    line-height: 1.25;
+    text-align: center;
+    text-transform: uppercase;
+}
+.vacio {
+    min-height: 100px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px dashed rgba(135, 154, 255, .38);
+    border-radius: 12px;
+    color: #8290ce;
+    font-size: 13px;
+    text-align: center;
+    text-transform: uppercase;
+}
+.cuartos.izquierda .partido::after,
+.semifinal.izquierda .partido::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    right: -25px;
+    width: 24px;
+    border-top: 2px solid #d7ddff;
+}
+.cuartos.derecha .partido::before,
+.semifinal.derecha .partido::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: -25px;
+    width: 24px;
+    border-top: 2px solid #d7ddff;
+}
+.tercer-titulo {
+    margin: 2px 0 -16px;
+    color: #facc15;
+    font-size: 14px;
+    text-align: center;
+    text-transform: uppercase;
+}
+</style>
+</head>
+<body>
+<div class="lienzo">
+    <header class="cabecera">
+        {% if logo_alcaldia %}<img src="{{ logo_alcaldia }}">{% endif %}
+        <div class="titulo">
+            <h1>{{ categoria }}</h1>
+            <h2>Cuadro de fases finales</h2>
+        </div>
+        {% if logo_imcred %}<img class="derecha" src="{{ logo_imcred }}">{% endif %}
+    </header>
+
+    <div class="regla">
+        Semifinal 1: ganador llave 1 vs ganador llave 4 &nbsp;&middot;&nbsp;
+        Semifinal 2: ganador llave 2 vs ganador llave 3
+    </div>
+
+    <main class="cuadro">
+        <section class="columna cuartos izquierda">
+            <h3>Cuartos de final</h3>
+            {% include "descargas/partials/partido_llave.html" with partido=llaves.q1 etiqueta="Llave 1" %}
+            {% include "descargas/partials/partido_llave.html" with partido=llaves.q4 etiqueta="Llave 4" %}
+        </section>
+
+        <section class="columna semifinal izquierda">
+            <h3>Semifinal 1</h3>
+            {% include "descargas/partials/partido_llave.html" with partido=llaves.s1 etiqueta="Semifinal 1" %}
+        </section>
+
+        <section class="columna final">
+            <h3>Final</h3>
+            {% include "descargas/partials/partido_llave.html" with partido=llaves.final etiqueta="Final" %}
+            {% if llaves.tercero %}
+                <div class="tercer-titulo">Tercer puesto</div>
+                {% include "descargas/partials/partido_llave.html" with partido=llaves.tercero etiqueta="Tercer puesto" %}
+            {% endif %}
+        </section>
+
+        <section class="columna semifinal derecha">
+            <h3>Semifinal 2</h3>
+            {% include "descargas/partials/partido_llave.html" with partido=llaves.s2 etiqueta="Semifinal 2" %}
+        </section>
+
+        <section class="columna cuartos derecha">
+            <h3>Cuartos de final</h3>
+            {% include "descargas/partials/partido_llave.html" with partido=llaves.q2 etiqueta="Llave 2" %}
+            {% include "descargas/partials/partido_llave.html" with partido=llaves.q3 etiqueta="Llave 3" %}
+        </section>
+    </main>
+</div>
+</body>
+</html>

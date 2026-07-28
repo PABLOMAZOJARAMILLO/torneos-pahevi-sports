@@ -6122,7 +6122,7 @@ body.solo-lectura .menu-principal{top:96px!important}
         {% if puede_descargar_programacion %}
         <div class="descargas-tab">
             <a class="boton" href="{% url 'descargar_programacion_categoria' categoria %}?fase_final=1&amp;volver={{ request.get_full_path|urlencode }}">
-                Descargar fases finales abiertas
+                Descargar cuadro completo de fases finales
             </a>
         </div>
         {% endif %}
@@ -6147,9 +6147,15 @@ body.solo-lectura .menu-principal{top:96px!important}
             </p>
             <style>
                 .regla-cruces-finales {
-                    margin: 0 auto 18px;
-                    color: #d7e2ff;
-                    font-size: 13px;
+                    width: fit-content;
+                    max-width: 96%;
+                    margin: 0 auto 22px;
+                    padding: 9px 18px;
+                    border: 1px solid #8eb9a2;
+                    border-radius: 999px;
+                    background: #dff8e9;
+                    color: #10213f;
+                    font-size: 16px;
                     font-weight: 800;
                     text-align: center;
                     text-transform: uppercase;
@@ -6166,11 +6172,18 @@ body.solo-lectura .menu-principal{top:96px!important}
                     width: auto !important;
                     max-width: none !important;
                     min-width: 0 !important;
+                    min-height: 500px !important;
                     padding: 0 !important;
                     gap: 18px !important;
                     display: flex !important;
                     flex-direction: column !important;
                     justify-content: center !important;
+                }
+                .tab-content[data-tab="finales"] .llaves-simetricas > .columna-llave {
+                    grid-column: auto !important;
+                    grid-row: auto !important;
+                    transform: none !important;
+                    margin: 0 !important;
                 }
                 .tab-content[data-tab="finales"] .llaves-simetricas .columna-cuartos {
                     justify-content: space-around !important;
@@ -6200,19 +6213,56 @@ body.solo-lectura .menu-principal{top:96px!important}
                     box-sizing: border-box !important;
                 }
                 .tab-content[data-tab="finales"] .llaves-simetricas .columna-finales {
+                    width: 100% !important;
+                    min-width: 0 !important;
                     background: rgba(24, 32, 105, .34);
                     border: 1px solid rgba(79, 106, 255, .55);
                     border-radius: 22px;
                     padding: 14px !important;
                 }
+                .etiqueta-numero-llave {
+                    margin: -2px 0 8px;
+                    color: #10213f;
+                    font-size: 13px;
+                    font-weight: 900;
+                    text-align: center;
+                    text-transform: uppercase;
+                }
+                .llave-pendiente {
+                    width: 100%;
+                    min-height: 118px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    padding: 14px;
+                    border: 2px dashed #a6b3ce;
+                    border-radius: 16px;
+                    background: rgba(255, 255, 255, .72);
+                    color: #53627d;
+                    font-size: 13px;
+                    font-weight: 900;
+                    text-align: center;
+                    text-transform: uppercase;
+                }
                 @media (max-width: 900px) {
+                    .regla-cruces-finales {
+                        max-width: 100%;
+                        padding: 10px 12px;
+                        border-radius: 14px;
+                        font-size: 13px;
+                        line-height: 1.4;
+                    }
                     .tab-content[data-tab="finales"] .llaves-container {
                         overflow-x: auto !important;
+                        -webkit-overflow-scrolling: touch;
                     }
                     .tab-content[data-tab="finales"] .llaves.llaves-simetricas {
                         grid-template-columns: 270px 260px 290px 260px 270px !important;
                         min-width: 1422px !important;
                         gap: 16px !important;
+                    }
+                    .etiqueta-numero-llave {
+                        font-size: 12px;
                     }
                 }
             </style>
@@ -6223,6 +6273,7 @@ body.solo-lectura .menu-principal{top:96px!important}
 
                     {% for p in datos_categoria.llaves.cuartos %}
                     <div class="partido-llave {% if p.estado == 'EN_JUEGO' %}partido-en-vivo{% endif %}" data-fase-llave="cuartos" data-numero-llave="{{ p.numero_llave }}">
+                        <div class="etiqueta-numero-llave">Llave {{ p.numero_llave }}</div>
                         <div class="partido-llave-contenido">
 
                             <div class="equipo-llave">
@@ -6304,6 +6355,7 @@ body.solo-lectura .menu-principal{top:96px!important}
 
                     {% for p in datos_categoria.llaves.semifinal %}
                     <div class="partido-llave {% if p.estado == 'EN_JUEGO' %}partido-en-vivo{% endif %}" data-fase-llave="semifinal" data-numero-llave="{{ p.numero_llave }}">
+                        <div class="etiqueta-numero-llave">Semifinal {{ p.numero_llave }}</div>
                         <div class="partido-llave-contenido">
 
                             <div class="equipo-llave">
@@ -6385,6 +6437,7 @@ body.solo-lectura .menu-principal{top:96px!important}
 
                     {% for p in datos_categoria.llaves.final %}
                     <div class="partido-llave final {% if p.estado == 'EN_JUEGO' %}partido-en-vivo{% endif %}" data-fase-llave="final">
+                        <div class="etiqueta-numero-llave">Final</div>
                         <div class="partido-llave-contenido">
 
                             <div class="equipo-llave">
@@ -7256,6 +7309,14 @@ document.addEventListener('DOMContentLoaded', function() {
         if (partido) destino.appendChild(partido);
     }
 
+    function agregarPendienteSiVacia(columna, texto, selector) {
+        if (columna.querySelector(selector || '.partido-llave')) return;
+        const pendiente = document.createElement('div');
+        pendiente.className = 'llave-pendiente';
+        pendiente.textContent = texto;
+        columna.appendChild(pendiente);
+    }
+
     function organizar() {
         document.querySelectorAll('.tab-content[data-tab="finales"] .llaves').forEach(function(llaves) {
             if (llaves.dataset.simetrica === '1') return;
@@ -7288,6 +7349,12 @@ document.addEventListener('DOMContentLoaded', function() {
             moverPartido(semifinalOrigen, semifinalDerecha, '[data-numero-llave="2"]');
             moverPartido(cuartosOrigen, cuartosDerecha, '[data-numero-llave="2"]');
             moverPartido(cuartosOrigen, cuartosDerecha, '[data-numero-llave="3"]');
+
+            agregarPendienteSiVacia(cuartosIzquierda, 'Llaves 1 y 4 pendientes');
+            agregarPendienteSiVacia(semifinalIzquierda, 'Semifinal 1 pendiente');
+            agregarPendienteSiVacia(centroFinal, 'Final pendiente', '[data-fase-llave="final"]');
+            agregarPendienteSiVacia(semifinalDerecha, 'Semifinal 2 pendiente');
+            agregarPendienteSiVacia(cuartosDerecha, 'Llaves 2 y 3 pendientes');
 
             llaves.replaceChildren(
                 cuartosIzquierda,

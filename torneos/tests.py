@@ -3013,7 +3013,7 @@ class DescargaProgramacionFiltrosTests(TestCase):
         "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
         "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
     })
-    def test_pestana_finales_usa_descarga_exclusiva_de_partidos_abiertos(self):
+    def test_pestana_finales_usa_descarga_de_cuadro_completo(self):
         Partido.objects.create(
             categoria=self.categoria,
             equipo_local=self.local,
@@ -3029,7 +3029,7 @@ class DescargaProgramacionFiltrosTests(TestCase):
         )
         respuesta = self.client.get("/", {"categoria": self.categoria.nombre})
 
-        self.assertContains(respuesta, "Descargar fases finales abiertas")
+        self.assertContains(respuesta, "Descargar cuadro completo de fases finales")
         self.assertContains(respuesta, "fase_final=1")
         self.assertContains(
             respuesta,
@@ -3040,7 +3040,9 @@ class DescargaProgramacionFiltrosTests(TestCase):
         "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
         "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
     })
-    def test_descarga_fase_final_no_renderiza_partido_cerrado(self):
+    def test_descarga_fase_final_incluye_partido_finalizado_y_marcador(self):
+        cerrado_local = Equipo.objects.create(nombre="Cerrado Local", categoria=self.categoria)
+        cerrado_visitante = Equipo.objects.create(nombre="Cerrado Visitante", categoria=self.categoria)
         Partido.objects.create(
             categoria=self.categoria,
             equipo_local=self.local,
@@ -3056,8 +3058,8 @@ class DescargaProgramacionFiltrosTests(TestCase):
         )
         Partido.objects.create(
             categoria=self.categoria,
-            equipo_local=self.local,
-            equipo_visitante=self.visitante,
+            equipo_local=cerrado_local,
+            equipo_visitante=cerrado_visitante,
             fecha=date(2026, 7, 27),
             hora=time(16, 0),
             estado="FINALIZADO",
@@ -3079,8 +3081,13 @@ class DescargaProgramacionFiltrosTests(TestCase):
 
         self.assertEqual(respuesta.status_code, 200)
         html = generar.call_args.args[0]
-        self.assertIn("SEMIFINAL #1", html)
-        self.assertNotIn("CUARTOS #1", html)
+        self.assertIn("Semifinal 1", html)
+        self.assertIn("Local", html)
+        self.assertIn("Visitante", html)
+        self.assertIn("Cerrado Local", html)
+        self.assertIn("Cerrado Visitante", html)
+        self.assertIn("0 - 0", html)
+        self.assertEqual(generar.call_args.args[2:4], (1600, 900))
 
 
 class FixtureProgramacionBalanceadaTests(TestCase):

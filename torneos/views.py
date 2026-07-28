@@ -4356,7 +4356,7 @@ def descargar_programacion_categoria(request, categoria):
         categoria_obj,
         numero_fecha,
         dia,
-        incluir_resultados=not solo_fases_finales,
+        incluir_resultados=True,
         fases=["CUARTOS", "SEMIFINAL", "FINAL", "TERCER_PUESTO"] if solo_fases_finales else None,
     )
 
@@ -4367,22 +4367,60 @@ def descargar_programacion_categoria(request, categoria):
     cantidad = len(partidos_programacion)
     medidas = medidas_programacion(cantidad)
 
-    html = render_to_string("descargas/programacion_categoria.html", {
-        "categoria": titulo_descarga_programacion(categoria_obj, numero_fecha, dia),
-        "partidos": partidos_programacion,
-        "ancho": medidas["ancho"],
-        "compacta": medidas["compacta"],
-        "alto_tarjeta": medidas["alto_tarjeta"],
-        "fuente_detalle": medidas["fuente_detalle"],
-        "fuente_grupo": medidas["fuente_grupo"],
-        "fuente_equipo": medidas["fuente_equipo"],
-        "escudo": medidas["escudo"],
+    contexto_logos = {
         "logo_alcaldia": logos["logo_alcaldia"],
         "logo_torneo": logos["logo_torneo"],
         "logo_imcred": logos["logo_imcred"],
-    })
+    }
 
-    sufijo_fase = " FASES FINALES ABIERTAS" if solo_fases_finales else ""
+    if solo_fases_finales:
+        llaves = {
+            "q1": None,
+            "q2": None,
+            "q3": None,
+            "q4": None,
+            "s1": None,
+            "s2": None,
+            "final": None,
+            "tercero": None,
+        }
+        for partido in partidos_programacion:
+            numero = str(partido.get("numero_fecha") or "").upper()
+            fase = partido.get("fase")
+            if fase == "CUARTOS":
+                coincidencia = re.search(r"\d+", numero)
+                if coincidencia and f"q{coincidencia.group()}" in llaves:
+                    llaves[f"q{coincidencia.group()}"] = partido
+            elif fase == "SEMIFINAL":
+                coincidencia = re.search(r"\d+", numero)
+                if coincidencia and f"s{coincidencia.group()}" in llaves:
+                    llaves[f"s{coincidencia.group()}"] = partido
+            elif fase == "FINAL":
+                llaves["final"] = partido
+            elif fase == "TERCER_PUESTO":
+                llaves["tercero"] = partido
+
+        html = render_to_string("descargas/programacion_llaves.html", {
+            "categoria": categoria_obj.nombre,
+            "llaves": llaves,
+            **contexto_logos,
+        })
+        medidas = {"ancho": 1600, "alto": 900}
+    else:
+        html = render_to_string("descargas/programacion_categoria.html", {
+            "categoria": titulo_descarga_programacion(categoria_obj, numero_fecha, dia),
+            "partidos": partidos_programacion,
+            "ancho": medidas["ancho"],
+            "compacta": medidas["compacta"],
+            "alto_tarjeta": medidas["alto_tarjeta"],
+            "fuente_detalle": medidas["fuente_detalle"],
+            "fuente_grupo": medidas["fuente_grupo"],
+            "fuente_equipo": medidas["fuente_equipo"],
+            "escudo": medidas["escudo"],
+            **contexto_logos,
+        })
+
+    sufijo_fase = " FASES FINALES" if solo_fases_finales else ""
     nombre = limpiar_nombre(
         f"PROGRAMACION_PARTIDOS_PROGRAMADOS_{titulo_descarga_programacion(categoria_obj, numero_fecha, dia)}{sufijo_fase}.png"
     )
