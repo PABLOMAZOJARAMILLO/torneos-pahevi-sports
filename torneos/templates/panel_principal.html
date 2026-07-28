@@ -6302,9 +6302,59 @@ body.solo-lectura .menu-principal{top:96px!important}
                     .tab-content[data-tab="finales"] .llaves-simetricas .partido-llave,
                     .tab-content[data-tab="finales"] .llaves-simetricas .partido-llave.final,
                     .tab-content[data-tab="finales"] .llaves-simetricas .partido-llave.tercer-puesto {
-                        min-height: 132px !important;
+                        min-height: 0 !important;
                         padding-left: 6px !important;
                         padding-right: 6px !important;
+                    }
+                    .ronda-pareja .partido-llave {
+                        width: 100% !important;
+                        padding: 10px 7px !important;
+                        overflow: hidden !important;
+                    }
+                    .ronda-pareja .partido-llave-contenido {
+                        width: 100% !important;
+                        display: grid !important;
+                        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+                        grid-template-rows: auto auto !important;
+                        gap: 7px 4px !important;
+                        align-items: start !important;
+                    }
+                    .ronda-pareja .equipo-llave:first-child {
+                        grid-column: 1 !important;
+                        grid-row: 1 !important;
+                    }
+                    .ronda-pareja .equipo-llave:last-child {
+                        grid-column: 2 !important;
+                        grid-row: 1 !important;
+                    }
+                    .ronda-pareja .centro-llave {
+                        grid-column: 1 / -1 !important;
+                        grid-row: 2 !important;
+                        width: 100% !important;
+                        min-width: 0 !important;
+                    }
+                    .ronda-pareja .equipo-llave img {
+                        width: 42px !important;
+                        height: 42px !important;
+                    }
+                    .ronda-pareja .nombre-equipo-llave {
+                        width: 100% !important;
+                        max-width: 72px !important;
+                        font-size: 10px !important;
+                        line-height: 1.05 !important;
+                    }
+                    .ronda-pareja .marcador-llave {
+                        font-size: 20px !important;
+                    }
+                    .ronda-pareja .detalle-llave,
+                    .ronda-pareja .estado-llave {
+                        font-size: 9px !important;
+                        line-height: 1.15 !important;
+                    }
+                    .ronda-pareja .btn-ver-partido,
+                    .ronda-pareja .btn-editor-movil {
+                        padding: 5px 7px !important;
+                        font-size: 9px !important;
                     }
                     .etiqueta-numero-llave {
                         font-size: 12px;
