@@ -7037,6 +7037,24 @@ document.addEventListener('DOMContentLoaded', function() {
 
 (function actualizarTablaPosicionesEnVivo() {
     let actualizando = false;
+    let temporizador = null;
+    let firmaAnterior = '';
+    const INTERVALO_NORMAL = 15000;
+    const INTERVALO_CAMBIO = 6000;
+
+    function detener() {
+        if (temporizador) {
+            window.clearTimeout(temporizador);
+            temporizador = null;
+        }
+    }
+
+    function programar(ms) {
+        detener();
+        if (document.hidden) return;
+        if (!document.querySelector('.categoria[data-partidos-en-vivo="1"]')) return;
+        temporizador = window.setTimeout(consultar, ms);
+    }
 
     function actualizarMarcadores(fila, partidos) {
         const contenedorEquipo = fila.querySelector('.equipo-logo');
@@ -7082,12 +7100,23 @@ document.addEventListener('DOMContentLoaded', function() {
 
     async function consultar() {
         const categoriasEnVivo = Array.from(document.querySelectorAll('.categoria[data-partidos-en-vivo="1"]'));
-        if (!categoriasEnVivo.length || actualizando || document.hidden) return;
+        if (!categoriasEnVivo.length || document.hidden) {
+            detener();
+            return;
+        }
+        if (actualizando) {
+            programar(INTERVALO_NORMAL);
+            return;
+        }
         actualizando = true;
+        let siguienteIntervalo = INTERVALO_NORMAL;
         try {
             const parametros = new URLSearchParams(window.location.search);
             const categoria = parametros.get('categoria');
-            if (!categoria) return;
+            if (!categoria) {
+                detener();
+                return;
+            }
             const url = '{% url "panel_posiciones_en_vivo" %}?categoria=' + encodeURIComponent(categoria);
             const respuesta = await fetch(url, {
                 credentials: 'same-origin',
@@ -7096,6 +7125,11 @@ document.addEventListener('DOMContentLoaded', function() {
             });
             if (!respuesta.ok) throw new Error('No se pudo actualizar la tabla');
             const datos = await respuesta.json();
+            const firmaNueva = JSON.stringify(datos.tablas || []);
+            if (firmaAnterior && firmaNueva !== firmaAnterior) {
+                siguienteIntervalo = INTERVALO_CAMBIO;
+            }
+            firmaAnterior = firmaNueva;
 
             categoriasEnVivo.forEach(function(categoriaActual) {
                 (datos.tablas || []).forEach(function(datosTabla) {
@@ -7107,14 +7141,29 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
                 categoriaActual.dataset.partidosEnVivo = datos.activo ? '1' : '0';
             });
+            if (!datos.activo) {
+                detener();
+                return;
+            }
         } catch (error) {
             console.warn('Actualización de tabla en vivo pendiente:', error);
         } finally {
             actualizando = false;
+            if (document.querySelector('.categoria[data-partidos-en-vivo="1"]') && !document.hidden) {
+                programar(siguienteIntervalo);
+            }
         }
     }
 
-    window.setInterval(consultar, 8000);
+    document.addEventListener('visibilitychange', function() {
+        if (document.hidden) {
+            detener();
+        } else {
+            programar(1000);
+        }
+    });
+
+    programar(INTERVALO_NORMAL);
 })();
 </script>
 <script>

@@ -28,7 +28,7 @@ class CloudinaryStorageTests(TestCase):
     def test_tamanos_segun_tipo_de_imagen(self):
         storage = CloudinaryMediaStorage()
 
-        self.assertEqual(storage._image_width("equipos/senior/escudo.png"), 320)
+        self.assertEqual(storage._image_width("equipos/senior/escudo.png"), 160)
         self.assertEqual(storage._image_width("jugadores/senior/jugador.jpg"), 320)
         self.assertEqual(storage._image_width("equipos/senior/cuerpo_tecnico_1.jpg"), 320)
         self.assertEqual(storage._image_width("torneos/veranero/imagen_central.jpg"), 900)
@@ -45,7 +45,7 @@ class CloudinaryStorageTests(TestCase):
         self.assertIn("f_auto", url)
         self.assertIn("q_auto", url)
         self.assertIn("c_limit", url)
-        self.assertIn("w_320", url)
+        self.assertIn("w_160", url)
 
         foto = CloudinaryMediaStorage().url("jugadores/senior/equipo/jugador.jpg")
         portada = CloudinaryMediaStorage().url("torneos/veranero/imagen_central.jpg")
@@ -569,6 +569,31 @@ class DocumentosTorneoTests(TestCase):
         self.assertRedirects(
             response,
             "https://example.com/planilla.jpg",
+            fetch_redirect_response=False,
+        )
+
+    def test_documento_publico_envia_al_visor_con_url_externa(self):
+        self.seleccionar_torneo()
+
+        response = self.client.get(f"/documentos/{self.documento_actual.id}/")
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(
+            response.url,
+            "https://docs.google.com/gview?embedded=1&url=https%3A%2F%2Fexample.com%2Fveranero.pdf",
+        )
+        self.assertNotIn("/documentos/", response.url)
+
+    def test_ruta_antigua_de_archivo_redirige_sin_retransmitir(self):
+        self.seleccionar_torneo()
+
+        response = self.client.get(
+            f"/documentos/{self.documento_actual.id}/archivo.pdf",
+        )
+
+        self.assertRedirects(
+            response,
+            "https://example.com/veranero.pdf",
             fetch_redirect_response=False,
         )
 

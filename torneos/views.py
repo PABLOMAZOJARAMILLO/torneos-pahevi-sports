@@ -34,7 +34,6 @@ from django.utils.http import url_has_allowed_host_and_scheme
 from django.utils.dateparse import parse_date, parse_datetime
 from django.utils.text import slugify
 from html2image import Html2Image
-import requests
 from django.views.decorators.http import require_POST
 from openpyxl import load_workbook
 
@@ -1280,20 +1279,18 @@ def documento_publico(request, documento_id):
     documento = documento_visible_en_torneo_actual(request, documento_id)
     if documento.tipo == "PLANILLA_JUEGO":
         return redirect(documento.archivo)
-    archivo_url = request.build_absolute_uri(reverse("documento_archivo_publico", args=[documento.id]))
+    # El visor obtiene el documento directamente desde Cloudinary o Supabase.
+    # Render únicamente valida que sea visible para el torneo seleccionado.
+    archivo_url = documento.archivo
     visor_url = f"https://docs.google.com/gview?embedded=1&url={quote(archivo_url, safe='')}"
     return redirect(visor_url)
 
 
 def documento_archivo_publico(request, documento_id):
     documento = documento_visible_en_torneo_actual(request, documento_id)
-    respuesta = requests.get(documento.archivo, timeout=20)
-    respuesta.raise_for_status()
-    content_type = respuesta.headers.get("Content-Type") or "application/pdf"
-    response = HttpResponse(respuesta.content, content_type=content_type)
-    nombre = limpiar_ruta_cloudinary(documento.titulo) or f"documento-{documento.id}"
-    response["Content-Disposition"] = f'inline; filename="{nombre}.pdf"'
-    return response
+    # Conservamos esta ruta por compatibilidad con enlaces antiguos, pero ya no
+    # retransmitimos el archivo a través de Render.
+    return redirect(documento.archivo)
 
 
 def subir_documento_supabase(archivo, tipo):

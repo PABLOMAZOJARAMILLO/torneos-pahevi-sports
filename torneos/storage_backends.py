@@ -62,7 +62,9 @@ class CloudinaryMediaStorage(Storage):
         clean_name = str(name).replace("\\", "/").lower()
         if clean_name.startswith("jugadores/"):
             return 320
-        if "/escudo" in clean_name or "/cuerpo_tecnico_" in clean_name:
+        if "/escudo" in clean_name:
+            return 160
+        if "/cuerpo_tecnico_" in clean_name:
             return 320
         return 900
 
