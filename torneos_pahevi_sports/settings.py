@@ -135,6 +135,10 @@ STATIC_URL = '/static/'
 
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 WHITENOISE_MAX_AGE = 31536000
+# Una referencia estática nueva no debe convertir toda la aplicación en un 500
+# mientras Render completa collectstatic. WhiteNoise conserva compresión y caché,
+# pero usa la ruta original como respaldo si aún no aparece en el manifiesto.
+WHITENOISE_MANIFEST_STRICT = False
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
