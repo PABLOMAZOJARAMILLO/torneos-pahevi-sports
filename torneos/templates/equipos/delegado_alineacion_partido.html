@@ -361,7 +361,7 @@
                 <select name="cancha_{{ codigo }}" data-cancha-select aria-label="{{ nombre }}">
                     <option value="">{{ codigo }}</option>
                     {% for jugador in jugadores %}
-                        <option value="{{ jugador.id }}" data-nombre="{{ jugador.nombres|texto_limpio }}" data-dorsal="{% if jugador.dorsal %}{{ jugador.dorsal }}{% endif %}" data-edad="{{ jugador.texto_edad }}" data-etiqueta-edad="{{ jugador.etiqueta_edad }}" data-foto="{{ jugador.foto_alineacion }}" data-iniciales="{{ jugador.iniciales_alineacion }}" {% if jugador.foraneo_no_habilitado %}disabled{% endif %} {% if jugador.rol_alineacion == "TITULAR" and jugador.posicion_alineacion == codigo and not jugador.foraneo_no_habilitado %}selected{% endif %}>
+                        <option value="{{ jugador.id }}" data-nombre="{{ jugador.nombres|texto_limpio }}" data-dorsal="{% if jugador.dorsal %}{{ jugador.dorsal }}{% endif %}" data-edad="{{ jugador.texto_edad }}" data-etiqueta-edad="{{ jugador.etiqueta_edad }}" data-foto="{{ jugador.foto_alineacion }}" data-iniciales="{{ jugador.iniciales_alineacion }}" data-no-habilitado="{% if jugador.foraneo_no_habilitado %}1{% else %}0{% endif %}" {% if jugador.foraneo_no_habilitado %}disabled{% endif %} {% if jugador.rol_alineacion == "TITULAR" and jugador.posicion_alineacion == codigo and not jugador.foraneo_no_habilitado %}selected{% endif %}>
                             {% if jugador.dorsal %}#{{ jugador.dorsal }} - {% endif %}{{ jugador.nombres|texto_limpio }}{% if jugador.texto_edad %} ({{ jugador.texto_edad }}){% endif %}
                         </option>
                     {% endfor %}
@@ -608,7 +608,10 @@
             selects.forEach((select) => {
                 const usados = selectedPlayerIds(select);
                 Array.from(select.options).forEach((option) => {
-                    option.disabled = option.value && usados.includes(option.value);
+                    option.disabled = Boolean(
+                        option.value
+                        && (option.dataset.noHabilitado === '1' || usados.includes(option.value))
+                    );
                 });
             });
             if (counter) {

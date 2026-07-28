@@ -80,7 +80,7 @@
     <div class="muted">Solo puedes cargar o reemplazar fotos del cuerpo t&eacute;cnico y de los jugadores. Sus datos no se modifican desde esta pantalla.</div>
 </div>
 
-<form method="post" enctype="multipart/form-data">
+<form method="post" enctype="multipart/form-data" data-fotos-autoguardado>
     {% csrf_token %}
     <h2>Cuerpo t&eacute;cnico y Admin App</h2>
     <div class="foto-jugadores-lista">
@@ -252,9 +252,41 @@
             }
         }
 
+        async function uploadPhoto(input) {
+            var file = input.files && input.files[0];
+            if (!file) return;
+            var form = input.closest('form');
+            var card = input.closest('.foto-jugador-card');
+            var status = card ? card.querySelector('[data-photo-status]') : null;
+            var csrf = form ? form.querySelector('input[name="csrfmiddlewaretoken"]') : null;
+            if (!form || !csrf) return;
+
+            var data = new FormData();
+            data.append('csrfmiddlewaretoken', csrf.value);
+            data.append(input.name, file);
+            if (status) status.textContent = 'Guardando foto automáticamente...';
+            input.disabled = true;
+            try {
+                var response = await fetch(form.action || window.location.href, {
+                    method: 'POST',
+                    body: data,
+                    credentials: 'same-origin',
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                });
+                if (!response.ok) throw new Error('No se pudo guardar');
+                if (status) status.textContent = 'Foto guardada. Ya puedes continuar.';
+                input.value = '';
+            } catch (error) {
+                if (status) status.textContent = 'No se pudo guardar. Revisa la conexión y selecciónala nuevamente.';
+            } finally {
+                input.disabled = false;
+            }
+        }
+
         document.querySelectorAll('input[data-photo-resize="jugador"]').forEach(function (input) {
-            input.addEventListener('change', function () {
-                resizePhoto(input);
+            input.addEventListener('change', async function () {
+                await resizePhoto(input);
+                await uploadPhoto(input);
             });
         });
     })();

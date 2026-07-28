@@ -1929,6 +1929,46 @@ function sincronizarAjusteComite(control) {
     total.value = signo.value === '-' && numero > 0 ? '-' + numero : String(numero);
 }
 
+function claveBorradorAlineacion(panel) {
+    const equipo = panel.querySelector('input[name="equipo"]');
+    return equipo ? 'borrador-alineacion-{{ partido.id }}-' + equipo.value : '';
+}
+
+function guardarBorradorAlineacionLocal(panel) {
+    const clave = claveBorradorAlineacion(panel);
+    if (!clave) return;
+    const valores = {};
+    panel.querySelectorAll('input[name], select[name], textarea[name]').forEach(function(campo) {
+        if (campo.name === 'csrfmiddlewaretoken' || campo.name === 'volver' || campo.type === 'file') return;
+        if ((campo.type === 'radio' || campo.type === 'checkbox') && !campo.checked) return;
+        valores[campo.name] = campo.value;
+    });
+    localStorage.setItem(clave, JSON.stringify({ guardadoEn: Date.now(), valores: valores }));
+}
+
+function restaurarBorradorAlineacionLocal(panel) {
+    const clave = claveBorradorAlineacion(panel);
+    if (!clave) return;
+    let borrador = null;
+    try {
+        borrador = JSON.parse(localStorage.getItem(clave) || 'null');
+    } catch (error) {
+        localStorage.removeItem(clave);
+    }
+    if (!borrador || !borrador.valores) return;
+    Object.keys(borrador.valores).forEach(function(nombre) {
+        const valor = String(borrador.valores[nombre]);
+        const campos = panel.querySelectorAll('[name="' + CSS.escape(nombre) + '"]');
+        campos.forEach(function(campo) {
+            if (campo.type === 'radio' || campo.type === 'checkbox') {
+                campo.checked = campo.value === valor;
+            } else {
+                campo.value = valor;
+            }
+        });
+    });
+}
+
 document.querySelectorAll('input, select, textarea').forEach(function(campo) {
     campo.addEventListener('change', guardarContextoPanelEditor);
 });
@@ -1986,6 +2026,10 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     document.querySelectorAll('.alineacion-equipo-panel').forEach(function(panel) {
+        restaurarBorradorAlineacionLocal(panel);
+        panel.addEventListener('input', function() {
+            guardarBorradorAlineacionLocal(panel);
+        });
         panel.addEventListener('change', function(evento) {
             if (evento.target.matches('[data-slot-select]')) {
                 asignarJugadorASlot(panel, evento.target);
@@ -2004,6 +2048,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (evento.target.matches('[data-posicion-select]')) {
                 sincronizarCanchaDesdeFilas(panel);
             }
+            guardarBorradorAlineacionLocal(panel);
         });
         actualizarConteoTitulares(panel);
         actualizarSelectoresPosicion(panel);

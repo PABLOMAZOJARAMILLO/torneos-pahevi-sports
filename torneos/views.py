@@ -5615,6 +5615,12 @@ def delegado_fotos_jugadores(request, equipo_id):
         else:
             request._actividad_registrada = True
             messages.info(request, "No seleccionaste fotos nuevas para cargar.")
+        if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            return JsonResponse({
+                "ok": bool(actualizados or cuerpo_actualizado),
+                "jugadores_actualizados": actualizados,
+                "cuerpo_tecnico_actualizado": cuerpo_actualizado,
+            })
         return redirect("delegado_fotos_jugadores", equipo_id=equipo.id)
 
     filas = [
