@@ -6360,6 +6360,78 @@ body.solo-lectura .menu-principal{top:96px!important}
                         font-size: 12px;
                     }
                 }
+                @media (max-width: 600px) and (orientation: portrait) {
+                    .ronda-pareja {
+                        width: 100%;
+                        grid-template-columns: minmax(0, 1fr) !important;
+                        gap: 18px !important;
+                        justify-items: center;
+                    }
+                    .ronda-pareja .partido-llave,
+                    .ronda-pareja .llave-pendiente {
+                        width: min(100%, 370px) !important;
+                        justify-self: center !important;
+                    }
+                    .ronda-pareja .partido-llave {
+                        padding: 13px 12px !important;
+                    }
+                    .ronda-pareja .partido-llave-contenido {
+                        grid-template-columns: minmax(0, 1fr) 68px minmax(0, 1fr) !important;
+                        grid-template-rows: auto !important;
+                        gap: 8px !important;
+                        align-items: start !important;
+                    }
+                    .ronda-pareja .equipo-llave:first-child {
+                        grid-column: 1 !important;
+                        grid-row: 1 !important;
+                    }
+                    .ronda-pareja .centro-llave {
+                        grid-column: 2 !important;
+                        grid-row: 1 !important;
+                    }
+                    .ronda-pareja .equipo-llave:last-child {
+                        grid-column: 3 !important;
+                        grid-row: 1 !important;
+                    }
+                    .ronda-pareja .equipo-llave img {
+                        width: 48px !important;
+                        height: 48px !important;
+                    }
+                    .ronda-pareja .nombre-equipo-llave {
+                        width: 100% !important;
+                        max-width: 110px !important;
+                        min-height: 28px !important;
+                        margin: 0 auto !important;
+                        font-size: 12px !important;
+                        line-height: 1.12 !important;
+                        text-align: center !important;
+                        justify-content: center !important;
+                    }
+                    .ronda-pareja .centro-llave,
+                    .ronda-pareja .marcador-llave,
+                    .ronda-pareja .estado-llave,
+                    .ronda-pareja .detalle-llave,
+                    .ronda-pareja .penales-llave,
+                    .ronda-pareja .etiqueta-numero-llave {
+                        text-align: center !important;
+                        justify-content: center !important;
+                    }
+                    .ronda-pareja .detalle-llave,
+                    .ronda-pareja .estado-llave {
+                        font-size: 10px !important;
+                    }
+                    .conector-arbol.union,
+                    .conector-arbol.division {
+                        width: 3px !important;
+                        height: 42px !important;
+                        border: 0 !important;
+                        background: #71809b;
+                    }
+                    .conector-arbol.union::after,
+                    .conector-arbol.division::before {
+                        display: none !important;
+                    }
+                }
             </style>
 
             <div class="llaves">
