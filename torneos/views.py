@@ -4405,7 +4405,7 @@ def descargar_programacion_categoria(request, categoria):
             "llaves": llaves,
             **contexto_logos,
         })
-        medidas = {"ancho": 1600, "alto": 900}
+        medidas = {"ancho": 900, "alto": 1600}
     else:
         html = render_to_string("descargas/programacion_categoria.html", {
             "categoria": titulo_descarga_programacion(categoria_obj, numero_fecha, dia),

@@ -3087,7 +3087,7 @@ class DescargaProgramacionFiltrosTests(TestCase):
         self.assertIn("Cerrado Local", html)
         self.assertIn("Cerrado Visitante", html)
         self.assertIn("0 - 0", html)
-        self.assertEqual(generar.call_args.args[2:4], (1600, 900))
+        self.assertEqual(generar.call_args.args[2:4], (900, 1600))
 
 
 class FixtureProgramacionBalanceadaTests(TestCase):

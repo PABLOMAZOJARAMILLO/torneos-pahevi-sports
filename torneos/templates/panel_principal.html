@@ -6161,78 +6161,92 @@ body.solo-lectura .menu-principal{top:96px!important}
                     text-transform: uppercase;
                 }
                 .tab-content[data-tab="finales"] .llaves.llaves-simetricas {
-                    display: grid !important;
-                    grid-template-columns: minmax(0, 1fr) !important;
-                    grid-template-areas:
-                        "cuartos"
-                        "semifinal"
-                        "final" !important;
-                    align-items: start !important;
-                    gap: 28px 34px !important;
+                    display: flex !important;
+                    flex-direction: column !important;
+                    align-items: center !important;
+                    gap: 0 !important;
                     min-width: 0 !important;
-                    max-width: 620px !important;
+                    max-width: 760px !important;
                     width: 100% !important;
                     margin: 0 auto !important;
                 }
-                .tab-content[data-tab="finales"] .llaves-simetricas .columna-llave {
-                    width: auto !important;
-                    max-width: none !important;
-                    min-width: 0 !important;
-                    min-height: 0 !important;
-                    padding: 0 !important;
-                    gap: 14px !important;
-                    display: flex !important;
-                    flex-direction: column !important;
-                    justify-content: flex-start !important;
+                .etapa-arbol {
+                    width: 100%;
+                    position: relative;
                 }
-                .tab-content[data-tab="finales"] .llaves-simetricas > .columna-llave {
-                    grid-column: auto !important;
-                    grid-row: auto !important;
-                    transform: none !important;
-                    margin: 0 !important;
-                }
-                .tab-content[data-tab="finales"] .llaves-simetricas .columna-cuartos {
-                    justify-content: flex-start !important;
-                }
-                .tab-content[data-tab="finales"] .llaves-simetricas .columna-finales {
-                    justify-content: center !important;
-                }
-                .tab-content[data-tab="finales"] .cuartos-vertical { grid-area: cuartos !important; }
-                .tab-content[data-tab="finales"] .semifinal-vertical { grid-area: semifinal !important; }
-                .tab-content[data-tab="finales"] .centro-final {
-                    grid-area: final !important;
-                    width: min(100%, 520px) !important;
-                    justify-self: center !important;
-                }
-                .tab-content[data-tab="finales"] .llaves-simetricas .columna-llave h3,
+                .etapa-arbol > h3,
                 .tab-content[data-tab="finales"] .llaves-simetricas .titulo-tercer-puesto {
-                    margin: 0 0 8px !important;
-                    min-height: 34px;
+                    margin: 0 0 12px !important;
                     display: flex;
                     align-items: center;
                     justify-content: center;
-                    color: #f8fafc;
-                    font-size: 16px !important;
+                    color: #10213f;
+                    font-size: 19px !important;
+                    font-weight: 900;
                     text-align: center;
                     text-transform: uppercase;
+                }
+                .ronda-pareja {
+                    display: grid;
+                    grid-template-columns: repeat(2, minmax(0, 1fr));
+                    gap: 70px;
+                    align-items: stretch;
+                }
+                .etapa-individual {
+                    width: min(100%, 370px);
+                    margin: 0 auto;
                 }
                 .tab-content[data-tab="finales"] .llaves-simetricas .partido-llave,
                 .tab-content[data-tab="finales"] .llaves-simetricas .partido-llave.final,
                 .tab-content[data-tab="finales"] .llaves-simetricas .partido-llave.tercer-puesto {
                     width: 100% !important;
-                    min-height: 154px !important;
+                    min-height: 148px !important;
                     height: auto !important;
                     margin: 0 !important;
                     box-sizing: border-box !important;
                 }
-                .tab-content[data-tab="finales"] .llaves-simetricas .columna-finales {
-                    width: 100% !important;
-                    min-width: 0 !important;
+                .etapa-final {
+                    width: min(100%, 500px);
                     background: rgba(24, 32, 105, .34);
                     border: 1px solid rgba(79, 106, 255, .55);
                     border-radius: 22px;
                     padding: 14px !important;
                 }
+                .conector-arbol {
+                    position: relative;
+                    flex: 0 0 auto;
+                    height: 54px;
+                    border-color: #71809b;
+                }
+                .conector-arbol.union,
+                .conector-arbol.division {
+                    width: calc(50% + 2px);
+                    border-left: 3px solid #71809b;
+                    border-right: 3px solid #71809b;
+                }
+                .conector-arbol.union {
+                    border-bottom: 3px solid #71809b;
+                }
+                .conector-arbol.division {
+                    border-top: 3px solid #71809b;
+                }
+                .conector-arbol.simple {
+                    width: 3px;
+                    height: 48px;
+                    background: #71809b;
+                }
+                .conector-arbol.union::after,
+                .conector-arbol.division::before {
+                    content: "";
+                    position: absolute;
+                    left: 50%;
+                    width: 3px;
+                    height: 18px;
+                    background: #71809b;
+                    transform: translateX(-50%);
+                }
+                .conector-arbol.union::after { bottom: -18px; }
+                .conector-arbol.division::before { top: -18px; }
                 .etiqueta-numero-llave {
                     margin: -2px 0 8px;
                     color: #10213f;
@@ -6271,19 +6285,26 @@ body.solo-lectura .menu-principal{top:96px!important}
                         padding-right: 10px !important;
                     }
                     .tab-content[data-tab="finales"] .llaves.llaves-simetricas {
-                        grid-template-columns: minmax(0, 1fr) !important;
-                        grid-template-areas:
-                            "cuartos"
-                            "semifinal"
-                            "final" !important;
                         min-width: 0 !important;
-                        max-width: 520px !important;
-                        gap: 24px !important;
+                        max-width: 100% !important;
+                    }
+                    .ronda-pareja {
+                        gap: 14px;
+                    }
+                    .etapa-arbol > h3,
+                    .tab-content[data-tab="finales"] .llaves-simetricas .titulo-tercer-puesto {
+                        font-size: 16px !important;
+                    }
+                    .conector-arbol.union,
+                    .conector-arbol.division {
+                        width: calc(50% + 7px);
                     }
                     .tab-content[data-tab="finales"] .llaves-simetricas .partido-llave,
                     .tab-content[data-tab="finales"] .llaves-simetricas .partido-llave.final,
                     .tab-content[data-tab="finales"] .llaves-simetricas .partido-llave.tercer-puesto {
-                        min-height: 142px !important;
+                        min-height: 132px !important;
+                        padding-left: 6px !important;
+                        padding-right: 6px !important;
                     }
                     .etiqueta-numero-llave {
                         font-size: 12px;
@@ -7319,26 +7340,46 @@ document.addEventListener('DOMContentLoaded', function() {
 })();
 
 (function organizarLlaveFinalSimetrica() {
-    function crearColumna(clase, titulo) {
-        const columna = document.createElement('div');
-        columna.className = 'columna-llave ' + clase;
+    function crearEtapa(clase, titulo) {
+        const columna = document.createElement('section');
+        columna.className = 'etapa-arbol ' + clase;
         const encabezado = document.createElement('h3');
         encabezado.textContent = titulo;
         columna.appendChild(encabezado);
         return columna;
     }
 
-    function moverPartido(origen, destino, selector) {
-        const partido = origen ? origen.querySelector(selector) : null;
-        if (partido) destino.appendChild(partido);
+    function extraerPartido(origen, selector) {
+        return origen ? origen.querySelector(selector) : null;
     }
 
-    function agregarPendienteSiVacia(columna, texto, selector) {
-        if (columna.querySelector(selector || '.partido-llave')) return;
+    function crearPendiente(texto) {
         const pendiente = document.createElement('div');
         pendiente.className = 'llave-pendiente';
         pendiente.textContent = texto;
-        columna.appendChild(pendiente);
+        return pendiente;
+    }
+
+    function crearConector(tipo) {
+        const conector = document.createElement('div');
+        conector.className = 'conector-arbol ' + tipo;
+        conector.setAttribute('aria-hidden', 'true');
+        return conector;
+    }
+
+    function agregarPareja(etapa, primero, segundo, textoPrimero, textoSegundo) {
+        const pareja = document.createElement('div');
+        pareja.className = 'ronda-pareja';
+        pareja.appendChild(primero || crearPendiente(textoPrimero));
+        pareja.appendChild(segundo || crearPendiente(textoSegundo));
+        etapa.appendChild(pareja);
+    }
+
+    function agregarIndividual(etapa, partido, texto) {
+        const contenedor = document.createElement('div');
+        contenedor.className = 'etapa-individual';
+        contenedor.appendChild(partido || crearPendiente(texto));
+        etapa.appendChild(contenedor);
     }
 
     function organizar() {
@@ -7350,35 +7391,67 @@ document.addEventListener('DOMContentLoaded', function() {
             const finalesOrigen = llaves.querySelector('.columna-finales');
             if (!cuartosOrigen || !semifinalOrigen || !finalesOrigen) return;
 
-            const cuartosVertical = crearColumna('columna-cuartos cuartos-vertical', 'Cuartos de final');
-            const semifinalVertical = crearColumna('columna-semifinal semifinal-vertical', 'Semifinales');
-            const centroFinal = crearColumna('columna-finales centro-final', 'Final');
+            const cuartosSuperiores = crearEtapa('etapa-cuartos-superiores', 'Cuartos de final · Llaves 1 y 4');
+            agregarPareja(
+                cuartosSuperiores,
+                extraerPartido(cuartosOrigen, '[data-numero-llave="1"]'),
+                extraerPartido(cuartosOrigen, '[data-numero-llave="4"]'),
+                'Llave 1 pendiente',
+                'Llave 4 pendiente'
+            );
 
-            moverPartido(cuartosOrigen, cuartosVertical, '[data-numero-llave="1"]');
-            moverPartido(cuartosOrigen, cuartosVertical, '[data-numero-llave="2"]');
-            moverPartido(cuartosOrigen, cuartosVertical, '[data-numero-llave="3"]');
-            moverPartido(cuartosOrigen, cuartosVertical, '[data-numero-llave="4"]');
-            moverPartido(semifinalOrigen, semifinalVertical, '[data-numero-llave="1"]');
-            moverPartido(semifinalOrigen, semifinalVertical, '[data-numero-llave="2"]');
+            const semifinalUno = crearEtapa('etapa-semifinal-uno', 'Semifinal 1');
+            agregarIndividual(
+                semifinalUno,
+                extraerPartido(semifinalOrigen, '[data-numero-llave="1"]'),
+                'Ganador llave 1 vs ganador llave 4'
+            );
 
-            moverPartido(finalesOrigen, centroFinal, '[data-fase-llave="final"]');
+            const centroFinal = crearEtapa('etapa-final', 'Final');
+            agregarIndividual(
+                centroFinal,
+                extraerPartido(finalesOrigen, '[data-fase-llave="final"]'),
+                'Final pendiente'
+            );
+
             const tercerPuesto = finalesOrigen.querySelector('[data-fase-llave="tercer-puesto"]');
             if (tercerPuesto) {
                 const tituloTercero = document.createElement('h3');
                 tituloTercero.className = 'titulo-tercer-puesto';
                 tituloTercero.textContent = 'Tercer puesto';
                 centroFinal.appendChild(tituloTercero);
-                centroFinal.appendChild(tercerPuesto);
+                const contenedorTercero = document.createElement('div');
+                contenedorTercero.className = 'etapa-individual';
+                contenedorTercero.appendChild(tercerPuesto);
+                centroFinal.appendChild(contenedorTercero);
             }
 
-            agregarPendienteSiVacia(cuartosVertical, 'Llaves de cuartos pendientes');
-            agregarPendienteSiVacia(semifinalVertical, 'Semifinales pendientes');
-            agregarPendienteSiVacia(centroFinal, 'Final pendiente', '[data-fase-llave="final"]');
+            const semifinalDos = crearEtapa('etapa-semifinal-dos', 'Semifinal 2');
+            agregarIndividual(
+                semifinalDos,
+                extraerPartido(semifinalOrigen, '[data-numero-llave="2"]'),
+                'Ganador llave 2 vs ganador llave 3'
+            );
+
+            const cuartosInferiores = crearEtapa('etapa-cuartos-inferiores', 'Cuartos de final · Llaves 2 y 3');
+            agregarPareja(
+                cuartosInferiores,
+                extraerPartido(cuartosOrigen, '[data-numero-llave="2"]'),
+                extraerPartido(cuartosOrigen, '[data-numero-llave="3"]'),
+                'Llave 2 pendiente',
+                'Llave 3 pendiente'
+            );
 
             llaves.replaceChildren(
-                cuartosVertical,
-                semifinalVertical,
-                centroFinal
+                cuartosSuperiores,
+                crearConector('union'),
+                semifinalUno,
+                crearConector('simple'),
+                centroFinal,
+                crearConector('simple'),
+                semifinalDos,
+                crearConector('division'),
+                cuartosInferiores
             );
             llaves.classList.add('llaves-simetricas');
             llaves.dataset.simetrica = '1';

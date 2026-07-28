@@ -1,4 +1,3 @@
-{% load texto_limpio %}
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -6,8 +5,8 @@
 <style>
 * { box-sizing: border-box; }
 body {
-    width: 1600px;
-    height: 900px;
+    width: 900px;
+    height: 1600px;
     margin: 0;
     overflow: hidden;
     font-family: Arial, sans-serif;
@@ -15,167 +14,169 @@ body {
     background: #090d43;
 }
 .lienzo {
-    width: 1600px;
-    height: 900px;
-    padding: 22px 34px 30px;
+    width: 900px;
+    height: 1600px;
+    padding: 24px 42px 34px;
     background:
-        radial-gradient(circle at 50% 45%, rgba(44, 61, 170, .36), transparent 36%),
-        linear-gradient(135deg, #070b36, #101653 52%, #070b36);
+        radial-gradient(circle at 50% 48%, rgba(44, 61, 170, .38), transparent 42%),
+        linear-gradient(160deg, #070b36, #101653 52%, #070b36);
 }
 .cabecera {
-    height: 118px;
+    height: 130px;
     display: grid;
-    grid-template-columns: 260px 1fr 260px;
+    grid-template-columns: 190px 1fr 190px;
     align-items: center;
 }
 .cabecera img {
-    width: 220px;
-    height: 88px;
+    width: 175px;
+    height: 78px;
     object-fit: contain;
 }
 .cabecera .derecha { justify-self: end; }
 .titulo { text-align: center; text-transform: uppercase; }
 .titulo h1 {
     margin: 0;
-    color: #fff;
-    font-size: 38px;
-    line-height: 1;
-    letter-spacing: 2px;
+    font-size: 30px;
+    line-height: 1.05;
 }
 .titulo h2 {
     margin: 8px 0 0;
     color: #8bf5bb;
-    font-size: 22px;
-    letter-spacing: 3px;
+    font-size: 17px;
+    letter-spacing: 2px;
 }
 .regla {
-    height: 34px;
-    color: #cbd5ff;
-    font-size: 15px;
-    font-weight: 800;
+    margin: 0 auto 22px;
+    padding: 9px 14px;
+    border: 1px solid #8eb9a2;
+    border-radius: 14px;
+    background: #dff8e9;
+    color: #10213f;
+    font-size: 13px;
+    font-weight: 900;
+    line-height: 1.35;
     text-align: center;
     text-transform: uppercase;
 }
-.cuadro {
-    height: 680px;
-    display: grid;
-    grid-template-columns: 270px 250px 330px 250px 270px;
-    gap: 24px;
-    align-items: stretch;
-}
-.columna {
-    position: relative;
+.arbol {
+    width: 100%;
     display: flex;
     flex-direction: column;
-    justify-content: center;
-    gap: 26px;
+    align-items: center;
 }
-.columna h3 {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    margin: 0;
-    color: #fff;
-    font-size: 18px;
+.etapa { width: 100%; }
+.etapa h3 {
+    margin: 0 0 9px;
+    font-size: 17px;
     text-align: center;
     text-transform: uppercase;
 }
-.cuartos { justify-content: space-around; padding-top: 45px; }
-.semifinal { padding-top: 45px; }
+.pareja {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 62px;
+}
+.individual { width: 365px; margin: 0 auto; }
 .final {
-    padding: 54px 18px 18px;
+    width: 445px;
+    padding: 13px;
     border: 2px solid rgba(191, 203, 255, .55);
     border-radius: 18px;
     background: rgba(7, 11, 54, .42);
 }
 .partido {
-    position: relative;
-    min-height: 152px;
-    padding: 10px;
+    min-height: 142px;
+    padding: 9px;
     border: 1px solid rgba(135, 154, 255, .58);
     border-radius: 12px;
-    background: rgba(7, 11, 54, .88);
+    background: rgba(7, 11, 54, .9);
     box-shadow: 0 9px 22px rgba(0, 0, 0, .25);
 }
 .etiqueta {
-    margin-bottom: 7px;
+    margin-bottom: 6px;
     color: #bfcaff;
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 900;
     text-align: center;
     text-transform: uppercase;
 }
 .equipo {
-    height: 42px;
+    height: 38px;
     display: grid;
-    grid-template-columns: 38px 1fr;
+    grid-template-columns: 34px 1fr;
     align-items: center;
-    gap: 7px;
-    padding: 3px 9px;
+    gap: 6px;
+    padding: 2px 7px;
     border-radius: 7px;
     background: #f8fafc;
     color: #10153f;
-    font-size: 14px;
+    font-size: 12px;
     font-weight: 900;
     text-transform: uppercase;
 }
-.equipo img {
-    width: 34px;
-    height: 34px;
-    object-fit: contain;
-}
+.equipo img { width: 31px; height: 31px; object-fit: contain; }
 .vs {
-    height: 20px;
+    height: 19px;
     display: flex;
     align-items: center;
     justify-content: center;
     color: #9fb1ff;
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 900;
 }
 .meta {
-    margin-top: 7px;
+    margin-top: 6px;
     color: #e2e8ff;
-    font-size: 11px;
+    font-size: 10px;
     line-height: 1.25;
     text-align: center;
     text-transform: uppercase;
 }
 .vacio {
-    min-height: 100px;
+    min-height: 142px;
     display: flex;
     align-items: center;
     justify-content: center;
-    border: 1px dashed rgba(135, 154, 255, .38);
+    border: 2px dashed rgba(135, 154, 255, .5);
     border-radius: 12px;
-    color: #8290ce;
+    color: #aab7ed;
     font-size: 13px;
+    font-weight: 800;
     text-align: center;
     text-transform: uppercase;
 }
-.cuartos.izquierda .partido::after,
-.semifinal.izquierda .partido::after {
+.conector {
+    position: relative;
+    flex: 0 0 auto;
+    border-color: #d7ddff;
+}
+.conector.union,
+.conector.division {
+    width: calc(50% + 31px);
+    height: 43px;
+    border-left: 3px solid #d7ddff;
+    border-right: 3px solid #d7ddff;
+}
+.conector.union { border-bottom: 3px solid #d7ddff; }
+.conector.division { border-top: 3px solid #d7ddff; }
+.conector.simple { width: 3px; height: 38px; background: #d7ddff; }
+.conector.union::after,
+.conector.division::before {
     content: "";
     position: absolute;
-    top: 50%;
-    right: -25px;
-    width: 24px;
-    border-top: 2px solid #d7ddff;
+    left: 50%;
+    width: 3px;
+    height: 14px;
+    background: #d7ddff;
+    transform: translateX(-50%);
 }
-.cuartos.derecha .partido::before,
-.semifinal.derecha .partido::before {
-    content: "";
-    position: absolute;
-    top: 50%;
-    left: -25px;
-    width: 24px;
-    border-top: 2px solid #d7ddff;
-}
+.conector.union::after { bottom: -14px; }
+.conector.division::before { top: -14px; }
 .tercer-titulo {
-    margin: 2px 0 -16px;
+    margin: 10px 0 7px;
     color: #facc15;
     font-size: 14px;
+    font-weight: 900;
     text-align: center;
     text-transform: uppercase;
 }
@@ -193,40 +194,56 @@ body {
     </header>
 
     <div class="regla">
-        Semifinal 1: ganador llave 1 vs ganador llave 4 &nbsp;&middot;&nbsp;
+        Semifinal 1: ganador llave 1 vs ganador llave 4<br>
         Semifinal 2: ganador llave 2 vs ganador llave 3
     </div>
 
-    <main class="cuadro">
-        <section class="columna cuartos izquierda">
-            <h3>Cuartos de final</h3>
-            {% include "descargas/partials/partido_llave.html" with partido=llaves.q1 etiqueta="Llave 1" %}
-            {% include "descargas/partials/partido_llave.html" with partido=llaves.q4 etiqueta="Llave 4" %}
+    <main class="arbol">
+        <section class="etapa">
+            <h3>Cuartos de final · Llaves 1 y 4</h3>
+            <div class="pareja">
+                {% include "descargas/partials/partido_llave.html" with partido=llaves.q1 etiqueta="Llave 1" %}
+                {% include "descargas/partials/partido_llave.html" with partido=llaves.q4 etiqueta="Llave 4" %}
+            </div>
         </section>
+        <div class="conector union"></div>
 
-        <section class="columna semifinal izquierda">
+        <section class="etapa">
             <h3>Semifinal 1</h3>
-            {% include "descargas/partials/partido_llave.html" with partido=llaves.s1 etiqueta="Semifinal 1" %}
+            <div class="individual">
+                {% include "descargas/partials/partido_llave.html" with partido=llaves.s1 etiqueta="Semifinal 1" %}
+            </div>
         </section>
+        <div class="conector simple"></div>
 
-        <section class="columna final">
+        <section class="etapa final">
             <h3>Final</h3>
-            {% include "descargas/partials/partido_llave.html" with partido=llaves.final etiqueta="Final" %}
+            <div class="individual">
+                {% include "descargas/partials/partido_llave.html" with partido=llaves.final etiqueta="Final" %}
+            </div>
             {% if llaves.tercero %}
                 <div class="tercer-titulo">Tercer puesto</div>
-                {% include "descargas/partials/partido_llave.html" with partido=llaves.tercero etiqueta="Tercer puesto" %}
+                <div class="individual">
+                    {% include "descargas/partials/partido_llave.html" with partido=llaves.tercero etiqueta="Tercer puesto" %}
+                </div>
             {% endif %}
         </section>
+        <div class="conector simple"></div>
 
-        <section class="columna semifinal derecha">
+        <section class="etapa">
             <h3>Semifinal 2</h3>
-            {% include "descargas/partials/partido_llave.html" with partido=llaves.s2 etiqueta="Semifinal 2" %}
+            <div class="individual">
+                {% include "descargas/partials/partido_llave.html" with partido=llaves.s2 etiqueta="Semifinal 2" %}
+            </div>
         </section>
+        <div class="conector division"></div>
 
-        <section class="columna cuartos derecha">
-            <h3>Cuartos de final</h3>
-            {% include "descargas/partials/partido_llave.html" with partido=llaves.q2 etiqueta="Llave 2" %}
-            {% include "descargas/partials/partido_llave.html" with partido=llaves.q3 etiqueta="Llave 3" %}
+        <section class="etapa">
+            <h3>Cuartos de final · Llaves 2 y 3</h3>
+            <div class="pareja">
+                {% include "descargas/partials/partido_llave.html" with partido=llaves.q2 etiqueta="Llave 2" %}
+                {% include "descargas/partials/partido_llave.html" with partido=llaves.q3 etiqueta="Llave 3" %}
+            </div>
         </section>
     </main>
 </div>
