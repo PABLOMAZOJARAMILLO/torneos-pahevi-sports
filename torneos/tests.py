@@ -1784,13 +1784,10 @@ class ForaneosTests(TestCase):
         alineacion = AlineacionPartido.objects.get(partido=cuartos, jugador=self.foraneo)
         self.assertEqual(alineacion.rol, "NO_DISPONIBLE")
 
-    def test_planilla_excluye_foraneo_no_habilitado(self):
-        jugadores = _jugadores(
-            self.equipo,
-            {self.foraneo.id: {"jugados": 0, "minimo": 1}},
-        )
+    def test_planilla_conserva_foraneo_para_marcarlo_no_disponible(self):
+        jugadores = _jugadores(self.equipo)
 
-        self.assertNotIn(self.foraneo, jugadores)
+        self.assertIn(self.foraneo, jugadores)
         self.assertIn(self.titular, jugadores)
 
 

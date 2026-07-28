@@ -6,8 +6,6 @@ from PIL import Image, ImageDraw, ImageFont
 from django.utils.text import slugify
 import requests
 
-from .models import Jugador
-
 PAGE_W = 2148
 PAGE_H = 3038
 PDF_DPI = 200
@@ -272,7 +270,7 @@ def _draw_team_shield(base, draw, equipo, col1, row1, col2, row2):
     _draw_image_fit(base, _team_shield_source(equipo), _box(col1, row1, col2, row2), padding=4)
 
 
-def _draw_team_watermark(base, equipo, box, opacity=110):
+def _draw_team_watermark(base, equipo, box, opacity=120):
     image = _image_from_source(_team_shield_source(equipo))
     if image is None:
         return
@@ -280,8 +278,8 @@ def _draw_team_watermark(base, equipo, box, opacity=110):
     x1, y1, x2, y2 = [int(round(value)) for value in box]
     with image:
         image = image.convert("RGBA")
-        target_w = max(1, int((x2 - x1) * 0.92))
-        target_h = max(1, int((y2 - y1) * 0.92))
+        target_w = max(1, int((x2 - x1) * 0.98))
+        target_h = max(1, int((y2 - y1) * 0.98))
         image.thumbnail((target_w, target_h), Image.Resampling.LANCZOS)
         alpha = image.getchannel("A").point(lambda value: min(value, opacity))
         image.putalpha(alpha)
@@ -325,14 +323,12 @@ def _draw_fecha_hora(draw, partido):
         current += width
 
 
-def _jugadores(equipo, excluidos=None):
-    jugadores = equipo.jugadores.filter(estado="ACTIVO")
-    if excluidos:
-        jugadores = jugadores.exclude(id__in=excluidos)
-    return list(jugadores.order_by("dorsal", "nombres"))[:30]
+def _jugadores(equipo):
+    return list(equipo.jugadores.filter(estado="ACTIVO").order_by("dorsal", "nombres"))[:30]
 
 
-def _draw_player_side(img, draw, start_col, team_title, jugadores, referencia, equipo=None):
+def _draw_player_side(img, draw, start_col, team_title, jugadores, referencia, equipo=None, no_disponibles=None):
+    no_disponibles = no_disponibles or {}
     name_start = start_col + 1
     if start_col == 1:
         name_end = 6
@@ -385,8 +381,16 @@ def _draw_player_side(img, draw, start_col, team_title, jugadores, referencia, e
             nombre = f"{nombre} (F)"
         _text(draw, _box(start_col, row, start_col, row), str(index + 1), font=FONT_TINY)
         _text(draw, _box(name_start, row, name_end, row), nombre, font=FONT_SMALL, align="left")
-        _text(draw, _box(number_col, row, number_col, row), _dorsal(getattr(jugador, "dorsal", "")) if jugador else "", font=FONT_TINY)
-        _text(draw, _box(edad_col, row, edad_col, row), _edad(getattr(jugador, "fecha_nacimiento", None), referencia) if jugador else "", font=FONT_TINY)
+        if jugador and jugador.id in no_disponibles:
+            _text(
+                draw,
+                _box(number_col, row, sup_col, row),
+                "NO DISPONIBLE",
+                font=FONT_TINY_BOLD,
+            )
+        else:
+            _text(draw, _box(number_col, row, number_col, row), _dorsal(getattr(jugador, "dorsal", "")) if jugador else "", font=FONT_TINY)
+            _text(draw, _box(edad_col, row, edad_col, row), _edad(getattr(jugador, "fecha_nacimiento", None), referencia) if jugador else "", font=FONT_TINY)
 
 
 def _draw_changes(draw, col1, col2):
@@ -434,8 +438,8 @@ def _draw_goals(draw, col1, col2):
             goal += 1
 
 
-def generar_planilla_juego_pdf(partido, foraneos_excluidos=None):
-    foraneos_excluidos = foraneos_excluidos or {}
+def generar_planilla_juego_pdf(partido, foraneos_no_disponibles=None):
+    foraneos_no_disponibles = foraneos_no_disponibles or {}
     img = Image.new("RGB", (PAGE_W, PAGE_H), WHITE)
     draw = ImageDraw.Draw(img)
 
@@ -461,13 +465,13 @@ def generar_planilla_juego_pdf(partido, foraneos_excluidos=None):
     referencia = partido.fecha or date.today()
     _draw_player_side(
         img, draw, 1, "LISTADO DE JUGADORES - EQUIPO A",
-        _jugadores(partido.equipo_local, foraneos_excluidos),
-        referencia, partido.equipo_local,
+        _jugadores(partido.equipo_local),
+        referencia, partido.equipo_local, foraneos_no_disponibles,
     )
     _draw_player_side(
         img, draw, 15, "LISTADO DE JUGADORES - EQUIPO B",
-        _jugadores(partido.equipo_visitante, foraneos_excluidos),
-        referencia, partido.equipo_visitante,
+        _jugadores(partido.equipo_visitante),
+        referencia, partido.equipo_visitante, foraneos_no_disponibles,
     )
 
     _draw_changes(draw, 1, 13)
@@ -475,20 +479,7 @@ def generar_planilla_juego_pdf(partido, foraneos_excluidos=None):
     _draw_goals(draw, 1, 13)
     _draw_goals(draw, 15, 27)
 
-    comentario = "COMENTARIOS DEL ARBITRO:"
-    if foraneos_excluidos:
-        jugadores = Jugador.objects.filter(
-            id__in=foraneos_excluidos,
-        ).select_related("equipo").order_by("equipo__nombre", "nombres")
-        detalles = []
-        for jugador in jugadores:
-            requisito = foraneos_excluidos[jugador.id]
-            detalles.append(
-                f"{jugador.equipo.nombre}: {_clean(jugador.nombres).title()} "
-                f"({requisito['jugados']}/{requisito['minimo']})"
-            )
-        comentario += "\nFORANEOS NO HABILITADOS OMITIDOS: " + "; ".join(detalles)
-    _cell(draw, 1, 55, 27, 58, comentario, font=FONT_SMALL_BOLD, align="left", valign="top", width=2)
+    _cell(draw, 1, 55, 27, 58, "COMENTARIOS DEL ARBITRO:", font=FONT_SMALL_BOLD, align="left", valign="top", width=2)
     _cell(draw, 1, 59, 27, 59, "FIRMA ARBITRO CENTRAL:", font=FONT_SMALL_BOLD, align="left", width=2)
 
     output = BytesIO()
