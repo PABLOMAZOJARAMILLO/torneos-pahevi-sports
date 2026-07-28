@@ -4053,7 +4053,14 @@ def generar_tercer_puesto(request, categoria):
 
     messages.success(request, f"Partido por tercer puesto generado correctamente para {categoria}.")
     return redirect("panel")
-def construir_partidos_programacion(request, categoria_obj=None, numero_fecha="", dia=None, incluir_resultados=False):
+def construir_partidos_programacion(
+    request,
+    categoria_obj=None,
+    numero_fecha="",
+    dia=None,
+    incluir_resultados=False,
+    fases=None,
+):
     dias_semana = {
         0: "LUNES",
         1: "MARTES",
@@ -4111,6 +4118,9 @@ def construir_partidos_programacion(request, categoria_obj=None, numero_fecha=""
 
     if categoria_obj:
         partidos = partidos.filter(categoria=categoria_obj)
+
+    if fases:
+        partidos = partidos.filter(fase__in=fases)
 
     if numero_fecha:
         partidos = partidos.filter(numero_fecha__iexact=numero_fecha)
@@ -4336,6 +4346,7 @@ def descargar_programacion_categoria(request, categoria):
     categoria_obj = categorias.first()
     numero_fecha = (request.GET.get("fecha_fixture") or "").strip()
     dia = fecha_desde_texto(request.GET.get("dia"))
+    solo_fases_finales = request.GET.get("fase_final") == "1"
 
     if not categoria_obj:
         return HttpResponse("Categoría no encontrada")
@@ -4345,7 +4356,8 @@ def descargar_programacion_categoria(request, categoria):
         categoria_obj,
         numero_fecha,
         dia,
-        incluir_resultados=True,
+        incluir_resultados=not solo_fases_finales,
+        fases=["CUARTOS", "SEMIFINAL", "FINAL", "TERCER_PUESTO"] if solo_fases_finales else None,
     )
 
     if not partidos_programacion:
@@ -4370,7 +4382,10 @@ def descargar_programacion_categoria(request, categoria):
         "logo_imcred": logos["logo_imcred"],
     })
 
-    nombre = limpiar_nombre(f"PROGRAMACION_PARTIDOS_PROGRAMADOS_{titulo_descarga_programacion(categoria_obj, numero_fecha, dia)}.png")
+    sufijo_fase = " FASES FINALES ABIERTAS" if solo_fases_finales else ""
+    nombre = limpiar_nombre(
+        f"PROGRAMACION_PARTIDOS_PROGRAMADOS_{titulo_descarga_programacion(categoria_obj, numero_fecha, dia)}{sufijo_fase}.png"
+    )
     return crear_imagen_desde_html(html, nombre, medidas["ancho"], medidas["alto"], url_retorno_descarga(request))
 
 

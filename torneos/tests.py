@@ -2972,6 +2972,117 @@ class DescargaProgramacionFiltrosTests(TestCase):
         )
 
 
+    def test_fases_finales_abiertas_excluyen_grupos_y_partidos_cerrados(self):
+        semifinal = Partido.objects.create(
+            categoria=self.categoria,
+            equipo_local=self.local,
+            equipo_visitante=self.visitante,
+            fecha=date(2026, 7, 28),
+            hora=time(18, 0),
+            estado="PROGRAMADO",
+            estado_programacion="OFICIAL",
+            numero_fecha="SEMIFINAL #1",
+            cancha="Teresa Sierra",
+            grupo="FINAL",
+            fase="SEMIFINAL",
+        )
+        Partido.objects.create(
+            categoria=self.categoria,
+            equipo_local=self.local,
+            equipo_visitante=self.visitante,
+            fecha=date(2026, 7, 27),
+            hora=time(16, 0),
+            estado="FINALIZADO",
+            estado_programacion="OFICIAL",
+            numero_fecha="CUARTOS #1",
+            cancha="Teresa Sierra",
+            grupo="FINAL",
+            fase="CUARTOS",
+        )
+        request = self.client.get("/descargar/programacion/").wsgi_request
+
+        partidos = construir_partidos_programacion(
+            request,
+            categoria_obj=self.categoria,
+            fases=["CUARTOS", "SEMIFINAL", "FINAL", "TERCER_PUESTO"],
+        )
+
+        self.assertEqual([partido["numero_fecha"] for partido in partidos], [semifinal.numero_fecha])
+
+    @override_settings(STORAGES={
+        "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+        "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
+    })
+    def test_pestana_finales_usa_descarga_exclusiva_de_partidos_abiertos(self):
+        Partido.objects.create(
+            categoria=self.categoria,
+            equipo_local=self.local,
+            equipo_visitante=self.visitante,
+            fecha=date(2026, 7, 28),
+            hora=time(18, 0),
+            estado="PROGRAMADO",
+            estado_programacion="OFICIAL",
+            numero_fecha="SEMIFINAL #1",
+            cancha="Teresa Sierra",
+            grupo="FINAL",
+            fase="SEMIFINAL",
+        )
+        respuesta = self.client.get("/", {"categoria": self.categoria.nombre})
+
+        self.assertContains(respuesta, "Descargar fases finales abiertas")
+        self.assertContains(respuesta, "fase_final=1")
+        self.assertContains(
+            respuesta,
+            "Semifinal 1: ganador llave 1 vs ganador llave 4",
+        )
+
+    @override_settings(STORAGES={
+        "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+        "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
+    })
+    def test_descarga_fase_final_no_renderiza_partido_cerrado(self):
+        Partido.objects.create(
+            categoria=self.categoria,
+            equipo_local=self.local,
+            equipo_visitante=self.visitante,
+            fecha=date(2026, 7, 28),
+            hora=time(18, 0),
+            estado="PROGRAMADO",
+            estado_programacion="OFICIAL",
+            numero_fecha="SEMIFINAL #1",
+            cancha="Teresa Sierra",
+            grupo="FINAL",
+            fase="SEMIFINAL",
+        )
+        Partido.objects.create(
+            categoria=self.categoria,
+            equipo_local=self.local,
+            equipo_visitante=self.visitante,
+            fecha=date(2026, 7, 27),
+            hora=time(16, 0),
+            estado="FINALIZADO",
+            estado_programacion="OFICIAL",
+            numero_fecha="CUARTOS #1",
+            cancha="Teresa Sierra",
+            grupo="FINAL",
+            fase="CUARTOS",
+        )
+
+        with patch(
+            "torneos.views.crear_imagen_desde_html",
+            return_value=HttpResponse("ok"),
+        ) as generar:
+            respuesta = self.client.get(
+                f"/descargar/programacion/{self.categoria.nombre}/",
+                {"fase_final": "1"},
+            )
+
+        self.assertEqual(respuesta.status_code, 200)
+        html = generar.call_args.args[0]
+        self.assertIn("SEMIFINAL #1", html)
+        self.assertNotIn("CUARTOS #1", html)
+
+
 class FixtureProgramacionBalanceadaTests(TestCase):
     def setUp(self):
         self.torneo = Torneo.objects.create(nombre="Programacion", fecha_inicio=date(2026, 1, 1))

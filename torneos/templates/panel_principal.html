@@ -6121,8 +6121,8 @@ body.solo-lectura .menu-principal{top:96px!important}
 
         {% if puede_descargar_programacion %}
         <div class="descargas-tab">
-            <a class="boton" href="{% url 'descargar_programacion_categoria' categoria %}?volver={{ request.get_full_path|urlencode }}">
-                Descargar programación
+            <a class="boton" href="{% url 'descargar_programacion_categoria' categoria %}?fase_final=1&amp;volver={{ request.get_full_path|urlencode }}">
+                Descargar fases finales abiertas
             </a>
         </div>
         {% endif %}
@@ -6141,13 +6141,88 @@ body.solo-lectura .menu-principal{top:96px!important}
         {% if datos_categoria.llaves.cuartos or datos_categoria.llaves.semifinal or datos_categoria.llaves.final or datos_categoria.llaves.tercer_puesto %}
         <div class="llaves-container">
             <h2>Fase final - llaves</h2>
+            <p class="regla-cruces-finales">
+                Semifinal 1: ganador llave 1 vs ganador llave 4 &middot;
+                Semifinal 2: ganador llave 2 vs ganador llave 3
+            </p>
+            <style>
+                .regla-cruces-finales {
+                    margin: 0 auto 18px;
+                    color: #d7e2ff;
+                    font-size: 13px;
+                    font-weight: 800;
+                    text-align: center;
+                    text-transform: uppercase;
+                }
+                .tab-content[data-tab="finales"] .llaves.llaves-simetricas {
+                    display: grid !important;
+                    grid-template-columns: minmax(245px, 1fr) minmax(235px, .95fr) minmax(270px, 1.08fr) minmax(235px, .95fr) minmax(245px, 1fr) !important;
+                    align-items: stretch !important;
+                    gap: 18px !important;
+                    min-width: 1320px !important;
+                    width: 100% !important;
+                }
+                .tab-content[data-tab="finales"] .llaves-simetricas .columna-llave {
+                    width: auto !important;
+                    max-width: none !important;
+                    min-width: 0 !important;
+                    padding: 0 !important;
+                    gap: 18px !important;
+                    display: flex !important;
+                    flex-direction: column !important;
+                    justify-content: center !important;
+                }
+                .tab-content[data-tab="finales"] .llaves-simetricas .columna-cuartos {
+                    justify-content: space-around !important;
+                }
+                .tab-content[data-tab="finales"] .llaves-simetricas .columna-finales {
+                    justify-content: center !important;
+                }
+                .tab-content[data-tab="finales"] .llaves-simetricas .columna-llave h3,
+                .tab-content[data-tab="finales"] .llaves-simetricas .titulo-tercer-puesto {
+                    margin: 0 0 8px !important;
+                    min-height: 34px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    color: #f8fafc;
+                    font-size: 16px !important;
+                    text-align: center;
+                    text-transform: uppercase;
+                }
+                .tab-content[data-tab="finales"] .llaves-simetricas .partido-llave,
+                .tab-content[data-tab="finales"] .llaves-simetricas .partido-llave.final,
+                .tab-content[data-tab="finales"] .llaves-simetricas .partido-llave.tercer-puesto {
+                    width: 100% !important;
+                    min-height: 154px !important;
+                    height: auto !important;
+                    margin: 0 !important;
+                    box-sizing: border-box !important;
+                }
+                .tab-content[data-tab="finales"] .llaves-simetricas .columna-finales {
+                    background: rgba(24, 32, 105, .34);
+                    border: 1px solid rgba(79, 106, 255, .55);
+                    border-radius: 22px;
+                    padding: 14px !important;
+                }
+                @media (max-width: 900px) {
+                    .tab-content[data-tab="finales"] .llaves-container {
+                        overflow-x: auto !important;
+                    }
+                    .tab-content[data-tab="finales"] .llaves.llaves-simetricas {
+                        grid-template-columns: 270px 260px 290px 260px 270px !important;
+                        min-width: 1422px !important;
+                        gap: 16px !important;
+                    }
+                }
+            </style>
 
             <div class="llaves">
                 <div class="columna-llave columna-cuartos">
                     <h3>Cuartos de final</h3>
 
                     {% for p in datos_categoria.llaves.cuartos %}
-                    <div class="partido-llave {% if p.estado == 'EN_JUEGO' %}partido-en-vivo{% endif %}">
+                    <div class="partido-llave {% if p.estado == 'EN_JUEGO' %}partido-en-vivo{% endif %}" data-fase-llave="cuartos" data-numero-llave="{{ p.numero_llave }}">
                         <div class="partido-llave-contenido">
 
                             <div class="equipo-llave">
@@ -6228,7 +6303,7 @@ body.solo-lectura .menu-principal{top:96px!important}
                     <h3>Semifinal</h3>
 
                     {% for p in datos_categoria.llaves.semifinal %}
-                    <div class="partido-llave {% if p.estado == 'EN_JUEGO' %}partido-en-vivo{% endif %}">
+                    <div class="partido-llave {% if p.estado == 'EN_JUEGO' %}partido-en-vivo{% endif %}" data-fase-llave="semifinal" data-numero-llave="{{ p.numero_llave }}">
                         <div class="partido-llave-contenido">
 
                             <div class="equipo-llave">
@@ -6309,7 +6384,7 @@ body.solo-lectura .menu-principal{top:96px!important}
                     <h3>Final</h3>
 
                     {% for p in datos_categoria.llaves.final %}
-                    <div class="partido-llave final {% if p.estado == 'EN_JUEGO' %}partido-en-vivo{% endif %}">
+                    <div class="partido-llave final {% if p.estado == 'EN_JUEGO' %}partido-en-vivo{% endif %}" data-fase-llave="final">
                         <div class="partido-llave-contenido">
 
                             <div class="equipo-llave">
@@ -6388,7 +6463,7 @@ body.solo-lectura .menu-principal{top:96px!important}
                     <h3 class="titulo-tercer-puesto">Tercer puesto</h3>
 
                     {% for p in datos_categoria.llaves.tercer_puesto %}
-                    <div class="partido-llave tercer-puesto {% if p.estado == 'EN_JUEGO' %}partido-en-vivo{% endif %}">
+                    <div class="partido-llave tercer-puesto {% if p.estado == 'EN_JUEGO' %}partido-en-vivo{% endif %}" data-fase-llave="tercer-puesto">
                         <div class="partido-llave-contenido">
 
                             <div class="equipo-llave">
@@ -7164,6 +7239,73 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     programar(INTERVALO_NORMAL);
+})();
+
+(function organizarLlaveFinalSimetrica() {
+    function crearColumna(clase, titulo) {
+        const columna = document.createElement('div');
+        columna.className = 'columna-llave ' + clase;
+        const encabezado = document.createElement('h3');
+        encabezado.textContent = titulo;
+        columna.appendChild(encabezado);
+        return columna;
+    }
+
+    function moverPartido(origen, destino, selector) {
+        const partido = origen ? origen.querySelector(selector) : null;
+        if (partido) destino.appendChild(partido);
+    }
+
+    function organizar() {
+        document.querySelectorAll('.tab-content[data-tab="finales"] .llaves').forEach(function(llaves) {
+            if (llaves.dataset.simetrica === '1') return;
+
+            const cuartosOrigen = llaves.querySelector('.columna-cuartos');
+            const semifinalOrigen = llaves.querySelector('.columna-semifinal');
+            const finalesOrigen = llaves.querySelector('.columna-finales');
+            if (!cuartosOrigen || !semifinalOrigen || !finalesOrigen) return;
+
+            const cuartosIzquierda = crearColumna('columna-cuartos cuartos-izquierda', 'Cuartos de final');
+            const semifinalIzquierda = crearColumna('columna-semifinal semifinal-izquierda', 'Semifinal 1');
+            const centroFinal = crearColumna('columna-finales centro-final', 'Final');
+            const semifinalDerecha = crearColumna('columna-semifinal semifinal-derecha', 'Semifinal 2');
+            const cuartosDerecha = crearColumna('columna-cuartos cuartos-derecha', 'Cuartos de final');
+
+            moverPartido(cuartosOrigen, cuartosIzquierda, '[data-numero-llave="1"]');
+            moverPartido(cuartosOrigen, cuartosIzquierda, '[data-numero-llave="4"]');
+            moverPartido(semifinalOrigen, semifinalIzquierda, '[data-numero-llave="1"]');
+
+            moverPartido(finalesOrigen, centroFinal, '[data-fase-llave="final"]');
+            const tercerPuesto = finalesOrigen.querySelector('[data-fase-llave="tercer-puesto"]');
+            if (tercerPuesto) {
+                const tituloTercero = document.createElement('h3');
+                tituloTercero.className = 'titulo-tercer-puesto';
+                tituloTercero.textContent = 'Tercer puesto';
+                centroFinal.appendChild(tituloTercero);
+                centroFinal.appendChild(tercerPuesto);
+            }
+
+            moverPartido(semifinalOrigen, semifinalDerecha, '[data-numero-llave="2"]');
+            moverPartido(cuartosOrigen, cuartosDerecha, '[data-numero-llave="2"]');
+            moverPartido(cuartosOrigen, cuartosDerecha, '[data-numero-llave="3"]');
+
+            llaves.replaceChildren(
+                cuartosIzquierda,
+                semifinalIzquierda,
+                centroFinal,
+                semifinalDerecha,
+                cuartosDerecha
+            );
+            llaves.classList.add('llaves-simetricas');
+            llaves.dataset.simetrica = '1';
+        });
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', organizar);
+    } else {
+        organizar();
+    }
 })();
 </script>
 <script>
