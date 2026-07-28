@@ -11,14 +11,6 @@ def run(command):
 
 def main():
     try:
-        print("==> Preparando archivos estaticos", flush=True)
-        run([sys.executable, "manage.py", "collectstatic", "--noinput", "--clear"])
-    except Exception:
-        print("==> ERROR PREPARANDO ARCHIVOS ESTATICOS", flush=True)
-        traceback.print_exc()
-        raise
-
-    try:
         print("==> Iniciando Torneos Pahevi Sports", flush=True)
         print(f"==> DATABASE_URL configurada: {'si' if os.environ.get('DATABASE_URL') else 'no'}", flush=True)
         run([sys.executable, "manage.py", "showmigrations", "torneos"])
