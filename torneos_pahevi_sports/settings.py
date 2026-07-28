@@ -23,10 +23,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = 'django-insecure-=hnhvqw@*eta+*45ec1z_%bm7&vm%t4q%8#5l0jg5u46ue=vn0'
 
-# Render define RENDER=true automáticamente. En producción dejamos DEBUG
-# desactivado; localmente se conserva activo salvo que la variable diga lo contrario.
-EN_RENDER = os.getenv("RENDER", "").lower() in {"1", "true", "yes"}
-DEBUG = False if EN_RENDER else os.getenv("DEBUG", "true").lower() in {"1", "true", "yes"}
+# SECURITY WARNING: don't run with debug turned on in production!
+DEBUG = True
 
 ALLOWED_HOSTS = ["*"]
 
@@ -47,7 +45,6 @@ if os.getenv("USE_SUPABASE_STORAGE", "").lower() in {"1", "true", "yes"}:
     INSTALLED_APPS.append("storages")
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-    'django.middleware.gzip.GZipMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -134,7 +131,6 @@ USE_TZ = True
 STATIC_URL = '/static/'
 
 STATIC_ROOT = BASE_DIR / 'staticfiles'
-WHITENOISE_MAX_AGE = 31536000
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'

@@ -1613,8 +1613,8 @@ def url_absoluta(request, url):
 def rutas_logos(request):
     return {
         "logo_alcaldia": request.build_absolute_uri(static("torneos/img/logo_alcaldia.png")),
-        "logo_app": request.build_absolute_uri(static("torneos/img/logo_app.jpg")),
-        "logo_torneo": request.build_absolute_uri(static("torneos/img/logo_app.jpg")),
+        "logo_app": request.build_absolute_uri(static("torneos/img/logo_app.png")),
+        "logo_torneo": request.build_absolute_uri(static("torneos/img/logo_torneo.png")),
         "logo_imcred": request.build_absolute_uri(static("torneos/img/logo_imcred.png")),
     }
 
