@@ -9087,7 +9087,10 @@ def partidos_para_planillas(torneo, categoria_id=None):
 
 
 def respuesta_pdf_planilla(partido):
-    contenido = generar_planilla_juego_pdf(partido)
+    contenido = generar_planilla_juego_pdf(
+        partido,
+        foraneos_no_habilitados_fase_final(partido),
+    )
     response = HttpResponse(contenido, content_type="application/pdf")
     response["Content-Disposition"] = f'attachment; filename="{nombre_archivo_planilla(partido)}"'
     return response
@@ -9116,7 +9119,10 @@ def descargar_planilla_juego_partido(request, partido_id):
     if request.GET.get("app") == "1":
         return respuesta_archivo_descarga_app(
             request,
-            generar_planilla_juego_pdf(partido),
+            generar_planilla_juego_pdf(
+                partido,
+                foraneos_no_habilitados_fase_final(partido),
+            ),
             nombre_archivo_planilla(partido),
             "application/pdf",
             request.GET.get("volver") or reverse("gestion_partidos"),
@@ -9135,7 +9141,13 @@ def generar_zip_planillas(partidos):
                 base, ext = nombre.rsplit(".", 1)
                 nombre = f"{base}-{partido.id}.{ext}"
             usados.add(nombre)
-            archivo_zip.writestr(nombre, generar_planilla_juego_pdf(partido))
+            archivo_zip.writestr(
+                nombre,
+                generar_planilla_juego_pdf(
+                    partido,
+                    foraneos_no_habilitados_fase_final(partido),
+                ),
+            )
     buffer.seek(0)
     return buffer.getvalue()
 

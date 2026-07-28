@@ -19,7 +19,7 @@ from .forms import JugadorForm, PartidoForm, PartidoProgramacionForm, TorneoForm
 from .models import AlineacionPartido, EntregaAlineacionPartido, AdminOrganizador, AdminTorneo, Categoria, Documento, Equipo, Gol, IncidenciaReglaEdad, Jugador, Organizador, Partido, ReglaEdadCategoria, RegistroActividad, VisitaPublicaDiaria, SolicitudValidacion, SustitucionPartido, Tarjeta, Torneo, ruta_escudo_equipo
 from .middleware import AuditoriaModificacionesMiddleware
 from .media_cleanup import eliminar_imagenes_sin_referencia, nombres_imagenes_instancias
-from .planillas_pdf import _dorsal, _edad, _header_image_sources, _team_shield_source, _draw_team_watermark, _titulo_planilla
+from .planillas_pdf import _dorsal, _edad, _header_image_sources, _jugadores, _team_shield_source, _draw_team_watermark, _titulo_planilla
 from .storage_backends import CloudinaryMediaStorage
 from .views import buscar_planilleros_excel, construir_estructura, construir_estadisticas_foraneos, construir_partidos_portada, construir_partidos_programacion, fechas_presentes_en_programacion, foraneos_no_habilitados_fase_final, _clave_orden_evento_resumen, _minuto_evento_en_vivo, _sincronizar_no_disponibles_por_tarjetas, etiqueta_columna_planilla, etiqueta_edad_jugador, jugadores_actuales_en_cancha, nombre_corto_jugador, nombre_resumen_jugador, puede_descargar_programacion, podios_torneo, reglas_edad_para_frontend, texto_edad_jugador, tabla_general_mata_mata_ida_vuelta, url_imagen_cloudinary, validar_reglas_edad_titulares
 
@@ -1783,6 +1783,15 @@ class ForaneosTests(TestCase):
         self.assertEqual(respuesta.status_code, 302)
         alineacion = AlineacionPartido.objects.get(partido=cuartos, jugador=self.foraneo)
         self.assertEqual(alineacion.rol, "NO_DISPONIBLE")
+
+    def test_planilla_excluye_foraneo_no_habilitado(self):
+        jugadores = _jugadores(
+            self.equipo,
+            {self.foraneo.id: {"jugados": 0, "minimo": 1}},
+        )
+
+        self.assertNotIn(self.foraneo, jugadores)
+        self.assertIn(self.titular, jugadores)
 
 
 class JugadorFormTests(TestCase):

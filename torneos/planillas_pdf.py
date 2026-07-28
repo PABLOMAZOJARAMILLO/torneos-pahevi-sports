@@ -6,6 +6,8 @@ from PIL import Image, ImageDraw, ImageFont
 from django.utils.text import slugify
 import requests
 
+from .models import Jugador
+
 PAGE_W = 2148
 PAGE_H = 3038
 PDF_DPI = 200
@@ -323,8 +325,11 @@ def _draw_fecha_hora(draw, partido):
         current += width
 
 
-def _jugadores(equipo):
-    return list(equipo.jugadores.filter(estado="ACTIVO").order_by("dorsal", "nombres"))[:30]
+def _jugadores(equipo, excluidos=None):
+    jugadores = equipo.jugadores.filter(estado="ACTIVO")
+    if excluidos:
+        jugadores = jugadores.exclude(id__in=excluidos)
+    return list(jugadores.order_by("dorsal", "nombres"))[:30]
 
 
 def _draw_player_side(img, draw, start_col, team_title, jugadores, referencia, equipo=None):
@@ -429,7 +434,8 @@ def _draw_goals(draw, col1, col2):
             goal += 1
 
 
-def generar_planilla_juego_pdf(partido):
+def generar_planilla_juego_pdf(partido, foraneos_excluidos=None):
+    foraneos_excluidos = foraneos_excluidos or {}
     img = Image.new("RGB", (PAGE_W, PAGE_H), WHITE)
     draw = ImageDraw.Draw(img)
 
@@ -453,15 +459,36 @@ def generar_planilla_juego_pdf(partido):
     _draw_team_shield(img, draw, partido.equipo_visitante, 26, 6, 27, 9)
 
     referencia = partido.fecha or date.today()
-    _draw_player_side(img, draw, 1, "LISTADO DE JUGADORES - EQUIPO A", _jugadores(partido.equipo_local), referencia, partido.equipo_local)
-    _draw_player_side(img, draw, 15, "LISTADO DE JUGADORES - EQUIPO B", _jugadores(partido.equipo_visitante), referencia, partido.equipo_visitante)
+    _draw_player_side(
+        img, draw, 1, "LISTADO DE JUGADORES - EQUIPO A",
+        _jugadores(partido.equipo_local, foraneos_excluidos),
+        referencia, partido.equipo_local,
+    )
+    _draw_player_side(
+        img, draw, 15, "LISTADO DE JUGADORES - EQUIPO B",
+        _jugadores(partido.equipo_visitante, foraneos_excluidos),
+        referencia, partido.equipo_visitante,
+    )
 
     _draw_changes(draw, 1, 13)
     _draw_changes(draw, 15, 27)
     _draw_goals(draw, 1, 13)
     _draw_goals(draw, 15, 27)
 
-    _cell(draw, 1, 55, 27, 58, "COMENTARIOS DEL ARBITRO:", font=FONT_SMALL_BOLD, align="left", valign="top", width=2)
+    comentario = "COMENTARIOS DEL ARBITRO:"
+    if foraneos_excluidos:
+        jugadores = Jugador.objects.filter(
+            id__in=foraneos_excluidos,
+        ).select_related("equipo").order_by("equipo__nombre", "nombres")
+        detalles = []
+        for jugador in jugadores:
+            requisito = foraneos_excluidos[jugador.id]
+            detalles.append(
+                f"{jugador.equipo.nombre}: {_clean(jugador.nombres).title()} "
+                f"({requisito['jugados']}/{requisito['minimo']})"
+            )
+        comentario += "\nFORANEOS NO HABILITADOS OMITIDOS: " + "; ".join(detalles)
+    _cell(draw, 1, 55, 27, 58, comentario, font=FONT_SMALL_BOLD, align="left", valign="top", width=2)
     _cell(draw, 1, 59, 27, 59, "FIRMA ARBITRO CENTRAL:", font=FONT_SMALL_BOLD, align="left", width=2)
 
     output = BytesIO()
