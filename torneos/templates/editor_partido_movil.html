@@ -1165,7 +1165,7 @@
                         <select class="slot-select" data-slot-select data-posicion-slot="{{ codigo }}" aria-label="Asignar {{ nombre }}">
                         <option value="">{{ codigo }}</option>
                         {% for j in jugadores_local %}
-                            <option value="{{ j.id }}" data-nombre="{{ j.nombres|texto_limpio }}" data-edad="{{ j.texto_edad }}" data-etiqueta-edad="{{ j.etiqueta_edad }}" data-dorsal="{% if j.dorsal %}{{ j.dorsal }}{% endif %}" data-foto="{{ j.foto_alineacion }}" data-iniciales="{{ j.iniciales_alineacion }}" {% if j.posicion_alineacion == codigo and j.rol_alineacion == "TITULAR" %}selected{% endif %}>
+                            <option value="{{ j.id }}" data-nombre="{{ j.nombres|texto_limpio }}" data-edad="{{ j.texto_edad }}" data-etiqueta-edad="{{ j.etiqueta_edad }}" data-dorsal="{% if j.dorsal %}{{ j.dorsal }}{% endif %}" data-foto="{{ j.foto_alineacion }}" data-iniciales="{{ j.iniciales_alineacion }}" {% if j.foraneo_no_habilitado %}disabled{% endif %} {% if j.posicion_alineacion == codigo and j.rol_alineacion == "TITULAR" and not j.foraneo_no_habilitado %}selected{% endif %}>
                                 {% if j.dorsal %}#{{ j.dorsal }} - {% endif %}{{ j.nombres|primeras_tres_palabras }}{% if j.texto_edad %} ({{ j.texto_edad }}){% endif %}
                             </option>
                         {% endfor %}
@@ -1204,15 +1204,16 @@
                 <div class="jugador-lineup-row" data-jugador-id="{{ j.id }}" data-edad="{{ j.texto_edad }}" data-etiqueta-edad="{{ j.etiqueta_edad }}" data-nombre="{{ j.nombres|texto_limpio }}" data-dorsal="{% if j.dorsal %}{{ j.dorsal }}{% endif %}" data-foto="{{ j.foto_alineacion }}" data-iniciales="{{ j.iniciales_alineacion }}">
                     <div class="jugador-lineup-head">
                         <span>{{ j.nombres|texto_limpio }}{% if j.texto_edad %}<span class="edad-badge">{{ j.texto_edad }}</span>{% endif %}</span>
+                        {% if j.foraneo_no_habilitado %}<span class="nota">Foráneo no habilitado: {{ j.foraneo_jugados }}/{{ j.foraneo_minimo }} partidos.</span>{% endif %}
                         <label class="dorsal-alineacion-field">Dorsal
                             <input class="dorsal-alineacion-input" type="text" name="dorsal_{{ j.id }}" inputmode="numeric" value="{{ j.dorsal|default_if_none:'' }}" placeholder="S/D">
                         </label>
                     </div>
                     <div class="rol-switch">
                         <label><input type="radio" name="rol_{{ j.id }}" value="" {% if not j.rol_alineacion %}checked{% endif %}><span>Fuera</span></label>
-                        <label><input type="radio" name="rol_{{ j.id }}" value="TITULAR" data-titular-radio {% if j.rol_alineacion == "TITULAR" %}checked{% endif %}><span>Titular</span></label>
-                        <label><input type="radio" name="rol_{{ j.id }}" value="SUPLENTE" {% if j.rol_alineacion == "SUPLENTE" %}checked{% endif %}><span>Banco</span></label>
-                        <label><input type="radio" name="rol_{{ j.id }}" value="NO_DISPONIBLE" {% if j.rol_alineacion == "NO_DISPONIBLE" %}checked{% endif %}><span>No disp.</span></label>
+                        <label><input type="radio" name="rol_{{ j.id }}" value="TITULAR" data-titular-radio {% if j.foraneo_no_habilitado %}disabled{% endif %} {% if j.rol_alineacion == "TITULAR" and not j.foraneo_no_habilitado %}checked{% endif %}><span>Titular</span></label>
+                        <label><input type="radio" name="rol_{{ j.id }}" value="SUPLENTE" {% if j.foraneo_no_habilitado %}disabled{% endif %} {% if j.rol_alineacion == "SUPLENTE" and not j.foraneo_no_habilitado %}checked{% endif %}><span>Banco</span></label>
+                        <label><input type="radio" name="rol_{{ j.id }}" value="NO_DISPONIBLE" {% if j.rol_alineacion == "NO_DISPONIBLE" or j.foraneo_no_habilitado %}checked{% endif %}><span>No disp.</span></label>
                     </div>
                     <select class="posicion-cancha-select" name="posicion_{{ j.id }}" data-posicion-select {% if j.rol_alineacion != "TITULAR" %}disabled{% endif %}>
                         <option value="">Posición en cancha</option>
@@ -1254,7 +1255,7 @@
                         <select class="slot-select" data-slot-select data-posicion-slot="{{ codigo }}" aria-label="Asignar {{ nombre }}">
                         <option value="">{{ codigo }}</option>
                         {% for j in jugadores_visitante %}
-                            <option value="{{ j.id }}" data-nombre="{{ j.nombres|texto_limpio }}" data-edad="{{ j.texto_edad }}" data-etiqueta-edad="{{ j.etiqueta_edad }}" data-dorsal="{% if j.dorsal %}{{ j.dorsal }}{% endif %}" data-foto="{{ j.foto_alineacion }}" data-iniciales="{{ j.iniciales_alineacion }}" {% if j.posicion_alineacion == codigo and j.rol_alineacion == "TITULAR" %}selected{% endif %}>
+                            <option value="{{ j.id }}" data-nombre="{{ j.nombres|texto_limpio }}" data-edad="{{ j.texto_edad }}" data-etiqueta-edad="{{ j.etiqueta_edad }}" data-dorsal="{% if j.dorsal %}{{ j.dorsal }}{% endif %}" data-foto="{{ j.foto_alineacion }}" data-iniciales="{{ j.iniciales_alineacion }}" {% if j.foraneo_no_habilitado %}disabled{% endif %} {% if j.posicion_alineacion == codigo and j.rol_alineacion == "TITULAR" and not j.foraneo_no_habilitado %}selected{% endif %}>
                                 {% if j.dorsal %}#{{ j.dorsal }} - {% endif %}{{ j.nombres|primeras_tres_palabras }}{% if j.texto_edad %} ({{ j.texto_edad }}){% endif %}
                             </option>
                         {% endfor %}
@@ -1293,15 +1294,16 @@
                 <div class="jugador-lineup-row" data-jugador-id="{{ j.id }}" data-edad="{{ j.texto_edad }}" data-etiqueta-edad="{{ j.etiqueta_edad }}" data-nombre="{{ j.nombres|texto_limpio }}" data-dorsal="{% if j.dorsal %}{{ j.dorsal }}{% endif %}" data-foto="{{ j.foto_alineacion }}" data-iniciales="{{ j.iniciales_alineacion }}">
                     <div class="jugador-lineup-head">
                         <span>{{ j.nombres|texto_limpio }}{% if j.texto_edad %}<span class="edad-badge">{{ j.texto_edad }}</span>{% endif %}</span>
+                        {% if j.foraneo_no_habilitado %}<span class="nota">Foráneo no habilitado: {{ j.foraneo_jugados }}/{{ j.foraneo_minimo }} partidos.</span>{% endif %}
                         <label class="dorsal-alineacion-field">Dorsal
                             <input class="dorsal-alineacion-input" type="text" name="dorsal_{{ j.id }}" inputmode="numeric" value="{{ j.dorsal|default_if_none:'' }}" placeholder="S/D">
                         </label>
                     </div>
                     <div class="rol-switch">
                         <label><input type="radio" name="rol_{{ j.id }}" value="" {% if not j.rol_alineacion %}checked{% endif %}><span>Fuera</span></label>
-                        <label><input type="radio" name="rol_{{ j.id }}" value="TITULAR" data-titular-radio {% if j.rol_alineacion == "TITULAR" %}checked{% endif %}><span>Titular</span></label>
-                        <label><input type="radio" name="rol_{{ j.id }}" value="SUPLENTE" {% if j.rol_alineacion == "SUPLENTE" %}checked{% endif %}><span>Banco</span></label>
-                        <label><input type="radio" name="rol_{{ j.id }}" value="NO_DISPONIBLE" {% if j.rol_alineacion == "NO_DISPONIBLE" %}checked{% endif %}><span>No disp.</span></label>
+                        <label><input type="radio" name="rol_{{ j.id }}" value="TITULAR" data-titular-radio {% if j.foraneo_no_habilitado %}disabled{% endif %} {% if j.rol_alineacion == "TITULAR" and not j.foraneo_no_habilitado %}checked{% endif %}><span>Titular</span></label>
+                        <label><input type="radio" name="rol_{{ j.id }}" value="SUPLENTE" {% if j.foraneo_no_habilitado %}disabled{% endif %} {% if j.rol_alineacion == "SUPLENTE" and not j.foraneo_no_habilitado %}checked{% endif %}><span>Banco</span></label>
+                        <label><input type="radio" name="rol_{{ j.id }}" value="NO_DISPONIBLE" {% if j.rol_alineacion == "NO_DISPONIBLE" or j.foraneo_no_habilitado %}checked{% endif %}><span>No disp.</span></label>
                     </div>
                     <select class="posicion-cancha-select" name="posicion_{{ j.id }}" data-posicion-select {% if j.rol_alineacion != "TITULAR" %}disabled{% endif %}>
                         <option value="">Posición en cancha</option>

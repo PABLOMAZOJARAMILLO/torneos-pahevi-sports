@@ -361,7 +361,7 @@
                 <select name="cancha_{{ codigo }}" data-cancha-select aria-label="{{ nombre }}">
                     <option value="">{{ codigo }}</option>
                     {% for jugador in jugadores %}
-                        <option value="{{ jugador.id }}" data-nombre="{{ jugador.nombres|texto_limpio }}" data-dorsal="{% if jugador.dorsal %}{{ jugador.dorsal }}{% endif %}" data-edad="{{ jugador.texto_edad }}" data-etiqueta-edad="{{ jugador.etiqueta_edad }}" data-foto="{{ jugador.foto_alineacion }}" data-iniciales="{{ jugador.iniciales_alineacion }}" {% if jugador.rol_alineacion == "TITULAR" and jugador.posicion_alineacion == codigo %}selected{% endif %}>
+                        <option value="{{ jugador.id }}" data-nombre="{{ jugador.nombres|texto_limpio }}" data-dorsal="{% if jugador.dorsal %}{{ jugador.dorsal }}{% endif %}" data-edad="{{ jugador.texto_edad }}" data-etiqueta-edad="{{ jugador.etiqueta_edad }}" data-foto="{{ jugador.foto_alineacion }}" data-iniciales="{{ jugador.iniciales_alineacion }}" {% if jugador.foraneo_no_habilitado %}disabled{% endif %} {% if jugador.rol_alineacion == "TITULAR" and jugador.posicion_alineacion == codigo and not jugador.foraneo_no_habilitado %}selected{% endif %}>
                             {% if jugador.dorsal %}#{{ jugador.dorsal }} - {% endif %}{{ jugador.nombres|texto_limpio }}{% if jugador.texto_edad %} ({{ jugador.texto_edad }}){% endif %}
                         </option>
                     {% endfor %}
@@ -381,15 +381,18 @@
                 {% if jugador.id in sancionados_tarjetas %}
                     <div class="muted">Sancionado: queda como no disponible.</div>
                 {% endif %}
+                {% if jugador.foraneo_no_habilitado %}
+                    <div class="muted">Foráneo no habilitado: jugó {{ jugador.foraneo_jugados }} de {{ jugador.foraneo_minimo }} partidos mínimos.</div>
+                {% endif %}
                 <label class="dorsal-delegado">Dorsal
                     <input type="text" name="dorsal_{{ jugador.id }}" inputmode="numeric" value="{{ jugador.dorsal|default_if_none:'' }}" placeholder="S/D">
                 </label>
             </div>
             <div class="rol-switch">
-                <label><input type="radio" name="rol_{{ jugador.id }}" value="TITULAR" data-titular-banco {% if jugador.rol_alineacion == "TITULAR" %}checked{% endif %}><span>Titular</span></label>
+                <label><input type="radio" name="rol_{{ jugador.id }}" value="TITULAR" data-titular-banco {% if jugador.foraneo_no_habilitado %}disabled{% endif %} {% if jugador.rol_alineacion == "TITULAR" and not jugador.foraneo_no_habilitado %}checked{% endif %}><span>Titular</span></label>
                 <label><input type="radio" name="rol_{{ jugador.id }}" value="" {% if not jugador.rol_alineacion %}checked{% endif %}><span>Fuera</span></label>
-                <label><input type="radio" name="rol_{{ jugador.id }}" value="SUPLENTE" {% if jugador.rol_alineacion == "SUPLENTE" %}checked{% endif %}><span>Suplente</span></label>
-                <label><input type="radio" name="rol_{{ jugador.id }}" value="NO_DISPONIBLE" {% if jugador.rol_alineacion == "NO_DISPONIBLE" %}checked{% endif %}><span>No disponible</span></label>
+                <label><input type="radio" name="rol_{{ jugador.id }}" value="SUPLENTE" {% if jugador.foraneo_no_habilitado %}disabled{% endif %} {% if jugador.rol_alineacion == "SUPLENTE" and not jugador.foraneo_no_habilitado %}checked{% endif %}><span>Suplente</span></label>
+                <label><input type="radio" name="rol_{{ jugador.id }}" value="NO_DISPONIBLE" {% if jugador.rol_alineacion == "NO_DISPONIBLE" or jugador.foraneo_no_habilitado %}checked{% endif %}><span>No disponible</span></label>
             </div>
         </section>
         {% empty %}

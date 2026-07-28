@@ -1832,6 +1832,75 @@ def construir_estadisticas_foraneos(categoria):
     return sorted(filas, key=lambda fila: (fila["cumple"], fila["equipo"], fila["jugador"]))
 
 
+FASES_ELIMINATORIAS = {"CUARTOS", "SEMIFINAL", "FINAL", "TERCER_PUESTO"}
+
+
+def foraneos_no_habilitados_fase_final(partido, equipo=None):
+    categoria = partido.categoria
+    if (
+        not categoria.controlar_foraneos
+        or partido.fase not in FASES_ELIMINATORIAS
+    ):
+        return {}
+
+    equipos_ids = {
+        equipo.id
+    } if equipo else {
+        partido.equipo_local_id,
+        partido.equipo_visitante_id,
+    }
+    equipos_ids.discard(None)
+    partidos_por_equipo = defaultdict(set)
+    for partido_id, local_id, visitante_id in Partido.objects.filter(
+        categoria=categoria,
+        fase="GRUPOS",
+    ).values_list("id", "equipo_local_id", "equipo_visitante_id"):
+        if local_id in equipos_ids:
+            partidos_por_equipo[local_id].add(partido_id)
+        if visitante_id in equipos_ids:
+            partidos_por_equipo[visitante_id].add(partido_id)
+
+    jugados_por_jugador = defaultdict(set)
+    for jugador_id, partido_id in AlineacionPartido.objects.filter(
+        partido__categoria=categoria,
+        partido__fase="GRUPOS",
+        partido__estado__in=ESTADOS_PARTIDO_CERRADO,
+        rol="TITULAR",
+        jugador__equipo_id__in=equipos_ids,
+        jugador__es_foraneo=True,
+    ).values_list("jugador_id", "partido_id"):
+        jugados_por_jugador[jugador_id].add(partido_id)
+    for jugador_id, partido_id in SustitucionPartido.objects.filter(
+        partido__categoria=categoria,
+        partido__fase="GRUPOS",
+        partido__estado__in=ESTADOS_PARTIDO_CERRADO,
+        jugador_entra__equipo_id__in=equipos_ids,
+        jugador_entra__es_foraneo=True,
+    ).values_list("jugador_entra_id", "partido_id"):
+        jugados_por_jugador[jugador_id].add(partido_id)
+
+    porcentaje = categoria.porcentaje_minimo_foraneos or 0
+    bloqueados = {}
+    for jugador in Jugador.objects.filter(
+        equipo_id__in=equipos_ids,
+        es_foraneo=True,
+    ).only("id", "equipo_id"):
+        minimo = int((len(partidos_por_equipo[jugador.equipo_id]) * porcentaje) / 100)
+        jugados = len(jugados_por_jugador.get(jugador.id, set()))
+        if jugados < minimo:
+            bloqueados[jugador.id] = {"jugados": jugados, "minimo": minimo}
+    return bloqueados
+
+
+def marcar_foraneos_no_habilitados(jugadores, bloqueados):
+    for jugador in jugadores:
+        detalle = bloqueados.get(jugador.id)
+        jugador.foraneo_no_habilitado = bool(detalle)
+        jugador.foraneo_jugados = detalle["jugados"] if detalle else 0
+        jugador.foraneo_minimo = detalle["minimo"] if detalle else 0
+    return jugadores
+
+
 def construir_estructura(torneo=None):
     estructura = {}
 
@@ -4886,6 +4955,9 @@ def editor_partido_movil(request, partido_id):
     sancionados_tarjetas = _sincronizar_no_disponibles_por_tarjetas(partido)
 
     jugadores_local, jugadores_visitante = _jugadores_del_partido(partido)
+    foraneos_bloqueados = foraneos_no_habilitados_fase_final(partido)
+    marcar_foraneos_no_habilitados(jugadores_local, foraneos_bloqueados)
+    marcar_foraneos_no_habilitados(jugadores_visitante, foraneos_bloqueados)
 
     goles = Gol.objects.filter(partido=partido).select_related('jugador', 'equipo').order_by('equipo__nombre', 'jugador__nombres')
     tarjetas = Tarjeta.objects.filter(partido=partido).select_related('jugador', 'equipo').order_by('equipo__nombre', 'tipo', 'jugador__nombres')
@@ -4943,6 +5015,7 @@ def editor_partido_movil(request, partido_id):
         'posiciones_cancha': AlineacionPartido.POSICIONES_CANCHA,
         'reglas_edad_alineacion': reglas_edad_para_frontend(partido.categoria),
         'sancionados_tarjetas': sancionados_tarjetas,
+        'foraneos_bloqueados': foraneos_bloqueados,
         'puede_editar_programacion': es_editor_torneo(request.user),
         'canchas_partido': canchas_partido,
         'ajuste_puntos_local_abs': abs(partido.ajuste_puntos_local or 0),
@@ -5089,6 +5162,15 @@ def agregar_alineacion_movil(request, partido_id):
         equipo = get_object_or_404(Equipo, id=equipo_id)
 
         if _validar_jugador_equipo(jugador, equipo, partido):
+            bloqueados_foraneos = foraneos_no_habilitados_fase_final(partido, equipo)
+            if jugador.id in bloqueados_foraneos and rol != "NO_DISPONIBLE":
+                detalle = bloqueados_foraneos[jugador.id]
+                messages.error(
+                    request,
+                    f"El jugador foráneo no está habilitado para fases finales "
+                    f"({detalle['jugados']} de {detalle['minimo']} partidos mínimos)."
+                )
+                return redirect(_url_editor_partido(request, partido, "alineacion"))
             if jugador.id in sancionados_tarjetas and rol != "NO_DISPONIBLE":
                 messages.error(request, 'Este jugador esta sancionado por tarjetas y queda como no disponible.')
                 return redirect(_url_editor_partido(request, partido, "alineacion"))
@@ -5139,6 +5221,8 @@ def guardar_alineacion_masiva_movil(request, partido_id):
         for jugador_id, data in sancionados_tarjetas.items()
         if data["equipo_id"] == equipo.id
     }
+    foraneos_bloqueados = foraneos_no_habilitados_fase_final(partido, equipo)
+    foraneos_bloqueados_ids = {str(jugador_id) for jugador_id in foraneos_bloqueados}
     posiciones_usadas = set()
     documentos_validados = set(request.POST.getlist("documento_validado"))
     seleccionados = []
@@ -5151,6 +5235,8 @@ def guardar_alineacion_masiva_movil(request, partido_id):
         if jugador_id in jugadores_validos:
             posicion = request.POST.get(f"posicion_{jugador_id}") or ""
             if jugador_id in sancionados_equipo:
+                rol = "NO_DISPONIBLE"
+            if jugador_id in foraneos_bloqueados_ids:
                 rol = "NO_DISPONIBLE"
             if rol == "TITULAR":
                 if posicion not in posiciones_validas:
@@ -5167,6 +5253,10 @@ def guardar_alineacion_masiva_movil(request, partido_id):
 
     seleccionados_ids = {jugador_id for jugador_id, _, _, _ in seleccionados}
     for jugador_id in sancionados_equipo - seleccionados_ids:
+        if jugador_id in jugadores_validos:
+            seleccionados.append((jugador_id, "NO_DISPONIBLE", "", False))
+    seleccionados_ids = {jugador_id for jugador_id, _, _, _ in seleccionados}
+    for jugador_id in foraneos_bloqueados_ids - seleccionados_ids:
         if jugador_id in jugadores_validos:
             seleccionados.append((jugador_id, "NO_DISPONIBLE", "", False))
 
@@ -5209,6 +5299,11 @@ def guardar_alineacion_masiva_movil(request, partido_id):
         messages.warning(
             request,
             "Los jugadores sancionados por tarjetas quedaron como no disponibles."
+        )
+    if foraneos_bloqueados_ids:
+        messages.warning(
+            request,
+            "Los jugadores foráneos que no cumplieron el mínimo quedaron como no disponibles."
         )
     if errores_edad:
         messages.warning(
@@ -5582,6 +5677,8 @@ def delegado_alineacion_partido(request, equipo_id, partido_id):
 
     sancionados_tarjetas = _sincronizar_no_disponibles_por_tarjetas(partido)
     jugadores = list(Jugador.objects.filter(equipo=equipo, estado="ACTIVO").order_by("dorsal", "nombres"))
+    foraneos_bloqueados = foraneos_no_habilitados_fase_final(partido, equipo)
+    marcar_foraneos_no_habilitados(jugadores, foraneos_bloqueados)
     alineaciones = AlineacionPartido.objects.filter(partido=partido, equipo=equipo).select_related("jugador")
     alineaciones_por_jugador = {alineacion.jugador_id: alineacion for alineacion in alineaciones}
     jugadores = _marcar_roles_alineacion(jugadores, alineaciones_por_jugador, partido)
@@ -5617,6 +5714,9 @@ def delegado_alineacion_partido(request, equipo_id, partido_id):
             if int(jugador_id) in sancionados_equipo:
                 messages.error(request, "Un jugador sancionado no puede quedar como titular.")
                 return redirect("delegado_alineacion_partido", equipo_id=equipo.id, partido_id=partido.id)
+            if int(jugador_id) in foraneos_bloqueados:
+                messages.error(request, "Un jugador foráneo sin el mínimo exigido no puede quedar como titular.")
+                return redirect("delegado_alineacion_partido", equipo_id=equipo.id, partido_id=partido.id)
             jugadores_en_cancha[jugador_id] = posicion
             posiciones_usadas.add(posicion)
 
@@ -5630,6 +5730,8 @@ def delegado_alineacion_partido(request, equipo_id, partido_id):
             if jugador_id not in jugadores_validos:
                 continue
             if jugador.id in sancionados_equipo:
+                rol = "NO_DISPONIBLE"
+            if jugador.id in foraneos_bloqueados:
                 rol = "NO_DISPONIBLE"
             posicion = jugadores_en_cancha.get(jugador_id) or request.POST.get(f"posicion_{jugador_id}") or ""
             if rol == "TITULAR":
@@ -5646,6 +5748,9 @@ def delegado_alineacion_partido(request, equipo_id, partido_id):
 
         seleccionados_ids = {jugador_id for jugador_id, _, _ in seleccionados}
         for jugador_id in sancionados_equipo.keys() - seleccionados_ids:
+            seleccionados.append((jugador_id, "NO_DISPONIBLE", ""))
+        seleccionados_ids = {jugador_id for jugador_id, _, _ in seleccionados}
+        for jugador_id in foraneos_bloqueados.keys() - seleccionados_ids:
             seleccionados.append((jugador_id, "NO_DISPONIBLE", ""))
 
         titulares = [jugador_id for jugador_id, rol, _ in seleccionados if rol == "TITULAR"]
@@ -5694,6 +5799,11 @@ def delegado_alineacion_partido(request, equipo_id, partido_id):
 
         if sancionados_equipo:
             messages.warning(request, "Los jugadores sancionados quedaron como no disponibles.")
+        if foraneos_bloqueados:
+            messages.warning(
+                request,
+                "Los jugadores foráneos que no cumplieron el mínimo quedaron como no disponibles."
+            )
         if errores_edad:
             messages.warning(request, "Advertencia de reglas de edad: " + " ".join(errores_edad))
         if es_definitiva:
@@ -5709,6 +5819,7 @@ def delegado_alineacion_partido(request, equipo_id, partido_id):
         "posiciones_cancha": AlineacionPartido.POSICIONES_CANCHA,
         "reglas_edad_alineacion": reglas_edad_para_frontend(partido.categoria),
         "sancionados_tarjetas": sancionados_equipo,
+        "foraneos_bloqueados": foraneos_bloqueados,
     })
 
 

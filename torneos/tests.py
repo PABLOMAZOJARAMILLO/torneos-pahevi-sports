@@ -21,7 +21,7 @@ from .middleware import AuditoriaModificacionesMiddleware
 from .media_cleanup import eliminar_imagenes_sin_referencia, nombres_imagenes_instancias
 from .planillas_pdf import _dorsal, _edad, _header_image_sources, _team_shield_source, _draw_team_watermark, _titulo_planilla
 from .storage_backends import CloudinaryMediaStorage
-from .views import buscar_planilleros_excel, construir_estructura, construir_estadisticas_foraneos, construir_partidos_portada, construir_partidos_programacion, fechas_presentes_en_programacion, _clave_orden_evento_resumen, _minuto_evento_en_vivo, _sincronizar_no_disponibles_por_tarjetas, etiqueta_columna_planilla, etiqueta_edad_jugador, jugadores_actuales_en_cancha, nombre_corto_jugador, nombre_resumen_jugador, puede_descargar_programacion, podios_torneo, reglas_edad_para_frontend, texto_edad_jugador, tabla_general_mata_mata_ida_vuelta, url_imagen_cloudinary, validar_reglas_edad_titulares
+from .views import buscar_planilleros_excel, construir_estructura, construir_estadisticas_foraneos, construir_partidos_portada, construir_partidos_programacion, fechas_presentes_en_programacion, foraneos_no_habilitados_fase_final, _clave_orden_evento_resumen, _minuto_evento_en_vivo, _sincronizar_no_disponibles_por_tarjetas, etiqueta_columna_planilla, etiqueta_edad_jugador, jugadores_actuales_en_cancha, nombre_corto_jugador, nombre_resumen_jugador, puede_descargar_programacion, podios_torneo, reglas_edad_para_frontend, texto_edad_jugador, tabla_general_mata_mata_ida_vuelta, url_imagen_cloudinary, validar_reglas_edad_titulares
 
 
 class CloudinaryStorageTests(TestCase):
@@ -1712,6 +1712,77 @@ class ForaneosTests(TestCase):
 
         self.assertEqual(fila["jugados"], 2)
         self.assertTrue(fila["cumple"])
+
+    def test_foraneo_sin_minimo_queda_bloqueado_en_fase_final(self):
+        self.crear_partido(1)
+        self.crear_partido(8)
+        cuartos = Partido.objects.create(
+            categoria=self.categoria,
+            equipo_local=self.equipo,
+            equipo_visitante=self.rival,
+            fecha=date(2026, 6, 1),
+            hora=time(15, 0),
+            estado="PROGRAMADO",
+            fase="CUARTOS",
+            numero_fecha="CUARTOS #1",
+        )
+
+        bloqueados = foraneos_no_habilitados_fase_final(cuartos, self.equipo)
+
+        self.assertEqual(bloqueados[self.foraneo.id], {"jugados": 0, "minimo": 1})
+
+    def test_foraneo_que_cumple_minimo_puede_jugar_fase_final(self):
+        partido_uno = self.crear_partido(1)
+        self.crear_partido(8)
+        AlineacionPartido.objects.create(
+            partido=partido_uno,
+            equipo=self.equipo,
+            jugador=self.foraneo,
+            rol="TITULAR",
+        )
+        cuartos = Partido.objects.create(
+            categoria=self.categoria,
+            equipo_local=self.equipo,
+            equipo_visitante=self.rival,
+            fecha=date(2026, 6, 1),
+            hora=time(15, 0),
+            estado="PROGRAMADO",
+            fase="CUARTOS",
+            numero_fecha="CUARTOS #1",
+        )
+
+        bloqueados = foraneos_no_habilitados_fase_final(cuartos, self.equipo)
+
+        self.assertNotIn(self.foraneo.id, bloqueados)
+
+    def test_planillero_no_puede_forzar_foraneo_bloqueado_como_suplente(self):
+        self.crear_partido(1)
+        self.crear_partido(8)
+        cuartos = Partido.objects.create(
+            categoria=self.categoria,
+            equipo_local=self.equipo,
+            equipo_visitante=self.rival,
+            fecha=date(2026, 6, 1),
+            hora=time(15, 0),
+            estado="PROGRAMADO",
+            fase="CUARTOS",
+            numero_fecha="CUARTOS #1",
+        )
+        planillero = User.objects.create_user("planillero-foraneos", password="test")
+        cuartos.planilleros.add(planillero)
+        self.client.force_login(planillero)
+
+        respuesta = self.client.post(
+            f"/partido/{cuartos.id}/guardar-alineacion-movil/",
+            {
+                "equipo": str(self.equipo.id),
+                f"rol_{self.foraneo.id}": "SUPLENTE",
+            },
+        )
+
+        self.assertEqual(respuesta.status_code, 302)
+        alineacion = AlineacionPartido.objects.get(partido=cuartos, jugador=self.foraneo)
+        self.assertEqual(alineacion.rol, "NO_DISPONIBLE")
 
 
 class JugadorFormTests(TestCase):
