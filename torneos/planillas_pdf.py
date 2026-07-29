@@ -280,7 +280,11 @@ def _draw_team_watermark(base, equipo, box, opacity=120):
         image = image.convert("RGBA")
         target_w = max(1, int((x2 - x1) * 0.98))
         target_h = max(1, int((y2 - y1) * 0.98))
-        image.thumbnail((target_w, target_h), Image.Resampling.LANCZOS)
+        source_w, source_h = image.size
+        escala = min(target_w / max(source_w, 1), target_h / max(source_h, 1))
+        nuevo_w = max(1, int(source_w * escala))
+        nuevo_h = max(1, int(source_h * escala))
+        image = image.resize((nuevo_w, nuevo_h), Image.Resampling.LANCZOS)
         alpha = image.getchannel("A").point(lambda value: min(value, opacity))
         image.putalpha(alpha)
         layer = Image.new("RGBA", base.size, (255, 255, 255, 0))

@@ -1606,6 +1606,30 @@ class PlanillasPDFTests(TestCase):
 
         self.assertEqual(base.size, (100, 100))
 
+    def test_marca_de_agua_amplia_escudo_pequeno(self):
+        base = Image.new("RGB", (800, 800), "white")
+        equipo = Equipo(nombre="Escudo pequeno", escudo="equipos/escudo.png")
+        escudo = Image.new("RGBA", (40, 40), (255, 0, 0, 255))
+
+        with patch("torneos.planillas_pdf._image_from_source", return_value=escudo):
+            _draw_team_watermark(base, equipo, [0, 0, 800, 800], opacity=120)
+
+        fondo = Image.new("RGB", base.size, "white")
+        diferencia = Image.new("RGB", base.size)
+        diferencia_pixels = diferencia.load()
+        base_pixels = base.load()
+        fondo_pixels = fondo.load()
+        for y in range(base.height):
+            for x in range(base.width):
+                diferencia_pixels[x, y] = tuple(
+                    abs(base_pixels[x, y][canal] - fondo_pixels[x, y][canal])
+                    for canal in range(3)
+                )
+        caja = diferencia.getbbox()
+        self.assertIsNotNone(caja)
+        self.assertGreater(caja[2] - caja[0], 700)
+        self.assertGreater(caja[3] - caja[1], 700)
+
     def test_planilla_usa_escudo_de_cada_equipo(self):
         torneo = Torneo.objects.create(nombre="Veranero", fecha_inicio=date(2026, 1, 1))
         categoria = Categoria.objects.create(
