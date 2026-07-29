@@ -8,6 +8,8 @@
 body {
     margin: 0;
     padding: 30px;
+    width: 1740px;
+    box-sizing: border-box;
     background: radial-gradient(circle at top, #12345a, #07111f);
     color: white;
     font-family: Arial;
@@ -53,6 +55,13 @@ h1 {
 
 .sub {
     font-size: 18px;
+}
+
+.pagina-info {
+    margin-top: 7px;
+    color: #dbeafe;
+    font-size: 16px;
+    font-weight: bold;
 }
 
 table {
@@ -127,6 +136,7 @@ td {
         <img src="{{ logo_torneo }}" class="logo-central">
         <h1>GOLEADORES</h1>
         <div class="sub">{{ categoria }}</div>
+        <div class="pagina-info">Página {{ pagina_actual }} de {{ total_paginas }}</div>
     </div>
 
     <img src="{{ logo_imcred }}" class="logo">
@@ -147,7 +157,7 @@ td {
 
 {% for g in datos_categoria.goleadores_planilla %}
 <tr>
-<td>{{ forloop.counter }}</td>
+<td>{{ posicion_inicial|add:forloop.counter }}</td>
 <td class="col-jugador-descarga">
     {{ g.jugador|texto_limpio }}
 </td>

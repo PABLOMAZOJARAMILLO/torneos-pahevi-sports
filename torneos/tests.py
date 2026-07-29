@@ -3302,6 +3302,39 @@ class FixtureProgramacionBalanceadaTests(TestCase):
         ids_ordenados = [partido["id"] for partido in respuesta.context["partidos_programados"]]
         self.assertLess(ids_ordenados.index(proximo.id), ids_ordenados.index(posterior.id))
 
+    def test_descarga_goleadores_extensa_se_divide_en_paginas_legibles(self):
+        self.client.force_login(self.admin)
+        session = self.client.session
+        session["torneo_id"] = self.torneo.id
+        session.save()
+        datos = {
+            "goleadores_planilla": [
+                {"jugador": f"Jugador {indice}", "equipo": "Equipo", "celdas": [], "total": 1}
+                for indice in range(40)
+            ],
+            "columnas_planilla_display": [],
+        }
+        logos = {"logo_alcaldia": "", "logo_torneo": "", "logo_imcred": ""}
+
+        with (
+            patch("torneos.views.construir_estructura", return_value={self.categoria.nombre: datos}),
+            patch("torneos.views.preparar_categoria_para_descarga", side_effect=lambda request, valor: valor),
+            patch("torneos.views.logos_torneo", return_value=logos),
+            patch("torneos.views.render_to_string", return_value="<html></html>") as renderizar,
+            patch("torneos.views.crear_imagenes_desde_html", return_value=HttpResponse("ok")) as generar,
+        ):
+            respuesta = self.client.get(f"/descargar/goleadores/{self.categoria.nombre}/")
+
+        self.assertEqual(respuesta.status_code, 200)
+        paginas = generar.call_args.args[0]
+        self.assertEqual(len(paginas), 3)
+        contextos = [llamada.args[1] for llamada in renderizar.call_args_list]
+        self.assertEqual(
+            [len(contexto["datos_categoria"]["goleadores_planilla"]) for contexto in contextos],
+            [18, 18, 4],
+        )
+        self.assertEqual([contexto["posicion_inicial"] for contexto in contextos], [0, 18, 36])
+
     def test_fixture_con_programacion_balancea_cancha_obligatoria(self):
         self.client.force_login(self.admin)
 

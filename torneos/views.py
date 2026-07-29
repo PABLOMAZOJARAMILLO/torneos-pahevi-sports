@@ -3499,17 +3499,36 @@ def descargar_goleadores_categoria(request, categoria):
 
     datos_categoria = preparar_categoria_para_descarga(request, datos_categoria)
     logos = logos_torneo(request, torneo)
-
-    html = render_to_string("descargas/goleadores_categoria.html", {
-        "categoria": categoria,
-        "datos_categoria": datos_categoria,
-        "logo_alcaldia": logos["logo_alcaldia"],
-        "logo_torneo": logos["logo_torneo"],
-        "logo_imcred": logos["logo_imcred"],
-    })
-
-    nombre = limpiar_nombre(f"GOLEADORES_{categoria}.png")
-    return crear_imagen_desde_html(html, nombre, 1800, 2000, url_retorno_descarga(request))
+    goleadores = list(datos_categoria.get("goleadores_planilla") or [])
+    tamano_pagina = 18
+    bloques = [
+        goleadores[inicio:inicio + tamano_pagina]
+        for inicio in range(0, len(goleadores), tamano_pagina)
+    ] or [[]]
+    total_paginas = len(bloques)
+    paginas = []
+    for indice, filas in enumerate(bloques):
+        datos_pagina = {
+            **datos_categoria,
+            "goleadores_planilla": filas,
+        }
+        html = render_to_string("descargas/goleadores_categoria.html", {
+            "categoria": categoria,
+            "datos_categoria": datos_pagina,
+            "posicion_inicial": indice * tamano_pagina,
+            "pagina_actual": indice + 1,
+            "total_paginas": total_paginas,
+            "logo_alcaldia": logos["logo_alcaldia"],
+            "logo_torneo": logos["logo_torneo"],
+            "logo_imcred": logos["logo_imcred"],
+        })
+        paginas.append({
+            "contenido_html": html,
+            "nombre_archivo": limpiar_nombre(
+                f"GOLEADORES_{categoria}_PAGINA_{indice + 1}_DE_{total_paginas}.png"
+            ),
+        })
+    return crear_imagenes_desde_html(paginas, url_retorno_descarga(request))
 
 
 @login_required
