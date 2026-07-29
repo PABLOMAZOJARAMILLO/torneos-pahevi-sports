@@ -3198,11 +3198,11 @@ def panel_principal(request):
         [p for p in partidos_portada if p["bloque"] == "PROGRAMADOS"],
         key=lambda p: (
             0 if p["estado"] == "EN_JUEGO" else 1,
-            orden_fecha_fixture(p),
             p["orden_fecha"],
             p["hora_orden"],
             p["categoria"],
             p["grupo"],
+            p["id"],
         ),
     )
     partidos_futuros = sorted(

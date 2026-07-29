@@ -3265,6 +3265,43 @@ class FixtureProgramacionBalanceadaTests(TestCase):
         self.assertEqual(partidos_portada[programado.id]["bloque"], "PROGRAMADOS")
         self.assertEqual(partidos_portada[futuro.id]["bloque"], "FUTUROS")
 
+    @override_settings(STORAGES={
+        "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+        "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
+    })
+    def test_panel_ordena_programados_por_fecha_y_hora_no_por_numero_fixture(self):
+        posterior = Partido.objects.create(
+            categoria=self.categoria,
+            equipo_local=self.equipos[0],
+            equipo_visitante=self.equipos[1],
+            fecha=date.today() + timedelta(days=10),
+            hora=time(10, 0),
+            cancha="Principal",
+            estado="PROGRAMADO",
+            numero_fecha="1",
+            grupo="A",
+        )
+        proximo = Partido.objects.create(
+            categoria=self.categoria,
+            equipo_local=self.equipos[2],
+            equipo_visitante=self.equipos[3],
+            fecha=date.today() + timedelta(days=2),
+            hora=time(18, 0),
+            cancha="Principal",
+            estado="PROGRAMADO",
+            numero_fecha="9",
+            grupo="A",
+        )
+        self.client.force_login(self.admin)
+        session = self.client.session
+        session["torneo_id"] = self.torneo.id
+        session.save()
+
+        respuesta = self.client.get("/")
+
+        ids_ordenados = [partido["id"] for partido in respuesta.context["partidos_programados"]]
+        self.assertLess(ids_ordenados.index(proximo.id), ids_ordenados.index(posterior.id))
+
     def test_fixture_con_programacion_balancea_cancha_obligatoria(self):
         self.client.force_login(self.admin)
 
