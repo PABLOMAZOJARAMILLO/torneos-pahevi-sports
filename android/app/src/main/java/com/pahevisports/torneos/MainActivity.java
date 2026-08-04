@@ -3,6 +3,7 @@ package com.pahevisports.torneos;
 import android.app.DownloadManager;
 import android.content.Context;
 import android.content.ContentValues;
+import android.content.Intent;
 import android.net.Uri;
 import android.os.Environment;
 import android.os.Bundle;
@@ -188,6 +189,22 @@ public class MainActivity extends BridgeActivity {
         return nombre + ".pdf";
     }
 
+    private void compartirEnlace(String titulo, String texto, String url) {
+        try {
+            Intent compartir = new Intent(Intent.ACTION_SEND);
+            compartir.setType("text/plain");
+            compartir.putExtra(Intent.EXTRA_SUBJECT, titulo == null ? "Compartir partido" : titulo);
+            String mensaje = (texto == null ? "" : texto.trim());
+            if (url != null && !url.trim().isEmpty()) {
+                mensaje = mensaje.isEmpty() ? url.trim() : mensaje + "\n" + url.trim();
+            }
+            compartir.putExtra(Intent.EXTRA_TEXT, mensaje);
+            startActivity(Intent.createChooser(compartir, "Compartir partido en vivo"));
+        } catch (Exception e) {
+            Toast.makeText(this, "No se pudo abrir el menu para compartir", Toast.LENGTH_LONG).show();
+        }
+    }
+
     public class AndroidDownloader {
         @JavascriptInterface
         public void guardarImagen(String dataUrl, String nombreArchivo) {
@@ -202,6 +219,11 @@ public class MainActivity extends BridgeActivity {
         @JavascriptInterface
         public void descargarUrl(String url, String nombreArchivo, String mimetype) {
             runOnUiThread(() -> descargarArchivo(url, getBridge().getWebView().getSettings().getUserAgentString(), "attachment; filename=\"" + nombreArchivo + "\"", mimetype));
+        }
+
+        @JavascriptInterface
+        public void compartirEnlace(String titulo, String texto, String url) {
+            runOnUiThread(() -> MainActivity.this.compartirEnlace(titulo, texto, url));
         }
     }
 }

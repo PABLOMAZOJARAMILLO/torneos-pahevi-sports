@@ -1616,6 +1616,15 @@ async function compartirPartido() {
         }
     }
 
+    if (window.AndroidDownloader && typeof window.AndroidDownloader.compartirEnlace === "function") {
+        try {
+            window.AndroidDownloader.compartirEnlace(datos.title, datos.text, enlace);
+            return;
+        } catch (error) {
+            // Si el puente nativo no esta disponible, se conserva el respaldo de copiar enlace.
+        }
+    }
+
     let copiado = false;
     if (navigator.clipboard && window.isSecureContext) {
         try {

@@ -2237,6 +2237,16 @@ class PlanilleroPartidoTests(TestCase):
         "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
         "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
     })
+    def test_live_usa_selector_nativo_de_compartir_en_apk(self):
+        respuesta = self.client.get(f"/partido/{self.partido.id}/live/")
+
+        self.assertContains(respuesta, "AndroidDownloader.compartirEnlace")
+        self.assertContains(respuesta, "navigator.share")
+
+    @override_settings(STORAGES={
+        "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+        "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
+    })
     def test_sustituciones_muestran_primero_el_cambio_mas_reciente(self):
         entra_temprano = Jugador.objects.create(
             equipo=self.local,
