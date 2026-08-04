@@ -2132,6 +2132,7 @@ class PlanilleroPartidoTests(TestCase):
         self.assertContains(respuesta, visitante.nombres)
         self.assertContains(respuesta, "Falló")
         self.assertContains(respuesta, "timeline-event penal-cobro")
+        self.assertContains(respuesta, "penalty-ball-miss")
         contenido = respuesta.content.decode("utf-8")
         self.assertLess(contenido.index(visitante.nombres), contenido.index(self.jugador.nombres))
         self.assertLess(contenido.index("Tanda de penales"), contenido.index("Fin de los 90 minutos"))

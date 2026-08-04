@@ -369,6 +369,25 @@ button.live-icon {
 .timeline-event.penal-cobro.fallado .event-text,
 .timeline-event.penal-cobro.fallado .event-icon { color:#e11d48; }
 .timeline-event.penal-cobro .event-minute { color:#2563eb; font-size:12px; }
+.penalty-ball-miss {
+    position:relative;
+    width:14px;
+    height:14px;
+    border-radius:50%;
+    background:#e11d48;
+    border:1px solid #9f1239;
+    box-shadow:inset -2px -2px 3px rgba(80,0,20,.35);
+}
+.penalty-ball-miss::after {
+    content:"";
+    position:absolute;
+    width:5px;
+    height:5px;
+    left:4px;
+    top:4px;
+    background:#fff;
+    clip-path:polygon(50% 0,100% 38%,81% 100%,19% 100%,0 38%);
+}
 .timeline-event {
     position: relative;
     display: grid;
@@ -1281,7 +1300,7 @@ button.live-icon {
                 <div class="event-box">
                     <div class="event-main">
                         <div class="event-text">{{ cobro.jugador_resumen }}</div>
-                        <span class="event-icon">{% if cobro.convertido %}⚽{% else %}✕{% endif %}</span>
+                        {% if cobro.convertido %}<span class="event-icon">⚽</span>{% else %}<span class="event-icon penalty-ball-miss" role="img" aria-label="Penal fallado" title="Penal fallado"></span>{% endif %}
                     </div>
                     <div class="event-detail">{{ cobro.equipo.nombre }} · {% if cobro.convertido %}Anotó{% else %}Falló{% endif %}</div>
                 </div>
