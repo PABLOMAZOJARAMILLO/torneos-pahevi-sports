@@ -6,7 +6,7 @@
 * { box-sizing: border-box; }
 body {
     width: 900px;
-    height: 1600px;
+    height: 1450px;
     margin: 0;
     overflow: hidden;
     font-family: Arial, sans-serif;
@@ -15,7 +15,7 @@ body {
 }
 .lienzo {
     width: 900px;
-    height: 1600px;
+    height: 1450px;
     padding: 24px 42px 34px;
     background:
         radial-gradient(circle at 50% 48%, rgba(44, 61, 170, .38), transparent 42%),
@@ -85,7 +85,7 @@ body {
     background: rgba(7, 11, 54, .42);
 }
 .partido {
-    min-height: 174px;
+    min-height: 126px;
     padding: 12px;
     border: 1px solid rgba(135, 154, 255, .58);
     border-radius: 12px;
@@ -101,27 +101,48 @@ body {
     text-transform: uppercase;
 }
 .equipo {
-    height: 47px;
+    min-width: 0;
+    height: 58px;
     display: grid;
-    grid-template-columns: 44px 1fr;
+    grid-template-columns: 50px minmax(0, 1fr);
     align-items: center;
-    gap: 6px;
-    padding: 2px 9px;
-    border-radius: 7px;
-    background: #f8fafc;
+    gap: 7px;
+    padding: 3px 8px;
     color: #10153f;
-    font-size: 15px;
+    font-size: 14px;
     font-weight: 900;
     text-transform: uppercase;
 }
-.equipo img { width: 41px; height: 41px; object-fit: contain; }
+.equipo span { min-width: 0; line-height: 1.05; }
+.equipo img { width: 48px; height: 48px; object-fit: contain; }
+.equipo.visitante {
+    grid-template-columns: minmax(0, 1fr) 50px;
+}
+.equipo.visitante span {
+    grid-column: 1;
+    grid-row: 1;
+    text-align: right;
+}
+.equipo.visitante img {
+    grid-column: 2;
+    grid-row: 1;
+}
+.enfrentamiento {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 58px minmax(0, 1fr);
+    align-items: center;
+    min-height: 58px;
+    overflow: hidden;
+    border-radius: 9px;
+    background: #f8fafc;
+}
 .vs {
-    height: 23px;
+    height: 58px;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #9fb1ff;
-    font-size: 16px;
+    color: #172052;
+    font-size: 18px;
     font-weight: 900;
 }
 .meta {
@@ -133,7 +154,7 @@ body {
     text-transform: uppercase;
 }
 .vacio {
-    min-height: 174px;
+    min-height: 126px;
     display: flex;
     align-items: center;
     justify-content: center;

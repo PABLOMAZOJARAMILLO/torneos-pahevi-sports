@@ -1,14 +1,16 @@
 {% if partido %}
 <article class="partido">
     <div class="etiqueta">{{ etiqueta }}</div>
-    <div class="equipo">
-        {% if partido.escudo_local %}<img src="{{ partido.escudo_local }}">{% endif %}
-        <span>{{ partido.local }}</span>
-    </div>
-    <div class="vs">{{ partido.marcador_texto }}</div>
-    <div class="equipo">
-        {% if partido.escudo_visitante %}<img src="{{ partido.escudo_visitante }}">{% endif %}
-        <span>{{ partido.visitante }}</span>
+    <div class="enfrentamiento">
+        <div class="equipo local">
+            {% if partido.escudo_local %}<img src="{{ partido.escudo_local }}">{% endif %}
+            <span>{{ partido.local }}</span>
+        </div>
+        <div class="vs">{{ partido.marcador_texto }}</div>
+        <div class="equipo visitante">
+            {% if partido.escudo_visitante %}<img src="{{ partido.escudo_visitante }}">{% endif %}
+            <span>{{ partido.visitante }}</span>
+        </div>
     </div>
     <div class="meta">
         {{ partido.fecha|date:"d/m/Y" }} &middot; {{ partido.hora|time:"H:i" }}
