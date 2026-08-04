@@ -932,6 +932,7 @@
                 <form method="post" action="{% url 'registrar_cobro_penal' partido.id %}">
                     {% csrf_token %}
                     <label>Siguiente cobro: {{ equipo_siguiente_penal.nombre }}</label>
+                    <p style="font-size:.85rem;opacity:.8;">Solo aparecen los jugadores que estaban en cancha al finalizar el encuentro.</p>
                     <select name="jugador" required><option value="">Selecciona el cobrador</option>{% for jugador in cobradores_penal %}<option value="{{ jugador.id }}">{{ jugador.dorsal|default:'-' }} · {{ jugador.nombres }}</option>{% endfor %}</select>
                     <div class="grid-2"><button class="btn" type="submit" name="resultado" value="GOL">Gol ✓</button><button class="btn danger" type="submit" name="resultado" value="FALLO">Fallo ✕</button></div>
                 </form>

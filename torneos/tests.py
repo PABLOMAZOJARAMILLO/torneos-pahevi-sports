@@ -1941,11 +1941,22 @@ class PlanilleroPartidoTests(TestCase):
         )
         AlineacionPartido.objects.create(partido=self.partido, equipo=self.local, jugador=self.jugador, rol="TITULAR")
         AlineacionPartido.objects.create(partido=self.partido, equipo=self.visitante, jugador=visitante, rol="TITULAR")
+        suplente = Jugador.objects.create(
+            equipo=self.local, dorsal=12, nombres="Suplente No Elegible", cedula="SUP12",
+            fecha_nacimiento=date(1992, 1, 1),
+        )
+        AlineacionPartido.objects.create(partido=self.partido, equipo=self.local, jugador=suplente, rol="SUPLENTE")
         self.partido.fase = "FINAL"
         self.partido.estado = "EN_JUEGO"
         self.partido.periodo_en_vivo = "PEN"
         self.partido.save()
         self.client.force_login(self.planillero)
+
+        self.client.post(
+            f"/partido/{self.partido.id}/cronometro/penales/cobro/",
+            {"jugador": suplente.id, "resultado": "GOL"},
+        )
+        self.assertEqual(CobroPenal.objects.filter(partido=self.partido).count(), 0)
 
         for indice in range(6):
             jugador = self.jugador if indice % 2 == 0 else visitante

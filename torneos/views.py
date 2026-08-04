@@ -5016,13 +5016,17 @@ def editor_partido_movil(request, partido_id):
         CobroPenal.objects.filter(partido=partido).select_related("jugador", "equipo").order_by("orden", "id")
     )
     equipo_siguiente_penal = partido.equipo_local if len(cobros_penales) % 2 == 0 else partido.equipo_visitante
+    ids_en_cancha_siguiente_penal = (
+        jugadores_en_cancha_local
+        if equipo_siguiente_penal.id == partido.equipo_local_id
+        else jugadores_en_cancha_visitante
+    )
     cobradores_penal = list(
         Jugador.objects.filter(
-            alineaciones_partido__partido=partido,
-            alineaciones_partido__equipo=equipo_siguiente_penal,
-            alineaciones_partido__rol__in=["TITULAR", "SUPLENTE"],
+            id__in=ids_en_cancha_siguiente_penal,
+            equipo=equipo_siguiente_penal,
             estado="ACTIVO",
-        ).distinct().order_by("nombres")
+        ).order_by("nombres")
     )
 
     return render(request, 'editor_partido_movil.html', {
@@ -9073,11 +9077,9 @@ def registrar_cobro_penal(request, partido_id):
         return redirect(f"{reverse('editor_partido_movil', args=[partido.id])}#cronometro-penales")
     equipo = partido.equipo_local if len(cobros) % 2 == 0 else partido.equipo_visitante
     jugador = get_object_or_404(Jugador, id=request.POST.get("jugador"), equipo=equipo, estado="ACTIVO")
-    habilitado = AlineacionPartido.objects.filter(
-        partido=partido, equipo=equipo, jugador=jugador, rol__in=["TITULAR", "SUPLENTE"]
-    ).exists()
+    habilitado = jugador.id in jugadores_actuales_en_cancha(partido, equipo)
     if not habilitado:
-        messages.error(request, "El jugador seleccionado no esta habilitado en la alineacion.")
+        messages.error(request, "El jugador seleccionado no estaba en cancha al finalizar el encuentro.")
     else:
         CobroPenal.objects.create(
             partido=partido,
