@@ -4148,6 +4148,7 @@ def construir_partidos_programacion(
     dia=None,
     incluir_resultados=False,
     fases=None,
+    incluir_sugeridos=False,
 ):
     dias_semana = {
         0: "LUNES",
@@ -4175,7 +4176,6 @@ def construir_partidos_programacion(
 
     torneo = torneo_actual(request)
     partidos = Partido.objects.filter(
-        estado_programacion__in=["MANUAL", "OFICIAL"],
         fecha__isnull=False,
         hora__isnull=False,
         cancha__isnull=False,
@@ -4197,6 +4197,9 @@ def construir_partidos_programacion(
         "grupo",
         "fase"
     )
+
+    if not incluir_sugeridos:
+        partidos = partidos.filter(estado_programacion__in=["MANUAL", "OFICIAL"])
 
     if torneo:
         partidos = partidos.filter(categoria__torneo=torneo)
@@ -4446,6 +4449,7 @@ def descargar_programacion_categoria(request, categoria):
         dia,
         incluir_resultados=True,
         fases=["CUARTOS", "SEMIFINAL", "FINAL", "TERCER_PUESTO"] if solo_fases_finales else None,
+        incluir_sugeridos=solo_fases_finales,
     )
 
     if not partidos_programacion:

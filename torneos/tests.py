@@ -3489,6 +3489,42 @@ class DescargaProgramacionFiltrosTests(TestCase):
         self.assertIn("0 - 0", html)
         self.assertEqual(generar.call_args.args[2:4], (900, 1600))
 
+    @override_settings(STORAGES={
+        "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+        "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
+    })
+    def test_cuadro_final_incluye_cuartos_sugeridos_ya_finalizados(self):
+        Partido.objects.create(
+            categoria=self.categoria,
+            equipo_local=self.local,
+            equipo_visitante=self.visitante,
+            fecha=date(2026, 8, 1),
+            hora=time(16, 0),
+            estado="FINALIZADO",
+            estado_programacion="SUGERIDA",
+            numero_fecha="CUARTOS #2",
+            cancha="Teresa Sierra",
+            grupo="FINAL",
+            fase="CUARTOS",
+            goles_local=1,
+            goles_visitante=2,
+        )
+
+        with patch(
+            "torneos.views.crear_imagen_desde_html",
+            return_value=HttpResponse("ok"),
+        ) as generar:
+            respuesta = self.client.get(
+                f"/descargar/programacion/{self.categoria.nombre}/",
+                {"fase_final": "1"},
+            )
+
+        self.assertEqual(respuesta.status_code, 200)
+        html = generar.call_args.args[0]
+        self.assertIn("Llave 2", html)
+        self.assertIn("1 - 2", html)
+        self.assertNotIn("Llave 2<br>por definir", html)
+
 
 class FixtureProgramacionBalanceadaTests(TestCase):
     def setUp(self):
