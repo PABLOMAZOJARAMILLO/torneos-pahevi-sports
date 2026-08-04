@@ -3494,6 +3494,17 @@ class DescargaProgramacionFiltrosTests(TestCase):
         "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
         "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
     })
+    def test_descarga_dinamica_no_se_guarda_en_cache(self):
+        respuesta = self.client.get(f"/descargar/programacion/{self.categoria.nombre}/")
+
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertIn("no-store", respuesta["Cache-Control"])
+        self.assertEqual(respuesta["Pragma"], "no-cache")
+
+    @override_settings(STORAGES={
+        "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+        "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
+    })
     def test_cuadro_final_incluye_cuartos_sugeridos_ya_finalizados(self):
         Partido.objects.create(
             categoria=self.categoria,

@@ -74,9 +74,9 @@ body {
 .pareja {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 34px;
+    gap: 28px;
 }
-.individual { width: 440px; margin: 0 auto; }
+.individual { width: 480px; margin: 0 auto; }
 .final {
     width: 520px;
     padding: 15px;
@@ -86,14 +86,14 @@ body {
 }
 .partido {
     min-height: 126px;
-    padding: 12px;
+    padding: 11px 12px 9px;
     border: 1px solid rgba(135, 154, 255, .58);
     border-radius: 12px;
     background: rgba(7, 11, 54, .9);
     box-shadow: 0 9px 22px rgba(0, 0, 0, .25);
 }
 .etiqueta {
-    margin-bottom: 8px;
+    margin-bottom: 7px;
     color: #bfcaff;
     font-size: 15px;
     font-weight: 900;
@@ -104,19 +104,19 @@ body {
     min-width: 0;
     height: 58px;
     display: grid;
-    grid-template-columns: 50px minmax(0, 1fr);
+    grid-template-columns: 54px minmax(0, 1fr);
     align-items: center;
     gap: 7px;
     padding: 3px 8px;
     color: #10153f;
-    font-size: 14px;
+    font-size: 15px;
     font-weight: 900;
     text-transform: uppercase;
 }
 .equipo span { min-width: 0; line-height: 1.05; }
-.equipo img { width: 48px; height: 48px; object-fit: contain; }
+.equipo img { width: 52px; height: 52px; object-fit: contain; }
 .equipo.visitante {
-    grid-template-columns: minmax(0, 1fr) 50px;
+    grid-template-columns: minmax(0, 1fr) 54px;
 }
 .equipo.visitante span {
     grid-column: 1;
@@ -129,7 +129,7 @@ body {
 }
 .enfrentamiento {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 58px minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr) 64px minmax(0, 1fr);
     align-items: center;
     min-height: 58px;
     overflow: hidden;
@@ -142,13 +142,14 @@ body {
     align-items: center;
     justify-content: center;
     color: #172052;
-    font-size: 18px;
+    font-size: 20px;
     font-weight: 900;
 }
 .meta {
     margin-top: 7px;
     color: #e2e8ff;
-    font-size: 12px;
+    font-size: 13px;
+    white-space: nowrap;
     line-height: 1.25;
     text-align: center;
     text-transform: uppercase;

@@ -3385,13 +3385,17 @@ setTimeout(function() {{
 
 
 def crear_imagen_desde_html(html, nombre_archivo, ancho=1600, alto=1800, volver_url="/"):
-    return render(None, "descargas/auto_descarga.html", {
+    respuesta = render(None, "descargas/auto_descarga.html", {
         "contenido_html": html,
         "nombre_archivo": nombre_archivo,
         "ancho": ancho,
         "alto": alto,
         "volver_url": volver_url,
     })
+    respuesta["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    respuesta["Pragma"] = "no-cache"
+    respuesta["Expires"] = "0"
+    return respuesta
     carpeta_media = os.path.join(os.getcwd(), "media", "descargas")
     os.makedirs(carpeta_media, exist_ok=True)
 
