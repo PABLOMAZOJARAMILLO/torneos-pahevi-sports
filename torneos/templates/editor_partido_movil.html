@@ -1097,6 +1097,9 @@
 
                 <label>Cantidad</label>
                 <input type="number" name="cantidad" min="1" value="1">
+                <label>Minuto del gol (opcional)</label>
+                <input type="number" name="minuto" min="0" max="300" inputmode="numeric" placeholder="Vacío = minuto automático del cronómetro">
+                <p class="nota">Úsalo cuando registres el gol después de que ocurrió.</p>
                 <div class="goal-options">
                     <label class="check-row"><input type="checkbox" name="es_penal" value="1"> Gol de penal</label>
                     <label class="check-row"><input type="checkbox" name="es_autogol" value="1"> Autogol</label>
@@ -1111,7 +1114,7 @@
                 <div class="lista-item">
                     <div>
                         <div class="item-title">{{ gol.jugador.nombres|texto_limpio }}</div>
-                        <div class="item-sub">{{ gol.equipo.nombre }} &middot; {{ gol.cantidad }} gol(es){% if gol.es_penal %} &middot; Penal{% endif %}{% if gol.es_autogol %} &middot; Autogol{% endif %}</div>
+                        <div class="item-sub">{{ gol.equipo.nombre }} &middot; {{ gol.cantidad }} gol(es){% if gol.minuto is not None %} &middot; {{ gol.minuto }}'{% endif %}{% if gol.es_penal %} &middot; Penal{% endif %}{% if gol.es_autogol %} &middot; Autogol{% endif %}</div>
                     </div>
                     <form method="POST" onsubmit="guardarContextoPanelEditor()" action="{% url 'eliminar_gol_movil' gol.id %}">{% csrf_token %}<button class="btn-danger" type="submit">Eliminar</button></form>
                 </div>
@@ -1147,6 +1150,9 @@
                     <option value="AMARILLA">Amarilla</option>
                     <option value="ROJA">Roja</option>
                 </select>
+                <label>Minuto de la tarjeta (opcional)</label>
+                <input type="number" name="minuto" min="0" max="300" inputmode="numeric" placeholder="Vacío = minuto automático del cronómetro">
+                <p class="nota">Úsalo cuando registres la tarjeta después de que ocurrió.</p>
                 <button class="btn" type="submit">🟨🟥 Agregar tarjeta</button>
             </form>
         </div>
@@ -1157,7 +1163,7 @@
                 <div class="lista-item">
                     <div>
                         <div class="item-title">{{ tarjeta.jugador.nombres|texto_limpio }}</div>
-                        <div class="item-sub">{{ tarjeta.equipo.nombre }} · {{ tarjeta.tipo }}</div>
+                        <div class="item-sub">{{ tarjeta.equipo.nombre }} · {{ tarjeta.tipo }}{% if tarjeta.minuto is not None %} · {{ tarjeta.minuto }}'{% endif %}</div>
                     </div>
                     <form method="POST" onsubmit="guardarContextoPanelEditor()" action="{% url 'eliminar_tarjeta_movil' tarjeta.id %}">{% csrf_token %}<button class="btn-danger" type="submit">Eliminar</button></form>
                 </div>

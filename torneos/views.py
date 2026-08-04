@@ -4912,6 +4912,19 @@ def _minuto_evento_en_vivo(partido):
     return max(segundos // 60, 1)
 
 
+def _minuto_evento_solicitado(request, partido):
+    minuto_manual = (request.POST.get("minuto") or "").strip()
+    if not minuto_manual:
+        return _minuto_evento_en_vivo(partido), None
+    try:
+        minuto = int(minuto_manual)
+    except (TypeError, ValueError):
+        return None, "El minuto debe ser un numero entre 0 y 300."
+    if minuto < 0 or minuto > 300:
+        return None, "El minuto debe estar entre 0 y 300."
+    return minuto, None
+
+
 def _clave_orden_evento_resumen(evento):
     creado_en = getattr(evento, "creado_en", None)
     return (
@@ -5118,6 +5131,10 @@ def agregar_gol_movil(request, partido_id):
     cantidad = request.POST.get('cantidad') or 1
     es_autogol = request.POST.get('es_autogol') == '1'
     es_penal = request.POST.get('es_penal') == '1'
+    minuto_evento, error_minuto = _minuto_evento_solicitado(request, partido)
+    if error_minuto:
+        messages.error(request, error_minuto)
+        return redirect(_url_editor_partido(request, partido))
     try:
         cantidad = max(int(cantidad), 1)
     except (TypeError, ValueError):
@@ -5135,7 +5152,7 @@ def agregar_gol_movil(request, partido_id):
                 cantidad=cantidad,
                 es_autogol=es_autogol,
                 es_penal=es_penal,
-                minuto=_minuto_evento_en_vivo(partido),
+                minuto=minuto_evento,
             )
             _recalcular_marcador_por_goles(partido)
             _marcar_estadisticas_pendientes(partido, request.user)
@@ -5160,6 +5177,10 @@ def agregar_tarjeta_movil(request, partido_id):
     jugador_id = request.POST.get('jugador')
     equipo_id = request.POST.get('equipo')
     tipo = request.POST.get('tipo')
+    minuto_evento, error_minuto = _minuto_evento_solicitado(request, partido)
+    if error_minuto:
+        messages.error(request, error_minuto)
+        return redirect(_url_editor_partido(request, partido))
 
     if jugador_id and equipo_id and tipo:
         jugador = get_object_or_404(Jugador, id=jugador_id)
@@ -5171,7 +5192,7 @@ def agregar_tarjeta_movil(request, partido_id):
                 jugador=jugador,
                 equipo=equipo,
                 tipo=tipo,
-                minuto=_minuto_evento_en_vivo(partido),
+                minuto=minuto_evento,
             )
             _marcar_estadisticas_pendientes(partido, request.user)
             messages.success(request, 'Tarjeta agregada correctamente.')

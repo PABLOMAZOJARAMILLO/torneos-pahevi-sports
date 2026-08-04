@@ -2072,6 +2072,30 @@ class PlanilleroPartidoTests(TestCase):
 
         self.assertContains(respuesta, "36 años")
 
+    def test_gol_permite_minuto_manual(self):
+        self.client.force_login(self.planillero)
+        self.client.post(
+            f"/partido/{self.partido.id}/agregar-gol-movil/",
+            {"equipo": self.local.id, "jugador": self.jugador.id, "cantidad": 1, "minuto": 37},
+        )
+        self.assertEqual(Gol.objects.get(partido=self.partido).minuto, 37)
+
+    def test_tarjeta_permite_minuto_manual(self):
+        self.client.force_login(self.planillero)
+        self.client.post(
+            f"/partido/{self.partido.id}/agregar-tarjeta-movil/",
+            {"equipo": self.local.id, "jugador": self.jugador.id, "tipo": "AMARILLA", "minuto": 42},
+        )
+        self.assertEqual(Tarjeta.objects.get(partido=self.partido).minuto, 42)
+
+    def test_evento_rechaza_minuto_manual_negativo(self):
+        self.client.force_login(self.planillero)
+        self.client.post(
+            f"/partido/{self.partido.id}/agregar-gol-movil/",
+            {"equipo": self.local.id, "jugador": self.jugador.id, "cantidad": 1, "minuto": -1},
+        )
+        self.assertFalse(Gol.objects.filter(partido=self.partido).exists())
+
     @override_settings(STORAGES={
         "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
         "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
