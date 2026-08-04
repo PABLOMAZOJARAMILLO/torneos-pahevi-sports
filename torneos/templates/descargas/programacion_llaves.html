@@ -6,7 +6,7 @@
 * { box-sizing: border-box; }
 body {
     width: 900px;
-    height: 1450px;
+    height: {{ alto|default:1450 }}px;
     margin: 0;
     overflow: hidden;
     font-family: Arial, sans-serif;
@@ -15,8 +15,8 @@ body {
 }
 .lienzo {
     width: 900px;
-    height: 1450px;
-    padding: 24px 42px 34px;
+    height: {{ alto|default:1450 }}px;
+    padding: 24px 24px 34px;
     background:
         radial-gradient(circle at 50% 48%, rgba(44, 61, 170, .38), transparent 42%),
         linear-gradient(160deg, #070b36, #101653 52%, #070b36);
@@ -74,75 +74,72 @@ body {
 .pareja {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 28px;
+    gap: 22px;
 }
-.individual { width: 480px; margin: 0 auto; }
+.individual { width: 540px; margin: 0 auto; }
 .final {
-    width: 520px;
-    padding: 15px;
+    width: 590px;
+    padding: 17px;
     border: 2px solid rgba(191, 203, 255, .55);
     border-radius: 18px;
     background: rgba(7, 11, 54, .42);
 }
 .partido {
-    min-height: 126px;
-    padding: 11px 12px 9px;
+    min-height: 176px;
+    padding: 13px 14px 10px;
     border: 1px solid rgba(135, 154, 255, .58);
-    border-radius: 12px;
+    border-radius: 15px;
     background: rgba(7, 11, 54, .9);
-    box-shadow: 0 9px 22px rgba(0, 0, 0, .25);
+    box-shadow: 0 12px 28px rgba(0, 0, 0, .32);
 }
 .etiqueta {
     margin-bottom: 7px;
     color: #bfcaff;
-    font-size: 15px;
+    font-size: 16px;
     font-weight: 900;
     text-align: center;
     text-transform: uppercase;
 }
 .equipo {
     min-width: 0;
-    height: 58px;
-    display: grid;
-    grid-template-columns: 54px minmax(0, 1fr);
+    height: 106px;
+    display: flex;
+    flex-direction: column;
     align-items: center;
-    gap: 7px;
-    padding: 3px 8px;
+    justify-content: center;
+    gap: 3px;
+    padding: 4px 6px;
     color: #10153f;
-    font-size: 15px;
+    font-size: 14px;
     font-weight: 900;
     text-transform: uppercase;
 }
-.equipo span { min-width: 0; line-height: 1.05; }
-.equipo img { width: 52px; height: 52px; object-fit: contain; }
-.equipo.visitante {
-    grid-template-columns: minmax(0, 1fr) 54px;
+.equipo span {
+    min-width: 0;
+    width: 100%;
+    max-height: 32px;
+    overflow: hidden;
+    line-height: 1.05;
+    text-align: center;
+    overflow-wrap: anywhere;
 }
-.equipo.visitante span {
-    grid-column: 1;
-    grid-row: 1;
-    text-align: right;
-}
-.equipo.visitante img {
-    grid-column: 2;
-    grid-row: 1;
-}
+.equipo img { width: 64px; height: 64px; flex: 0 0 64px; object-fit: contain; }
 .enfrentamiento {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 64px minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr) 76px minmax(0, 1fr);
     align-items: center;
-    min-height: 58px;
+    min-height: 106px;
     overflow: hidden;
-    border-radius: 9px;
+    border-radius: 11px;
     background: #f8fafc;
 }
 .vs {
-    height: 58px;
+    height: 106px;
     display: flex;
     align-items: center;
     justify-content: center;
     color: #172052;
-    font-size: 20px;
+    font-size: 22px;
     font-weight: 900;
 }
 .meta {
@@ -155,7 +152,7 @@ body {
     text-transform: uppercase;
 }
 .vacio {
-    min-height: 126px;
+    min-height: 176px;
     display: flex;
     align-items: center;
     justify-content: center;

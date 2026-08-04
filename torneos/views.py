@@ -4496,12 +4496,14 @@ def descargar_programacion_categoria(request, categoria):
             elif fase == "TERCER_PUESTO":
                 llaves["tercero"] = partido
 
+        alto_llaves = 1750 if llaves["tercero"] else 1550
         html = render_to_string("descargas/programacion_llaves.html", {
             "categoria": categoria_obj.nombre,
             "llaves": llaves,
+            "alto": alto_llaves,
             **contexto_logos,
         })
-        medidas = {"ancho": 900, "alto": 1450}
+        medidas = {"ancho": 900, "alto": alto_llaves}
     else:
         html = render_to_string("descargas/programacion_categoria.html", {
             "categoria": titulo_descarga_programacion(categoria_obj, numero_fecha, dia),
