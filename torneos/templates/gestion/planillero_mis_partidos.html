@@ -74,7 +74,7 @@
             <span class="pill">{{ item.partido.categoria.nombre }}</span>
             {% if item.partido.numero_fecha %}<span class="pill">{{ item.partido.numero_fecha|etiqueta_fecha }}</span>{% endif %}
             {% if item.partido.grupo %}<span class="pill">Grupo {{ item.partido.grupo }}</span>{% endif %}
-            <span class="pill">{{ item.partido.fecha|date:"d/m/Y" }} {{ item.partido.hora|time:"H:i" }}</span>
+            <span class="pill">{{ item.partido.fecha|date:"d/m/Y" }} {{ item.partido.hora|hora_12 }}</span>
             {% if item.partido.cancha %}<span class="pill">{{ item.partido.cancha }}</span>{% endif %}
             <span class="pill">{{ item.partido.get_estado_display }}</span>
             <span class="pill">{{ item.planillas_count }} planilla(s)</span>

@@ -142,6 +142,14 @@ button.live-icon {
     font-size: 15px;
     font-weight: 900;
 }
+.live-winner-star {
+    display: inline-block;
+    margin-right: 4px;
+    color: #f5b800;
+    font-size: 19px;
+    line-height: 1;
+    text-shadow: 0 1px 5px rgba(245, 184, 0, .45);
+}
 .score-center {
     text-align: center;
 }
@@ -1217,7 +1225,7 @@ button.live-icon {
             <span class="live-match-meta">
                 {% if partido.fecha %}{{ partido.fecha|date:"d/m/Y" }}{% else %}Fecha por definir{% endif %}
                 &middot;
-                {% if partido.hora %}{{ partido.hora|time:"H:i" }}{% else %}Hora por definir{% endif %}
+                {% if partido.hora %}{{ partido.hora|hora_12 }}{% else %}Hora por definir{% endif %}
                 &middot;
                 {{ partido.cancha|default:"Cancha por definir" }}
             </span>
@@ -1249,7 +1257,7 @@ button.live-icon {
     <section class="scoreboard">
         <div class="score-team">
             {% if escudo_local %}<img src="{{ escudo_local }}" alt="{{ partido.equipo_local.nombre }}">{% endif %}
-            <span>{{ partido.equipo_local.nombre }}</span>
+            <span>{% if ganador_local %}<b class="live-winner-star">&#9733;</b>{% endif %}{{ partido.equipo_local.nombre }}</span>
         </div>
         <div class="score-center">
             <div class="score-main">
@@ -1277,7 +1285,7 @@ button.live-icon {
         </div>
         <div class="score-team">
             {% if escudo_visitante %}<img src="{{ escudo_visitante }}" alt="{{ partido.equipo_visitante.nombre }}">{% endif %}
-            <span>{{ partido.equipo_visitante.nombre }}</span>
+            <span>{% if ganador_visitante %}<b class="live-winner-star">&#9733;</b>{% endif %}{{ partido.equipo_visitante.nombre }}</span>
         </div>
     </section>
 

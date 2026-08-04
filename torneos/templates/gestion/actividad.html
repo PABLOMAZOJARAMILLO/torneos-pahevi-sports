@@ -69,7 +69,7 @@
         <div>
             <h2 style="margin:0 0 6px;">{{ registro.accion }}{% if registro.modelo %} - {{ registro.modelo }}{% endif %}</h2>
             <div class="muted">
-                {{ registro.creado_en|date:"Y-m-d H:i" }} -
+                {{ registro.creado_en|date:"Y-m-d h:i A" }} -
                 {% if registro.usuario %}{{ registro.usuario.get_full_name|default:registro.usuario.username }} ({{ registro.usuario.username }}){% else %}Sistema{% endif %}
                 {% if registro.datos.tipo_usuario %} - {{ registro.datos.tipo_usuario }}{% endif %}
                 {% if registro.torneo %} - {{ registro.torneo.nombre }}{% endif %}

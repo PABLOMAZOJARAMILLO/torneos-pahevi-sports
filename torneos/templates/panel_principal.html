@@ -6071,7 +6071,7 @@ body.solo-lectura .menu-principal{top:96px!important}
                                 {% endif %}
                                 <div class="detalle-partido-card">
                                     <div>&#128197; {% if item.partido.fecha %}{{ item.partido.fecha|date:"d/m/Y" }}{% else %}Por definir{% endif %}</div>
-                                    <div>&#128338; {% if item.partido.hora %}{{ item.partido.hora|time:"H:i" }}{% else %}Por definir{% endif %}</div>
+                                    <div>&#128338; {% if item.partido.hora %}{{ item.partido.hora|hora_12 }}{% else %}Por definir{% endif %}</div>
                                     <div>&#127967;&#65039; {{ item.partido.cancha|default:"Por definir" }}</div>
                                 </div>
                                 <a class="btn-ver-partido" href="{% url 'partido_live' item.partido.id %}?volver={{ request.get_full_path|urlencode }}%23categoria-detalle">Ver partido</a>
@@ -6636,7 +6636,7 @@ body.solo-lectura .menu-principal{top:96px!important}
                             <div class="centro-llave">
                                 {% if p.estado == "PROGRAMADO" %}
                                 <div class="marcador-llave">
-                                    {% if p.hora %}<span>{{ p.hora|time:"H:i" }}</span>{% else %}<span>VS</span>{% endif %}
+                                    {% if p.hora %}<span>{{ p.hora|hora_12 }}</span>{% else %}<span>VS</span>{% endif %}
                                 </div>
                                 {% else %}
                                 <div class="marcador-llave">
@@ -6665,7 +6665,7 @@ body.solo-lectura .menu-principal{top:96px!important}
 
                                 <div class="detalle-llave">
                                     {% if p.fecha %}<div>&#128197; {{ p.fecha|date:"d/m/Y" }}</div>{% endif %}
-                                    {% if p.hora %}<div>&#128338; {{ p.hora|time:"H:i" }}</div>{% endif %}
+                                    {% if p.hora %}<div>&#128338; {{ p.hora|hora_12 }}</div>{% endif %}
                                     {% if p.cancha %}<div class="detalle-cancha-llave">&#127967;&#65039; {{ p.cancha }}</div>{% endif %}
                                 </div>
 
@@ -6718,7 +6718,7 @@ body.solo-lectura .menu-principal{top:96px!important}
                             <div class="centro-llave">
                                 {% if p.estado == "PROGRAMADO" %}
                                 <div class="marcador-llave">
-                                    {% if p.hora %}<span>{{ p.hora|time:"H:i" }}</span>{% else %}<span>VS</span>{% endif %}
+                                    {% if p.hora %}<span>{{ p.hora|hora_12 }}</span>{% else %}<span>VS</span>{% endif %}
                                 </div>
                                 {% else %}
                                 <div class="marcador-llave">
@@ -6747,7 +6747,7 @@ body.solo-lectura .menu-principal{top:96px!important}
 
                                 <div class="detalle-llave">
                                     {% if p.fecha %}<div>&#128197; {{ p.fecha|date:"d/m/Y" }}</div>{% endif %}
-                                    {% if p.hora %}<div>&#128338; {{ p.hora|time:"H:i" }}</div>{% endif %}
+                                    {% if p.hora %}<div>&#128338; {{ p.hora|hora_12 }}</div>{% endif %}
                                     {% if p.cancha %}<div class="detalle-cancha-llave">&#127967;&#65039; {{ p.cancha }}</div>{% endif %}
                                 </div>
 
@@ -6800,7 +6800,7 @@ body.solo-lectura .menu-principal{top:96px!important}
                             <div class="centro-llave">
                                 {% if p.estado == "PROGRAMADO" %}
                                 <div class="marcador-llave">
-                                    {% if p.hora %}<span>{{ p.hora|time:"H:i" }}</span>{% else %}<span>VS</span>{% endif %}
+                                    {% if p.hora %}<span>{{ p.hora|hora_12 }}</span>{% else %}<span>VS</span>{% endif %}
                                 </div>
                                 {% else %}
                                 <div class="marcador-llave">
@@ -6829,7 +6829,7 @@ body.solo-lectura .menu-principal{top:96px!important}
 
                                 <div class="detalle-llave">
                                     {% if p.fecha %}<div>&#128197; {{ p.fecha|date:"d/m/Y" }}</div>{% endif %}
-                                    {% if p.hora %}<div>&#128338; {{ p.hora|time:"H:i" }}</div>{% endif %}
+                                    {% if p.hora %}<div>&#128338; {{ p.hora|hora_12 }}</div>{% endif %}
                                     {% if p.cancha %}<div class="detalle-cancha-llave">&#127967;&#65039; {{ p.cancha }}</div>{% endif %}
                                 </div>
 
@@ -6879,7 +6879,7 @@ body.solo-lectura .menu-principal{top:96px!important}
                             <div class="centro-llave">
                                 {% if p.estado == "PROGRAMADO" %}
                                 <div class="marcador-llave">
-                                    {% if p.hora %}<span>{{ p.hora|time:"H:i" }}</span>{% else %}<span>VS</span>{% endif %}
+                                    {% if p.hora %}<span>{{ p.hora|hora_12 }}</span>{% else %}<span>VS</span>{% endif %}
                                 </div>
                                 {% else %}
                                 <div class="marcador-llave">
@@ -6908,7 +6908,7 @@ body.solo-lectura .menu-principal{top:96px!important}
 
                                 <div class="detalle-llave">
                                     {% if p.fecha %}<div>&#128197; {{ p.fecha|date:"d/m/Y" }}</div>{% endif %}
-                                    {% if p.hora %}<div>&#128338; {{ p.hora|time:"H:i" }}</div>{% endif %}
+                                    {% if p.hora %}<div>&#128338; {{ p.hora|hora_12 }}</div>{% endif %}
                                     {% if p.cancha %}<div class="detalle-cancha-llave">&#127967;&#65039; {{ p.cancha }}</div>{% endif %}
                                 </div>
 

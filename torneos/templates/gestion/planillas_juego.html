@@ -134,7 +134,7 @@
                     </strong>
                     <div class="muted">
                         {% if partido.fecha_partido %}{{ partido.fecha_partido|date:"d/m/Y" }}{% endif %}
-                        {% if partido.hora_partido %} {{ partido.hora_partido|time:"H:i" }}{% endif %}
+                        {% if partido.hora_partido %} {{ partido.hora_partido|hora_12 }}{% endif %}
                     </div>
                 </div>
                 {% if partido.partido %}
@@ -158,7 +158,7 @@
                         <strong>Archivo {{ forloop.counter }}</strong>
                         <div class="muted">
                             {% if documento.cargado_por %}{{ documento.cargado_por.username }} - {% endif %}
-                            {{ documento.creado_en|date:"d/m/Y H:i" }}
+                            {{ documento.creado_en|date:"d/m/Y h:i A" }}
                         </div>
                     </div>
                     {% if documento.archivo %}

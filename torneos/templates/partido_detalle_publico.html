@@ -111,7 +111,7 @@
 
             <div class="score">
                 {% if partido.estado == "PROGRAMADO" %}
-                    {{ partido.hora }}
+                    {{ partido.hora|hora_12 }}
                 {% else %}
                     <span>{{ partido.goles_local }}</span><span>-</span><span>{{ partido.goles_visitante }}</span>
                 {% endif %}
@@ -123,7 +123,7 @@
             </div>
         </div>
 
-        <p class="muted">{{ partido.fecha }} · {{ partido.hora }} · {{ partido.cancha|default:"Cancha por definir" }}</p>
+        <p class="muted">{{ partido.fecha }} · {{ partido.hora|hora_12 }} · {{ partido.cancha|default:"Cancha por definir" }}</p>
 
         {% if request.user.is_staff %}
             <a class="btn" href="{% url 'editor_partido_movil' partido.id %}">Editar partido</a>

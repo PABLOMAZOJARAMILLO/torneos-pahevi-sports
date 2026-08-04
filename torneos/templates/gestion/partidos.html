@@ -90,7 +90,7 @@
             {{ partido.categoria.nombre }} - {{ partido.numero_fecha|etiqueta_fecha|default:"Sin fecha fixture" }} - {{ partido.grupo|default:"Sin grupo" }}
         </div>
         <div class="muted">
-            {{ partido.fecha|default:"Sin dia" }} - {{ partido.hora|default:"Sin hora" }} - {{ partido.cancha|default:"Sin cancha" }} - {{ partido.estado }}
+            {{ partido.fecha|default:"Sin dia" }} - {% if partido.hora %}{{ partido.hora|hora_12 }}{% else %}Sin hora{% endif %} - {{ partido.cancha|default:"Sin cancha" }} - {{ partido.estado }}
         </div>
         <div class="muted">
             Programacion: {{ partido.get_estado_programacion_display }}
@@ -98,7 +98,7 @@
         <div class="muted">
             Estadisticas:
             {% if partido.estadisticas_validadas %}
-                Validadas{% if partido.estadisticas_validadas_en %} el {{ partido.estadisticas_validadas_en|date:"d/m/Y H:i" }}{% endif %}
+                Validadas{% if partido.estadisticas_validadas_en %} el {{ partido.estadisticas_validadas_en|date:"d/m/Y h:i A" }}{% endif %}
             {% else %}
                 Pendientes de validacion
             {% endif %}

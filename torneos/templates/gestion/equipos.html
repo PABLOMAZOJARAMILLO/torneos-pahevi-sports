@@ -166,7 +166,7 @@
             <div class="muted">
                 {{ equipo.categoria.nombre }}{% if not equipo.activo %} - Inactivo{% endif %}
                 {% if equipo.responsable %} - Delegado: {{ equipo.responsable.get_full_name|default:equipo.responsable.username }}{% endif %}
-                {% if equipo.acceso_delegado_hasta %} - Hasta: {{ equipo.acceso_delegado_hasta|date:"d/m/Y H:i" }}{% endif %}
+                {% if equipo.acceso_delegado_hasta %} - Hasta: {{ equipo.acceso_delegado_hasta|date:"d/m/Y h:i A" }}{% endif %}
                 {% if equipo.responsable %}<br>Editar: {% if equipo.delegado_puede_editar_equipo %}Sí{% else %}No{% endif %} · Fotos: {% if equipo.delegado_puede_cargar_fotos_jugadores %}Sí{% else %}No{% endif %}{% endif %}
             </div>
         </div>

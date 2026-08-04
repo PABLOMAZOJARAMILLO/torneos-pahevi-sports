@@ -1,3 +1,4 @@
+{% load texto_limpio %}
 {% if partido %}
 <article class="partido">
     <div class="etiqueta">{{ etiqueta }}</div>
@@ -16,7 +17,7 @@
         </div>
     </div>
     <div class="meta">
-        {{ partido.fecha|date:"d/m/Y" }} &middot; {{ partido.hora|time:"H:i" }}
+        {{ partido.fecha|date:"d/m/Y" }} &middot; {{ partido.hora|hora_12 }}
         {% if partido.cancha %}&middot; {{ partido.cancha }}{% endif %}
     </div>
 </article>

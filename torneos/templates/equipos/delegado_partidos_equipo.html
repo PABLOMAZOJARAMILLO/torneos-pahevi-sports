@@ -20,7 +20,7 @@
             {{ item.partido.categoria.torneo.nombre }} - {{ item.partido.categoria.nombre }} - {{ item.partido.numero_fecha|etiqueta_fecha|default:"Sin fecha fixture" }}
         </div>
         <div class="muted">
-            {{ item.partido.fecha|date:"d/m/Y" }} - {{ item.partido.hora|time:"H:i" }} - {{ item.partido.estado }} - Rival: {{ item.rival.nombre }}
+            {{ item.partido.fecha|date:"d/m/Y" }} - {{ item.partido.hora|hora_12 }} - {{ item.partido.estado }} - Rival: {{ item.rival.nombre }}
         </div>
         <div class="muted">{{ item.motivo }}</div>
     </div>

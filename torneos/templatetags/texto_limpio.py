@@ -1,4 +1,5 @@
 import re
+from datetime import datetime, time
 
 from django import template
 
@@ -58,3 +59,23 @@ def fecha_en_titulo(valor):
     if valor is None:
         return ""
     return re.sub(r"(?<= - )(\d+)(?= - )", r"Fecha \1", str(valor))
+
+
+@register.filter
+def hora_12(valor):
+    if valor in (None, ""):
+        return ""
+    hora = valor
+    if isinstance(valor, str):
+        texto = valor.strip()
+        for formato in ("%H:%M:%S", "%H:%M"):
+            try:
+                hora = datetime.strptime(texto, formato).time()
+                break
+            except ValueError:
+                continue
+        else:
+            return texto
+    if isinstance(hora, (datetime, time)):
+        return hora.strftime("%I:%M %p").lstrip("0")
+    return str(valor)

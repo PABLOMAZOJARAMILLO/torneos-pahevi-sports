@@ -44,6 +44,12 @@ from .planillas_pdf import generar_planilla_juego_pdf, nombre_archivo_planilla
 from .templatetags.texto_limpio import etiqueta_fecha
 from django.utils import timezone
 
+
+def formatear_hora_12(valor):
+    if not valor:
+        return "Por definir"
+    return valor.strftime("%I:%M %p").lstrip("0")
+
 def puede_gestionar_organizadores(user):
     if not user.is_authenticated:
         return False
@@ -287,7 +293,7 @@ def ventana_alineacion_delegado(partido, equipo=None, ahora=None):
         return False, "Sin fecha u hora programada."
     apertura = inicio - timedelta(hours=1)
     if ahora < apertura:
-        return False, f"Disponible desde {apertura.strftime('%d/%m/%Y %H:%M')}."
+        return False, f"Disponible desde {apertura.strftime('%d/%m/%Y %I:%M %p')}."
 
     if partido.estado == "PROGRAMADO":
         return True, "Disponible desde una hora antes y hasta 15 minutos después del inicio real."
@@ -295,7 +301,7 @@ def ventana_alineacion_delegado(partido, equipo=None, ahora=None):
         inicio_real = partido.inicio_en_vivo or inicio
         cierre = inicio_real + timedelta(minutes=15)
         if ahora <= cierre:
-            return True, f"Disponible hasta {cierre.strftime('%H:%M')}."
+            return True, f"Disponible hasta {cierre.strftime('%I:%M %p').lstrip('0')}."
         return False, "La ventana de 15 minutos después del inicio ya finalizó."
     return False, "Disponible solo antes del partido o durante sus primeros 15 minutos."
 
@@ -3018,7 +3024,7 @@ def construir_partidos_portada(torneo=None):
             "estado": partido.estado,
             "estado_display": partido.get_estado_display(),
             "fecha": partido.fecha,
-            "hora": partido.hora.strftime("%H:%M") if partido.hora else "Por definir",
+            "hora": formatear_hora_12(partido.hora),
             "hora_orden": partido.hora or time(0, 0),
             "cancha": partido.cancha or "Por definir",
             "local": partido.equipo_local.nombre,
@@ -5600,9 +5606,9 @@ def mis_equipos(request):
         if not equipo.acceso_delegado_hasta:
             equipo.estado_acceso_delegado = "Sin fecha de acceso asignada."
         elif equipo.acceso_delegado_hasta < ahora:
-            equipo.estado_acceso_delegado = f"Acceso vencido el {timezone.localtime(equipo.acceso_delegado_hasta).strftime('%d/%m/%Y %H:%M')}."
+            equipo.estado_acceso_delegado = f"Acceso vencido el {timezone.localtime(equipo.acceso_delegado_hasta).strftime('%d/%m/%Y %I:%M %p')}."
         else:
-            equipo.estado_acceso_delegado = f"Disponible hasta {timezone.localtime(equipo.acceso_delegado_hasta).strftime('%d/%m/%Y %H:%M')}."
+            equipo.estado_acceso_delegado = f"Disponible hasta {timezone.localtime(equipo.acceso_delegado_hasta).strftime('%d/%m/%Y %I:%M %p')}."
 
     return render(request, 'equipos/mis_equipos.html', {
         'equipos': equipos,
@@ -7120,7 +7126,7 @@ def gestion_planilla_juego_nueva(request):
             "label": (
                 f"{partido.categoria.nombre} - {etiqueta_fecha(partido.numero_fecha) or 'Sin fecha'} - "
                 f"{partido.equipo_local.nombre} vs {partido.equipo_visitante.nombre} - "
-                f"{partido.fecha.strftime('%d/%m/%Y')} {partido.hora.strftime('%H:%M')}"
+                f"{partido.fecha.strftime('%d/%m/%Y')} {formatear_hora_12(partido.hora)}"
             ),
         }
         for partido in form.fields["partido"].queryset
@@ -9081,6 +9087,8 @@ def partido_live(request, partido_id):
         "volver_url": volver_url,
         "delegado_alineacion_url": url_alineacion_delegado_si_aplica(request.user, partido),
         "puede_diligenciar_partido": puede_diligenciar_partido(request.user, partido),
+        "ganador_local": bool(partido.fase != "GRUPOS" and ganador_partido(partido) == partido.equipo_local),
+        "ganador_visitante": bool(partido.fase != "GRUPOS" and ganador_partido(partido) == partido.equipo_visitante),
     })
 def _pausar_cronometro(partido):
     if partido.inicio_en_vivo:

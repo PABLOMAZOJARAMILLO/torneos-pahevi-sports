@@ -9,7 +9,7 @@
 
 <div class="card">
     <div>{{ partido.equipo_local.nombre }} vs {{ partido.equipo_visitante.nombre }}</div>
-    <div class="muted">{{ partido.fecha|date:"d/m/Y" }} - {{ partido.hora|time:"H:i" }} - {{ partido.estado }}</div>
+    <div class="muted">{{ partido.fecha|date:"d/m/Y" }} - {{ partido.hora|hora_12 }} - {{ partido.estado }}</div>
     <div class="muted">Equipo a cargar: {{ equipo.nombre }}</div>
     <div class="muted">Puedes guardar borradores sin cerrar la entrega. Al enviar la alineación definitiva ya no podrás volver a editarla.</div>
 </div>
