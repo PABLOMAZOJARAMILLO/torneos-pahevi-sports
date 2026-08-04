@@ -37,21 +37,20 @@
             {% endif %}
         </div>
 
-        {% if partido.estado == "PROGRAMADO" %}
-        <div class="marcador-portada programado">VS</div>
-        {% elif partido.estado == "EN_JUEGO" %}
-        <div class="marcador-portada marcador-live">
-            <span>{{ partido.goles_local }}</span>
-            <span>-</span>
-            <span>{{ partido.goles_visitante }}</span>
+        <div class="marcador-portada-bloque">
+            {% if partido.estado == "PROGRAMADO" %}
+            <div class="marcador-portada programado">VS</div>
+            {% elif partido.estado == "EN_JUEGO" %}
+            <div class="marcador-portada marcador-live">
+                <span>{{ partido.goles_local }}</span><span>-</span><span>{{ partido.goles_visitante }}</span>
+            </div>
+            {% else %}
+            <div class="marcador-portada">
+                <span>{{ partido.goles_local }}</span><span>-</span><span>{{ partido.goles_visitante }}</span>
+            </div>
+            {% endif %}
+            {% if partido.tiene_penales %}<div class="penales-portada">Penales: {{ partido.goles_local_penales }} - {{ partido.goles_visitante_penales }}</div>{% endif %}
         </div>
-        {% else %}
-        <div class="marcador-portada">
-            <span>{{ partido.goles_local }}</span>
-            <span>-</span>
-            <span>{{ partido.goles_visitante }}</span>
-        </div>
-        {% endif %}
 
         <div class="equipo-portada">
             {% if partido.escudo_visitante %}

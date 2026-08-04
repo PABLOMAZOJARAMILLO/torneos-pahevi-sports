@@ -3413,6 +3413,24 @@ class FixtureProgramacionBalanceadaTests(TestCase):
         self.assertEqual(partidos_portada[programado.id]["bloque"], "PROGRAMADOS")
         self.assertEqual(partidos_portada[futuro.id]["bloque"], "FUTUROS")
 
+    def test_portada_incluye_marcador_de_penales(self):
+        partido = Partido.objects.create(
+            categoria=self.categoria,
+            equipo_local=self.equipos[0],
+            equipo_visitante=self.equipos[1],
+            fecha=date.today(), hora=time(16, 0), cancha="Principal",
+            estado="EN_JUEGO", fase="CUARTOS",
+            goles_local=2, goles_visitante=2,
+            goles_local_penales=6, goles_visitante_penales=5,
+            periodo_en_vivo="PEN",
+        )
+
+        portada = {item["id"]: item for item in construir_partidos_portada(self.torneo)}[partido.id]
+
+        self.assertTrue(portada["tiene_penales"])
+        self.assertEqual(portada["goles_local_penales"], 6)
+        self.assertEqual(portada["goles_visitante_penales"], 5)
+
     @override_settings(STORAGES={
         "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
         "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
