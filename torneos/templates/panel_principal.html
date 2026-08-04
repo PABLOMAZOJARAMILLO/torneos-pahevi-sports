@@ -6531,6 +6531,87 @@ body.solo-lectura .menu-principal{top:96px!important}
                         text-align: center !important;
                     }
                 }
+
+                /* Semifinales: su etapa es individual y necesita columnas fluidas propias. */
+                .tab-content[data-tab="finales"] .llaves-simetricas .etapa-individual .partido-llave {
+                    width: 100% !important;
+                    min-width: 0 !important;
+                    height: auto !important;
+                    min-height: 158px !important;
+                    max-height: none !important;
+                    padding: 11px 12px !important;
+                    flex-direction: column !important;
+                    overflow: visible !important;
+                }
+                .tab-content[data-tab="finales"] .llaves-simetricas .etapa-individual .partido-llave-contenido {
+                    width: 100% !important;
+                    min-width: 0 !important;
+                    display: grid !important;
+                    grid-template-columns: minmax(0, 1fr) minmax(74px, 86px) minmax(0, 1fr) !important;
+                    grid-template-rows: auto !important;
+                    gap: 5px !important;
+                    align-items: center !important;
+                }
+                .tab-content[data-tab="finales"] .llaves-simetricas .etapa-individual .equipo-llave:first-child {
+                    grid-column: 1 !important;
+                    grid-row: 1 !important;
+                }
+                .tab-content[data-tab="finales"] .llaves-simetricas .etapa-individual .centro-llave {
+                    grid-column: 2 !important;
+                    grid-row: 1 !important;
+                    width: 100% !important;
+                    min-width: 0 !important;
+                    margin: 0 !important;
+                }
+                .tab-content[data-tab="finales"] .llaves-simetricas .etapa-individual .equipo-llave:last-child {
+                    grid-column: 3 !important;
+                    grid-row: 1 !important;
+                }
+                .tab-content[data-tab="finales"] .llaves-simetricas .etapa-individual .equipo-llave {
+                    width: 100% !important;
+                    min-width: 0 !important;
+                    overflow: visible !important;
+                }
+                .tab-content[data-tab="finales"] .llaves-simetricas .etapa-individual .nombre-equipo-llave {
+                    width: 100% !important;
+                    max-width: 100% !important;
+                    min-width: 0 !important;
+                    min-height: 30px !important;
+                    padding: 0 2px !important;
+                    font-size: clamp(10px, 1.8vw, 12px) !important;
+                    line-height: 1.12 !important;
+                    white-space: normal !important;
+                    overflow: visible !important;
+                    text-overflow: clip !important;
+                    overflow-wrap: anywhere !important;
+                    word-break: normal !important;
+                    text-align: center !important;
+                    justify-content: center !important;
+                }
+                .tab-content[data-tab="finales"] .llaves-simetricas .etapa-individual .etiqueta-numero-llave {
+                    position: static !important;
+                    width: 100% !important;
+                    margin: 0 0 8px !important;
+                    padding: 0 4px !important;
+                    white-space: normal !important;
+                    overflow: visible !important;
+                    text-align: center !important;
+                }
+
+                @media (max-width: 600px) {
+                    .tab-content[data-tab="finales"] .llaves-simetricas .etapa-individual .partido-llave {
+                        width: min(92vw, 370px) !important;
+                        padding-left: 9px !important;
+                        padding-right: 9px !important;
+                    }
+                    .tab-content[data-tab="finales"] .llaves-simetricas .etapa-individual .partido-llave-contenido {
+                        grid-template-columns: minmax(0, 1fr) minmax(70px, 82px) minmax(0, 1fr) !important;
+                        gap: 3px !important;
+                    }
+                    .tab-content[data-tab="finales"] .llaves-simetricas .etapa-individual .nombre-equipo-llave {
+                        font-size: 11px !important;
+                    }
+                }
             </style>
 
             <div class="llaves">
