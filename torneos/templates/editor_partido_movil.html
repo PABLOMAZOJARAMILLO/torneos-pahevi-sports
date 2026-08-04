@@ -189,6 +189,13 @@
             font-size: 11px;
             line-height: 1.05;
         }
+        .tanda-penales { margin-top:14px; padding-top:14px; border-top:1px solid rgba(0,224,122,.35); }
+        .cronometro-card .tanda-penales h2 { display:block; }
+        .marcador-penales { text-align:center; font-size:2rem; font-weight:900; color:#00e07a; margin:8px 0 12px; }
+        .lista-cobros { display:grid; gap:7px; margin:12px 0; }
+        .cobro-penal { display:flex; justify-content:space-between; gap:10px; padding:8px 10px; border-radius:9px; background:#0d1b2e; }
+        .cobro-gol { color:#00e07a; font-weight:800; }
+        .cobro-fallo { color:#ff5364; font-weight:800; }
         h2 {
             margin: 0 0 12px 0;
             color: #00ff66;
@@ -890,7 +897,7 @@
         </div>
         {% endif %}
 
-        <details class="card cronometro-card">
+        <details class="card cronometro-card" id="cronometro-penales" {% if tanda_penales_activa %}open{% endif %}>
             <summary>Cronometro en vivo</summary>
     <h2>Cronómetro en vivo</h2>
 
@@ -903,6 +910,37 @@
         <a class="btn" href="{% url 'cronometro_suspender' partido.id %}">⚠ Suspender</a>
         <a class="btn" href="{% url 'cronometro_finalizar' partido.id %}">🏁 Finalizar</a>
     </div>
+    {% if es_fase_eliminatoria %}
+    <div class="tanda-penales">
+        <h2>Tanda de penales</h2>
+        {% if not tanda_penales_activa %}
+            {% if puede_iniciar_penales %}
+            <p>Si el encuentro termino empatado, inicia la definicion desde el punto penal.</p>
+            <form method="post" action="{% url 'iniciar_tanda_penales' partido.id %}">{% csrf_token %}<button class="btn" type="submit">Iniciar penales</button></form>
+            {% else %}<p>Esta opcion se habilita cuando el marcador queda empatado.</p>{% endif %}
+        {% else %}
+            <div class="marcador-penales">{{ partido.goles_local_penales|default:0 }} - {{ partido.goles_visitante_penales|default:0 }}</div>
+            <div style="text-align:center;font-weight:800;">{{ partido.equipo_local.nombre }} vs {{ partido.equipo_visitante.nombre }}</div>
+            <div class="lista-cobros">
+            {% for cobro in cobros_penales %}
+                <div class="cobro-penal"><span>#{{ cobro.orden }} · {{ cobro.equipo.nombre }} · {{ cobro.jugador.nombres }}</span>{% if cobro.convertido %}<span class="cobro-gol">GOL ✓</span>{% else %}<span class="cobro-fallo">FALLO ✕</span>{% endif %}</div>
+            {% empty %}<div class="cobro-penal">Aun no hay cobros registrados.</div>{% endfor %}
+            </div>
+            {% if tanda_penales_definida %}
+                <div class="validacion-box">La tanda ya tiene ganador. Puedes finalizar el partido.</div>
+            {% else %}
+                <form method="post" action="{% url 'registrar_cobro_penal' partido.id %}">
+                    {% csrf_token %}
+                    <label>Siguiente cobro: {{ equipo_siguiente_penal.nombre }}</label>
+                    <select name="jugador" required><option value="">Selecciona el cobrador</option>{% for jugador in cobradores_penal %}<option value="{{ jugador.id }}">{{ jugador.dorsal|default:'-' }} · {{ jugador.nombres }}</option>{% endfor %}</select>
+                    <div class="grid-2"><button class="btn" type="submit" name="resultado" value="GOL">Gol ✓</button><button class="btn danger" type="submit" name="resultado" value="FALLO">Fallo ✕</button></div>
+                </form>
+            {% endif %}
+            {% if cobros_penales %}<form method="post" action="{% url 'deshacer_cobro_penal' partido.id %}" style="margin-top:10px;">{% csrf_token %}<button class="btn secondary" type="submit">Deshacer ultimo cobro</button></form>{% endif %}
+        {% endif %}
+        <p style="font-size:.85rem;opacity:.8;">Los cobros de la tanda no suman en la tabla de goleadores.</p>
+    </div>
+    {% endif %}
         </details>
         <div class="tabs">
             <button type="button" class="tab-btn active" data-tab="resultado" onclick="mostrarEditorTab('resultado', this)">Resultado</button>

@@ -520,6 +520,7 @@ class Partido(models.Model):
     ("PT", "Primer tiempo"),
     ("ET", "Entretiempo"),
     ("ST", "Segundo tiempo"),
+    ("PEN", "Tanda de penales"),
     ("FIN", "Finalizado"),
     ]   
     inicio_en_vivo = models.DateTimeField(blank=True, null=True)
@@ -557,6 +558,25 @@ class Gol(models.Model):
 
     def __str__(self):
         return f"{self.jugador} - {self.cantidad} gol(es)"
+
+
+class CobroPenal(models.Model):
+    partido = models.ForeignKey(Partido, on_delete=models.CASCADE, related_name="cobros_penales")
+    equipo = models.ForeignKey(Equipo, on_delete=models.CASCADE, related_name="cobros_penales")
+    jugador = models.ForeignKey(Jugador, on_delete=models.CASCADE, related_name="cobros_penales")
+    orden = models.PositiveIntegerField()
+    convertido = models.BooleanField(default=False)
+    creado_en = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["orden", "id"]
+        constraints = [
+            models.UniqueConstraint(fields=["partido", "orden"], name="cobro_penal_orden_unico_partido"),
+        ]
+
+    def __str__(self):
+        resultado = "gol" if self.convertido else "fallo"
+        return f"{self.partido} - {self.jugador} ({resultado})"
 
 
 class Tarjeta(models.Model):

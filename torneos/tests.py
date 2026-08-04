@@ -16,7 +16,7 @@ from openpyxl import Workbook
 from PIL import Image
 
 from .forms import JugadorForm, PartidoForm, PartidoProgramacionForm, TorneoForm
-from .models import AlineacionPartido, EntregaAlineacionPartido, AdminOrganizador, AdminTorneo, Categoria, Documento, Equipo, Gol, IncidenciaReglaEdad, Jugador, Organizador, Partido, ReglaEdadCategoria, RegistroActividad, VisitaPublicaDiaria, SolicitudValidacion, SustitucionPartido, Tarjeta, Torneo, ruta_escudo_equipo
+from .models import AlineacionPartido, EntregaAlineacionPartido, AdminOrganizador, AdminTorneo, Categoria, CobroPenal, Documento, Equipo, Gol, IncidenciaReglaEdad, Jugador, Organizador, Partido, ReglaEdadCategoria, RegistroActividad, VisitaPublicaDiaria, SolicitudValidacion, SustitucionPartido, Tarjeta, Torneo, ruta_escudo_equipo
 from .middleware import AuditoriaModificacionesMiddleware
 from .media_cleanup import eliminar_imagenes_sin_referencia, nombres_imagenes_instancias
 from .planillas_pdf import _dorsal, _edad, _header_image_sources, _jugadores, _team_shield_source, _draw_team_watermark, _titulo_planilla
@@ -1912,6 +1912,57 @@ class PlanilleroPartidoTests(TestCase):
 
         self.assertContains(respuesta, '<details class="card cronometro-card">')
         self.assertContains(respuesta, "<summary>Cronometro en vivo</summary>")
+
+    @override_settings(STORAGES={
+        "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+        "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
+    })
+    def test_tanda_penales_solo_se_habilita_en_eliminatoria_empatada(self):
+        self.client.force_login(self.planillero)
+        respuesta = self.client.post(f"/partido/{self.partido.id}/cronometro/penales/iniciar/")
+        self.partido.refresh_from_db()
+        self.assertEqual(respuesta.status_code, 302)
+        self.assertNotEqual(self.partido.periodo_en_vivo, "PEN")
+
+        self.partido.fase = "CUARTOS"
+        self.partido.goles_local = self.partido.goles_visitante = 1
+        self.partido.save()
+        self.client.post(f"/partido/{self.partido.id}/cronometro/penales/iniciar/")
+        self.partido.refresh_from_db()
+        self.assertEqual(self.partido.periodo_en_vivo, "PEN")
+        editor = self.client.get(f"/partido/{self.partido.id}/editor-movil/")
+        self.assertContains(editor, "Siguiente cobro: Local")
+        self.assertContains(editor, "no suman en la tabla de goleadores")
+
+    def test_cobros_actualizan_penales_pero_no_goleadores(self):
+        visitante = Jugador.objects.create(
+            equipo=self.visitante, dorsal=10, nombres="Cobrador Visitante", cedula="PV10",
+            fecha_nacimiento=date(1991, 1, 1),
+        )
+        AlineacionPartido.objects.create(partido=self.partido, equipo=self.local, jugador=self.jugador, rol="TITULAR")
+        AlineacionPartido.objects.create(partido=self.partido, equipo=self.visitante, jugador=visitante, rol="TITULAR")
+        self.partido.fase = "FINAL"
+        self.partido.estado = "EN_JUEGO"
+        self.partido.periodo_en_vivo = "PEN"
+        self.partido.save()
+        self.client.force_login(self.planillero)
+
+        for indice in range(6):
+            jugador = self.jugador if indice % 2 == 0 else visitante
+            resultado = "GOL" if indice % 2 == 0 else "FALLO"
+            self.client.post(
+                f"/partido/{self.partido.id}/cronometro/penales/cobro/",
+                {"jugador": jugador.id, "resultado": resultado},
+            )
+
+        self.partido.refresh_from_db()
+        self.assertEqual((self.partido.goles_local_penales, self.partido.goles_visitante_penales), (3, 0))
+        self.assertEqual(CobroPenal.objects.filter(partido=self.partido).count(), 6)
+        self.assertEqual(Gol.objects.filter(partido=self.partido).count(), 0)
+
+        self.client.get(f"/partido/{self.partido.id}/cronometro/finalizar/")
+        self.partido.refresh_from_db()
+        self.assertEqual(self.partido.estado, "FINALIZADO")
 
     @override_settings(STORAGES={
         "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},

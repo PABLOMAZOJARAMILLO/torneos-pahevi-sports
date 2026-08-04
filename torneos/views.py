@@ -38,7 +38,7 @@ from django.views.decorators.http import require_POST
 from openpyxl import load_workbook
 
 from .forms import TorneoForm, OrganizadorForm, CategoriaForm, ReglaEdadCategoriaFormSet, DocumentoForm, PlanillaJuegoUploadForm, EquipoForm, EquipoDelegadoForm, EquipoFotosCuerpoTecnicoDelegadoForm, EquipoReinscripcionForm, JugadorForm, JugadorDelegadoForm, JugadorFotoDelegadoForm, PartidoForm, PartidoProgramacionForm, AdminTorneoForm, AdminOrganizadorForm, CrearAdminOrganizadorForm
-from .models import Torneo, Organizador, Categoria, Documento, Equipo, Partido, Gol, Tarjeta, Jugador, AlineacionPartido, EntregaAlineacionPartido, SustitucionPartido, IncidenciaReglaEdad, ReglaEdadCategoria, AdminTorneo, AdminOrganizador, RegistroActividad, VisitaPublicaDiaria, SolicitudValidacion, limpiar_ruta_cloudinary
+from .models import Torneo, Organizador, Categoria, Documento, Equipo, Partido, Gol, CobroPenal, Tarjeta, Jugador, AlineacionPartido, EntregaAlineacionPartido, SustitucionPartido, IncidenciaReglaEdad, ReglaEdadCategoria, AdminTorneo, AdminOrganizador, RegistroActividad, VisitaPublicaDiaria, SolicitudValidacion, limpiar_ruta_cloudinary
 from .media_cleanup import nombres_imagenes_instancias, programar_limpieza_imagenes
 from .planillas_pdf import generar_planilla_juego_pdf, nombre_archivo_planilla
 from .templatetags.texto_limpio import etiqueta_fecha
@@ -5012,6 +5012,18 @@ def editor_partido_movil(request, partido_id):
             and (permite_reingresos or jugador.id not in jugadores_que_salieron)
         )
     volver_url = _volver_editor_partido_url(request, partido)
+    cobros_penales = list(
+        CobroPenal.objects.filter(partido=partido).select_related("jugador", "equipo").order_by("orden", "id")
+    )
+    equipo_siguiente_penal = partido.equipo_local if len(cobros_penales) % 2 == 0 else partido.equipo_visitante
+    cobradores_penal = list(
+        Jugador.objects.filter(
+            alineaciones_partido__partido=partido,
+            alineaciones_partido__equipo=equipo_siguiente_penal,
+            alineaciones_partido__rol__in=["TITULAR", "SUPLENTE"],
+            estado="ACTIVO",
+        ).distinct().order_by("nombres")
+    )
 
     return render(request, 'editor_partido_movil.html', {
         'partido': partido,
@@ -5044,6 +5056,13 @@ def editor_partido_movil(request, partido_id):
         'editor_volver_url': volver_url,
         'editor_volver_text': "Mis partidos" if es_planillero_asignado(request.user) else "Panel",
         'editor_live_url': f"{reverse('partido_live', args=[partido.id])}?volver={quote(volver_url, safe='')}",
+        'es_fase_eliminatoria': partido.fase in FASES_ELIMINATORIAS,
+        'puede_iniciar_penales': partido.fase in FASES_ELIMINATORIAS and partido.goles_local == partido.goles_visitante,
+        'tanda_penales_activa': partido.periodo_en_vivo == "PEN",
+        'cobros_penales': cobros_penales,
+        'equipo_siguiente_penal': equipo_siguiente_penal,
+        'cobradores_penal': cobradores_penal,
+        'tanda_penales_definida': _tanda_penales_definida(partido, cobros_penales),
     })
 
 
@@ -5060,6 +5079,11 @@ def guardar_info_partido_movil(request, partido_id):
     estado_solicitado = request.POST.get('estado') or partido.estado
     if es_editor_torneo(request.user) or estado_solicitado in ESTADOS_PLANILLERO_PARTIDO:
         partido.estado = estado_solicitado
+
+    if partido.estado == "FINALIZADO" and partido.fase in FASES_ELIMINATORIAS and partido.goles_local == partido.goles_visitante:
+        if not _tanda_penales_definida(partido):
+            partido.estado = "EN_JUEGO"
+            messages.error(request, "El partido eliminatorio esta empatado. Debe definirse mediante tanda de penales antes de finalizar.")
 
     if partido.estado == "EN_JUEGO" and not partido.inicio_en_vivo:
         partido.inicio_en_vivo = timezone.now()
@@ -8993,6 +9017,94 @@ def _pausar_cronometro(partido):
     partido.save()
 
 
+def _tanda_penales_definida(partido, cobros=None):
+    cobros = list(cobros if cobros is not None else partido.cobros_penales.all())
+    if not cobros:
+        return (partido.goles_local_penales or 0) != (partido.goles_visitante_penales or 0)
+    local = sum(1 for cobro in cobros if cobro.equipo_id == partido.equipo_local_id and cobro.convertido)
+    visitante = sum(1 for cobro in cobros if cobro.equipo_id == partido.equipo_visitante_id and cobro.convertido)
+    cantidad_local = sum(1 for cobro in cobros if cobro.equipo_id == partido.equipo_local_id)
+    cantidad_visitante = len(cobros) - cantidad_local
+    restantes_local = max(0, 5 - cantidad_local)
+    restantes_visitante = max(0, 5 - cantidad_visitante)
+    if local > visitante + restantes_visitante or visitante > local + restantes_local:
+        return True
+    return cantidad_local == cantidad_visitante and cantidad_local >= 5 and local != visitante
+
+
+def _actualizar_marcador_tanda(partido):
+    partido.goles_local_penales = partido.cobros_penales.filter(
+        equipo=partido.equipo_local, convertido=True
+    ).count()
+    partido.goles_visitante_penales = partido.cobros_penales.filter(
+        equipo=partido.equipo_visitante, convertido=True
+    ).count()
+    partido.save(update_fields=["goles_local_penales", "goles_visitante_penales"])
+
+
+@login_required
+@require_POST
+def iniciar_tanda_penales(request, partido_id):
+    partido = get_object_or_404(Partido, id=partido_id)
+    if not puede_diligenciar_partido(request.user, partido):
+        return denegar_partido_no_autorizado()
+    if partido.fase not in FASES_ELIMINATORIAS:
+        messages.error(request, "La tanda de penales solo esta disponible en fases finales.")
+    elif partido.goles_local != partido.goles_visitante:
+        messages.error(request, "Solo se puede iniciar la tanda cuando el partido esta empatado.")
+    else:
+        _pausar_cronometro(partido)
+        partido.estado = "EN_JUEGO"
+        partido.periodo_en_vivo = "PEN"
+        partido.save(update_fields=["estado", "periodo_en_vivo"])
+        messages.success(request, "Tanda de penales iniciada.")
+    return redirect(f"{reverse('editor_partido_movil', args=[partido.id])}#cronometro-penales")
+
+
+@login_required
+@require_POST
+def registrar_cobro_penal(request, partido_id):
+    partido = get_object_or_404(Partido, id=partido_id)
+    if not puede_diligenciar_partido(request.user, partido):
+        return denegar_partido_no_autorizado()
+    cobros = list(partido.cobros_penales.order_by("orden", "id"))
+    if partido.periodo_en_vivo != "PEN" or _tanda_penales_definida(partido, cobros):
+        messages.error(request, "La tanda no esta activa o ya tiene un ganador.")
+        return redirect(f"{reverse('editor_partido_movil', args=[partido.id])}#cronometro-penales")
+    equipo = partido.equipo_local if len(cobros) % 2 == 0 else partido.equipo_visitante
+    jugador = get_object_or_404(Jugador, id=request.POST.get("jugador"), equipo=equipo, estado="ACTIVO")
+    habilitado = AlineacionPartido.objects.filter(
+        partido=partido, equipo=equipo, jugador=jugador, rol__in=["TITULAR", "SUPLENTE"]
+    ).exists()
+    if not habilitado:
+        messages.error(request, "El jugador seleccionado no esta habilitado en la alineacion.")
+    else:
+        CobroPenal.objects.create(
+            partido=partido,
+            equipo=equipo,
+            jugador=jugador,
+            orden=len(cobros) + 1,
+            convertido=request.POST.get("resultado") == "GOL",
+        )
+        _actualizar_marcador_tanda(partido)
+        messages.success(request, "Cobro registrado. La tabla de goleadores no se modifica.")
+    return redirect(f"{reverse('editor_partido_movil', args=[partido.id])}#cronometro-penales")
+
+
+@login_required
+@require_POST
+def deshacer_cobro_penal(request, partido_id):
+    partido = get_object_or_404(Partido, id=partido_id)
+    if not puede_diligenciar_partido(request.user, partido):
+        return denegar_partido_no_autorizado()
+    ultimo = partido.cobros_penales.order_by("-orden", "-id").first()
+    if ultimo:
+        ultimo.delete()
+        _actualizar_marcador_tanda(partido)
+        messages.success(request, "Ultimo cobro eliminado.")
+    return redirect(f"{reverse('editor_partido_movil', args=[partido.id])}#cronometro-penales")
+
+
 @login_required
 def cronometro_primer_tiempo(request, partido_id):
     partido = get_object_or_404(Partido, id=partido_id)
@@ -9072,6 +9184,10 @@ def cronometro_finalizar(request, partido_id):
     partido = get_object_or_404(Partido, id=partido_id)
     if not puede_diligenciar_partido(request.user, partido):
         return denegar_partido_no_autorizado()
+    if partido.fase in FASES_ELIMINATORIAS and partido.goles_local == partido.goles_visitante:
+        if not _tanda_penales_definida(partido):
+            messages.error(request, "El empate debe definirse en la tanda de penales antes de finalizar.")
+            return redirect(f"{reverse('editor_partido_movil', args=[partido.id])}#cronometro-penales")
     _pausar_cronometro(partido)
     partido.estado = "FINALIZADO"
     partido.periodo_en_vivo = "FIN"
