@@ -3519,7 +3519,9 @@ class DescargaProgramacionFiltrosTests(TestCase):
             grupo="FINAL",
             fase="CUARTOS",
             goles_local=1,
-            goles_visitante=2,
+            goles_visitante=1,
+            goles_local_penales=5,
+            goles_visitante_penales=6,
         )
 
         with patch(
@@ -3534,7 +3536,9 @@ class DescargaProgramacionFiltrosTests(TestCase):
         self.assertEqual(respuesta.status_code, 200)
         html = generar.call_args.args[0]
         self.assertIn("Llave 2", html)
-        self.assertIn("1 - 2", html)
+        self.assertIn("1 - 1", html)
+        self.assertIn("Penales: 5 - 6", html)
+        self.assertIn('estrella-clasificado">&#9733;</b>Visitante', html)
         self.assertNotIn("Llave 2<br>por definir", html)
 
 

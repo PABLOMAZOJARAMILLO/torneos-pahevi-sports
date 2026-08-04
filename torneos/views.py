@@ -4271,6 +4271,15 @@ def construir_partidos_programacion(
         if fase == "CUARTOS":
             destino_eliminatoria = destinos_cuartos.get((p.numero_fecha or "").upper(), "")
 
+        ganador = ganador_partido(p)
+        penales_local = p.goles_local_penales or 0
+        penales_visitante = p.goles_visitante_penales or 0
+        tiene_penales = (
+            p.estado in ESTADOS_PARTIDO_CERRADO
+            and (p.goles_local or 0) == (p.goles_visitante or 0)
+            and penales_local != penales_visitante
+        )
+
         partidos_programacion.append({
             "categoria": categoria_nombre,
             "color_categoria": color_categoria,
@@ -4284,6 +4293,10 @@ def construir_partidos_programacion(
             "estado": p.estado,
             "finalizado": p.estado == "FINALIZADO",
             "marcador_texto": f"{p.goles_local} - {p.goles_visitante}" if p.estado == "FINALIZADO" else "VS",
+            "tiene_penales": tiene_penales,
+            "penales_texto": f"Penales: {penales_local} - {penales_visitante}" if tiene_penales else "",
+            "ganador_local": bool(ganador and ganador.id == p.equipo_local_id),
+            "ganador_visitante": bool(ganador and ganador.id == p.equipo_visitante_id),
             "dia_semana": dia_semana,
             "fecha": p.fecha,
             "hora": p.hora,

@@ -4,12 +4,15 @@
     <div class="enfrentamiento">
         <div class="equipo local">
             {% if partido.escudo_local %}<img src="{{ partido.escudo_local }}">{% endif %}
-            <span>{{ partido.local }}</span>
+            <span>{% if partido.ganador_local %}<b class="estrella-clasificado">&#9733;</b>{% endif %}{{ partido.local }}</span>
         </div>
-        <div class="vs">{{ partido.marcador_texto }}</div>
+        <div class="vs">
+            <strong>{{ partido.marcador_texto }}</strong>
+            {% if partido.tiene_penales %}<small>{{ partido.penales_texto }}</small>{% endif %}
+        </div>
         <div class="equipo visitante">
             {% if partido.escudo_visitante %}<img src="{{ partido.escudo_visitante }}">{% endif %}
-            <span>{{ partido.visitante }}</span>
+            <span>{% if partido.ganador_visitante %}<b class="estrella-clasificado">&#9733;</b>{% endif %}{{ partido.visitante }}</span>
         </div>
     </div>
     <div class="meta">
