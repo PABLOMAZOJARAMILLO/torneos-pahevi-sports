@@ -2057,9 +2057,13 @@ class PlanilleroPartidoTests(TestCase):
 
         self.assertContains(respuesta, "Tanda de penales")
         self.assertContains(respuesta, self.jugador.nombres)
-        self.assertContains(respuesta, "ANOTÓ")
+        self.assertContains(respuesta, "Anotó")
         self.assertContains(respuesta, visitante.nombres)
-        self.assertContains(respuesta, "FALLÓ")
+        self.assertContains(respuesta, "Falló")
+        self.assertContains(respuesta, "timeline-event penal-cobro")
+        contenido = respuesta.content.decode("utf-8")
+        self.assertLess(contenido.index(visitante.nombres), contenido.index(self.jugador.nombres))
+        self.assertLess(contenido.index("Tanda de penales"), contenido.index("Fin de los 90 minutos"))
 
     @override_settings(STORAGES={
         "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},

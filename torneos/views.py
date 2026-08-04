@@ -8809,6 +8809,8 @@ def partido_live(request, partido_id):
         .select_related("equipo", "jugador")
         .order_by("orden", "id")
     )
+    for cobro in cobros_penales:
+        cobro.jugador_resumen = nombre_resumen_jugador(cobro.jugador)
     sustituciones_local = [cambio for cambio in sustituciones if cambio.equipo_id == partido.equipo_local_id]
     sustituciones_visitante = [cambio for cambio in sustituciones if cambio.equipo_id == partido.equipo_visitante_id]
     for cambio in sustituciones:
