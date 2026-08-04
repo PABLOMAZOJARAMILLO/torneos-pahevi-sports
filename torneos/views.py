@@ -5031,15 +5031,24 @@ def editor_partido_movil(request, partido_id):
     equipo_siguiente_penal = _equipo_turno_tanda(partido, len(cobros_penales))
     cobradores_penal = _cobradores_disponibles_tanda(partido, equipo_siguiente_penal, cobros_penales)
     cobros_equipo_siguiente = sum(1 for cobro in cobros_penales if cobro.equipo_id == equipo_siguiente_penal.id)
+    elegibles_penales = {
+        partido.equipo_local_id: set(jugadores_en_cancha_local),
+        partido.equipo_visitante_id: set(jugadores_en_cancha_visitante),
+    }
+    jugadores_edicion_penales = {
+        partido.equipo_local_id: list(Jugador.objects.filter(
+            id__in=elegibles_penales[partido.equipo_local_id], equipo=partido.equipo_local, estado="ACTIVO"
+        ).order_by("nombres")),
+        partido.equipo_visitante_id: list(Jugador.objects.filter(
+            id__in=elegibles_penales[partido.equipo_visitante_id], equipo=partido.equipo_visitante, estado="ACTIVO"
+        ).order_by("nombres")),
+    }
     for cobro in cobros_penales:
-        jugadores_equipo = Jugador.objects.filter(
-            id__in=jugadores_actuales_en_cancha(partido, cobro.equipo),
-            equipo=cobro.equipo,
-            estado="ACTIVO",
-        ).order_by("nombres")
         cobro.cobradores_editables = [
-            jugador for jugador in jugadores_equipo
-            if _secuencia_cobradores_valida(partido, cobros_penales, cobro.id, jugador.id)
+            jugador for jugador in jugadores_edicion_penales.get(cobro.equipo_id, [])
+            if _secuencia_cobradores_valida_con_elegibles(
+                cobros_penales, elegibles_penales, cobro.id, jugador.id
+            )
         ]
 
     return render(request, 'editor_partido_movil.html', {
@@ -9102,12 +9111,24 @@ def _cobradores_disponibles_tanda(partido, equipo, cobros=None):
 
 
 def _secuencia_cobradores_valida(partido, cobros, cobro_editado_id=None, jugador_nuevo_id=None):
-    for equipo in (partido.equipo_local, partido.equipo_visitante):
-        elegibles = set(jugadores_actuales_en_cancha(partido, equipo))
+    elegibles_por_equipo = {
+        partido.equipo_local_id: set(jugadores_actuales_en_cancha(partido, partido.equipo_local)),
+        partido.equipo_visitante_id: set(jugadores_actuales_en_cancha(partido, partido.equipo_visitante)),
+    }
+    return _secuencia_cobradores_valida_con_elegibles(
+        cobros, elegibles_por_equipo, cobro_editado_id, jugador_nuevo_id
+    )
+
+
+def _secuencia_cobradores_valida_con_elegibles(
+    cobros, elegibles_por_equipo, cobro_editado_id=None, jugador_nuevo_id=None
+):
+    for equipo_id, elegibles_originales in elegibles_por_equipo.items():
+        elegibles = set(elegibles_originales)
         if not elegibles:
             return False
         conteos = {jugador_id: 0 for jugador_id in elegibles}
-        cobros_equipo = [cobro for cobro in cobros if cobro.equipo_id == equipo.id]
+        cobros_equipo = [cobro for cobro in cobros if cobro.equipo_id == equipo_id]
         for cobro in cobros_equipo:
             jugador_id = jugador_nuevo_id if cobro.id == cobro_editado_id else cobro.jugador_id
             if jugador_id not in conteos or conteos[jugador_id] != min(conteos.values()):
