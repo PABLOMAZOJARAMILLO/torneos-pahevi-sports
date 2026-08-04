@@ -931,7 +931,17 @@
             <div style="text-align:center;font-weight:800;">{{ partido.equipo_local.nombre }} vs {{ partido.equipo_visitante.nombre }}</div>
             <div class="lista-cobros">
             {% for cobro in cobros_penales %}
-                <div class="cobro-penal"><span>#{{ cobro.orden }} · {{ cobro.equipo.nombre }} · {{ cobro.jugador.nombres }}</span>{% if cobro.convertido %}<span class="cobro-gol">GOL ✓</span>{% else %}<span class="cobro-fallo">FALLO ✕</span>{% endif %}</div>
+                <div class="cobro-penal">
+                    <div><span>#{{ cobro.orden }} · {{ cobro.equipo.nombre }} · {{ cobro.jugador.nombres }}</span><div>{% if cobro.convertido %}<span class="cobro-gol">GOL ✓</span>{% else %}<span class="cobro-fallo">FALLO ✕</span>{% endif %}</div></div>
+                    <details>
+                        <summary>Modificar cobrador</summary>
+                        <form method="post" action="{% url 'modificar_cobrador_penal' cobro.id %}">
+                            {% csrf_token %}
+                            <select name="jugador" required>{% for jugador in cobro.cobradores_editables %}<option value="{{ jugador.id }}" {% if jugador.id == cobro.jugador_id %}selected{% endif %}>{{ jugador.dorsal|default:'-' }} · {{ jugador.nombres }}</option>{% endfor %}</select>
+                            <button class="btn" type="submit">Guardar corrección</button>
+                        </form>
+                    </details>
+                </div>
             {% empty %}<div class="cobro-penal">Aun no hay cobros registrados.</div>{% endfor %}
             </div>
             {% if tanda_penales_definida %}

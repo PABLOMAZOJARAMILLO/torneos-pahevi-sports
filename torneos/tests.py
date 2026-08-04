@@ -1961,6 +1961,50 @@ class PlanilleroPartidoTests(TestCase):
         self.assertEqual(self.partido.equipo_inicia_penales_id, self.visitante.id)
         self.assertEqual(primer_cobro.equipo_id, self.visitante.id)
 
+    @override_settings(STORAGES={
+        "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+        "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
+    })
+    def test_puede_corregir_cobrador_despues_de_definir_tanda(self):
+        locales = [self.jugador]
+        for indice in range(2, 5):
+            locales.append(Jugador.objects.create(
+                equipo=self.local, dorsal=indice, nombres=f"Cobrador Local {indice}", cedula=f"CL{indice}",
+                fecha_nacimiento=date(1990, indice, 1),
+            ))
+        visitante = Jugador.objects.create(
+            equipo=self.visitante, dorsal=10, nombres="Cobrador Visitante", cedula="CVEDIT",
+            fecha_nacimiento=date(1991, 1, 1),
+        )
+        for jugador in locales:
+            AlineacionPartido.objects.create(partido=self.partido, equipo=self.local, jugador=jugador, rol="TITULAR")
+        AlineacionPartido.objects.create(partido=self.partido, equipo=self.visitante, jugador=visitante, rol="TITULAR")
+        self.partido.fase = "FINAL"
+        self.partido.estado = "EN_JUEGO"
+        self.partido.periodo_en_vivo = "PEN"
+        self.partido.save()
+        cobros = []
+        for orden, jugador, equipo, convertido in (
+            (1, locales[0], self.local, True), (2, visitante, self.visitante, False),
+            (3, locales[1], self.local, True), (4, visitante, self.visitante, False),
+            (5, locales[2], self.local, True), (6, visitante, self.visitante, False),
+        ):
+            cobros.append(CobroPenal.objects.create(
+                partido=self.partido, equipo=equipo, jugador=jugador, orden=orden, convertido=convertido,
+            ))
+        self.client.force_login(self.planillero)
+
+        self.client.post(
+            f"/partido/cronometro/penales/cobro/{cobros[0].id}/modificar/",
+            {"jugador": locales[3].id},
+        )
+
+        cobros[0].refresh_from_db()
+        self.assertEqual(cobros[0].jugador_id, locales[3].id)
+        self.assertTrue(cobros[0].convertido)
+        editor = self.client.get(f"/partido/{self.partido.id}/editor-movil/")
+        self.assertContains(editor, "Modificar cobrador", count=6)
+
     def test_cobros_actualizan_penales_pero_no_goleadores(self):
         visitante = Jugador.objects.create(
             equipo=self.visitante, dorsal=10, nombres="Cobrador Visitante", cedula="PV10",

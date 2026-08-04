@@ -268,6 +268,7 @@ urlpatterns = [
     path('partido/<int:partido_id>/cronometro/penales/iniciar/', views.iniciar_tanda_penales, name='iniciar_tanda_penales'),
     path('partido/<int:partido_id>/cronometro/penales/cobro/', views.registrar_cobro_penal, name='registrar_cobro_penal'),
     path('partido/<int:partido_id>/cronometro/penales/deshacer/', views.deshacer_cobro_penal, name='deshacer_cobro_penal'),
+    path('partido/cronometro/penales/cobro/<int:cobro_id>/modificar/', views.modificar_cobrador_penal, name='modificar_cobrador_penal'),
 ]
 
 urlpatterns += [

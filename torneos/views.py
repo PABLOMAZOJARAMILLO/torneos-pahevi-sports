@@ -5031,6 +5031,16 @@ def editor_partido_movil(request, partido_id):
     equipo_siguiente_penal = _equipo_turno_tanda(partido, len(cobros_penales))
     cobradores_penal = _cobradores_disponibles_tanda(partido, equipo_siguiente_penal, cobros_penales)
     cobros_equipo_siguiente = sum(1 for cobro in cobros_penales if cobro.equipo_id == equipo_siguiente_penal.id)
+    for cobro in cobros_penales:
+        jugadores_equipo = Jugador.objects.filter(
+            id__in=jugadores_actuales_en_cancha(partido, cobro.equipo),
+            equipo=cobro.equipo,
+            estado="ACTIVO",
+        ).order_by("nombres")
+        cobro.cobradores_editables = [
+            jugador for jugador in jugadores_equipo
+            if _secuencia_cobradores_valida(partido, cobros_penales, cobro.id, jugador.id)
+        ]
 
     return render(request, 'editor_partido_movil.html', {
         'partido': partido,
@@ -9091,6 +9101,21 @@ def _cobradores_disponibles_tanda(partido, equipo, cobros=None):
     return [jugador for jugador in jugadores if conteos[jugador.id] == ciclo_actual]
 
 
+def _secuencia_cobradores_valida(partido, cobros, cobro_editado_id=None, jugador_nuevo_id=None):
+    for equipo in (partido.equipo_local, partido.equipo_visitante):
+        elegibles = set(jugadores_actuales_en_cancha(partido, equipo))
+        if not elegibles:
+            return False
+        conteos = {jugador_id: 0 for jugador_id in elegibles}
+        cobros_equipo = [cobro for cobro in cobros if cobro.equipo_id == equipo.id]
+        for cobro in cobros_equipo:
+            jugador_id = jugador_nuevo_id if cobro.id == cobro_editado_id else cobro.jugador_id
+            if jugador_id not in conteos or conteos[jugador_id] != min(conteos.values()):
+                return False
+            conteos[jugador_id] += 1
+    return True
+
+
 def _actualizar_marcador_tanda(partido):
     partido.goles_local_penales = partido.cobros_penales.filter(
         equipo=partido.equipo_local, convertido=True
@@ -9174,6 +9199,29 @@ def deshacer_cobro_penal(request, partido_id):
         ultimo.delete()
         _actualizar_marcador_tanda(partido)
         messages.success(request, "Ultimo cobro eliminado.")
+    return redirect(f"{reverse('editor_partido_movil', args=[partido.id])}#cronometro-penales")
+
+
+@login_required
+@require_POST
+def modificar_cobrador_penal(request, cobro_id):
+    cobro = get_object_or_404(CobroPenal.objects.select_related("partido", "equipo"), id=cobro_id)
+    partido = cobro.partido
+    if not puede_diligenciar_partido(request.user, partido):
+        return denegar_partido_no_autorizado()
+    jugador = get_object_or_404(
+        Jugador,
+        id=request.POST.get("jugador"),
+        equipo=cobro.equipo,
+        estado="ACTIVO",
+    )
+    cobros = list(partido.cobros_penales.order_by("orden", "id"))
+    if not _secuencia_cobradores_valida(partido, cobros, cobro.id, jugador.id):
+        messages.error(request, "Ese cambio rompe el orden de cobradores o repite un jugador antes de tiempo.")
+    else:
+        cobro.jugador = jugador
+        cobro.save(update_fields=["jugador"])
+        messages.success(request, f"Cobrador del penal #{cobro.orden} corregido. Se conserva su resultado.")
     return redirect(f"{reverse('editor_partido_movil', args=[partido.id])}#cronometro-penales")
 
 
