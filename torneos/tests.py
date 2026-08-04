@@ -2216,6 +2216,57 @@ class PlanilleroPartidoTests(TestCase):
         "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
         "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
     })
+    def test_sustituciones_muestran_primero_el_cambio_mas_reciente(self):
+        entra_temprano = Jugador.objects.create(
+            equipo=self.local,
+            nombres="Entra Temprano",
+            cedula="SUB-ORDEN-20",
+            fecha_nacimiento=date(1992, 1, 1),
+        )
+        sale_tarde = Jugador.objects.create(
+            equipo=self.local,
+            nombres="Sale Tarde",
+            cedula="SUB-ORDEN-SALE-60",
+            fecha_nacimiento=date(1991, 1, 1),
+        )
+        entra_tarde = Jugador.objects.create(
+            equipo=self.local,
+            nombres="Entra Tarde",
+            cedula="SUB-ORDEN-60",
+            fecha_nacimiento=date(1990, 1, 1),
+        )
+        cambio_temprano = SustitucionPartido.objects.create(
+            partido=self.partido,
+            equipo=self.local,
+            jugador_sale=self.jugador,
+            jugador_entra=entra_temprano,
+            minuto=20,
+        )
+        cambio_tarde = SustitucionPartido.objects.create(
+            partido=self.partido,
+            equipo=self.local,
+            jugador_sale=sale_tarde,
+            jugador_entra=entra_tarde,
+            minuto=60,
+        )
+
+        respuesta_live = self.client.get(f"/partido/{self.partido.id}/live/")
+        self.assertEqual(
+            [cambio.id for cambio in respuesta_live.context["sustituciones_local"]],
+            [cambio_tarde.id, cambio_temprano.id],
+        )
+
+        self.client.force_login(self.planillero)
+        respuesta_editor = self.client.get(f"/partido/{self.partido.id}/editor-movil/")
+        self.assertEqual(
+            [cambio.id for cambio in respuesta_editor.context["sustituciones"]],
+            [cambio_tarde.id, cambio_temprano.id],
+        )
+
+    @override_settings(STORAGES={
+        "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+        "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
+    })
     def test_live_no_repite_persona_con_varios_cargos(self):
         self.local.director_tecnico = "José Pérez"
         self.local.asistente_tecnico = "JOSE PEREZ"

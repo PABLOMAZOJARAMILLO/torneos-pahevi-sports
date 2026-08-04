@@ -4994,7 +4994,7 @@ def editor_partido_movil(request, partido_id):
     goles = Gol.objects.filter(partido=partido).select_related('jugador', 'equipo').order_by('equipo__nombre', 'jugador__nombres')
     tarjetas = Tarjeta.objects.filter(partido=partido).select_related('jugador', 'equipo').order_by('equipo__nombre', 'tipo', 'jugador__nombres')
     alineaciones = AlineacionPartido.objects.filter(partido=partido).select_related('jugador', 'equipo').order_by('equipo__nombre', 'rol', 'jugador__nombres')
-    sustituciones = SustitucionPartido.objects.filter(partido=partido).select_related('equipo', 'jugador_sale', 'jugador_entra').order_by('equipo__nombre', 'minuto', 'id')
+    sustituciones = SustitucionPartido.objects.filter(partido=partido).select_related('equipo', 'jugador_sale', 'jugador_entra').order_by('-minuto', '-creado_en', '-id')
     for equipo_partido in (partido.equipo_local, partido.equipo_visitante):
         actualizar_incidencia_regla_edad(partido, equipo_partido, request=request)
     incidencias_reglas_edad = IncidenciaReglaEdad.objects.filter(partido=partido).select_related(
@@ -8830,8 +8830,16 @@ def partido_live(request, partido_id):
     )
     for cobro in cobros_penales:
         cobro.jugador_resumen = nombre_resumen_jugador(cobro.jugador)
-    sustituciones_local = [cambio for cambio in sustituciones if cambio.equipo_id == partido.equipo_local_id]
-    sustituciones_visitante = [cambio for cambio in sustituciones if cambio.equipo_id == partido.equipo_visitante_id]
+    sustituciones_local = sorted(
+        (cambio for cambio in sustituciones if cambio.equipo_id == partido.equipo_local_id),
+        key=lambda cambio: (cambio.minuto is not None, cambio.minuto or -1, cambio.creado_en or timezone.now(), cambio.id),
+        reverse=True,
+    )
+    sustituciones_visitante = sorted(
+        (cambio for cambio in sustituciones if cambio.equipo_id == partido.equipo_visitante_id),
+        key=lambda cambio: (cambio.minuto is not None, cambio.minuto or -1, cambio.creado_en or timezone.now(), cambio.id),
+        reverse=True,
+    )
     for cambio in sustituciones:
         cambio.jugador_entra_corto = nombre_corto_jugador(cambio.jugador_entra)
         cambio.jugador_sale_corto = nombre_corto_jugador(cambio.jugador_sale)
