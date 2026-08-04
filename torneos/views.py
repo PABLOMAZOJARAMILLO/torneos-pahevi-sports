@@ -5016,18 +5016,8 @@ def editor_partido_movil(request, partido_id):
         CobroPenal.objects.filter(partido=partido).select_related("jugador", "equipo").order_by("orden", "id")
     )
     equipo_siguiente_penal = partido.equipo_local if len(cobros_penales) % 2 == 0 else partido.equipo_visitante
-    ids_en_cancha_siguiente_penal = (
-        jugadores_en_cancha_local
-        if equipo_siguiente_penal.id == partido.equipo_local_id
-        else jugadores_en_cancha_visitante
-    )
-    cobradores_penal = list(
-        Jugador.objects.filter(
-            id__in=ids_en_cancha_siguiente_penal,
-            equipo=equipo_siguiente_penal,
-            estado="ACTIVO",
-        ).order_by("nombres")
-    )
+    cobradores_penal = _cobradores_disponibles_tanda(partido, equipo_siguiente_penal, cobros_penales)
+    cobros_equipo_siguiente = sum(1 for cobro in cobros_penales if cobro.equipo_id == equipo_siguiente_penal.id)
 
     return render(request, 'editor_partido_movil.html', {
         'partido': partido,
@@ -5066,6 +5056,8 @@ def editor_partido_movil(request, partido_id):
         'cobros_penales': cobros_penales,
         'equipo_siguiente_penal': equipo_siguiente_penal,
         'cobradores_penal': cobradores_penal,
+        'numero_cobro_equipo_siguiente': cobros_equipo_siguiente + 1,
+        'es_muerte_subita': cobros_equipo_siguiente >= 5,
         'tanda_penales_definida': _tanda_penales_definida(partido, cobros_penales),
     })
 
@@ -9031,9 +9023,28 @@ def _tanda_penales_definida(partido, cobros=None):
     cantidad_visitante = len(cobros) - cantidad_local
     restantes_local = max(0, 5 - cantidad_local)
     restantes_visitante = max(0, 5 - cantidad_visitante)
-    if local > visitante + restantes_visitante or visitante > local + restantes_local:
+    if (cantidad_local < 5 or cantidad_visitante < 5) and (
+        local > visitante + restantes_visitante or visitante > local + restantes_local
+    ):
         return True
     return cantidad_local == cantidad_visitante and cantidad_local >= 5 and local != visitante
+
+
+def _cobradores_disponibles_tanda(partido, equipo, cobros=None):
+    """No permite repetir hasta que todos los jugadores que terminaron en cancha hayan cobrado."""
+    ids_en_cancha = jugadores_actuales_en_cancha(partido, equipo)
+    jugadores = list(
+        Jugador.objects.filter(id__in=ids_en_cancha, equipo=equipo, estado="ACTIVO").order_by("nombres")
+    )
+    if not jugadores:
+        return []
+    cobros = list(cobros if cobros is not None else partido.cobros_penales.all())
+    conteos = {jugador.id: 0 for jugador in jugadores}
+    for cobro in cobros:
+        if cobro.equipo_id == equipo.id and cobro.jugador_id in conteos:
+            conteos[cobro.jugador_id] += 1
+    ciclo_actual = min(conteos.values())
+    return [jugador for jugador in jugadores if conteos[jugador.id] == ciclo_actual]
 
 
 def _actualizar_marcador_tanda(partido):
@@ -9077,9 +9088,13 @@ def registrar_cobro_penal(request, partido_id):
         return redirect(f"{reverse('editor_partido_movil', args=[partido.id])}#cronometro-penales")
     equipo = partido.equipo_local if len(cobros) % 2 == 0 else partido.equipo_visitante
     jugador = get_object_or_404(Jugador, id=request.POST.get("jugador"), equipo=equipo, estado="ACTIVO")
-    habilitado = jugador.id in jugadores_actuales_en_cancha(partido, equipo)
+    cobradores_disponibles = _cobradores_disponibles_tanda(partido, equipo, cobros)
+    habilitado = jugador.id in {cobrador.id for cobrador in cobradores_disponibles}
     if not habilitado:
-        messages.error(request, "El jugador seleccionado no estaba en cancha al finalizar el encuentro.")
+        messages.error(
+            request,
+            "Ese jugador no puede repetir todavia. Primero deben cobrar los demas jugadores que finalizaron en cancha.",
+        )
     else:
         CobroPenal.objects.create(
             partido=partido,

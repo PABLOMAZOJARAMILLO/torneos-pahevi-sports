@@ -1975,6 +1975,65 @@ class PlanilleroPartidoTests(TestCase):
         self.partido.refresh_from_db()
         self.assertEqual(self.partido.estado, "FINALIZADO")
 
+    def test_no_repite_cobrador_hasta_agotar_jugadores_en_cancha(self):
+        local_dos = Jugador.objects.create(
+            equipo=self.local, dorsal=8, nombres="Segundo Local", cedula="L8",
+            fecha_nacimiento=date(1990, 2, 1),
+        )
+        visitante_uno = Jugador.objects.create(
+            equipo=self.visitante, dorsal=10, nombres="Primer Visitante", cedula="V10",
+            fecha_nacimiento=date(1990, 3, 1),
+        )
+        visitante_dos = Jugador.objects.create(
+            equipo=self.visitante, dorsal=11, nombres="Segundo Visitante", cedula="V11",
+            fecha_nacimiento=date(1990, 4, 1),
+        )
+        for equipo, jugador in (
+            (self.local, self.jugador), (self.local, local_dos),
+            (self.visitante, visitante_uno), (self.visitante, visitante_dos),
+        ):
+            AlineacionPartido.objects.create(partido=self.partido, equipo=equipo, jugador=jugador, rol="TITULAR")
+        self.partido.fase = "SEMIFINAL"
+        self.partido.estado = "EN_JUEGO"
+        self.partido.periodo_en_vivo = "PEN"
+        self.partido.save()
+        self.client.force_login(self.planillero)
+
+        url = f"/partido/{self.partido.id}/cronometro/penales/cobro/"
+        self.client.post(url, {"jugador": self.jugador.id, "resultado": "GOL"})
+        self.client.post(url, {"jugador": visitante_uno.id, "resultado": "GOL"})
+        self.client.post(url, {"jugador": self.jugador.id, "resultado": "GOL"})
+        self.assertEqual(CobroPenal.objects.filter(partido=self.partido).count(), 2)
+
+        self.client.post(url, {"jugador": local_dos.id, "resultado": "GOL"})
+        self.assertEqual(CobroPenal.objects.filter(partido=self.partido).count(), 3)
+
+    def test_muerte_subita_espera_el_cobro_del_rival(self):
+        visitante = Jugador.objects.create(
+            equipo=self.visitante, dorsal=10, nombres="Cobrador Visitante", cedula="MSV10",
+            fecha_nacimiento=date(1991, 1, 1),
+        )
+        AlineacionPartido.objects.create(partido=self.partido, equipo=self.local, jugador=self.jugador, rol="TITULAR")
+        AlineacionPartido.objects.create(partido=self.partido, equipo=self.visitante, jugador=visitante, rol="TITULAR")
+        self.partido.fase = "FINAL"
+        self.partido.estado = "EN_JUEGO"
+        self.partido.periodo_en_vivo = "PEN"
+        self.partido.save()
+        self.client.force_login(self.planillero)
+        url = f"/partido/{self.partido.id}/cronometro/penales/cobro/"
+
+        for indice in range(11):
+            jugador = self.jugador if indice % 2 == 0 else visitante
+            self.client.post(url, {"jugador": jugador.id, "resultado": "GOL"})
+        self.client.get(f"/partido/{self.partido.id}/cronometro/finalizar/")
+        self.partido.refresh_from_db()
+        self.assertEqual(self.partido.estado, "EN_JUEGO")
+
+        self.client.post(url, {"jugador": visitante.id, "resultado": "FALLO"})
+        self.client.get(f"/partido/{self.partido.id}/cronometro/finalizar/")
+        self.partido.refresh_from_db()
+        self.assertEqual(self.partido.estado, "FINALIZADO")
+
     @override_settings(STORAGES={
         "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
         "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
