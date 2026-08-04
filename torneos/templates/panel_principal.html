@@ -6468,6 +6468,69 @@ body.solo-lectura .menu-principal{top:96px!important}
                         text-align: center !important;
                     }
                 }
+
+                /* PC y celular horizontal: evita que equipos y etiquetas salgan de la tarjeta. */
+                @media (min-width: 601px) {
+                    .tab-content[data-tab="finales"] .llaves-simetricas .ronda-pareja {
+                        gap: clamp(18px, 4vw, 40px) !important;
+                    }
+                    .tab-content[data-tab="finales"] .llaves-simetricas .ronda-pareja .partido-llave {
+                        min-width: 0 !important;
+                        overflow: visible !important;
+                        flex-direction: column !important;
+                        padding-left: 10px !important;
+                        padding-right: 10px !important;
+                    }
+                    .tab-content[data-tab="finales"] .llaves-simetricas .ronda-pareja .partido-llave-contenido {
+                        width: 100% !important;
+                        min-width: 0 !important;
+                        display: grid !important;
+                        grid-template-columns: minmax(0, 1fr) minmax(76px, 88px) minmax(0, 1fr) !important;
+                        grid-template-rows: auto !important;
+                        gap: 6px !important;
+                        align-items: center !important;
+                    }
+                    .tab-content[data-tab="finales"] .llaves-simetricas .ronda-pareja .equipo-llave:first-child {
+                        grid-column: 1 !important;
+                        grid-row: 1 !important;
+                    }
+                    .tab-content[data-tab="finales"] .llaves-simetricas .ronda-pareja .centro-llave {
+                        grid-column: 2 !important;
+                        grid-row: 1 !important;
+                        min-width: 0 !important;
+                    }
+                    .tab-content[data-tab="finales"] .llaves-simetricas .ronda-pareja .equipo-llave:last-child {
+                        grid-column: 3 !important;
+                        grid-row: 1 !important;
+                    }
+                    .tab-content[data-tab="finales"] .llaves-simetricas .ronda-pareja .equipo-llave {
+                        width: 100% !important;
+                        min-width: 0 !important;
+                        overflow: visible !important;
+                    }
+                    .tab-content[data-tab="finales"] .llaves-simetricas .ronda-pareja .nombre-equipo-llave {
+                        width: 100% !important;
+                        max-width: 100% !important;
+                        min-width: 0 !important;
+                        min-height: 30px !important;
+                        padding: 0 2px !important;
+                        white-space: normal !important;
+                        overflow: visible !important;
+                        text-overflow: clip !important;
+                        overflow-wrap: anywhere !important;
+                        word-break: normal !important;
+                        text-align: center !important;
+                    }
+                    .tab-content[data-tab="finales"] .llaves-simetricas .ronda-pareja .etiqueta-numero-llave {
+                        position: static !important;
+                        width: 100% !important;
+                        margin: 0 0 7px !important;
+                        padding: 0 4px !important;
+                        white-space: normal !important;
+                        overflow: visible !important;
+                        text-align: center !important;
+                    }
+                }
             </style>
 
             <div class="llaves">
