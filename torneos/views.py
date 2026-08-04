@@ -5028,7 +5028,7 @@ def editor_partido_movil(request, partido_id):
     cobros_penales = list(
         CobroPenal.objects.filter(partido=partido).select_related("jugador", "equipo").order_by("orden", "id")
     )
-    equipo_siguiente_penal = partido.equipo_local if len(cobros_penales) % 2 == 0 else partido.equipo_visitante
+    equipo_siguiente_penal = _equipo_turno_tanda(partido, len(cobros_penales))
     cobradores_penal = _cobradores_disponibles_tanda(partido, equipo_siguiente_penal, cobros_penales)
     cobros_equipo_siguiente = sum(1 for cobro in cobros_penales if cobro.equipo_id == equipo_siguiente_penal.id)
 
@@ -9059,6 +9059,21 @@ def _tanda_penales_definida(partido, cobros=None):
     return cantidad_local == cantidad_visitante and cantidad_local >= 5 and local != visitante
 
 
+def _equipo_turno_tanda(partido, cantidad_cobros):
+    equipo_inicial = partido.equipo_inicia_penales
+    if equipo_inicial_id := partido.equipo_inicia_penales_id:
+        if equipo_inicial_id not in {partido.equipo_local_id, partido.equipo_visitante_id}:
+            equipo_inicial = partido.equipo_local
+    else:
+        equipo_inicial = partido.equipo_local
+    equipo_segundo = (
+        partido.equipo_visitante
+        if equipo_inicial.id == partido.equipo_local_id
+        else partido.equipo_local
+    )
+    return equipo_inicial if cantidad_cobros % 2 == 0 else equipo_segundo
+
+
 def _cobradores_disponibles_tanda(partido, equipo, cobros=None):
     """No permite repetir hasta que todos los jugadores que terminaron en cancha hayan cobrado."""
     ids_en_cancha = jugadores_actuales_en_cancha(partido, equipo)
@@ -9096,12 +9111,23 @@ def iniciar_tanda_penales(request, partido_id):
         messages.error(request, "La tanda de penales solo esta disponible en fases finales.")
     elif partido.goles_local != partido.goles_visitante:
         messages.error(request, "Solo se puede iniciar la tanda cuando el partido esta empatado.")
+    elif partido.cobros_penales.exists():
+        messages.error(request, "No se puede cambiar el equipo inicial porque la tanda ya tiene cobros registrados.")
     else:
+        equipo_inicial_id = request.POST.get("equipo_inicia_penales")
+        equipos_validos = {partido.equipo_local_id, partido.equipo_visitante_id}
+        try:
+            equipo_inicial_id = int(equipo_inicial_id)
+        except (TypeError, ValueError):
+            equipo_inicial_id = partido.equipo_local_id
+        if equipo_inicial_id not in equipos_validos:
+            equipo_inicial_id = partido.equipo_local_id
         _pausar_cronometro(partido)
         partido.estado = "EN_JUEGO"
         partido.periodo_en_vivo = "PEN"
-        partido.save(update_fields=["estado", "periodo_en_vivo"])
-        messages.success(request, "Tanda de penales iniciada.")
+        partido.equipo_inicia_penales_id = equipo_inicial_id
+        partido.save(update_fields=["estado", "periodo_en_vivo", "equipo_inicia_penales"])
+        messages.success(request, f"Tanda iniciada. Cobra primero: {partido.equipo_inicia_penales.nombre}.")
     return redirect(f"{reverse('editor_partido_movil', args=[partido.id])}#cronometro-penales")
 
 
@@ -9115,7 +9141,7 @@ def registrar_cobro_penal(request, partido_id):
     if partido.periodo_en_vivo != "PEN" or _tanda_penales_definida(partido, cobros):
         messages.error(request, "La tanda no esta activa o ya tiene un ganador.")
         return redirect(f"{reverse('editor_partido_movil', args=[partido.id])}#cronometro-penales")
-    equipo = partido.equipo_local if len(cobros) % 2 == 0 else partido.equipo_visitante
+    equipo = _equipo_turno_tanda(partido, len(cobros))
     jugador = get_object_or_404(Jugador, id=request.POST.get("jugador"), equipo=equipo, estado="ACTIVO")
     cobradores_disponibles = _cobradores_disponibles_tanda(partido, equipo, cobros)
     habilitado = jugador.id in {cobrador.id for cobrador in cobradores_disponibles}

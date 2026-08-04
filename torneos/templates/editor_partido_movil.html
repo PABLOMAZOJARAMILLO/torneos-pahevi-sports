@@ -916,7 +916,15 @@
         {% if not tanda_penales_activa %}
             {% if puede_iniciar_penales %}
             <p>Si el encuentro termino empatado, inicia la definicion desde el punto penal.</p>
-            <form method="post" action="{% url 'iniciar_tanda_penales' partido.id %}">{% csrf_token %}<button class="btn" type="submit">Iniciar penales</button></form>
+            <form method="post" action="{% url 'iniciar_tanda_penales' partido.id %}">
+                {% csrf_token %}
+                <label>Equipo que cobra primero (resultado del sorteo)</label>
+                <select name="equipo_inicia_penales" required>
+                    <option value="{{ partido.equipo_local.id }}">{{ partido.equipo_local.nombre }}</option>
+                    <option value="{{ partido.equipo_visitante.id }}">{{ partido.equipo_visitante.nombre }}</option>
+                </select>
+                <button class="btn" type="submit">Iniciar penales</button>
+            </form>
             {% else %}<p>Esta opcion se habilita cuando el marcador queda empatado.</p>{% endif %}
         {% else %}
             <div class="marcador-penales">{{ partido.goles_local_penales|default:0 }} - {{ partido.goles_visitante_penales|default:0 }}</div>

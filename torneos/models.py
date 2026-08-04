@@ -511,6 +511,14 @@ class Partido(models.Model):
     observacion_comite = models.TextField(blank=True, null=True, verbose_name='Observación del comité')
     goles_local_penales = models.IntegerField(default=0, blank=True, null=True)
     goles_visitante_penales = models.IntegerField(default=0, blank=True, null=True)
+    equipo_inicia_penales = models.ForeignKey(
+        Equipo,
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
+        related_name="tandas_penales_iniciadas",
+        verbose_name="Equipo que inicia la tanda",
+    )
     siguiente_partido = models.ForeignKey('self', on_delete=models.SET_NULL, blank=True, null=True, related_name='partidos_origen', verbose_name='Partido siguiente')
     slot_siguiente = models.CharField(max_length=20, choices=(('LOCAL', 'Local'), ('VISITANTE', 'Visitante')), blank=True, null=True, verbose_name='Entra como')
     inicio_en_vivo = models.DateTimeField(blank=True, null=True, verbose_name="Inicio real en vivo")

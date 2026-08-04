@@ -1934,6 +1934,33 @@ class PlanilleroPartidoTests(TestCase):
         self.assertContains(editor, "Siguiente cobro: Local")
         self.assertContains(editor, "no suman en la tabla de goleadores")
 
+    def test_sorteo_permite_que_visitante_cobre_primero(self):
+        visitante = Jugador.objects.create(
+            equipo=self.visitante, dorsal=10, nombres="Primer Cobrador Visitante", cedula="SORTEO10",
+            fecha_nacimiento=date(1991, 1, 1),
+        )
+        AlineacionPartido.objects.create(
+            partido=self.partido, equipo=self.visitante, jugador=visitante, rol="TITULAR",
+        )
+        self.partido.fase = "CUARTOS"
+        self.partido.goles_local = self.partido.goles_visitante = 1
+        self.partido.save()
+        self.client.force_login(self.planillero)
+
+        self.client.post(
+            f"/partido/{self.partido.id}/cronometro/penales/iniciar/",
+            {"equipo_inicia_penales": self.visitante.id},
+        )
+        self.client.post(
+            f"/partido/{self.partido.id}/cronometro/penales/cobro/",
+            {"jugador": visitante.id, "resultado": "GOL"},
+        )
+
+        self.partido.refresh_from_db()
+        primer_cobro = CobroPenal.objects.get(partido=self.partido, orden=1)
+        self.assertEqual(self.partido.equipo_inicia_penales_id, self.visitante.id)
+        self.assertEqual(primer_cobro.equipo_id, self.visitante.id)
+
     def test_cobros_actualizan_penales_pero_no_goleadores(self):
         visitante = Jugador.objects.create(
             equipo=self.visitante, dorsal=10, nombres="Cobrador Visitante", cedula="PV10",
