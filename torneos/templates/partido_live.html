@@ -363,6 +363,22 @@ button.live-icon {
     background: #f1f5f9;
     color: #64748b;
 }
+.penalty-summary {
+    margin: 12px 14px 18px;
+    padding: 12px;
+    border: 1px solid #cbd5e1;
+    border-radius: 14px;
+    background: #f8fafc;
+}
+.penalty-summary-title { text-align:center; font-weight:900; margin-bottom:10px; color:#0f172a; }
+.penalty-summary-list { display:grid; gap:7px; max-width:720px; margin:auto; }
+.penalty-summary-row { display:grid; grid-template-columns:42px minmax(0,1fr) 80px; gap:9px; align-items:center; padding:8px 10px; border-radius:9px; background:#fff; border:1px solid #e2e8f0; }
+.penalty-summary-order { color:#64748b; font-weight:800; }
+.penalty-summary-player { min-width:0; font-weight:800; color:#0f172a; }
+.penalty-summary-team { display:block; color:#64748b; font-size:11px; font-weight:700; }
+.penalty-summary-result { text-align:center; border-radius:999px; padding:4px 6px; font-size:12px; font-weight:900; }
+.penalty-summary-result.goal { color:#047857; background:#d1fae5; }
+.penalty-summary-result.miss { color:#be123c; background:#ffe4e6; }
 .timeline-event {
     position: relative;
     display: grid;
@@ -1266,6 +1282,21 @@ button.live-icon {
 <main class="live-content">
     <section id="resumen" class="panel-live" data-live-panel="resumen">
         <div class="panel-title">Resumen del partido</div>
+        {% if eventos_live or cobros_penales %}
+        {% if cobros_penales %}
+        <div class="penalty-summary">
+            <div class="penalty-summary-title">Tanda de penales · {{ partido.goles_local_penales|default:0 }} - {{ partido.goles_visitante_penales|default:0 }}</div>
+            <div class="penalty-summary-list">
+                {% for cobro in cobros_penales %}
+                <div class="penalty-summary-row">
+                    <span class="penalty-summary-order">#{{ cobro.orden }}</span>
+                    <span class="penalty-summary-player">{{ cobro.jugador.nombres }}<small class="penalty-summary-team">{{ cobro.equipo.nombre }}</small></span>
+                    {% if cobro.convertido %}<span class="penalty-summary-result goal">ANOTÓ ✓</span>{% else %}<span class="penalty-summary-result miss">FALLÓ ✕</span>{% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
         {% if eventos_live %}
         <div class="timeline">
             {% if partido.estado == "FINALIZADO" %}
@@ -1302,6 +1333,7 @@ button.live-icon {
             {% endfor %}
             <div class="timeline-period inicio">Inicio partido</div>
         </div>
+        {% endif %}
         {% else %}
         <div class="empty-state">Aun no hay eventos registrados para este partido.</div>
         {% endif %}

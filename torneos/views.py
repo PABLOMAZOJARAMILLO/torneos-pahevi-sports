@@ -8783,6 +8783,11 @@ def partido_live(request, partido_id):
     tarjetas = Tarjeta.objects.filter(partido=partido).select_related("jugador", "equipo").order_by("minuto", "creado_en", "id")
     alineaciones = AlineacionPartido.objects.filter(partido=partido).select_related("jugador", "equipo").order_by("equipo__nombre", "rol", "jugador__nombres")
     sustituciones = SustitucionPartido.objects.filter(partido=partido).select_related("equipo", "jugador_sale", "jugador_entra").order_by("minuto", "creado_en", "id")
+    cobros_penales = list(
+        CobroPenal.objects.filter(partido=partido)
+        .select_related("equipo", "jugador")
+        .order_by("orden", "id")
+    )
     sustituciones_local = [cambio for cambio in sustituciones if cambio.equipo_id == partido.equipo_local_id]
     sustituciones_visitante = [cambio for cambio in sustituciones if cambio.equipo_id == partido.equipo_visitante_id]
     for cambio in sustituciones:
@@ -8998,6 +9003,7 @@ def partido_live(request, partido_id):
         "cuerpo_tecnico_visitante": cuerpo_tecnico_live(partido.equipo_visitante),
         "eventos_live": eventos_live,
         "eventos_live_grupos": eventos_live_grupos,
+        "cobros_penales": cobros_penales,
         "segundos_vivos": segundos_vivos_partido(partido),
         "volver_url": volver_url,
         "delegado_alineacion_url": url_alineacion_delegado_si_aplica(request.user, partido),

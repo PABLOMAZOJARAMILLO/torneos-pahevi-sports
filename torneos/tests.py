@@ -2038,6 +2038,33 @@ class PlanilleroPartidoTests(TestCase):
         "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
         "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
     })
+    def test_resumen_publico_muestra_goles_y_fallos_de_la_tanda(self):
+        visitante = Jugador.objects.create(
+            equipo=self.visitante, dorsal=10, nombres="Jugador Que Falla", cedula="RPF10",
+            fecha_nacimiento=date(1991, 1, 1),
+        )
+        CobroPenal.objects.create(
+            partido=self.partido, equipo=self.local, jugador=self.jugador, orden=1, convertido=True,
+        )
+        CobroPenal.objects.create(
+            partido=self.partido, equipo=self.visitante, jugador=visitante, orden=2, convertido=False,
+        )
+        self.partido.goles_local_penales = 1
+        self.partido.goles_visitante_penales = 0
+        self.partido.save()
+
+        respuesta = self.client.get(f"/partido/{self.partido.id}/live/")
+
+        self.assertContains(respuesta, "Tanda de penales")
+        self.assertContains(respuesta, self.jugador.nombres)
+        self.assertContains(respuesta, "ANOTÓ")
+        self.assertContains(respuesta, visitante.nombres)
+        self.assertContains(respuesta, "FALLÓ")
+
+    @override_settings(STORAGES={
+        "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+        "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
+    })
     def test_editor_movil_muestra_edad_en_alineacion(self):
         self.client.force_login(self.planillero)
 
