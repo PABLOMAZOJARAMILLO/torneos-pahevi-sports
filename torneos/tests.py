@@ -2309,6 +2309,7 @@ class PlanilleroPartidoTests(TestCase):
 
         self.assertContains(respuesta, "PENALES")
         self.assertContains(respuesta, "&#128308; EN VIVO")
+        self.assertNotContains(respuesta, 'class="live-clock"')
 
         self.client.force_login(self.planillero)
         editor = self.client.get(f"/partido/{self.partido.id}/editor-movil/")
