@@ -2278,6 +2278,25 @@ class PlanilleroPartidoTests(TestCase):
         "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
         "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
     })
+    def test_live_muestra_aviso_penales_en_eliminatoria_empatada(self):
+        self.partido.fase = "CUARTOS"
+        self.partido.estado = "EN_JUEGO"
+        self.partido.periodo_en_vivo = "PEN"
+        self.partido.goles_local = 1
+        self.partido.goles_visitante = 1
+        self.partido.save(update_fields=[
+            "fase", "estado", "periodo_en_vivo", "goles_local", "goles_visitante",
+        ])
+
+        respuesta = self.client.get(f"/partido/{self.partido.id}/live/")
+
+        self.assertContains(respuesta, "PENALES")
+        self.assertNotContains(respuesta, "&#128308; EN VIVO")
+
+    @override_settings(STORAGES={
+        "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+        "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
+    })
     def test_sustituciones_muestran_primero_el_cambio_mas_reciente(self):
         entra_temprano = Jugador.objects.create(
             equipo=self.local,
