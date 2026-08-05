@@ -5114,7 +5114,8 @@ def editor_partido_movil(request, partido_id):
         'editor_live_url': f"{reverse('partido_live', args=[partido.id])}?volver={quote(volver_url, safe='')}",
         'es_fase_eliminatoria': partido.fase in FASES_ELIMINATORIAS,
         'puede_iniciar_penales': partido.fase in FASES_ELIMINATORIAS and partido.goles_local == partido.goles_visitante,
-        'tanda_penales_activa': partido.periodo_en_vivo == "PEN",
+        'modo_penales': partido.periodo_en_vivo == "PEN",
+        'tanda_penales_activa': partido.periodo_en_vivo == "PEN" and bool(partido.equipo_inicia_penales_id),
         'cobros_penales': cobros_penales,
         'equipo_siguiente_penal': equipo_siguiente_penal,
         'cobradores_penal': cobradores_penal,
@@ -9228,6 +9229,25 @@ def _actualizar_marcador_tanda(partido):
         equipo=partido.equipo_visitante, convertido=True
     ).count()
     partido.save(update_fields=["goles_local_penales", "goles_visitante_penales"])
+
+
+@login_required
+@require_POST
+def preparar_tanda_penales(request, partido_id):
+    partido = get_object_or_404(Partido, id=partido_id)
+    if not puede_diligenciar_partido(request.user, partido):
+        return denegar_partido_no_autorizado()
+    if partido.fase not in FASES_ELIMINATORIAS:
+        messages.error(request, "Los penales solo estan disponibles en fases finales.")
+    elif partido.goles_local != partido.goles_visitante:
+        messages.error(request, "El periodo de penales solo se activa si el partido termino empatado.")
+    else:
+        _pausar_cronometro(partido)
+        partido.estado = "EN_JUEGO"
+        partido.periodo_en_vivo = "PEN"
+        partido.save(update_fields=["estado", "periodo_en_vivo"])
+        messages.success(request, "Cronometro detenido. Selecciona el equipo que cobrara primero.")
+    return redirect(f"{reverse('editor_partido_movil', args=[partido.id])}#cronometro-penales")
 
 
 @login_required
