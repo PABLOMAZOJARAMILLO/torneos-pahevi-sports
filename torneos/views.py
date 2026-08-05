@@ -11,7 +11,7 @@ import random
 import re
 import uuid
 import zipfile
-from urllib.parse import quote, urlencode
+from urllib.parse import quote, unquote, urlencode, urlparse
 
 from django.conf import settings
 from django.contrib import messages
@@ -1363,6 +1363,45 @@ def subir_documento_torneo(archivo, tipo):
         return url_supabase
 
     return subir_documento_cloudinary(archivo, tipo)
+
+
+def eliminar_documento_almacenamiento(archivo_url):
+    """Retira un documento de Supabase o Cloudinary sin bloquear su baja en la app."""
+    if not archivo_url:
+        return
+    try:
+        public_base = os.getenv("SUPABASE_PUBLIC_MEDIA_URL", "").strip().rstrip("/")
+        if public_base and archivo_url.startswith(f"{public_base}/"):
+            import boto3
+
+            cliente = boto3.client(
+                "s3",
+                endpoint_url=os.getenv("SUPABASE_S3_ENDPOINT_URL", "").strip(),
+                aws_access_key_id=os.getenv("SUPABASE_S3_ACCESS_KEY_ID", "").strip(),
+                aws_secret_access_key=os.getenv("SUPABASE_S3_SECRET_ACCESS_KEY", "").strip(),
+                region_name=os.getenv("SUPABASE_S3_REGION_NAME", "us-east-1").strip(),
+            )
+            cliente.delete_object(
+                Bucket=os.getenv("SUPABASE_STORAGE_BUCKET", "torneos-media").strip(),
+                Key=unquote(archivo_url[len(public_base) + 1:]),
+            )
+            return
+
+        if "res.cloudinary.com" in archivo_url:
+            import cloudinary
+            import cloudinary.uploader
+
+            cloudinary_url = getattr(settings, "CLOUDINARY_URL", "").strip()
+            if cloudinary_url:
+                os.environ["CLOUDINARY_URL"] = cloudinary_url
+            cloudinary.config(secure=True)
+            ruta = unquote(urlparse(archivo_url).path)
+            marcador = "/raw/upload/"
+            if marcador in ruta:
+                public_id = re.sub(r"^v\d+/", "", ruta.split(marcador, 1)[1])
+                cloudinary.uploader.destroy(public_id, resource_type="raw", invalidate=True)
+    except Exception:
+        return
 
 
 def limpiar_nombre(nombre):
@@ -8868,6 +8907,34 @@ def revision_partido_live(request, partido_id):
         "revision": _revision_partido_live(partido),
         "estado": partido.estado,
     })
+
+
+@login_required
+@user_passes_test(es_editor_torneo)
+@require_POST
+def gestion_planilla_juego_eliminar(request, documento_id):
+    torneo = torneo_actual(request)
+    documento = get_object_or_404(
+        Documento.objects.select_related("torneo", "partido").filter(tipo="PLANILLA_JUEGO"),
+        id=documento_id,
+    )
+    if not torneo or documento.torneo_id != torneo.id or not usuario_puede_editar_torneo(request.user, documento.torneo):
+        return HttpResponseForbidden("No tienes permiso para eliminar esta planilla.")
+
+    archivo = documento.archivo
+    titulo = documento.titulo
+    partido_id = documento.partido_id or ""
+    registrar_actividad(
+        request,
+        "ELIMINAR_PLANILLA_JUEGO",
+        documento,
+        torneo=documento.torneo,
+        descripcion=f"Elimino la planilla de juego {titulo}.",
+    )
+    documento.delete()
+    eliminar_documento_almacenamiento(archivo)
+    messages.success(request, "Planilla eliminada correctamente. Ya puedes cargar la planilla correcta.")
+    return redirect(f"{reverse('gestion_planillas_juego')}?{urlencode({'partido': partido_id})}")
     respuesta["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
     return respuesta
 

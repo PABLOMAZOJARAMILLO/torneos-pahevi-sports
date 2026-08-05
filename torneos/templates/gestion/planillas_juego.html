@@ -164,6 +164,12 @@
                     {% if documento.archivo %}
                     <a class="btn" href="{{ documento.archivo }}" target="_blank" rel="noopener">Abrir</a>
                     {% endif %}
+                    {% if es_editor %}
+                    <form method="post" action="{% url 'gestion_planilla_juego_eliminar' documento.id %}" onsubmit="return confirm('¿Eliminar esta planilla equivocada? Esta accion no se puede deshacer.');">
+                        {% csrf_token %}
+                        <button class="btn danger" type="submit">Eliminar</button>
+                    </form>
+                    {% endif %}
                 </div>
                 {% endfor %}
             </div>

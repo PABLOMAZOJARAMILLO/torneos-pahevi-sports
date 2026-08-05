@@ -672,6 +672,22 @@ class PlanillasJuegoUploadTests(TestCase):
     def archivo_prueba(self):
         return SimpleUploadedFile("planilla.jpg", b"imagen", content_type="image/jpeg")
 
+    def crear_documento_planilla(self):
+        return Documento.objects.create(
+            tipo="PLANILLA_JUEGO",
+            torneo=self.torneo,
+            categoria=self.categoria,
+            partido=self.partido,
+            equipo_local=self.equipo_local,
+            equipo_visitante=self.equipo_visitante,
+            titulo="Planilla Fecha 1",
+            archivo="https://example.com/fecha1.jpg",
+            numero_fecha="Fecha 1",
+            fecha_partido=self.partido.fecha,
+            hora_partido=self.partido.hora,
+            cargado_por=self.planillero,
+        )
+
     def crear_partido_programado(self):
         partido = Partido.objects.create(
             categoria=self.categoria,
@@ -825,6 +841,34 @@ class PlanillasJuegoUploadTests(TestCase):
         self.assertContains(response, "Fecha 1")
         self.assertEqual(list(response.context["categorias"]), [self.categoria])
         self.assertEqual(list(response.context["partidos"]), [self.partido])
+
+    def test_planillero_no_puede_eliminar_planilla_cargada(self):
+        documento = self.crear_documento_planilla()
+        self.client.force_login(self.planillero)
+
+        listado = self.client.get("/gestion/planillas-juego/")
+        respuesta = self.client.post(f"/gestion/planillas-juego/{documento.id}/eliminar/")
+
+        self.assertNotContains(listado, f"/gestion/planillas-juego/{documento.id}/eliminar/")
+        self.assertEqual(respuesta.status_code, 302)
+        self.assertTrue(Documento.objects.filter(id=documento.id).exists())
+
+    @patch("torneos.views.eliminar_documento_almacenamiento")
+    def test_administrador_puede_eliminar_planilla_cargada(self, eliminar_mock):
+        documento = self.crear_documento_planilla()
+        administrador = User.objects.create_superuser("admin-planillas", "admin@example.com", "clave")
+        self.client.force_login(administrador)
+        session = self.client.session
+        session["torneo_id"] = self.torneo.id
+        session.save()
+
+        listado = self.client.get("/gestion/planillas-juego/")
+        respuesta = self.client.post(f"/gestion/planillas-juego/{documento.id}/eliminar/")
+
+        self.assertContains(listado, f"/gestion/planillas-juego/{documento.id}/eliminar/")
+        self.assertEqual(respuesta.status_code, 302)
+        self.assertFalse(Documento.objects.filter(id=documento.id).exists())
+        eliminar_mock.assert_called_once_with("https://example.com/fecha1.jpg")
 
     def test_lista_planillas_filtra_por_partido(self):
         rival = Equipo.objects.create(nombre="Riverenos", categoria=self.categoria)

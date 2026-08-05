@@ -238,6 +238,7 @@ urlpatterns = [
     path('gestion/documentos/<int:documento_id>/editar/', views.gestion_documento_editar, name='gestion_documento_editar'),
     path('gestion/planillas-juego/', views.gestion_planillas_juego, name='gestion_planillas_juego'),
     path('gestion/planillas-juego/nueva/', views.gestion_planilla_juego_nueva, name='gestion_planilla_juego_nueva'),
+    path('gestion/planillas-juego/<int:documento_id>/eliminar/', views.gestion_planilla_juego_eliminar, name='gestion_planilla_juego_eliminar'),
     path('gestion/generar-fixture/', views.gestion_generar_fixture, name='gestion_generar_fixture'),
     path('gestion/validaciones/', views.gestion_validaciones, name='gestion_validaciones'),
     path('gestion/validaciones/<int:solicitud_id>/resolver/', views.gestion_validacion_resolver, name='gestion_validacion_resolver'),
