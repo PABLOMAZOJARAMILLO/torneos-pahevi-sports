@@ -15,7 +15,7 @@
             {% endif %}
         </span>
 
-        {% if partido.estado == "EN_JUEGO" %}
+        {% if partido.estado == "EN_JUEGO" and partido.periodo_en_vivo != "PEN" %}
         <div class="reloj-partido"
              data-inicio="{{ partido.inicio_en_vivo|date:'c' }}"
              data-segundos="{{ partido.segundos_acumulados|default:0 }}"

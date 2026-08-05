@@ -10,6 +10,7 @@ from django.contrib.auth.models import User
 from django.contrib.auth.models import AnonymousUser
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.http import HttpResponse
+from django.template.loader import render_to_string
 from django.test import RequestFactory, TestCase, TransactionTestCase, override_settings
 from django.utils import timezone
 from openpyxl import Workbook
@@ -2310,6 +2311,17 @@ class PlanilleroPartidoTests(TestCase):
         self.assertContains(respuesta, "PENALES")
         self.assertContains(respuesta, "&#128308; EN VIVO")
         self.assertNotContains(respuesta, 'class="live-clock"')
+
+        partido_panel = next(
+            item for item in construir_partidos_portada(self.torneo)
+            if item["id"] == self.partido.id
+        )
+        tarjeta_panel = render_to_string(
+            "partials/partido_portada_card.html",
+            {"partido": partido_panel},
+        )
+        self.assertIn("EN VIVO", tarjeta_panel)
+        self.assertNotIn('class="reloj-partido"', tarjeta_panel)
 
         self.client.force_login(self.planillero)
         editor = self.client.get(f"/partido/{self.partido.id}/editor-movil/")
