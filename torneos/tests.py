@@ -1927,12 +1927,16 @@ class PlanilleroPartidoTests(TestCase):
         self.partido.fase = "CUARTOS"
         self.partido.goles_local = self.partido.goles_visitante = 1
         self.partido.save()
+        editor_antes = self.client.get(f"/partido/{self.partido.id}/editor-movil/")
+        self.assertContains(editor_antes, 'id="seccion-penales" hidden')
+        self.assertContains(editor_antes, "seccion.hidden = false")
         self.client.post(f"/partido/{self.partido.id}/cronometro/penales/iniciar/")
         self.partido.refresh_from_db()
         self.assertEqual(self.partido.periodo_en_vivo, "PEN")
         editor = self.client.get(f"/partido/{self.partido.id}/editor-movil/")
         self.assertContains(editor, "Siguiente cobro: Local")
         self.assertContains(editor, "no suman en la tabla de goleadores")
+        self.assertNotContains(editor, 'id="seccion-penales" hidden')
 
     def test_sorteo_permite_que_visitante_cobre_primero(self):
         visitante = Jugador.objects.create(
@@ -2291,7 +2295,12 @@ class PlanilleroPartidoTests(TestCase):
         respuesta = self.client.get(f"/partido/{self.partido.id}/live/")
 
         self.assertContains(respuesta, "PENALES")
-        self.assertNotContains(respuesta, "&#128308; EN VIVO")
+        self.assertContains(respuesta, "&#128308; EN VIVO")
+
+        self.client.force_login(self.planillero)
+        editor = self.client.get(f"/partido/{self.partido.id}/editor-movil/")
+        self.assertContains(editor, "abrirSeccionPenales()")
+        self.assertContains(editor, "PENALES ACTIVO")
 
     @override_settings(STORAGES={
         "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},

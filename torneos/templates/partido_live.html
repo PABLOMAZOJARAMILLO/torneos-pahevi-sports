@@ -1273,8 +1273,9 @@ button.live-icon {
                 {% endif %}
             </div>
             <span class="live-state">
-                {% if partido.periodo_en_vivo == "PEN" %}&#129349; PENALES{% elif partido.estado == "EN_JUEGO" %}&#128308; EN VIVO{% else %}{{ partido.get_estado_display }}{% endif %}
+                {% if partido.estado == "EN_JUEGO" %}&#128308; EN VIVO{% else %}{{ partido.get_estado_display }}{% endif %}
             </span>
+            {% if partido.periodo_en_vivo == "PEN" %}<span class="live-state" style="display:block;background:rgba(0,224,122,.18);color:#00e07a;">&#129349; PENALES</span>{% endif %}
             {% if partido.estado == "EN_JUEGO" %}
             <span class="live-clock"
                   data-inicio="{{ partido.inicio_en_vivo|date:'c' }}"

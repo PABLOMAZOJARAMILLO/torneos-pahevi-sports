@@ -6646,7 +6646,7 @@ body.solo-lectura .menu-principal{top:96px!important}
                                 </div>
                                 {% endif %}
 
-                                <div class="estado-llave">{% if p.periodo_en_vivo == "PEN" %}&#129349; PENALES{% elif p.estado == "EN_JUEGO" %}&#128308; EN VIVO{% else %}{{ p.estado_display|default:p.estado }}{% endif %}</div>
+                                <div class="estado-llave">{% if p.estado == "EN_JUEGO" %}&#128308; EN VIVO{% else %}{{ p.estado_display|default:p.estado }}{% endif %}</div>
                                 {% if p.estado == "EN_JUEGO" %}
                                 <div class="reloj-partido"
                                      data-inicio="{{ p.inicio_en_vivo|date:'c' }}"
@@ -6657,9 +6657,9 @@ body.solo-lectura .menu-principal{top:96px!important}
                                 </div>
                                 {% endif %}
 
-                                {% if p.tiene_penales %}
+                                {% if p.periodo_en_vivo == "PEN" or p.tiene_penales %}
                                 <div class="penales-llave">
-                                    Penales: {{ p.pl }} - {{ p.pv }}
+                                    PENALES: {{ p.pl }} - {{ p.pv }}
                                 </div>
                                 {% endif %}
 
@@ -6728,7 +6728,7 @@ body.solo-lectura .menu-principal{top:96px!important}
                                 </div>
                                 {% endif %}
 
-                                <div class="estado-llave">{% if p.periodo_en_vivo == "PEN" %}&#129349; PENALES{% elif p.estado == "EN_JUEGO" %}&#128308; EN VIVO{% else %}{{ p.estado_display|default:p.estado }}{% endif %}</div>
+                                <div class="estado-llave">{% if p.estado == "EN_JUEGO" %}&#128308; EN VIVO{% else %}{{ p.estado_display|default:p.estado }}{% endif %}</div>
                                 {% if p.estado == "EN_JUEGO" %}
                                 <div class="reloj-partido"
                                      data-inicio="{{ p.inicio_en_vivo|date:'c' }}"
@@ -6739,9 +6739,9 @@ body.solo-lectura .menu-principal{top:96px!important}
                                 </div>
                                 {% endif %}
 
-                                {% if p.tiene_penales %}
+                                {% if p.periodo_en_vivo == "PEN" or p.tiene_penales %}
                                 <div class="penales-llave">
-                                    Penales: {{ p.pl }} - {{ p.pv }}
+                                    PENALES: {{ p.pl }} - {{ p.pv }}
                                 </div>
                                 {% endif %}
 
@@ -6810,7 +6810,7 @@ body.solo-lectura .menu-principal{top:96px!important}
                                 </div>
                                 {% endif %}
 
-                                <div class="estado-llave">{% if p.periodo_en_vivo == "PEN" %}&#129349; PENALES{% elif p.estado == "EN_JUEGO" %}&#128308; EN VIVO{% else %}{{ p.estado_display|default:p.estado }}{% endif %}</div>
+                                <div class="estado-llave">{% if p.estado == "EN_JUEGO" %}&#128308; EN VIVO{% else %}{{ p.estado_display|default:p.estado }}{% endif %}</div>
                                 {% if p.estado == "EN_JUEGO" %}
                                 <div class="reloj-partido"
                                      data-inicio="{{ p.inicio_en_vivo|date:'c' }}"
@@ -6821,9 +6821,9 @@ body.solo-lectura .menu-principal{top:96px!important}
                                 </div>
                                 {% endif %}
 
-                                {% if p.tiene_penales %}
+                                {% if p.periodo_en_vivo == "PEN" or p.tiene_penales %}
                                 <div class="penales-llave">
-                                    Penales: {{ p.pl }} - {{ p.pv }}
+                                    PENALES: {{ p.pl }} - {{ p.pv }}
                                 </div>
                                 {% endif %}
 
@@ -6889,7 +6889,7 @@ body.solo-lectura .menu-principal{top:96px!important}
                                 </div>
                                 {% endif %}
 
-                                <div class="estado-llave">{% if p.periodo_en_vivo == "PEN" %}&#129349; PENALES{% elif p.estado == "EN_JUEGO" %}&#128308; EN VIVO{% else %}{{ p.estado_display|default:p.estado }}{% endif %}</div>
+                                <div class="estado-llave">{% if p.estado == "EN_JUEGO" %}&#128308; EN VIVO{% else %}{{ p.estado_display|default:p.estado }}{% endif %}</div>
                                 {% if p.estado == "EN_JUEGO" %}
                                 <div class="reloj-partido"
                                      data-inicio="{{ p.inicio_en_vivo|date:'c' }}"
@@ -6900,9 +6900,9 @@ body.solo-lectura .menu-principal{top:96px!important}
                                 </div>
                                 {% endif %}
 
-                                {% if p.tiene_penales %}
+                                {% if p.periodo_en_vivo == "PEN" or p.tiene_penales %}
                                 <div class="penales-llave">
-                                    Penales: {{ p.pl }} - {{ p.pv }}
+                                    PENALES: {{ p.pl }} - {{ p.pv }}
                                 </div>
                                 {% endif %}
 

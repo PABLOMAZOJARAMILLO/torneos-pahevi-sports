@@ -908,10 +908,11 @@
         <a class="btn" href="{% url 'cronometro_pausar' partido.id %}">⏸ Pausar</a>
         <a class="btn" href="{% url 'cronometro_reanudar' partido.id %}">▶ Reanudar</a>
         <a class="btn" href="{% url 'cronometro_suspender' partido.id %}">⚠ Suspender</a>
+        {% if es_fase_eliminatoria %}<button class="btn" type="button" onclick="abrirSeccionPenales()">🥅 PENALES{% if tanda_penales_activa %} ACTIVO{% endif %}</button>{% endif %}
         <a class="btn" href="{% url 'cronometro_finalizar' partido.id %}">🏁 Finalizar</a>
     </div>
     {% if es_fase_eliminatoria %}
-    <div class="tanda-penales">
+    <div class="tanda-penales" id="seccion-penales" {% if not tanda_penales_activa %}hidden{% endif %}>
         <h2>Tanda de penales</h2>
         {% if not tanda_penales_activa %}
             {% if puede_iniciar_penales %}
@@ -1523,6 +1524,18 @@
 </div>
 
 <script>
+function abrirSeccionPenales() {
+    const cronometro = document.getElementById('cronometro-penales');
+    const seccion = document.getElementById('seccion-penales');
+    if (cronometro) cronometro.open = true;
+    if (seccion) {
+        seccion.hidden = false;
+        seccion.scrollIntoView({behavior: 'smooth', block: 'start'});
+        const selector = seccion.querySelector('select, button, input');
+        if (selector) window.setTimeout(function() { selector.focus(); }, 350);
+    }
+}
+
 function guardarContextoPanelEditor() {
     const botonActivo = document.querySelector('.tab-btn.active');
     const tabEditor = botonActivo ? (botonActivo.dataset.tab || 'resultado') : 'resultado';

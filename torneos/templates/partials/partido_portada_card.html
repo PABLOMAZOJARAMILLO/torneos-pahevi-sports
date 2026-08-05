@@ -8,9 +8,7 @@
             <span class="fase-pill">Grupo {{ partido.grupo }}</span>
         {% endif %}
         <span class="estado-chip {{ partido.estado|lower }}">
-            {% if partido.periodo_en_vivo == "PEN" %}
-                &#129349; PENALES
-            {% elif partido.estado == "EN_JUEGO" %}
+            {% if partido.estado == "EN_JUEGO" %}
                 &#128308; EN VIVO
             {% else %}
                 {{ partido.estado_display|default:partido.estado }}
@@ -51,7 +49,7 @@
                 <span>{{ partido.goles_local }}</span><span>-</span><span>{{ partido.goles_visitante }}</span>
             </div>
             {% endif %}
-            {% if partido.periodo_en_vivo == "PEN" or partido.tiene_penales %}<div class="penales-portada">Penales: {{ partido.goles_local_penales }} - {{ partido.goles_visitante_penales }}</div>{% endif %}
+            {% if partido.periodo_en_vivo == "PEN" or partido.tiene_penales %}<div class="penales-portada">PENALES: {{ partido.goles_local_penales }} - {{ partido.goles_visitante_penales }}</div>{% endif %}
         </div>
 
         <div class="equipo-portada">
