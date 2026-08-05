@@ -2247,6 +2247,37 @@ class PlanilleroPartidoTests(TestCase):
         "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
         "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
     })
+    def test_live_detecta_cambios_sin_recargar_constantemente(self):
+        self.partido.estado = "EN_JUEGO"
+        self.partido.save(update_fields=["estado"])
+
+        pagina = self.client.get(f"/partido/{self.partido.id}/live/")
+        revision_antes = self.client.get(
+            f"/partido/{self.partido.id}/live/revision/"
+        )
+        Gol.objects.create(
+            partido=self.partido,
+            equipo=self.local,
+            jugador=self.jugador,
+            cantidad=1,
+            minuto=12,
+        )
+        revision_despues = self.client.get(
+            f"/partido/{self.partido.id}/live/revision/"
+        )
+
+        self.assertContains(pagina, "setInterval(revisarCambios, 15000)")
+        self.assertContains(pagina, f"/partido/{self.partido.id}/live/revision/")
+        self.assertNotEqual(
+            revision_antes.json()["revision"],
+            revision_despues.json()["revision"],
+        )
+        self.assertIn("no-store", revision_despues["Cache-Control"])
+
+    @override_settings(STORAGES={
+        "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+        "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
+    })
     def test_sustituciones_muestran_primero_el_cambio_mas_reciente(self):
         entra_temprano = Jugador.objects.create(
             equipo=self.local,

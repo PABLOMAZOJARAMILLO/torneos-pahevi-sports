@@ -1,6 +1,7 @@
 from collections import defaultdict
 import base64
 import csv
+import hashlib
 from io import BytesIO
 from types import SimpleNamespace
 from datetime import date, datetime, time, timedelta
@@ -8828,6 +8829,48 @@ def gestion_importar_partidos(request):
             return redirect("gestion_importar_partidos")
 
     return render(request, "gestion/importar_partidos.html")
+
+
+def _revision_partido_live(partido):
+    datos = [
+        partido.estado,
+        partido.goles_local,
+        partido.goles_visitante,
+        partido.goles_local_penales,
+        partido.goles_visitante_penales,
+        partido.periodo_en_vivo,
+        partido.cronometro_pausado,
+        partido.segundos_acumulados,
+        partido.inicio_en_vivo.isoformat() if partido.inicio_en_vivo else "",
+        tuple(Gol.objects.filter(partido=partido).order_by("id").values_list(
+            "id", "equipo_id", "jugador_id", "cantidad", "minuto", "es_penal", "es_autogol",
+        )),
+        tuple(Tarjeta.objects.filter(partido=partido).order_by("id").values_list(
+            "id", "equipo_id", "jugador_id", "tipo", "minuto",
+        )),
+        tuple(SustitucionPartido.objects.filter(partido=partido).order_by("id").values_list(
+            "id", "equipo_id", "jugador_sale_id", "jugador_entra_id", "minuto",
+        )),
+        tuple(AlineacionPartido.objects.filter(partido=partido).order_by("id").values_list(
+            "id", "equipo_id", "jugador_id", "rol", "posicion_cancha",
+        )),
+        tuple(CobroPenal.objects.filter(partido=partido).order_by("id").values_list(
+            "id", "equipo_id", "jugador_id", "orden", "convertido",
+        )),
+    ]
+    return hashlib.sha256(repr(datos).encode("utf-8")).hexdigest()
+
+
+def revision_partido_live(request, partido_id):
+    partido = get_object_or_404(Partido, id=partido_id)
+    respuesta = JsonResponse({
+        "revision": _revision_partido_live(partido),
+        "estado": partido.estado,
+    })
+    respuesta["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    return respuesta
+
+
 def partido_live(request, partido_id):
     partido = get_object_or_404(
         Partido.objects.select_related(
@@ -9089,6 +9132,7 @@ def partido_live(request, partido_id):
         "puede_diligenciar_partido": puede_diligenciar_partido(request.user, partido),
         "ganador_local": bool(partido.fase != "GRUPOS" and ganador_partido(partido) == partido.equipo_local),
         "ganador_visitante": bool(partido.fase != "GRUPOS" and ganador_partido(partido) == partido.equipo_visitante),
+        "revision_live": _revision_partido_live(partido),
     })
 def _pausar_cronometro(partido):
     if partido.inicio_en_vivo:

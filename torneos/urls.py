@@ -46,6 +46,11 @@ urlpatterns = [
     name='partido_live'
     ),
     path(
+    'partido/<int:partido_id>/live/revision/',
+    views.revision_partido_live,
+    name='revision_partido_live'
+    ),
+    path(
         'descargar/tabla/<str:categoria>/<str:grupo>/',
         descargar_tabla_grupo,
         name='descargar_tabla_grupo'

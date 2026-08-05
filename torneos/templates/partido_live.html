@@ -1744,6 +1744,59 @@ document.querySelectorAll("[data-live-tab]").forEach(function(btn) {
     });
 })();
 
+(function habilitarActualizacionAutomatica() {
+    const estadoInicial = "{{ partido.estado|escapejs }}";
+    if (estadoInicial !== "EN_JUEGO") return;
+
+    let revisionActual = "{{ revision_live|escapejs }}";
+    let consultando = false;
+    const claveTab = "partido-live-tab-{{ partido.id }}";
+    const claveScroll = "partido-live-scroll-{{ partido.id }}";
+
+    const tabGuardada = sessionStorage.getItem(claveTab);
+    if (tabGuardada) {
+        const boton = document.querySelector(`[data-live-tab="${tabGuardada}"]`);
+        if (boton) boton.click();
+        sessionStorage.removeItem(claveTab);
+    }
+    const scrollGuardado = Number(sessionStorage.getItem(claveScroll));
+    if (scrollGuardado > 0) {
+        requestAnimationFrame(function() { window.scrollTo(0, scrollGuardado); });
+        sessionStorage.removeItem(claveScroll);
+    }
+
+    async function revisarCambios() {
+        if (consultando || document.hidden) return;
+        consultando = true;
+        try {
+            const respuesta = await fetch("{% url 'revision_partido_live' partido.id %}", {
+                cache: "no-store",
+                headers: {"X-Requested-With": "XMLHttpRequest"}
+            });
+            if (!respuesta.ok) return;
+            const datos = await respuesta.json();
+            if (datos.revision && datos.revision !== revisionActual) {
+                const tabActiva = document.querySelector("[data-live-tab].activa");
+                if (tabActiva) sessionStorage.setItem(claveTab, tabActiva.dataset.liveTab);
+                sessionStorage.setItem(claveScroll, String(window.scrollY));
+                window.location.reload();
+                return;
+            }
+            revisionActual = datos.revision || revisionActual;
+        } catch (error) {
+            // Una falla temporal de red no interrumpe el partido; se intenta nuevamente.
+        } finally {
+            consultando = false;
+        }
+    }
+
+    const intervalo = window.setInterval(revisarCambios, 15000);
+    document.addEventListener("visibilitychange", function() {
+        if (!document.hidden) revisarCambios();
+    });
+    window.addEventListener("pagehide", function() { window.clearInterval(intervalo); }, {once: true});
+})();
+
 actualizarRelojes();
 setInterval(actualizarRelojes, 1000);
 </script>
