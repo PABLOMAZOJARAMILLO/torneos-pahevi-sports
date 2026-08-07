@@ -4191,6 +4191,51 @@ class ImportacionJugadoresPlanillaTests(TestCase):
         self.assertTrue(Jugador.objects.filter(equipo=self.equipo, cedula="12345").exists())
         self.assertFalse(Jugador.objects.filter(equipo=self.equipo, cedula="99999").exists())
 
+    def test_importa_administrador_app_y_telefonos_del_cuerpo_tecnico(self):
+        workbook = Workbook()
+        hoja = workbook.active
+        hoja["D3"] = self.categoria.nombre
+        hoja["I3"] = self.equipo.nombre
+        hoja["C39"] = "Director Nuevo"
+        hoja["H39"] = "300 111 2233"
+        hoja["C40"] = "Asistente Nuevo"
+        hoja["H40"] = "301.222.3344"
+        hoja["C41"] = "Administrador App Nuevo"
+        hoja["H41"] = "302-333-4455"
+        hoja["C8"] = "Jugador Nuevo"
+        hoja["D8"] = 10
+        hoja["E8"] = 1
+        hoja["F8"] = 1
+        hoja["G8"] = 1980
+        hoja["H8"] = "12345"
+        archivo = BytesIO()
+        workbook.save(archivo)
+        archivo.seek(0)
+
+        self.client.force_login(self.admin)
+        session = self.client.session
+        session["torneo_id"] = self.torneo.id
+        session.save()
+        respuesta = self.client.post(
+            "/gestion/jugadores/importar-planilla/",
+            {
+                "archivo_excel": SimpleUploadedFile(
+                    "inscripcion.xlsx",
+                    archivo.read(),
+                    content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                )
+            },
+        )
+
+        self.assertEqual(respuesta.status_code, 302)
+        self.equipo.refresh_from_db()
+        self.assertEqual(self.equipo.director_tecnico, "DIRECTOR NUEVO")
+        self.assertEqual(self.equipo.telefono_dt, "3001112233")
+        self.assertEqual(self.equipo.asistente_tecnico, "ASISTENTE NUEVO")
+        self.assertEqual(self.equipo.telefono_at, "3012223344")
+        self.assertEqual(self.equipo.administrador_app, "ADMINISTRADOR APP NUEVO")
+        self.assertEqual(self.equipo.telefono_administrador_app, "302-333-4455")
+
 
 class PartidoFormTests(TestCase):
     def setUp(self):

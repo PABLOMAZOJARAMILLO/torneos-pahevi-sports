@@ -380,6 +380,7 @@ class Equipo(models.Model):
     delegado = models.CharField(max_length=120, blank=True, null=True, verbose_name='Delegado')
     foto_delegado = models.ImageField(upload_to=ruta_foto_cuerpo_tecnico, blank=True, null=True, verbose_name='Foto delegado')
     administrador_app = models.CharField(max_length=150, blank=True, null=True, verbose_name='Admin App')
+    telefono_administrador_app = models.CharField(max_length=30, blank=True, null=True, verbose_name='Celular Admin App')
     foto_administrador_app = models.ImageField(upload_to=ruta_foto_cuerpo_tecnico, blank=True, null=True, verbose_name='Foto Admin App')
     telefono = models.CharField(max_length=30, blank=True, null=True, verbose_name='Celular delegado')
     director_tecnico = models.CharField(max_length=150, blank=True, null=True, verbose_name='Director técnico')

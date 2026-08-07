@@ -8077,6 +8077,7 @@ def gestion_equipo_reinscribir(request, equipo_id):
                 delegado=equipo.delegado,
                 foto_delegado=equipo.foto_delegado,
                 administrador_app=equipo.administrador_app,
+                telefono_administrador_app=equipo.telefono_administrador_app,
                 foto_administrador_app=equipo.foto_administrador_app,
                 telefono=equipo.telefono,
                 director_tecnico=equipo.director_tecnico,
@@ -8382,9 +8383,11 @@ def gestion_importar_planilla(request):
             delegado = limpiar_texto_excel(hoja["D4"].value)
             telefono_delegado = limpiar_cedula_excel(hoja["I4"].value)
             director_tecnico = limpiar_texto_excel(hoja["C39"].value)
-            telefono_dt = limpiar_cedula_excel(hoja["G39"].value)
+            telefono_dt = limpiar_cedula_excel(hoja["H39"].value)
             asistente_tecnico = limpiar_texto_excel(hoja["C40"].value)
-            telefono_at = limpiar_cedula_excel(hoja["G40"].value)
+            telefono_at = limpiar_cedula_excel(hoja["H40"].value)
+            administrador_app = limpiar_texto_excel(hoja["C41"].value)
+            telefono_administrador_app = limpiar_cedula_excel(hoja["H41"].value)
 
             if not categoria_nombre:
                 messages.error(request, "No se encontró la categoría en la celda D3.")
@@ -8415,6 +8418,8 @@ def gestion_importar_planilla(request):
             equipo.telefono_dt = telefono_dt or equipo.telefono_dt
             equipo.asistente_tecnico = asistente_tecnico.upper() if asistente_tecnico else equipo.asistente_tecnico
             equipo.telefono_at = telefono_at or equipo.telefono_at
+            equipo.administrador_app = administrador_app.upper() if administrador_app else equipo.administrador_app
+            equipo.telefono_administrador_app = telefono_administrador_app or equipo.telefono_administrador_app
             equipo.activo = True
             equipo.save()
 
