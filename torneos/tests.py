@@ -16,13 +16,28 @@ from django.utils import timezone
 from openpyxl import Workbook
 from PIL import Image
 
-from .forms import JugadorForm, PartidoForm, PartidoProgramacionForm, TorneoForm
+from .forms import EquipoDelegadoForm, EquipoForm, JugadorForm, PartidoForm, PartidoProgramacionForm, TorneoForm
 from .models import AlineacionPartido, EntregaAlineacionPartido, AdminOrganizador, AdminTorneo, Categoria, CobroPenal, Documento, Equipo, Gol, IncidenciaReglaEdad, Jugador, Organizador, Partido, ReglaEdadCategoria, RegistroActividad, VisitaPublicaDiaria, SolicitudValidacion, SustitucionPartido, Tarjeta, Torneo, ruta_escudo_equipo
 from .middleware import AuditoriaModificacionesMiddleware
 from .media_cleanup import eliminar_imagenes_sin_referencia, nombres_imagenes_instancias
 from .planillas_pdf import _dorsal, _edad, _header_image_sources, _jugadores, _team_shield_source, _draw_team_watermark, _titulo_planilla
 from .storage_backends import CloudinaryMediaStorage
 from .views import buscar_planilleros_excel, construir_estructura, construir_estadisticas_foraneos, construir_partidos_portada, construir_partidos_programacion, fechas_presentes_en_programacion, foraneos_no_habilitados_fase_final, _clave_orden_evento_resumen, _minuto_evento_en_vivo, _sincronizar_no_disponibles_por_tarjetas, etiqueta_columna_planilla, etiqueta_edad_jugador, jugadores_actuales_en_cancha, nombre_corto_jugador, nombre_resumen_jugador, puede_descargar_programacion, podios_torneo, reglas_edad_para_frontend, texto_edad_jugador, tabla_general_mata_mata_ida_vuelta, url_imagen_cloudinary, validar_reglas_edad_titulares
+
+
+class EquipoCuerpoTecnicoFormTests(TestCase):
+    def test_datos_de_cada_miembro_aparecen_consecutivos(self):
+        consecutivos = [
+            "delegado", "telefono", "foto_delegado",
+            "administrador_app", "telefono_administrador_app", "foto_administrador_app",
+            "director_tecnico", "telefono_dt", "foto_director_tecnico",
+            "asistente_tecnico", "telefono_at", "foto_asistente_tecnico",
+        ]
+
+        campos_admin = list(EquipoForm().fields)
+        campos_delegado = list(EquipoDelegadoForm().fields)
+        self.assertEqual([campo for campo in campos_admin if campo in consecutivos], consecutivos)
+        self.assertEqual([campo for campo in campos_delegado if campo in consecutivos], consecutivos)
 
 
 class CloudinaryStorageTests(TestCase):
