@@ -8912,6 +8912,8 @@ def revision_partido_live(request, partido_id):
         "revision": _revision_partido_live(partido),
         "estado": partido.estado,
     })
+    respuesta["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    return respuesta
 
 
 @login_required
@@ -8940,8 +8942,6 @@ def gestion_planilla_juego_eliminar(request, documento_id):
     eliminar_documento_almacenamiento(archivo)
     messages.success(request, "Planilla eliminada correctamente. Ya puedes cargar la planilla correcta.")
     return redirect(f"{reverse('gestion_planillas_juego')}?{urlencode({'partido': partido_id})}")
-    respuesta["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
-    return respuesta
 
 
 def partido_live(request, partido_id):

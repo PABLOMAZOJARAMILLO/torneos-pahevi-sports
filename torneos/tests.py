@@ -2345,11 +2345,28 @@ class PlanilleroPartidoTests(TestCase):
 
         self.assertContains(pagina, "setInterval(revisarCambios, 15000)")
         self.assertContains(pagina, f"/partido/{self.partido.id}/live/revision/")
+        self.assertEqual(revision_antes.status_code, 200)
+        self.assertEqual(revision_despues.status_code, 200)
         self.assertNotEqual(
             revision_antes.json()["revision"],
             revision_despues.json()["revision"],
         )
         self.assertIn("no-store", revision_despues["Cache-Control"])
+
+    @override_settings(STORAGES={
+        "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+        "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
+    })
+    def test_live_comprime_html_para_reducir_ancho_de_banda(self):
+        sin_comprimir = self.client.get(f"/partido/{self.partido.id}/live/")
+        comprimida = self.client.get(
+            f"/partido/{self.partido.id}/live/",
+            HTTP_ACCEPT_ENCODING="gzip",
+        )
+
+        self.assertEqual(comprimida.status_code, 200)
+        self.assertEqual(comprimida.get("Content-Encoding"), "gzip")
+        self.assertLess(len(comprimida.content), len(sin_comprimir.content))
 
     @override_settings(STORAGES={
         "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},

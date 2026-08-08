@@ -45,6 +45,7 @@ if os.getenv("USE_SUPABASE_STORAGE", "").lower() in {"1", "true", "yes"}:
     INSTALLED_APPS.append("storages")
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'django.middleware.gzip.GZipMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
