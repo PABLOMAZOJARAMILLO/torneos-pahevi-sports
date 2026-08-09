@@ -3976,6 +3976,51 @@ class FixtureProgramacionBalanceadaTests(TestCase):
         ids_ordenados = [partido["id"] for partido in respuesta.context["partidos_programados"]]
         self.assertLess(ids_ordenados.index(proximo.id), ids_ordenados.index(posterior.id))
 
+    @override_settings(STORAGES={
+        "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+        "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
+    })
+    def test_panel_del_torneo_finalizado_muestra_primero_el_ultimo_partido_de_la_final(self):
+        primera_fase = Partido.objects.create(
+            categoria=self.categoria,
+            equipo_local=self.equipos[0],
+            equipo_visitante=self.equipos[1],
+            fecha=date.today() - timedelta(days=20),
+            hora=time(10, 0),
+            cancha="Principal",
+            estado="FINALIZADO",
+            fase="GRUPOS",
+            numero_fecha="1",
+            grupo="A",
+        )
+        final = Partido.objects.create(
+            categoria=self.categoria,
+            equipo_local=self.equipos[2],
+            equipo_visitante=self.equipos[3],
+            fecha=date.today(),
+            hora=time(18, 0),
+            cancha="Principal",
+            estado="FINALIZADO",
+            fase="FINAL",
+            numero_fecha="FINAL",
+            grupo="FINAL",
+        )
+        self.torneo.estado = "FINALIZADO"
+        self.torneo.save(update_fields=["estado"])
+        self.client.force_login(self.admin)
+        session = self.client.session
+        session["torneo_id"] = self.torneo.id
+        session.save()
+
+        respuesta = self.client.get("/")
+
+        resultados = respuesta.context["partidos_resultados"]
+        self.assertEqual(resultados[0]["id"], final.id)
+        self.assertGreater(
+            [partido["id"] for partido in resultados].index(primera_fase.id),
+            [partido["id"] for partido in resultados].index(final.id),
+        )
+
     def test_descarga_goleadores_extensa_se_divide_en_paginas_legibles(self):
         self.client.force_login(self.admin)
         session = self.client.session

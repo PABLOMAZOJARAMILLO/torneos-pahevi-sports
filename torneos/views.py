@@ -3233,10 +3233,12 @@ def panel_principal(request):
     partidos_resultados = sorted(
         [p for p in partidos_portada if p["bloque"] == "RESULTADOS RECIENTES"],
         key=lambda p: (
-            p["orden_fecha"],
-            p["hora_orden"],
+            0 if torneo.estado == "FINALIZADO" and p["fase"] == "FINAL" else 1,
+            -p["orden_fecha"],
+            -(p["hora_orden"].hour * 3600 + p["hora_orden"].minute * 60 + p["hora_orden"].second),
             p["categoria"],
             p["grupo"],
+            -p["id"],
         ),
     )
     partidos_programados = sorted(
