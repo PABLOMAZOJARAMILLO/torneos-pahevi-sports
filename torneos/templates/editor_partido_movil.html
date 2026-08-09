@@ -939,6 +939,19 @@
         {% else %}
             <div class="marcador-penales">{{ partido.goles_local_penales|default:0 }} - {{ partido.goles_visitante_penales|default:0 }}</div>
             <div style="text-align:center;font-weight:800;">{{ partido.equipo_local.nombre }} vs {{ partido.equipo_visitante.nombre }}</div>
+            <details style="margin-top:12px;">
+                <summary>Cambiar equipo que cobra primero</summary>
+                <form method="post" action="{% url 'cambiar_equipo_inicia_penales' partido.id %}">
+                    {% csrf_token %}
+                    <label>Equipo que cobra primero (resultado del sorteo)</label>
+                    <select name="equipo_inicia_penales" required>
+                        <option value="{{ partido.equipo_local.id }}" {% if partido.equipo_inicia_penales_id == partido.equipo_local.id %}selected{% endif %}>{{ partido.equipo_local.nombre }}</option>
+                        <option value="{{ partido.equipo_visitante.id }}" {% if partido.equipo_inicia_penales_id == partido.equipo_visitante.id %}selected{% endif %}>{{ partido.equipo_visitante.nombre }}</option>
+                    </select>
+                    {% if cobros_penales %}<p style="font-size:.82rem;opacity:.8;">Para cambiarlo, deshaz primero los cobros registrados.</p>{% endif %}
+                    <button class="btn secondary" type="submit">Guardar equipo inicial</button>
+                </form>
+            </details>
             <div class="lista-cobros">
             {% for cobro in cobros_penales %}
                 <div class="cobro-penal">

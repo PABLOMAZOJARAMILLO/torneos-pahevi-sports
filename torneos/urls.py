@@ -273,6 +273,7 @@ urlpatterns = [
     path('partido/<int:partido_id>/cronometro/finalizar/', views.cronometro_finalizar, name='cronometro_finalizar'),
     path('partido/<int:partido_id>/cronometro/penales/preparar/', views.preparar_tanda_penales, name='preparar_tanda_penales'),
     path('partido/<int:partido_id>/cronometro/penales/iniciar/', views.iniciar_tanda_penales, name='iniciar_tanda_penales'),
+    path('partido/<int:partido_id>/cronometro/penales/cambiar-equipo-inicial/', views.cambiar_equipo_inicia_penales, name='cambiar_equipo_inicia_penales'),
     path('partido/<int:partido_id>/cronometro/penales/cobro/', views.registrar_cobro_penal, name='registrar_cobro_penal'),
     path('partido/<int:partido_id>/cronometro/penales/deshacer/', views.deshacer_cobro_penal, name='deshacer_cobro_penal'),
     path('partido/cronometro/penales/cobro/<int:cobro_id>/modificar/', views.modificar_cobrador_penal, name='modificar_cobrador_penal'),

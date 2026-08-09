@@ -22,7 +22,7 @@ from .middleware import AuditoriaModificacionesMiddleware
 from .media_cleanup import eliminar_imagenes_sin_referencia, nombres_imagenes_instancias
 from .planillas_pdf import _dorsal, _edad, _header_image_sources, _jugadores, _team_shield_source, _draw_team_watermark, _titulo_planilla
 from .storage_backends import CloudinaryMediaStorage
-from .views import buscar_planilleros_excel, construir_estructura, construir_estadisticas_foraneos, construir_partidos_portada, construir_partidos_programacion, fechas_presentes_en_programacion, foraneos_no_habilitados_fase_final, _clave_orden_evento_resumen, _minuto_evento_en_vivo, _sincronizar_no_disponibles_por_tarjetas, etiqueta_columna_planilla, etiqueta_edad_jugador, jugadores_actuales_en_cancha, nombre_corto_jugador, nombre_resumen_jugador, puede_descargar_programacion, podios_torneo, reglas_edad_para_frontend, texto_edad_jugador, tabla_general_mata_mata_ida_vuelta, url_imagen_cloudinary, validar_reglas_edad_titulares
+from .views import buscar_planilleros_excel, construir_estructura, construir_estadisticas_foraneos, construir_partidos_portada, construir_partidos_programacion, fechas_presentes_en_programacion, foraneos_no_habilitados_fase_final, _clave_orden_evento_resumen, _equipo_turno_tanda, _minuto_evento_en_vivo, _sincronizar_no_disponibles_por_tarjetas, etiqueta_columna_planilla, etiqueta_edad_jugador, jugadores_actuales_en_cancha, nombre_corto_jugador, nombre_resumen_jugador, puede_descargar_programacion, podios_torneo, reglas_edad_para_frontend, texto_edad_jugador, tabla_general_mata_mata_ida_vuelta, url_imagen_cloudinary, validar_reglas_edad_titulares
 
 
 class EquipoCuerpoTecnicoFormTests(TestCase):
@@ -2037,6 +2037,72 @@ class PlanilleroPartidoTests(TestCase):
         primer_cobro = CobroPenal.objects.get(partido=self.partido, orden=1)
         self.assertEqual(self.partido.equipo_inicia_penales_id, self.visitante.id)
         self.assertEqual(primer_cobro.equipo_id, self.visitante.id)
+
+    @override_settings(STORAGES={
+        "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+        "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
+    })
+    def test_puede_cambiar_equipo_inicial_despues_de_activar_tanda(self):
+        self.partido.fase = "CUARTOS"
+        self.partido.estado = "EN_JUEGO"
+        self.partido.periodo_en_vivo = "PEN"
+        self.partido.goles_local = self.partido.goles_visitante = 1
+        self.partido.equipo_inicia_penales = self.local
+        self.partido.save()
+        self.client.force_login(self.planillero)
+
+        respuesta = self.client.post(
+            f"/partido/{self.partido.id}/cronometro/penales/cambiar-equipo-inicial/",
+            {"equipo_inicia_penales": self.visitante.id},
+        )
+
+        self.assertEqual(respuesta.status_code, 302)
+        self.partido.refresh_from_db()
+        self.assertEqual(self.partido.equipo_inicia_penales_id, self.visitante.id)
+        self.assertEqual(_equipo_turno_tanda(self.partido, 0), self.visitante)
+        editor = self.client.get(f"/partido/{self.partido.id}/editor-movil/")
+        self.assertContains(editor, "Cambiar equipo que cobra primero")
+        self.assertContains(
+            editor,
+            f'value="{self.visitante.id}" selected>{self.visitante.nombre}</option>',
+        )
+
+    @override_settings(STORAGES={
+        "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+        "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
+    })
+    def test_no_cambia_equipo_inicial_si_hay_cobros_registrados(self):
+        visitante = Jugador.objects.create(
+            equipo=self.visitante,
+            dorsal=10,
+            nombres="Cobrador Visitante",
+            cedula="CAMBIO-INICIAL-10",
+            fecha_nacimiento=date(1991, 1, 1),
+        )
+        self.partido.fase = "CUARTOS"
+        self.partido.estado = "EN_JUEGO"
+        self.partido.periodo_en_vivo = "PEN"
+        self.partido.goles_local = self.partido.goles_visitante = 1
+        self.partido.equipo_inicia_penales = self.local
+        self.partido.save()
+        CobroPenal.objects.create(
+            partido=self.partido,
+            equipo=self.local,
+            jugador=self.jugador,
+            orden=1,
+            convertido=True,
+        )
+        self.client.force_login(self.planillero)
+
+        respuesta = self.client.post(
+            f"/partido/{self.partido.id}/cronometro/penales/cambiar-equipo-inicial/",
+            {"equipo_inicia_penales": self.visitante.id},
+            follow=True,
+        )
+
+        self.partido.refresh_from_db()
+        self.assertEqual(self.partido.equipo_inicia_penales_id, self.local.id)
+        self.assertContains(respuesta, "deshaz primero los cobros registrados")
 
     @override_settings(STORAGES={
         "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},

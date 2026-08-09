@@ -9354,6 +9354,46 @@ def iniciar_tanda_penales(request, partido_id):
 
 @login_required
 @require_POST
+def cambiar_equipo_inicia_penales(request, partido_id):
+    partido = get_object_or_404(Partido, id=partido_id)
+    if not puede_diligenciar_partido(request.user, partido):
+        return denegar_partido_no_autorizado()
+    if partido.periodo_en_vivo != "PEN" or not partido.equipo_inicia_penales_id:
+        messages.error(request, "Primero debes activar la tanda de penales.")
+        return redirect(f"{reverse('editor_partido_movil', args=[partido.id])}#cronometro-penales")
+    if partido.cobros_penales.exists():
+        messages.error(
+            request,
+            "Para cambiar el equipo inicial, deshaz primero los cobros registrados. Asi no se altera el orden de la tanda.",
+        )
+        return redirect(f"{reverse('editor_partido_movil', args=[partido.id])}#cronometro-penales")
+
+    equipos_validos = {partido.equipo_local_id, partido.equipo_visitante_id}
+    try:
+        equipo_inicial_id = int(request.POST.get("equipo_inicia_penales"))
+    except (TypeError, ValueError):
+        equipo_inicial_id = None
+    if equipo_inicial_id not in equipos_validos:
+        messages.error(request, "Selecciona uno de los equipos del partido.")
+    elif equipo_inicial_id == partido.equipo_inicia_penales_id:
+        messages.info(request, "Ese equipo ya estaba seleccionado para cobrar primero.")
+    else:
+        anterior = partido.equipo_inicia_penales.nombre
+        partido.equipo_inicia_penales_id = equipo_inicial_id
+        partido.save(update_fields=["equipo_inicia_penales"])
+        registrar_actividad(
+            request,
+            "CAMBIAR_EQUIPO_INICIAL_PENALES",
+            partido,
+            torneo=partido.categoria.torneo if partido.categoria_id else None,
+            descripcion=f"Cambio el equipo inicial de penales: {anterior} por {partido.equipo_inicia_penales.nombre}.",
+        )
+        messages.success(request, f"Ahora cobra primero: {partido.equipo_inicia_penales.nombre}.")
+    return redirect(f"{reverse('editor_partido_movil', args=[partido.id])}#cronometro-penales")
+
+
+@login_required
+@require_POST
 def registrar_cobro_penal(request, partido_id):
     partido = get_object_or_404(Partido, id=partido_id)
     if not puede_diligenciar_partido(request.user, partido):
