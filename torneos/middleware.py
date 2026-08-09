@@ -90,6 +90,17 @@ class AuditoriaModificacionesMiddleware:
         equipo = Equipo.objects.select_related("categoria__torneo").filter(id=equipo_id).first() if str(equipo_id or "").isdigit() else None
         jugador_id = request.POST.get("jugador") or kwargs.get("jugador_id")
         jugador = Jugador.objects.select_related("equipo").filter(id=jugador_id).first() if str(jugador_id or "").isdigit() else None
+        jugador_sale_id = request.POST.get("jugador_sale")
+        jugador_entra_id = request.POST.get("jugador_entra")
+        jugador_sale = Jugador.objects.select_related("equipo").filter(id=jugador_sale_id).first() if str(jugador_sale_id or "").isdigit() else None
+        jugador_entra = Jugador.objects.select_related("equipo").filter(id=jugador_entra_id).first() if str(jugador_entra_id or "").isdigit() else None
+        if isinstance(objeto, SustitucionPartido):
+            equipo = objeto.equipo
+            jugador_sale = objeto.jugador_sale
+            jugador_entra = objeto.jugador_entra
+        elif isinstance(objeto, (Gol, Tarjeta, AlineacionPartido, CobroPenal)):
+            equipo = objeto.equipo
+            jugador = objeto.jugador
         datos = {}
         partes = []
         if partido:
@@ -99,6 +110,10 @@ class AuditoriaModificacionesMiddleware:
             datos.update({"equipo_id": equipo.id, "equipo": equipo.nombre})
         if jugador:
             datos.update({"jugador_id": jugador.id, "jugador": jugador.nombres})
+        if jugador_sale:
+            datos.update({"jugador_sale_id": jugador_sale.id, "jugador_sale": jugador_sale.nombres})
+        if jugador_entra:
+            datos.update({"jugador_entra_id": jugador_entra.id, "jugador_entra": jugador_entra.nombres})
 
         etiquetas = {
             "guardar_info_partido_movil": ("ACTUALIZAR_PARTIDO", "Actualizó la información general del partido."),
@@ -144,6 +159,14 @@ class AuditoriaModificacionesMiddleware:
             minuto = request.POST.get("minuto") or request.POST.get("minuto_manual") or "cronómetro en vivo"
             partes.append(f"Equipo que anotó: {afectado.nombre if afectado else 'por identificar'}. Jugador: {jugador.nombres if jugador else 'por identificar'}. Minuto: {minuto}.")
             datos.update({"minuto": minuto, "cantidad": request.POST.get("cantidad") or "1"})
+        elif vista in {"agregar_sustitucion_movil", "eliminar_sustitucion_movil"}:
+            minuto = request.POST.get("minuto") or getattr(objeto, "minuto", None) or "cronómetro en vivo"
+            partes.append(
+                f"Equipo: {equipo.nombre if equipo else 'por identificar'}. "
+                f"Salió: {jugador_sale.nombres if jugador_sale else 'por identificar'}. "
+                f"Entró: {jugador_entra.nombres if jugador_entra else 'por identificar'}. Minuto: {minuto}."
+            )
+            datos.update({"minuto": minuto})
         elif equipo:
             partes.append(f"Equipo modificado: {equipo.nombre}.")
         elif jugador:

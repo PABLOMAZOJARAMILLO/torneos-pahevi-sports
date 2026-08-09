@@ -87,6 +87,9 @@
             {% if registro.datos.jugador %}
                 <p class="muted"><strong>Jugador:</strong> {{ registro.datos.jugador }}</p>
             {% endif %}
+            {% if registro.datos.jugador_sale or registro.datos.jugador_entra %}
+                <p class="muted"><strong>Sustitución:</strong> Sale {{ registro.datos.jugador_sale|default:"Por identificar" }} · Entra {{ registro.datos.jugador_entra|default:"Por identificar" }}{% if registro.datos.minuto %} · Minuto {{ registro.datos.minuto }}{% endif %}</p>
+            {% endif %}
             {% if registro.datos.tipo_infraccion %}
                 <p class="muted"><strong>Infracción:</strong> {{ registro.datos.tipo_infraccion }}{% if registro.datos.minuto %} · Minuto {{ registro.datos.minuto }}{% endif %}</p>
             {% endif %}

@@ -22,7 +22,7 @@ from .middleware import AuditoriaModificacionesMiddleware
 from .media_cleanup import eliminar_imagenes_sin_referencia, nombres_imagenes_instancias
 from .planillas_pdf import _dorsal, _edad, _header_image_sources, _jugadores, _team_shield_source, _draw_team_watermark, _titulo_planilla
 from .storage_backends import CloudinaryMediaStorage
-from .views import buscar_planilleros_excel, construir_estructura, construir_estadisticas_foraneos, construir_partidos_portada, construir_partidos_programacion, fechas_presentes_en_programacion, foraneos_no_habilitados_fase_final, _clave_orden_evento_resumen, _equipo_turno_tanda, _minuto_evento_en_vivo, _sincronizar_no_disponibles_por_tarjetas, etiqueta_columna_planilla, etiqueta_edad_jugador, jugadores_actuales_en_cancha, nombre_corto_jugador, nombre_resumen_jugador, puede_descargar_programacion, podios_torneo, reglas_edad_para_frontend, texto_edad_jugador, tabla_general_mata_mata_ida_vuelta, url_imagen_cloudinary, validar_reglas_edad_titulares
+from .views import buscar_planilleros_excel, construir_estructura, construir_estadisticas_foraneos, construir_partidos_portada, construir_partidos_programacion, enriquecer_registros_actividad_legacy, fechas_presentes_en_programacion, foraneos_no_habilitados_fase_final, _clave_orden_evento_resumen, _equipo_turno_tanda, _minuto_evento_en_vivo, _sincronizar_no_disponibles_por_tarjetas, etiqueta_columna_planilla, etiqueta_edad_jugador, jugadores_actuales_en_cancha, nombre_corto_jugador, nombre_resumen_jugador, puede_descargar_programacion, podios_torneo, reglas_edad_para_frontend, texto_edad_jugador, tabla_general_mata_mata_ida_vuelta, url_imagen_cloudinary, validar_reglas_edad_titulares
 
 
 class EquipoCuerpoTecnicoFormTests(TestCase):
@@ -349,6 +349,61 @@ class AuditoriaUsuariosTests(TestCase):
         self.assertIn("ROJA", registro.descripcion)
         self.assertIn("63", registro.descripcion)
         self.assertEqual(registro.datos["partido_id"], partido.id)
+
+    def test_middleware_detalla_equipo_y_jugadores_de_sustitucion(self):
+        equipo = Equipo.objects.get(responsable=self.delegado)
+        rival = Equipo.objects.create(nombre="Rival sustitución", categoria=self.categoria)
+        sale = Jugador.objects.create(equipo=equipo, nombres="Carlos Sale", cedula="AUD-S", fecha_nacimiento=date(1990, 1, 1))
+        entra = Jugador.objects.create(equipo=equipo, nombres="Pedro Entra", cedula="AUD-E", fecha_nacimiento=date(1991, 1, 1))
+        partido = Partido.objects.create(
+            categoria=self.categoria, equipo_local=equipo, equipo_visitante=rival,
+            fecha=date(2026, 8, 9), hora=time(16, 0), estado="EN_JUEGO",
+        )
+        request = RequestFactory().post(
+            f"/partido/{partido.id}/agregar-sustitucion-movil/",
+            {"equipo": equipo.id, "jugador_sale": sale.id, "jugador_entra": entra.id, "minuto": "54"},
+        )
+        request.user = self.delegado
+        request.session = {"torneo_id": self.torneo.id}
+        request.resolver_match = SimpleNamespace(url_name="agregar_sustitucion_movil", kwargs={"partido_id": partido.id})
+        middleware = AuditoriaModificacionesMiddleware(lambda _request: HttpResponse(status=302))
+
+        middleware(request)
+
+        registro = RegistroActividad.objects.get(usuario=self.delegado, accion="REGISTRAR_SUSTITUCION")
+        self.assertIn("Equipo auditado vs Rival sustitución", registro.descripcion)
+        self.assertIn("Equipo: Equipo auditado", registro.descripcion)
+        self.assertIn("Salió: Carlos Sale", registro.descripcion)
+        self.assertIn("Entró: Pedro Entra", registro.descripcion)
+        self.assertIn("Minuto: 54", registro.descripcion)
+        self.assertEqual(registro.datos["jugador_sale"], "Carlos Sale")
+        self.assertEqual(registro.datos["jugador_entra"], "Pedro Entra")
+
+    def test_auditoria_recupera_detalle_de_sustitucion_antigua(self):
+        equipo = Equipo.objects.get(responsable=self.delegado)
+        rival = Equipo.objects.create(nombre="Rival histórico", categoria=self.categoria)
+        sale = Jugador.objects.create(equipo=equipo, nombres="Sale Histórico", cedula="H-S", fecha_nacimiento=date(1990, 1, 1))
+        entra = Jugador.objects.create(equipo=equipo, nombres="Entra Histórico", cedula="H-E", fecha_nacimiento=date(1991, 1, 1))
+        partido = Partido.objects.create(
+            categoria=self.categoria, equipo_local=equipo, equipo_visitante=rival,
+            fecha=date(2026, 8, 8), hora=time(17, 0), estado="EN_JUEGO",
+        )
+        SustitucionPartido.objects.create(
+            partido=partido, equipo=equipo, jugador_sale=sale, jugador_entra=entra, minuto=54,
+        )
+        registro = RegistroActividad.objects.create(
+            usuario=self.delegado, torneo=self.torneo, accion="MODIFICAR",
+            descripcion=f"Operación POST en /partido/{partido.id}/agregar-sustitucion-movil/.",
+            datos={"ruta": f"/partido/{partido.id}/agregar-sustitucion-movil/", "metodo": "POST"},
+        )
+
+        enriquecido = enriquecer_registros_actividad_legacy([registro])[0]
+
+        self.assertEqual(enriquecido.accion, "REGISTRAR_SUSTITUCION")
+        self.assertIn("Equipo auditado vs Rival histórico", enriquecido.descripcion)
+        self.assertIn("Sale Histórico", enriquecido.descripcion)
+        self.assertIn("Entra Histórico", enriquecido.descripcion)
+        self.assertEqual(enriquecido.datos["equipo"], "Equipo auditado")
 
     def test_admin_puede_descargar_auditoria_csv(self):
         RegistroActividad.objects.create(

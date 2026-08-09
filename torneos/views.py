@@ -6210,6 +6210,71 @@ def gestion_panel(request):
     })
 
 
+def enriquecer_registros_actividad_legacy(registros):
+    """Presenta con contexto los antiguos MODIFICAR que solo conservaron ruta y hora."""
+    registros = list(registros)
+    candidatos = []
+    partido_ids = set()
+    patron = re.compile(r"/partido/(\d+)/agregar-sustitucion-movil/")
+    for registro in registros:
+        if registro.accion != "MODIFICAR":
+            continue
+        coincidencia = patron.search((registro.datos or {}).get("ruta", ""))
+        if coincidencia:
+            partido_id = int(coincidencia.group(1))
+            partido_ids.add(partido_id)
+            candidatos.append((registro, partido_id))
+    if not candidatos:
+        return registros
+
+    partidos = {
+        partido.id: partido
+        for partido in Partido.objects.select_related("equipo_local", "equipo_visitante").filter(id__in=partido_ids)
+    }
+    sustituciones = defaultdict(list)
+    for cambio in SustitucionPartido.objects.select_related(
+        "equipo", "jugador_sale", "jugador_entra",
+    ).filter(partido_id__in=partido_ids):
+        sustituciones[cambio.partido_id].append(cambio)
+
+    for registro, partido_id in candidatos:
+        partido = partidos.get(partido_id)
+        if not partido:
+            continue
+        registro.accion = "REGISTRAR_SUSTITUCION"
+        datos = dict(registro.datos or {})
+        datos.update({
+            "partido_id": partido.id,
+            "equipo_local": partido.equipo_local.nombre,
+            "equipo_visitante": partido.equipo_visitante.nombre,
+        })
+        cercanos = sorted(
+            sustituciones.get(partido_id, []),
+            key=lambda cambio: abs((cambio.creado_en - registro.creado_en).total_seconds()),
+        )
+        cambio = cercanos[0] if cercanos and abs((cercanos[0].creado_en - registro.creado_en).total_seconds()) <= 20 else None
+        if cambio:
+            datos.update({
+                "equipo_id": cambio.equipo_id,
+                "equipo": cambio.equipo.nombre,
+                "jugador_sale": cambio.jugador_sale.nombres,
+                "jugador_entra": cambio.jugador_entra.nombres,
+                "minuto": cambio.minuto or "sin minuto",
+            })
+            registro.descripcion = (
+                f"Partido #{partido.id}: {partido.equipo_local.nombre} vs {partido.equipo_visitante.nombre}. "
+                f"Registró una sustitución de {cambio.equipo.nombre}: salió {cambio.jugador_sale.nombres} "
+                f"y entró {cambio.jugador_entra.nombres}. Minuto: {cambio.minuto or 'sin minuto'}."
+            )
+        else:
+            registro.descripcion = (
+                f"Partido #{partido.id}: {partido.equipo_local.nombre} vs {partido.equipo_visitante.nombre}. "
+                "Registró una sustitución; el registro antiguo no conservó los jugadores involucrados."
+            )
+        registro.datos = datos
+    return registros
+
+
 @login_required
 def gestion_actividad(request):
     es_delegado = equipos_delegado_asignados(request.user).exists()
@@ -6317,8 +6382,9 @@ def gestion_actividad(request):
             ],
         }
 
+    registros_pantalla = enriquecer_registros_actividad_legacy(registros[:250])
     return render(request, "gestion/actividad.html", {
-        "registros": registros[:250],
+        "registros": registros_pantalla,
         "torneo_seleccionado": torneo,
         "usuarios": usuarios,
         "acciones": acciones,
