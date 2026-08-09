@@ -857,6 +857,44 @@ class PlanillasJuegoUploadTests(TestCase):
         self.assertEqual(list(response.context["categorias"]), [self.categoria])
         self.assertEqual(list(response.context["partidos"]), [self.partido])
 
+    def test_gestion_planillas_y_partidos_muestra_primero_el_proximo_programado(self):
+        manana = date.today() + timedelta(days=1)
+        pasado_manana = date.today() + timedelta(days=2)
+        proximo = Partido.objects.create(
+            categoria=self.categoria,
+            equipo_local=self.equipo_local,
+            equipo_visitante=self.equipo_visitante,
+            fecha=manana,
+            hora=time(10, 0),
+            estado="PROGRAMADO",
+            numero_fecha="Fecha 3",
+        )
+        posterior = Partido.objects.create(
+            categoria=self.categoria,
+            equipo_local=self.equipo_local,
+            equipo_visitante=self.equipo_visitante,
+            fecha=pasado_manana,
+            hora=time(8, 0),
+            estado="PROGRAMADO",
+            numero_fecha="Fecha 4",
+        )
+        proximo.planilleros.add(self.planillero)
+        posterior.planilleros.add(self.planillero)
+        self.client.force_login(self.planillero)
+
+        listado_planillas = self.client.get("/gestion/planillas-juego/")
+        primer_partido_planillas = listado_planillas.context["grupos_planillas"][0].fechas[0].partidos[0].partido
+        self.assertEqual(primer_partido_planillas, proximo)
+
+        administrador = User.objects.create_superuser("admin-orden-partidos", "orden@example.com", "clave")
+        self.client.force_login(administrador)
+        session = self.client.session
+        session["torneo_id"] = self.torneo.id
+        session.save()
+        listado_partidos = self.client.get("/gestion/partidos/")
+        self.assertEqual(listado_partidos.context["partidos"][0], proximo)
+        self.assertEqual(listado_partidos.context["partidos"][1], posterior)
+
     def test_planillero_no_puede_eliminar_planilla_cargada(self):
         documento = self.crear_documento_planilla()
         self.client.force_login(self.planillero)

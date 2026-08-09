@@ -24,7 +24,7 @@ from django.http import FileResponse, HttpResponse, HttpResponseForbidden, JsonR
 from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
 from django.db import connection, transaction
-from django.db.models import Count, Prefetch, Q, Sum
+from django.db.models import Case, Count, DateField, F, IntegerField, Prefetch, Q, Sum, TimeField, Value, When
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
 from django.contrib.staticfiles import finders
@@ -6992,21 +6992,51 @@ def _planillas_juego_para_usuario(user, torneo=None):
     ).distinct().order_by(*orden)
 
 
+def ordenar_partidos_gestion(partidos):
+    hoy = timezone.localdate()
+    return partidos.annotate(
+        _prioridad_gestion=Case(
+            When(estado="EN_JUEGO", then=Value(0)),
+            When(estado="PROGRAMADO", fecha__gte=hoy, then=Value(1)),
+            When(estado="PROGRAMADO", then=Value(2)),
+            default=Value(3),
+            output_field=IntegerField(),
+        ),
+        _fecha_futura=Case(
+            When(estado="PROGRAMADO", fecha__gte=hoy, then=F("fecha")),
+            default=Value(None),
+            output_field=DateField(),
+        ),
+        _hora_futura=Case(
+            When(estado="PROGRAMADO", fecha__gte=hoy, then=F("hora")),
+            default=Value(None),
+            output_field=TimeField(),
+        ),
+    ).order_by(
+        "_prioridad_gestion",
+        F("_fecha_futura").asc(nulls_last=True),
+        F("_hora_futura").asc(nulls_last=True),
+        F("fecha").desc(nulls_last=True),
+        F("hora").desc(nulls_last=True),
+        "-id",
+    )
+
+
 def _partidos_planillas_para_usuario(user, torneo=None):
     partidos = Partido.objects.select_related(
         "categoria",
         "categoria__torneo",
         "equipo_local",
         "equipo_visitante",
-    ).order_by("categoria__nombre", "numero_fecha", "fecha", "hora", "equipo_local__nombre")
+    )
 
     if torneo:
         partidos = partidos.filter(categoria__torneo=torneo)
 
     if es_editor_torneo(user):
-        return partidos
+        return ordenar_partidos_gestion(partidos)
 
-    return partidos.filter(planilleros=user)
+    return ordenar_partidos_gestion(partidos.filter(planilleros=user))
 
 
 def _agrupar_planillas_juego(documentos):
@@ -7120,7 +7150,7 @@ def gestion_planillas_juego(request):
         partidos = partidos.filter(categoria_id=categoria_id)
     if numero_fecha:
         partidos = partidos.filter(numero_fecha=numero_fecha)
-    partidos = partidos.distinct().order_by("categoria__nombre", "numero_fecha", "fecha", "hora", "equipo_local__nombre")
+    partidos = ordenar_partidos_gestion(partidos.distinct())
 
     return render(request, "gestion/planillas_juego.html", {
         "grupos_planillas": _agrupar_partidos_planillas(partidos_resultado[:500], documentos),
@@ -8531,12 +8561,8 @@ def gestion_partidos(request):
     if torneo:
         categorias = categorias.filter(torneo=torneo)
 
-    partidos = Partido.objects.select_related("categoria", "equipo_local", "equipo_visitante").order_by(
-        "fecha",
-        "hora",
-        "categoria__nombre",
-        "grupo",
-        "fase",
+    partidos = ordenar_partidos_gestion(
+        Partido.objects.select_related("categoria", "equipo_local", "equipo_visitante")
     )
     if torneo:
         partidos = partidos.filter(categoria__torneo=torneo)
