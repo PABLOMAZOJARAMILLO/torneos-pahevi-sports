@@ -14,6 +14,8 @@ class AuditoriaModificacionesMiddleware:
         self.get_response = get_response
 
     def __call__(self, request):
+        if request.method in self.metodos_escritura and getattr(request.user, "is_authenticated", False):
+            request._contexto_auditoria = self._contexto_operacion(request)
         response = self.get_response(request)
         self._registrar_si_aplica(request, response)
         self._registrar_visita_publica(request, response)
@@ -39,17 +41,116 @@ class AuditoriaModificacionesMiddleware:
 
         coincidencia = getattr(request, "resolver_match", None)
         vista = getattr(coincidencia, "url_name", "") or ""
+        contexto = getattr(request, "_contexto_auditoria", {}) or {}
+        accion = contexto.get("accion") or (vista.upper()[:40] if vista else "MODIFICAR")
         registrar_actividad(
             request,
-            "MODIFICAR",
-            torneo=torneo,
-            descripcion=f"Operación {request.method} en {request.path}.",
+            accion,
+            objeto=contexto.get("objeto"),
+            torneo=contexto.get("torneo") or torneo,
+            descripcion=contexto.get("descripcion") or f"Ejecutó {vista.replace('_', ' ') or request.method} en {request.path}.",
             datos={
                 "metodo": request.method,
                 "ruta": request.path[:500],
                 "vista": vista[:120],
+                **contexto.get("datos", {}),
             },
         )
+
+    def _contexto_operacion(self, request):
+        """Resume la operación sin conservar campos sensibles del formulario."""
+        from .models import AlineacionPartido, CobroPenal, Equipo, Gol, Jugador, Partido, SustitucionPartido, Tarjeta
+
+        coincidencia = getattr(request, "resolver_match", None)
+        vista = getattr(coincidencia, "url_name", "") or ""
+        kwargs = getattr(coincidencia, "kwargs", {}) or {}
+        partido = None
+        objeto = None
+        partido_id = kwargs.get("partido_id")
+        if partido_id:
+            partido = Partido.objects.select_related(
+                "categoria__torneo", "equipo_local", "equipo_visitante",
+            ).filter(id=partido_id).first()
+            objeto = partido
+        else:
+            relaciones = (
+                ("gol_id", Gol), ("tarjeta_id", Tarjeta),
+                ("alineacion_id", AlineacionPartido),
+                ("sustitucion_id", SustitucionPartido), ("cobro_id", CobroPenal),
+            )
+            for llave, modelo in relaciones:
+                if kwargs.get(llave):
+                    objeto = modelo.objects.select_related(
+                        "partido__categoria__torneo", "partido__equipo_local", "partido__equipo_visitante",
+                    ).filter(id=kwargs[llave]).first()
+                    partido = getattr(objeto, "partido", None)
+                    break
+
+        equipo_id = request.POST.get("equipo") or kwargs.get("equipo_id")
+        equipo = Equipo.objects.select_related("categoria__torneo").filter(id=equipo_id).first() if str(equipo_id or "").isdigit() else None
+        jugador_id = request.POST.get("jugador") or kwargs.get("jugador_id")
+        jugador = Jugador.objects.select_related("equipo").filter(id=jugador_id).first() if str(jugador_id or "").isdigit() else None
+        datos = {}
+        partes = []
+        if partido:
+            partes.append(f"Partido #{partido.id}: {partido.equipo_local.nombre} vs {partido.equipo_visitante.nombre}.")
+            datos.update({"partido_id": partido.id, "equipo_local": partido.equipo_local.nombre, "equipo_visitante": partido.equipo_visitante.nombre})
+        if equipo:
+            datos.update({"equipo_id": equipo.id, "equipo": equipo.nombre})
+        if jugador:
+            datos.update({"jugador_id": jugador.id, "jugador": jugador.nombres})
+
+        etiquetas = {
+            "guardar_info_partido_movil": ("ACTUALIZAR_PARTIDO", "Actualizó la información general del partido."),
+            "agregar_gol_movil": ("REGISTRAR_GOL", "Registró un gol."),
+            "agregar_tarjeta_movil": ("REGISTRAR_INFRACCION", "Registró una infracción disciplinaria."),
+            "agregar_alineacion_movil": ("AGREGAR_ALINEACION", "Agregó un jugador a la alineación."),
+            "guardar_alineacion_masiva_movil": ("GUARDAR_ALINEACION", "Guardó la alineación del equipo."),
+            "agregar_sustitucion_movil": ("REGISTRAR_SUSTITUCION", "Registró una sustitución."),
+            "eliminar_gol_movil": ("ELIMINAR_GOL", "Eliminó un gol registrado."),
+            "eliminar_tarjeta_movil": ("ELIMINAR_INFRACCION", "Eliminó una tarjeta registrada."),
+            "eliminar_alineacion_movil": ("ELIMINAR_ALINEACION", "Retiró un jugador de la alineación."),
+            "eliminar_sustitucion_movil": ("ELIMINAR_SUSTITUCION", "Eliminó una sustitución."),
+            "cronometro_primer_tiempo": ("INICIAR_PRIMER_TIEMPO", "Inició el primer tiempo."),
+            "cronometro_entretiempo": ("MARCAR_ENTRETIEMPO", "Marcó el entretiempo."),
+            "cronometro_segundo_tiempo": ("INICIAR_SEGUNDO_TIEMPO", "Inició el segundo tiempo."),
+            "cronometro_pausar": ("PAUSAR_CRONOMETRO", "Pausó el cronómetro."),
+            "cronometro_reanudar": ("REANUDAR_CRONOMETRO", "Reanudó el cronómetro."),
+            "cronometro_suspender": ("SUSPENDER_PARTIDO", "Suspendió el partido."),
+            "cronometro_finalizar": ("FINALIZAR_PARTIDO", "Finalizó el partido."),
+            "preparar_tanda_penales": ("PREPARAR_PENALES", "Activó la sección de tanda de penales."),
+            "iniciar_tanda_penales": ("INICIAR_PENALES", "Inició la tanda de penales."),
+            "registrar_cobro_penal": ("REGISTRAR_COBRO_PENAL", "Registró un cobro de la tanda de penales."),
+            "deshacer_cobro_penal": ("DESHACER_COBRO_PENAL", "Eliminó el último cobro de la tanda."),
+            "modificar_cobrador_penal": ("MODIFICAR_COBRADOR_PENAL", "Corrigió el cobrador de un penal."),
+        }
+        accion, detalle = etiquetas.get(vista, (vista.upper()[:40] or "MODIFICAR", f"Ejecutó la acción {vista.replace('_', ' ')}."))
+        partes.append(detalle)
+
+        if vista == "guardar_info_partido_movil" and partido:
+            gl = request.POST.get("goles_local", partido.goles_local)
+            gv = request.POST.get("goles_visitante", partido.goles_visitante)
+            estado = request.POST.get("estado", partido.estado)
+            partes.append(f"Marcador informado: {partido.equipo_local.nombre} {gl} - {gv} {partido.equipo_visitante.nombre}. Estado: {estado}.")
+            datos.update({"goles_local": gl, "goles_visitante": gv, "estado": estado})
+        elif vista == "agregar_tarjeta_movil":
+            afectado = equipo or getattr(jugador, "equipo", None)
+            tipo = (request.POST.get("tipo") or "tarjeta").upper()
+            minuto = request.POST.get("minuto") or request.POST.get("minuto_manual") or "cronómetro en vivo"
+            partes.append(f"Equipo infractor: {afectado.nombre if afectado else 'por identificar'}. Jugador: {jugador.nombres if jugador else 'por identificar'}. Tipo: {tipo}. Minuto: {minuto}.")
+            datos.update({"tipo_infraccion": tipo, "minuto": minuto})
+        elif vista == "agregar_gol_movil":
+            afectado = equipo or getattr(jugador, "equipo", None)
+            minuto = request.POST.get("minuto") or request.POST.get("minuto_manual") or "cronómetro en vivo"
+            partes.append(f"Equipo que anotó: {afectado.nombre if afectado else 'por identificar'}. Jugador: {jugador.nombres if jugador else 'por identificar'}. Minuto: {minuto}.")
+            datos.update({"minuto": minuto, "cantidad": request.POST.get("cantidad") or "1"})
+        elif equipo:
+            partes.append(f"Equipo modificado: {equipo.nombre}.")
+        elif jugador:
+            partes.append(f"Jugador involucrado: {jugador.nombres}, equipo {jugador.equipo.nombre}.")
+
+        torneo = partido.categoria.torneo if partido else getattr(getattr(equipo, "categoria", None), "torneo", None)
+        return {"accion": accion, "descripcion": " ".join(partes), "datos": datos, "objeto": objeto, "torneo": torneo}
 
     def _registrar_visita_publica(self, request, response):
         if request.method != "GET" or response.status_code >= 400:

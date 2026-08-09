@@ -287,7 +287,7 @@ class AuditoriaUsuariosTests(TestCase):
 
         middleware(request)
 
-        registro = RegistroActividad.objects.get(usuario=self.delegado, accion="MODIFICAR")
+        registro = RegistroActividad.objects.get(usuario=self.delegado, accion="ACCION_DELEGADO")
         self.assertEqual(registro.torneo, self.torneo)
         self.assertEqual(registro.datos["tipo_usuario"], "Delegado")
         self.assertEqual(registro.datos["ruta"], "/delegado/accion/")
@@ -306,9 +306,49 @@ class AuditoriaUsuariosTests(TestCase):
 
         middleware(request)
 
-        registro = RegistroActividad.objects.get(usuario=self.delegado, accion="MODIFICAR")
+        registro = RegistroActividad.objects.get(usuario=self.delegado, accion="DELEGADO_EQUIPO_EDITAR")
         self.assertEqual(registro.torneo, self.torneo)
         self.assertEqual(registro.datos["tipo_usuario"], "Delegado")
+        self.assertIn("Equipo auditado", registro.descripcion)
+
+    def test_middleware_detalla_partido_equipo_jugador_e_infraccion(self):
+        equipo = Equipo.objects.get(responsable=self.delegado)
+        rival = Equipo.objects.create(nombre="Equipo rival", categoria=self.categoria)
+        jugador = Jugador.objects.create(
+            equipo=equipo,
+            nombres="Jugador Infractor",
+            cedula="AUD-1",
+            fecha_nacimiento=date(1990, 1, 1),
+        )
+        partido = Partido.objects.create(
+            categoria=self.categoria,
+            equipo_local=equipo,
+            equipo_visitante=rival,
+            fecha=date(2026, 8, 9),
+            hora=time(14, 0),
+            estado="EN_JUEGO",
+        )
+        request = RequestFactory().post(
+            f"/partido/{partido.id}/agregar-tarjeta-movil/",
+            {"equipo": equipo.id, "jugador": jugador.id, "tipo": "ROJA", "minuto_manual": "63"},
+        )
+        request.user = self.delegado
+        request.session = {"torneo_id": self.torneo.id}
+        request.resolver_match = SimpleNamespace(
+            url_name="agregar_tarjeta_movil",
+            kwargs={"partido_id": partido.id},
+        )
+        middleware = AuditoriaModificacionesMiddleware(lambda _request: HttpResponse(status=302))
+
+        middleware(request)
+
+        registro = RegistroActividad.objects.get(usuario=self.delegado, accion="REGISTRAR_INFRACCION")
+        self.assertIn("Equipo auditado vs Equipo rival", registro.descripcion)
+        self.assertIn("Equipo infractor: Equipo auditado", registro.descripcion)
+        self.assertIn("Jugador Infractor", registro.descripcion)
+        self.assertIn("ROJA", registro.descripcion)
+        self.assertIn("63", registro.descripcion)
+        self.assertEqual(registro.datos["partido_id"], partido.id)
 
     def test_admin_puede_descargar_auditoria_csv(self):
         RegistroActividad.objects.create(

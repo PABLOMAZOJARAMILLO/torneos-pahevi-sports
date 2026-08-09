@@ -78,6 +78,18 @@
             {% if registro.descripcion %}
                 <p>{{ registro.descripcion }}</p>
             {% endif %}
+            {% if registro.datos.equipo_local and registro.datos.equipo_visitante %}
+                <p class="muted"><strong>Encuentro:</strong> {{ registro.datos.equipo_local }} vs {{ registro.datos.equipo_visitante }}</p>
+            {% endif %}
+            {% if registro.datos.equipo %}
+                <p class="muted"><strong>Equipo involucrado:</strong> {{ registro.datos.equipo }}</p>
+            {% endif %}
+            {% if registro.datos.jugador %}
+                <p class="muted"><strong>Jugador:</strong> {{ registro.datos.jugador }}</p>
+            {% endif %}
+            {% if registro.datos.tipo_infraccion %}
+                <p class="muted"><strong>Infracción:</strong> {{ registro.datos.tipo_infraccion }}{% if registro.datos.minuto %} · Minuto {{ registro.datos.minuto }}{% endif %}</p>
+            {% endif %}
             {% if registro.objeto_repr %}
                 <p class="muted">Objeto: {{ registro.objeto_repr }}</p>
             {% endif %}
