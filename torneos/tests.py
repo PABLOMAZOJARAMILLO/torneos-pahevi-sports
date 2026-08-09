@@ -405,6 +405,38 @@ class AuditoriaUsuariosTests(TestCase):
         self.assertIn("Entra Histórico", enriquecido.descripcion)
         self.assertEqual(enriquecido.datos["equipo"], "Equipo auditado")
 
+    def test_auditoria_recupera_detalle_de_gol_y_tarjeta_antiguos(self):
+        equipo = Equipo.objects.get(responsable=self.delegado)
+        rival = Equipo.objects.create(nombre="Rival eventos", categoria=self.categoria)
+        jugador = Jugador.objects.create(equipo=equipo, nombres="Autor Evento", cedula="EV-1", fecha_nacimiento=date(1990, 1, 1))
+        partido = Partido.objects.create(
+            categoria=self.categoria, equipo_local=equipo, equipo_visitante=rival,
+            fecha=date(2026, 8, 8), hora=time(18, 0), estado="EN_JUEGO",
+        )
+        Gol.objects.create(partido=partido, equipo=equipo, jugador=jugador, cantidad=1, minuto=35)
+        Tarjeta.objects.create(partido=partido, equipo=equipo, jugador=jugador, tipo="AMARILLA", minuto=42)
+        registro_gol = RegistroActividad.objects.create(
+            usuario=self.delegado, torneo=self.torneo, accion="MODIFICAR",
+            descripcion="Operación POST.",
+            datos={"ruta": f"/partido/{partido.id}/agregar-gol-movil/", "metodo": "POST"},
+        )
+        registro_tarjeta = RegistroActividad.objects.create(
+            usuario=self.delegado, torneo=self.torneo, accion="MODIFICAR",
+            descripcion="Operación POST.",
+            datos={"ruta": f"/partido/{partido.id}/agregar-tarjeta-movil/", "metodo": "POST"},
+        )
+
+        gol_enriquecido, tarjeta_enriquecida = enriquecer_registros_actividad_legacy([registro_gol, registro_tarjeta])
+
+        self.assertEqual(gol_enriquecido.accion, "REGISTRAR_GOL")
+        self.assertIn("Equipo auditado vs Rival eventos", gol_enriquecido.descripcion)
+        self.assertIn("Autor Evento", gol_enriquecido.descripcion)
+        self.assertIn("35", gol_enriquecido.descripcion)
+        self.assertEqual(tarjeta_enriquecida.accion, "REGISTRAR_INFRACCION")
+        self.assertIn("AMARILLA", tarjeta_enriquecida.descripcion.upper())
+        self.assertIn("Autor Evento", tarjeta_enriquecida.descripcion)
+        self.assertIn("42", tarjeta_enriquecida.descripcion)
+
     def test_admin_puede_descargar_auditoria_csv(self):
         RegistroActividad.objects.create(
             usuario=self.delegado,

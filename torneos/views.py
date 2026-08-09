@@ -6211,11 +6211,11 @@ def gestion_panel(request):
 
 
 def enriquecer_registros_actividad_legacy(registros):
-    """Presenta con contexto los antiguos MODIFICAR que solo conservaron ruta y hora."""
+    """Presenta con contexto los antiguos MODIFICAR de goles, tarjetas y sustituciones."""
     registros = list(registros)
     candidatos = []
     partido_ids = set()
-    patron = re.compile(r"/partido/(\d+)/agregar-sustitucion-movil/")
+    patron = re.compile(r"/partido/(\d+)/agregar-(gol|tarjeta|sustitucion)-movil/")
     for registro in registros:
         if registro.accion != "MODIFICAR":
             continue
@@ -6223,7 +6223,7 @@ def enriquecer_registros_actividad_legacy(registros):
         if coincidencia:
             partido_id = int(coincidencia.group(1))
             partido_ids.add(partido_id)
-            candidatos.append((registro, partido_id))
+            candidatos.append((registro, partido_id, coincidencia.group(2)))
     if not candidatos:
         return registros
 
@@ -6231,17 +6231,25 @@ def enriquecer_registros_actividad_legacy(registros):
         partido.id: partido
         for partido in Partido.objects.select_related("equipo_local", "equipo_visitante").filter(id__in=partido_ids)
     }
-    sustituciones = defaultdict(list)
+    eventos = {"sustitucion": defaultdict(list), "gol": defaultdict(list), "tarjeta": defaultdict(list)}
     for cambio in SustitucionPartido.objects.select_related(
         "equipo", "jugador_sale", "jugador_entra",
     ).filter(partido_id__in=partido_ids):
-        sustituciones[cambio.partido_id].append(cambio)
+        eventos["sustitucion"][cambio.partido_id].append(cambio)
+    for gol in Gol.objects.select_related("equipo", "jugador").filter(partido_id__in=partido_ids):
+        eventos["gol"][gol.partido_id].append(gol)
+    for tarjeta in Tarjeta.objects.select_related("equipo", "jugador").filter(partido_id__in=partido_ids):
+        eventos["tarjeta"][tarjeta.partido_id].append(tarjeta)
 
-    for registro, partido_id in candidatos:
+    for registro, partido_id, tipo_evento in candidatos:
         partido = partidos.get(partido_id)
         if not partido:
             continue
-        registro.accion = "REGISTRAR_SUSTITUCION"
+        registro.accion = {
+            "sustitucion": "REGISTRAR_SUSTITUCION",
+            "gol": "REGISTRAR_GOL",
+            "tarjeta": "REGISTRAR_INFRACCION",
+        }[tipo_evento]
         datos = dict(registro.datos or {})
         datos.update({
             "partido_id": partido.id,
@@ -6249,27 +6257,50 @@ def enriquecer_registros_actividad_legacy(registros):
             "equipo_visitante": partido.equipo_visitante.nombre,
         })
         cercanos = sorted(
-            sustituciones.get(partido_id, []),
-            key=lambda cambio: abs((cambio.creado_en - registro.creado_en).total_seconds()),
+            eventos[tipo_evento].get(partido_id, []),
+            key=lambda evento: abs((evento.creado_en - registro.creado_en).total_seconds()),
         )
-        cambio = cercanos[0] if cercanos and abs((cercanos[0].creado_en - registro.creado_en).total_seconds()) <= 20 else None
-        if cambio:
+        evento = cercanos[0] if cercanos and abs((cercanos[0].creado_en - registro.creado_en).total_seconds()) <= 20 else None
+        if tipo_evento == "sustitucion" and evento:
             datos.update({
-                "equipo_id": cambio.equipo_id,
-                "equipo": cambio.equipo.nombre,
-                "jugador_sale": cambio.jugador_sale.nombres,
-                "jugador_entra": cambio.jugador_entra.nombres,
-                "minuto": cambio.minuto or "sin minuto",
+                "equipo_id": evento.equipo_id, "equipo": evento.equipo.nombre,
+                "jugador_sale": evento.jugador_sale.nombres,
+                "jugador_entra": evento.jugador_entra.nombres,
+                "minuto": evento.minuto or "sin minuto",
             })
             registro.descripcion = (
                 f"Partido #{partido.id}: {partido.equipo_local.nombre} vs {partido.equipo_visitante.nombre}. "
-                f"Registró una sustitución de {cambio.equipo.nombre}: salió {cambio.jugador_sale.nombres} "
-                f"y entró {cambio.jugador_entra.nombres}. Minuto: {cambio.minuto or 'sin minuto'}."
+                f"Registró una sustitución de {evento.equipo.nombre}: salió {evento.jugador_sale.nombres} "
+                f"y entró {evento.jugador_entra.nombres}. Minuto: {evento.minuto or 'sin minuto'}."
             )
-        else:
+        elif tipo_evento == "gol" and evento:
+            clase = "autogol" if evento.es_autogol else "gol de penal" if evento.es_penal else "gol"
+            datos.update({
+                "equipo_id": evento.equipo_id, "equipo": evento.equipo.nombre,
+                "jugador": evento.jugador.nombres, "minuto": evento.minuto or "sin minuto",
+                "cantidad": evento.cantidad or 1,
+            })
             registro.descripcion = (
                 f"Partido #{partido.id}: {partido.equipo_local.nombre} vs {partido.equipo_visitante.nombre}. "
-                "Registró una sustitución; el registro antiguo no conservó los jugadores involucrados."
+                f"Registró {clase} para {evento.equipo.nombre}, jugador {evento.jugador.nombres}, "
+                f"cantidad {evento.cantidad or 1}. Minuto: {evento.minuto or 'sin minuto'}."
+            )
+        elif tipo_evento == "tarjeta" and evento:
+            datos.update({
+                "equipo_id": evento.equipo_id, "equipo": evento.equipo.nombre,
+                "jugador": evento.jugador.nombres, "tipo_infraccion": evento.tipo,
+                "minuto": evento.minuto or "sin minuto",
+            })
+            registro.descripcion = (
+                f"Partido #{partido.id}: {partido.equipo_local.nombre} vs {partido.equipo_visitante.nombre}. "
+                f"Registró infracción {evento.get_tipo_display()} para {evento.equipo.nombre}, "
+                f"jugador {evento.jugador.nombres}. Minuto: {evento.minuto or 'sin minuto'}."
+            )
+        else:
+            nombres = {"sustitucion": "una sustitución", "gol": "un gol", "tarjeta": "una tarjeta"}
+            registro.descripcion = (
+                f"Partido #{partido.id}: {partido.equipo_local.nombre} vs {partido.equipo_visitante.nombre}. "
+                f"Registró {nombres[tipo_evento]}; el registro antiguo no conservó el detalle involucrado."
             )
         registro.datos = datos
     return registros
