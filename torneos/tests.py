@@ -2601,6 +2601,8 @@ class PlanilleroPartidoTests(TestCase):
         respuesta = self.client.get(f"/partido/{self.partido.id}/editor-movil/")
 
         self.assertContains(respuesta, "Carlos Galvis")
+        self.assertContains(respuesta, 'data-nombre="Carlos Galvis"')
+        self.assertNotContains(respuesta, 'data-nombre="Carlos Mario Galvis Padilla"')
         self.assertNotContains(respuesta, "Carlos Mario Galvis Padilla</option>")
         self.assertEqual(nombre_corto_jugador(self.jugador), "Carlos Galvis")
         self.assertEqual(nombre_resumen_jugador(self.jugador), "Carlos Galvis")

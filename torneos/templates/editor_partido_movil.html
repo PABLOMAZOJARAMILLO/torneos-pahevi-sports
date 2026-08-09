@@ -1251,7 +1251,7 @@
                         <select class="slot-select" data-slot-select data-posicion-slot="{{ codigo }}" aria-label="Asignar {{ nombre }}">
                         <option value="">{{ codigo }}</option>
                         {% for j in jugadores_local %}
-                            <option value="{{ j.id }}" data-nombre="{{ j.nombres|texto_limpio }}" data-edad="{{ j.texto_edad }}" data-etiqueta-edad="{{ j.etiqueta_edad }}" data-dorsal="{% if j.dorsal %}{{ j.dorsal }}{% endif %}" data-foto="{{ j.foto_alineacion }}" data-iniciales="{{ j.iniciales_alineacion }}" {% if j.foraneo_no_habilitado %}disabled{% endif %} {% if j.posicion_alineacion == codigo and j.rol_alineacion == "TITULAR" and not j.foraneo_no_habilitado %}selected{% endif %}>
+                            <option value="{{ j.id }}" data-nombre="{{ j.nombres|nombre_corto }}" data-edad="{{ j.texto_edad }}" data-etiqueta-edad="{{ j.etiqueta_edad }}" data-dorsal="{% if j.dorsal %}{{ j.dorsal }}{% endif %}" data-foto="{{ j.foto_alineacion }}" data-iniciales="{{ j.iniciales_alineacion }}" {% if j.foraneo_no_habilitado %}disabled{% endif %} {% if j.posicion_alineacion == codigo and j.rol_alineacion == "TITULAR" and not j.foraneo_no_habilitado %}selected{% endif %}>
                                 {% if j.dorsal %}#{{ j.dorsal }} - {% endif %}{{ j.nombres|primeras_tres_palabras }}{% if j.texto_edad %} ({{ j.texto_edad }}){% endif %}
                             </option>
                         {% endfor %}
@@ -1287,9 +1287,9 @@
                 <summary>Ajustar banco, fuera y no disponibles ({{ jugadores_local|length }})</summary>
                 <div class="ajustes-plantilla-contenido">
                 {% for j in jugadores_local %}
-                <div class="jugador-lineup-row" data-jugador-id="{{ j.id }}" data-edad="{{ j.texto_edad }}" data-etiqueta-edad="{{ j.etiqueta_edad }}" data-nombre="{{ j.nombres|texto_limpio }}" data-dorsal="{% if j.dorsal %}{{ j.dorsal }}{% endif %}" data-foto="{{ j.foto_alineacion }}" data-iniciales="{{ j.iniciales_alineacion }}">
+                <div class="jugador-lineup-row" data-jugador-id="{{ j.id }}" data-edad="{{ j.texto_edad }}" data-etiqueta-edad="{{ j.etiqueta_edad }}" data-nombre="{{ j.nombres|nombre_corto }}" data-dorsal="{% if j.dorsal %}{{ j.dorsal }}{% endif %}" data-foto="{{ j.foto_alineacion }}" data-iniciales="{{ j.iniciales_alineacion }}">
                     <div class="jugador-lineup-head">
-                        <span>{{ j.nombres|texto_limpio }}{% if j.texto_edad %}<span class="edad-badge">{{ j.texto_edad }}</span>{% endif %}</span>
+                        <span>{{ j.nombres|nombre_corto }}{% if j.texto_edad %}<span class="edad-badge">{{ j.texto_edad }}</span>{% endif %}</span>
                         {% if j.foraneo_no_habilitado %}<span class="nota">Foráneo no habilitado: {{ j.foraneo_jugados }}/{{ j.foraneo_minimo }} partidos.</span>{% endif %}
                         <label class="dorsal-alineacion-field">Dorsal
                             <input class="dorsal-alineacion-input" type="text" name="dorsal_{{ j.id }}" inputmode="numeric" value="{{ j.dorsal|default_if_none:'' }}" placeholder="S/D">
@@ -1341,7 +1341,7 @@
                         <select class="slot-select" data-slot-select data-posicion-slot="{{ codigo }}" aria-label="Asignar {{ nombre }}">
                         <option value="">{{ codigo }}</option>
                         {% for j in jugadores_visitante %}
-                            <option value="{{ j.id }}" data-nombre="{{ j.nombres|texto_limpio }}" data-edad="{{ j.texto_edad }}" data-etiqueta-edad="{{ j.etiqueta_edad }}" data-dorsal="{% if j.dorsal %}{{ j.dorsal }}{% endif %}" data-foto="{{ j.foto_alineacion }}" data-iniciales="{{ j.iniciales_alineacion }}" {% if j.foraneo_no_habilitado %}disabled{% endif %} {% if j.posicion_alineacion == codigo and j.rol_alineacion == "TITULAR" and not j.foraneo_no_habilitado %}selected{% endif %}>
+                            <option value="{{ j.id }}" data-nombre="{{ j.nombres|nombre_corto }}" data-edad="{{ j.texto_edad }}" data-etiqueta-edad="{{ j.etiqueta_edad }}" data-dorsal="{% if j.dorsal %}{{ j.dorsal }}{% endif %}" data-foto="{{ j.foto_alineacion }}" data-iniciales="{{ j.iniciales_alineacion }}" {% if j.foraneo_no_habilitado %}disabled{% endif %} {% if j.posicion_alineacion == codigo and j.rol_alineacion == "TITULAR" and not j.foraneo_no_habilitado %}selected{% endif %}>
                                 {% if j.dorsal %}#{{ j.dorsal }} - {% endif %}{{ j.nombres|primeras_tres_palabras }}{% if j.texto_edad %} ({{ j.texto_edad }}){% endif %}
                             </option>
                         {% endfor %}
@@ -1377,9 +1377,9 @@
                 <summary>Ajustar banco, fuera y no disponibles ({{ jugadores_visitante|length }})</summary>
                 <div class="ajustes-plantilla-contenido">
                 {% for j in jugadores_visitante %}
-                <div class="jugador-lineup-row" data-jugador-id="{{ j.id }}" data-edad="{{ j.texto_edad }}" data-etiqueta-edad="{{ j.etiqueta_edad }}" data-nombre="{{ j.nombres|texto_limpio }}" data-dorsal="{% if j.dorsal %}{{ j.dorsal }}{% endif %}" data-foto="{{ j.foto_alineacion }}" data-iniciales="{{ j.iniciales_alineacion }}">
+                <div class="jugador-lineup-row" data-jugador-id="{{ j.id }}" data-edad="{{ j.texto_edad }}" data-etiqueta-edad="{{ j.etiqueta_edad }}" data-nombre="{{ j.nombres|nombre_corto }}" data-dorsal="{% if j.dorsal %}{{ j.dorsal }}{% endif %}" data-foto="{{ j.foto_alineacion }}" data-iniciales="{{ j.iniciales_alineacion }}">
                     <div class="jugador-lineup-head">
-                        <span>{{ j.nombres|texto_limpio }}{% if j.texto_edad %}<span class="edad-badge">{{ j.texto_edad }}</span>{% endif %}</span>
+                        <span>{{ j.nombres|nombre_corto }}{% if j.texto_edad %}<span class="edad-badge">{{ j.texto_edad }}</span>{% endif %}</span>
                         {% if j.foraneo_no_habilitado %}<span class="nota">Foráneo no habilitado: {{ j.foraneo_jugados }}/{{ j.foraneo_minimo }} partidos.</span>{% endif %}
                         <label class="dorsal-alineacion-field">Dorsal
                             <input class="dorsal-alineacion-input" type="text" name="dorsal_{{ j.id }}" inputmode="numeric" value="{{ j.dorsal|default_if_none:'' }}" placeholder="S/D">
@@ -1736,8 +1736,7 @@ function actualizarSelectoresPosicion(panel) {
 
 function nombreCorto(nombre) {
     if (!nombre) return '';
-    const partes = nombre.trim().split(/\s+/).filter(Boolean);
-    return partes.slice(0, 3).join(' ').toUpperCase();
+    return nombre.trim().toUpperCase();
 }
 
 function pintarSlot(slot, option) {
