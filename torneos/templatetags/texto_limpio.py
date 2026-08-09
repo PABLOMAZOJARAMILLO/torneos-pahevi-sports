@@ -40,8 +40,29 @@ def texto_limpio(valor):
 
 @register.filter
 def primeras_tres_palabras(valor):
-    limpio = texto_limpio(valor)
-    return " ".join(limpio.split()[:3])
+    return nombre_corto(valor)
+
+
+@register.filter
+def nombre_corto(valor):
+    limpio = texto_limpio(valor).strip()
+    partes = [parte for parte in limpio.split() if parte]
+    conectores = {"de", "del", "la", "las", "los", "da", "das", "do", "dos", "van", "von", "y"}
+    if len(partes) >= 4:
+        apellido = [partes[2]]
+        indice = 3
+        while apellido[-1].lower() in conectores and indice < len(partes):
+            apellido.append(partes[indice])
+            indice += 1
+        return f"{partes[0]} {' '.join(apellido)}"
+    if len(partes) >= 3:
+        segundo = [partes[1]]
+        indice = 2
+        while segundo[-1].lower() in conectores and indice < len(partes):
+            segundo.append(partes[indice])
+            indice += 1
+        return f"{partes[0]} {' '.join(segundo)}"
+    return " ".join(partes) or "Jugador"
 
 
 @register.filter

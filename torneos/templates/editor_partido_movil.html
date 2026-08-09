@@ -955,12 +955,12 @@
             <div class="lista-cobros">
             {% for cobro in cobros_penales %}
                 <div class="cobro-penal">
-                    <div><span>#{{ cobro.orden }} · {{ cobro.equipo.nombre }} · {{ cobro.jugador.nombres }}</span><div>{% if cobro.convertido %}<span class="cobro-gol">GOL ✓</span>{% else %}<span class="cobro-fallo">FALLO ✕</span>{% endif %}</div></div>
+                    <div><span>#{{ cobro.orden }} · {{ cobro.equipo.nombre }} · {{ cobro.jugador.nombres|nombre_corto }}</span><div>{% if cobro.convertido %}<span class="cobro-gol">GOL ✓</span>{% else %}<span class="cobro-fallo">FALLO ✕</span>{% endif %}</div></div>
                     <details>
                         <summary>Modificar cobrador</summary>
                         <form method="post" action="{% url 'modificar_cobrador_penal' cobro.id %}">
                             {% csrf_token %}
-                            <select name="jugador" required>{% for jugador in cobro.cobradores_editables %}<option value="{{ jugador.id }}" {% if jugador.id == cobro.jugador_id %}selected{% endif %}>{{ jugador.dorsal|default:'-' }} · {{ jugador.nombres }}</option>{% endfor %}</select>
+                            <select name="jugador" required>{% for jugador in cobro.cobradores_editables %}<option value="{{ jugador.id }}" {% if jugador.id == cobro.jugador_id %}selected{% endif %}>{{ jugador.dorsal|default:'-' }} · {{ jugador.nombres|nombre_corto }}</option>{% endfor %}</select>
                             <button class="btn" type="submit">Guardar corrección</button>
                         </form>
                     </details>
@@ -974,7 +974,7 @@
                     {% csrf_token %}
                     <label>Siguiente cobro: {{ equipo_siguiente_penal.nombre }} · Cobro {{ numero_cobro_equipo_siguiente }}</label>
                     <p style="font-size:.85rem;opacity:.8;">{% if es_muerte_subita %}Muerte subita: {% endif %}solo aparecen quienes finalizaron en cancha y aun no han cobrado en el ciclo actual. Cuando todos cobren, se habilitan nuevamente.</p>
-                    <select name="jugador" required><option value="">Selecciona el cobrador</option>{% for jugador in cobradores_penal %}<option value="{{ jugador.id }}">{{ jugador.dorsal|default:'-' }} · {{ jugador.nombres }}</option>{% endfor %}</select>
+                    <select name="jugador" required><option value="">Selecciona el cobrador</option>{% for jugador in cobradores_penal %}<option value="{{ jugador.id }}">{{ jugador.dorsal|default:'-' }} · {{ jugador.nombres|nombre_corto }}</option>{% endfor %}</select>
                     <div class="grid-2"><button class="btn" type="submit" name="resultado" value="GOL">Gol ✓</button><button class="btn danger" type="submit" name="resultado" value="FALLO">Fallo ✕</button></div>
                 </form>
             {% endif %}
@@ -1154,7 +1154,7 @@
             {% for gol in goles %}
                 <div class="lista-item">
                     <div>
-                        <div class="item-title">{{ gol.jugador.nombres|texto_limpio }}</div>
+                        <div class="item-title">{{ gol.jugador.nombres|nombre_corto }}</div>
                         <div class="item-sub">{{ gol.equipo.nombre }} &middot; {{ gol.cantidad }} gol(es){% if gol.minuto is not None %} &middot; {{ gol.minuto }}'{% endif %}{% if gol.es_penal %} &middot; Penal{% endif %}{% if gol.es_autogol %} &middot; Autogol{% endif %}</div>
                     </div>
                     <form method="POST" onsubmit="guardarContextoPanelEditor()" action="{% url 'eliminar_gol_movil' gol.id %}">{% csrf_token %}<button class="btn-danger" type="submit">Eliminar</button></form>
@@ -1203,7 +1203,7 @@
             {% for tarjeta in tarjetas %}
                 <div class="lista-item">
                     <div>
-                        <div class="item-title">{{ tarjeta.jugador.nombres|texto_limpio }}</div>
+                        <div class="item-title">{{ tarjeta.jugador.nombres|nombre_corto }}</div>
                         <div class="item-sub">{{ tarjeta.equipo.nombre }} · {{ tarjeta.tipo }}{% if tarjeta.minuto is not None %} · {{ tarjeta.minuto }}'{% endif %}</div>
                     </div>
                     <form method="POST" onsubmit="guardarContextoPanelEditor()" action="{% url 'eliminar_tarjeta_movil' tarjeta.id %}">{% csrf_token %}<button class="btn-danger" type="submit">Eliminar</button></form>
@@ -1441,7 +1441,7 @@
             {% for a in alineaciones %}
                 <div class="lista-item" data-alineacion-registrada-equipo="{% if a.equipo_id == partido.equipo_local_id %}local{% else %}visitante{% endif %}"{% if a.equipo_id != partido.equipo_local_id %} hidden{% endif %}>
                     <div>
-                        <div class="item-title">{{ a.jugador.nombres|texto_limpio }}</div>
+                        <div class="item-title">{{ a.jugador.nombres|nombre_corto }}</div>
                         <div class="item-sub">{{ a.equipo.nombre }} · {{ a.rol }}</div>
                     </div>
                     <form method="POST" onsubmit="guardarContextoPanelEditor()" action="{% url 'eliminar_alineacion_movil' a.id %}">{% csrf_token %}<button class="btn-danger" type="submit">Eliminar</button></form>
@@ -1504,7 +1504,7 @@
             {% for s in sustituciones %}
                 <div class="lista-item">
                     <div>
-                        <div class="item-title">Sale: {{ s.jugador_sale.nombres }} / Entra: {{ s.jugador_entra.nombres }}</div>
+                        <div class="item-title">Sale: {{ s.jugador_sale.nombres|nombre_corto }} / Entra: {{ s.jugador_entra.nombres|nombre_corto }}</div>
                         <div class="item-sub">{{ s.equipo.nombre }} · Min {{ s.minuto|default:'-' }} · {{ s.observacion|default:'' }}</div>
                     </div>
                     <form method="POST" onsubmit="guardarContextoPanelEditor()" action="{% url 'eliminar_sustitucion_movil' s.id %}">{% csrf_token %}<button class="btn-danger" type="submit">Eliminar</button></form>

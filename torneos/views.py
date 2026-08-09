@@ -2725,8 +2725,7 @@ def _nombre_primer_apellido(jugador):
 
 
 def nombre_corto_jugador(jugador):
-    nombre = (getattr(jugador, "nombres", "") or "").strip()
-    return " ".join(nombre.split()[:3]) or "Jugador"
+    return _nombre_primer_apellido(jugador)
 
 
 def nombre_resumen_jugador(jugador):

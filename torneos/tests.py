@@ -2555,17 +2555,22 @@ class PlanilleroPartidoTests(TestCase):
         "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
         "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
     })
-    def test_editor_y_live_usan_las_tres_primeras_palabras_del_jugador(self):
+    def test_editor_y_live_usan_primer_nombre_y_primer_apellido(self):
         self.jugador.nombres = "Carlos Mario Galvis Padilla"
         self.jugador.save(update_fields=["nombres"])
         self.client.force_login(self.planillero)
 
         respuesta = self.client.get(f"/partido/{self.partido.id}/editor-movil/")
 
-        self.assertContains(respuesta, "Carlos Mario Galvis")
+        self.assertContains(respuesta, "Carlos Galvis")
         self.assertNotContains(respuesta, "Carlos Mario Galvis Padilla</option>")
-        self.assertEqual(nombre_corto_jugador(self.jugador), "Carlos Mario Galvis")
-        self.assertEqual(nombre_resumen_jugador(self.jugador), "Carlos Mario Galvis")
+        self.assertEqual(nombre_corto_jugador(self.jugador), "Carlos Galvis")
+        self.assertEqual(nombre_resumen_jugador(self.jugador), "Carlos Galvis")
+
+        self.jugador.nombres = "Carlos Galvis Padilla"
+        self.assertEqual(nombre_corto_jugador(self.jugador), "Carlos Galvis")
+        self.jugador.nombres = "Carlos Galvis"
+        self.assertEqual(nombre_corto_jugador(self.jugador), "Carlos Galvis")
 
     @override_settings(STORAGES={
         "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
