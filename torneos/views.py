@@ -6224,9 +6224,6 @@ def enriquecer_registros_actividad_legacy(registros):
             partido_id = int(coincidencia.group(1))
             partido_ids.add(partido_id)
             candidatos.append((registro, partido_id, coincidencia.group(2)))
-    if not candidatos:
-        return registros
-
     partidos = {
         partido.id: partido
         for partido in Partido.objects.select_related("equipo_local", "equipo_visitante").filter(id__in=partido_ids)
@@ -6303,6 +6300,104 @@ def enriquecer_registros_actividad_legacy(registros):
                 f"Registró {nombres[tipo_evento]}; el registro antiguo no conservó el detalle involucrado."
             )
         registro.datos = datos
+
+    pendientes = []
+    ids_pendientes = set()
+    patron_partido = re.compile(r"/partido/(\d+)/(.*)")
+    for registro in registros:
+        if registro.accion != "MODIFICAR":
+            continue
+        ruta = (registro.datos or {}).get("ruta", "")
+        coincidencia = patron_partido.search(ruta)
+        if coincidencia:
+            partido_id = int(coincidencia.group(1))
+            ids_pendientes.add(partido_id)
+            pendientes.append((registro, partido_id, coincidencia.group(2).strip("/")))
+            continue
+        eliminacion = re.search(r"/(gol|tarjeta|alineacion|sustitucion)/(\d+)/eliminar-movil/", ruta)
+        if eliminacion:
+            tipo, objeto_id = eliminacion.groups()
+            registro.accion = {
+                "gol": "ELIMINAR_GOL", "tarjeta": "ELIMINAR_INFRACCION",
+                "alineacion": "ELIMINAR_ALINEACION", "sustitucion": "ELIMINAR_SUSTITUCION",
+            }[tipo]
+            registro.descripcion = (
+                f"Eliminó {tipo} #{objeto_id}. Este registro antiguo no conservó el partido, equipo ni jugador eliminados."
+            )
+            continue
+        correccion_cobro = re.search(r"/partido/cronometro/penales/cobro/(\d+)/modificar/", ruta)
+        if correccion_cobro:
+            cobro = CobroPenal.objects.select_related(
+                "partido__equipo_local", "partido__equipo_visitante", "equipo", "jugador",
+            ).filter(id=correccion_cobro.group(1)).first()
+            registro.accion = "MODIFICAR_COBRADOR_PENAL"
+            if cobro:
+                registro.descripcion = (
+                    f"Partido #{cobro.partido_id}: {cobro.partido.equipo_local.nombre} vs {cobro.partido.equipo_visitante.nombre}. "
+                    f"Corrigió el cobrador del penal #{cobro.orden}: actualmente figura {cobro.jugador.nombres}, "
+                    f"equipo {cobro.equipo.nombre}, resultado {'anotó' if cobro.convertido else 'falló'}."
+                )
+            else:
+                registro.descripcion = "Corrigió un cobrador de penal; el registro antiguo ya no conserva el cobro relacionado."
+
+    partidos_pendientes = {
+        partido.id: partido
+        for partido in Partido.objects.select_related(
+            "equipo_local", "equipo_visitante", "equipo_inicia_penales",
+        ).filter(id__in=ids_pendientes)
+    }
+    cobros_por_partido = defaultdict(list)
+    for cobro in CobroPenal.objects.select_related("equipo", "jugador").filter(partido_id__in=ids_pendientes):
+        cobros_por_partido[cobro.partido_id].append(cobro)
+    etiquetas_ruta = {
+        "guardar-info-movil": ("ACTUALIZAR_PARTIDO", "Actualizó la información general del partido."),
+        "guardar-alineacion-movil": ("GUARDAR_ALINEACION", "Guardó una alineación del partido."),
+        "agregar-alineacion-movil": ("AGREGAR_ALINEACION", "Agregó un jugador a la alineación."),
+        "cronometro/primer-tiempo": ("INICIAR_PRIMER_TIEMPO", "Inició el primer tiempo."),
+        "cronometro/entretiempo": ("MARCAR_ENTRETIEMPO", "Marcó el entretiempo."),
+        "cronometro/segundo-tiempo": ("INICIAR_SEGUNDO_TIEMPO", "Inició el segundo tiempo."),
+        "cronometro/pausar": ("PAUSAR_CRONOMETRO", "Pausó el cronómetro."),
+        "cronometro/reanudar": ("REANUDAR_CRONOMETRO", "Reanudó el cronómetro."),
+        "cronometro/suspender": ("SUSPENDER_PARTIDO", "Suspendió el partido."),
+        "cronometro/finalizar": ("FINALIZAR_PARTIDO", "Finalizó el partido."),
+        "cronometro/penales/preparar": ("PREPARAR_PENALES", "Activó la sección de tanda de penales."),
+        "cronometro/penales/iniciar": ("INICIAR_PENALES", "Inició la tanda de penales."),
+        "cronometro/penales/cambiar-equipo-inicial": ("CAMBIAR_EQUIPO_INICIAL_PENALES", "Cambió el equipo que cobra primero."),
+        "cronometro/penales/cobro": ("REGISTRAR_COBRO_PENAL", "Registró un cobro de la tanda de penales."),
+        "cronometro/penales/deshacer": ("DESHACER_COBRO_PENAL", "Deshizo el último cobro de la tanda."),
+    }
+    for registro, partido_id, operacion in pendientes:
+        partido = partidos_pendientes.get(partido_id)
+        if not partido:
+            continue
+        accion, detalle = etiquetas_ruta.get(operacion, (operacion.replace("/", "_").replace("-", "_").upper()[:40], f"Ejecutó {operacion.replace('-', ' ')}."))
+        registro.accion = accion
+        registro.datos = {
+            **dict(registro.datos or {}), "partido_id": partido.id,
+            "equipo_local": partido.equipo_local.nombre,
+            "equipo_visitante": partido.equipo_visitante.nombre,
+        }
+        extra = ""
+        if operacion == "guardar-info-movil":
+            extra = f" Marcador actual: {partido.equipo_local.nombre} {partido.goles_local} - {partido.goles_visitante} {partido.equipo_visitante.nombre}. Estado actual: {partido.get_estado_display()}."
+        elif operacion in {"cronometro/penales/iniciar", "cronometro/penales/cambiar-equipo-inicial"}:
+            extra = f" Equipo que figura cobrando primero: {partido.equipo_inicia_penales.nombre if partido.equipo_inicia_penales else 'por identificar'}."
+        elif operacion == "cronometro/penales/cobro":
+            cercanos = sorted(
+                cobros_por_partido.get(partido_id, []),
+                key=lambda cobro: abs((cobro.creado_en - registro.creado_en).total_seconds()),
+            )
+            cobro = cercanos[0] if cercanos and abs((cercanos[0].creado_en - registro.creado_en).total_seconds()) <= 20 else None
+            if cobro:
+                resultado = "anotó" if cobro.convertido else "falló"
+                extra = f" Cobro #{cobro.orden}: {cobro.jugador.nombres}, equipo {cobro.equipo.nombre}, {resultado}."
+            else:
+                extra = " El registro antiguo no conservó el cobrador ni el resultado."
+        elif operacion == "cronometro/penales/deshacer":
+            extra = " El registro antiguo no conservó el cobro eliminado."
+        registro.descripcion = (
+            f"Partido #{partido.id}: {partido.equipo_local.nombre} vs {partido.equipo_visitante.nombre}. {detalle}{extra}"
+        )
     return registros
 
 

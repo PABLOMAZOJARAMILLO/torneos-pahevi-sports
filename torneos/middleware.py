@@ -90,6 +90,7 @@ class AuditoriaModificacionesMiddleware:
         equipo = Equipo.objects.select_related("categoria__torneo").filter(id=equipo_id).first() if str(equipo_id or "").isdigit() else None
         jugador_id = request.POST.get("jugador") or kwargs.get("jugador_id")
         jugador = Jugador.objects.select_related("equipo").filter(id=jugador_id).first() if str(jugador_id or "").isdigit() else None
+        jugador_solicitado = jugador
         jugador_sale_id = request.POST.get("jugador_sale")
         jugador_entra_id = request.POST.get("jugador_entra")
         jugador_sale = Jugador.objects.select_related("equipo").filter(id=jugador_sale_id).first() if str(jugador_sale_id or "").isdigit() else None
@@ -101,6 +102,15 @@ class AuditoriaModificacionesMiddleware:
         elif isinstance(objeto, (Gol, Tarjeta, AlineacionPartido, CobroPenal)):
             equipo = objeto.equipo
             jugador = objeto.jugador
+        if vista == "deshacer_cobro_penal" and partido:
+            objeto = partido.cobros_penales.select_related("equipo", "jugador").order_by("-orden", "-id").first()
+            if objeto:
+                equipo = objeto.equipo
+                jugador = objeto.jugador
+        if vista in {"iniciar_tanda_penales", "cambiar_equipo_inicia_penales"} and partido:
+            equipo_inicial_id = request.POST.get("equipo_inicia_penales")
+            if str(equipo_inicial_id or "").isdigit():
+                equipo = Equipo.objects.filter(id=equipo_inicial_id).first()
         datos = {}
         partes = []
         if partido:
@@ -159,6 +169,36 @@ class AuditoriaModificacionesMiddleware:
             minuto = request.POST.get("minuto") or request.POST.get("minuto_manual") or "cronómetro en vivo"
             partes.append(f"Equipo que anotó: {afectado.nombre if afectado else 'por identificar'}. Jugador: {jugador.nombres if jugador else 'por identificar'}. Minuto: {minuto}.")
             datos.update({"minuto": minuto, "cantidad": request.POST.get("cantidad") or "1"})
+        elif vista == "registrar_cobro_penal":
+            resultado = "ANOTÓ" if request.POST.get("resultado") == "GOL" else "FALLÓ"
+            partes.append(
+                f"Equipo cobrador: {equipo.nombre if equipo else getattr(getattr(jugador, 'equipo', None), 'nombre', 'por identificar')}. "
+                f"Cobrador: {jugador.nombres if jugador else 'por identificar'}. Resultado: {resultado}."
+            )
+            datos.update({"resultado_cobro": resultado})
+        elif vista == "deshacer_cobro_penal":
+            partes.append(
+                f"Cobro eliminado: {jugador.nombres if jugador else 'por identificar'}, "
+                f"equipo {equipo.nombre if equipo else 'por identificar'}, orden #{getattr(objeto, 'orden', 'por identificar')}."
+            )
+            datos.update({"orden_cobro": getattr(objeto, "orden", None)})
+        elif vista == "modificar_cobrador_penal":
+            partes.append(
+                f"Cobro #{getattr(objeto, 'orden', 'por identificar')}, equipo {equipo.nombre if equipo else 'por identificar'}. "
+                f"Cambió cobrador de {jugador.nombres if jugador else 'por identificar'} "
+                f"a {jugador_solicitado.nombres if jugador_solicitado else 'por identificar'}."
+            )
+            datos.update({
+                "cobrador_anterior": jugador.nombres if jugador else "",
+                "cobrador_nuevo": jugador_solicitado.nombres if jugador_solicitado else "",
+            })
+        elif vista in {"iniciar_tanda_penales", "cambiar_equipo_inicia_penales"}:
+            partes.append(f"Equipo seleccionado para cobrar primero: {equipo.nombre if equipo else 'por identificar'}.")
+        elif vista in {"eliminar_gol_movil", "eliminar_tarjeta_movil", "eliminar_alineacion_movil"}:
+            partes.append(
+                f"Equipo: {equipo.nombre if equipo else 'por identificar'}. "
+                f"Jugador: {jugador.nombres if jugador else 'por identificar'}."
+            )
         elif vista in {"agregar_sustitucion_movil", "eliminar_sustitucion_movil"}:
             minuto = request.POST.get("minuto") or getattr(objeto, "minuto", None) or "cronómetro en vivo"
             partes.append(

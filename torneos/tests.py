@@ -437,6 +437,64 @@ class AuditoriaUsuariosTests(TestCase):
         self.assertIn("Autor Evento", tarjeta_enriquecida.descripcion)
         self.assertIn("42", tarjeta_enriquecida.descripcion)
 
+    def test_auditoria_recupera_info_cronometro_penales_y_eliminaciones_antiguas(self):
+        equipo = Equipo.objects.get(responsable=self.delegado)
+        rival = Equipo.objects.create(nombre="Rival penales", categoria=self.categoria)
+        jugador = Jugador.objects.create(equipo=equipo, nombres="Cobrador Histórico", cedula="P-H", fecha_nacimiento=date(1990, 1, 1))
+        partido = Partido.objects.create(
+            categoria=self.categoria, equipo_local=equipo, equipo_visitante=rival,
+            fecha=date(2026, 8, 8), hora=time(19, 0), estado="EN_JUEGO",
+            fase="SEMIFINAL", goles_local=1, goles_visitante=1, equipo_inicia_penales=equipo,
+        )
+        CobroPenal.objects.create(partido=partido, equipo=equipo, jugador=jugador, orden=1, convertido=True)
+
+        def antiguo(ruta):
+            return RegistroActividad.objects.create(
+                usuario=self.delegado, torneo=self.torneo, accion="MODIFICAR",
+                descripcion="Operación POST.", datos={"ruta": ruta, "metodo": "POST"},
+            )
+
+        info = antiguo(f"/partido/{partido.id}/guardar-info-movil/")
+        pausa = antiguo(f"/partido/{partido.id}/cronometro/pausar/")
+        inicio_penales = antiguo(f"/partido/{partido.id}/cronometro/penales/iniciar/")
+        cobro = antiguo(f"/partido/{partido.id}/cronometro/penales/cobro/")
+        eliminacion = antiguo("/gol/98765/eliminar-movil/")
+
+        enriquecidos = enriquecer_registros_actividad_legacy([info, pausa, inicio_penales, cobro, eliminacion])
+
+        self.assertEqual(enriquecidos[0].accion, "ACTUALIZAR_PARTIDO")
+        self.assertIn("Equipo auditado vs Rival penales", enriquecidos[0].descripcion)
+        self.assertEqual(enriquecidos[1].accion, "PAUSAR_CRONOMETRO")
+        self.assertEqual(enriquecidos[2].accion, "INICIAR_PENALES")
+        self.assertIn("Equipo auditado", enriquecidos[2].descripcion)
+        self.assertEqual(enriquecidos[3].accion, "REGISTRAR_COBRO_PENAL")
+        self.assertIn("Cobrador Histórico", enriquecidos[3].descripcion)
+        self.assertIn("anotó", enriquecidos[3].descripcion)
+        self.assertEqual(enriquecidos[4].accion, "ELIMINAR_GOL")
+        self.assertIn("registro antiguo", enriquecidos[4].descripcion)
+
+    def test_middleware_detalla_el_cobro_que_se_va_a_deshacer(self):
+        equipo = Equipo.objects.get(responsable=self.delegado)
+        rival = Equipo.objects.create(nombre="Rival deshacer", categoria=self.categoria)
+        jugador = Jugador.objects.create(equipo=equipo, nombres="Último Cobrador", cedula="P-D", fecha_nacimiento=date(1990, 1, 1))
+        partido = Partido.objects.create(
+            categoria=self.categoria, equipo_local=equipo, equipo_visitante=rival,
+            fecha=date(2026, 8, 9), hora=time(20, 0), estado="EN_JUEGO", fase="FINAL",
+        )
+        CobroPenal.objects.create(partido=partido, equipo=equipo, jugador=jugador, orden=3, convertido=False)
+        request = RequestFactory().post(f"/partido/{partido.id}/cronometro/penales/deshacer/", {})
+        request.user = self.delegado
+        request.session = {"torneo_id": self.torneo.id}
+        request.resolver_match = SimpleNamespace(url_name="deshacer_cobro_penal", kwargs={"partido_id": partido.id})
+        middleware = AuditoriaModificacionesMiddleware(lambda _request: HttpResponse(status=302))
+
+        middleware(request)
+
+        registro = RegistroActividad.objects.get(usuario=self.delegado, accion="DESHACER_COBRO_PENAL")
+        self.assertIn("Equipo auditado vs Rival deshacer", registro.descripcion)
+        self.assertIn("Último Cobrador", registro.descripcion)
+        self.assertIn("orden #3", registro.descripcion)
+
     def test_admin_puede_descargar_auditoria_csv(self):
         RegistroActividad.objects.create(
             usuario=self.delegado,
