@@ -11,6 +11,7 @@ def sincronizar_tarjeta(tarjeta):
     configuracion, _ = Configuracion.objects.get_or_create(torneo=torneo)
     categoria = tarjeta.partido.categoria
     cuenta, _ = CuentaEquipo.objects.update_or_create(
+        torneo=torneo,
         equipo=tarjeta.equipo,
         defaults={"torneo": torneo, "categoria": categoria},
     )
@@ -31,6 +32,7 @@ def equipo_a_contabilidad(sender, instance, **kwargs):
     if not instance.categoria_id:
         return
     CuentaEquipo.objects.update_or_create(
+        torneo=instance.categoria.torneo,
         equipo=instance,
         defaults={
             "torneo": instance.categoria.torneo,

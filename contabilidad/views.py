@@ -41,15 +41,32 @@ def _torneos_contables(request):
 
 def _sincronizar(torneo):
     Configuracion.objects.get_or_create(torneo=torneo)
-    for equipo in Equipo.objects.select_related("categoria").filter(categoria__torneo=torneo):
+    cuentas_actuales = {
+        cuenta.equipo_id: (cuenta.torneo_id, cuenta.categoria_id)
+        for cuenta in CuentaEquipo.objects.filter(torneo=torneo).only("equipo_id", "torneo_id", "categoria_id")
+    }
+    equipos = Equipo.objects.select_related("categoria").filter(categoria__torneo=torneo).only(
+        "id", "categoria_id", "categoria__torneo_id",
+    )
+    for equipo in equipos.iterator(chunk_size=100):
+        if cuentas_actuales.get(equipo.id) == (torneo.id, equipo.categoria_id):
+            continue
         try:
             CuentaEquipo.objects.update_or_create(
-                equipo=equipo, defaults={"torneo": torneo, "categoria": equipo.categoria},
+                torneo=torneo, equipo=equipo, defaults={"categoria": equipo.categoria},
             )
         except Exception:
             logger.exception("No se pudo sincronizar el equipo %s en contabilidad", equipo.id)
-    tarjetas_existentes = Tarjeta.objects.filter(partido__categoria__torneo=torneo).select_related("partido__categoria__torneo", "equipo__categoria")
-    for tarjeta in tarjetas_existentes:
+    # Las señales sincronizan las tarjetas nuevas. Aquí solo recuperamos tarjetas
+    # históricas que aún no tengan cobro, evitando reconstruir todo en cada visita.
+    tarjetas_pendientes_sincronizacion = Tarjeta.objects.filter(
+        partido__categoria__torneo=torneo,
+        cobro_contable__isnull=True,
+    ).select_related("partido__categoria__torneo", "equipo__categoria").only(
+        "id", "tipo", "equipo_id", "partido_id",
+        "partido__categoria_id", "partido__categoria__torneo_id",
+    ).order_by("id")[:100]
+    for tarjeta in tarjetas_pendientes_sincronizacion.iterator(chunk_size=100):
         try:
             # La cuenta debe seguir la categoría del partido que originó el cobro.
             # Esto permite procesar tarjetas históricas aunque después el equipo

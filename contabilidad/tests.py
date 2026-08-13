@@ -34,7 +34,7 @@ class ContabilidadIndependienteTests(TestCase):
     def test_pago_tarjetas_genera_un_solo_ingreso_detallado(self):
         Tarjeta.objects.create(partido=self.partido, jugador=self.jugador, equipo=self.equipo, tipo="AMARILLA")
         Tarjeta.objects.create(partido=self.partido, jugador=self.jugador, equipo=self.equipo, tipo="ROJA")
-        cuenta = CuentaEquipo.objects.get(equipo=self.equipo)
+        cuenta = CuentaEquipo.objects.get(torneo=self.torneo, equipo=self.equipo)
         respuesta = self.client.post(f"/contabilidad/cuentas/{cuenta.id}/pagar-tarjetas/", {"forma_pago": "Nequi"})
         self.assertEqual(respuesta.status_code, 302)
         pago = PagoTarjetas.objects.get()
@@ -102,7 +102,7 @@ class ContabilidadIndependienteTests(TestCase):
         self.equipo.save(update_fields=["categoria"])
 
         cuenta.refresh_from_db()
-        self.assertEqual(CuentaEquipo.objects.filter(equipo=self.equipo).count(), 1)
+        self.assertEqual(CuentaEquipo.objects.filter(torneo=self.torneo, equipo=self.equipo).count(), 1)
         self.assertEqual(cuenta.categoria, categoria_nueva)
 
     def test_tarjeta_historica_no_derrumba_contabilidad_si_equipo_cambio_categoria(self):
@@ -121,3 +121,11 @@ class ContabilidadIndependienteTests(TestCase):
         cobro = CobroTarjeta.objects.get(tarjeta=tarjeta)
         self.assertEqual(cobro.cuenta.torneo, self.torneo)
         self.assertEqual(cobro.cuenta.categoria, self.categoria)
+
+    def test_apertura_no_reprocesa_tarjetas_que_ya_estan_sincronizadas(self):
+        Tarjeta.objects.create(
+            partido=self.partido, jugador=self.jugador, equipo=self.equipo, tipo="AMARILLA",
+        )
+        respuesta = self.client.get("/contabilidad/")
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertEqual(CobroTarjeta.objects.count(), 1)

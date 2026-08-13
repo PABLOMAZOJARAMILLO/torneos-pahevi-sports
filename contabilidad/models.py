@@ -28,13 +28,16 @@ class Configuracion(models.Model):
 class CuentaEquipo(models.Model):
     torneo = models.ForeignKey(Torneo, on_delete=models.CASCADE, related_name="contabilidad_cuentas")
     categoria = models.ForeignKey(Categoria, on_delete=models.CASCADE, related_name="contabilidad_cuentas")
-    equipo = models.OneToOneField(Equipo, on_delete=models.CASCADE, related_name="contabilidad_cuenta")
+    equipo = models.ForeignKey(Equipo, on_delete=models.CASCADE, related_name="contabilidad_cuentas")
     valor_inscripcion = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     observacion = models.CharField(max_length=250, blank=True)
     actualizado_en = models.DateTimeField(auto_now=True)
 
     class Meta:
         ordering = ["categoria__nombre", "equipo__nombre"]
+        constraints = [
+            models.UniqueConstraint(fields=["torneo", "equipo"], name="cuenta_contable_unica_torneo_equipo"),
+        ]
 
     @property
     def total_abonado(self):
