@@ -14,7 +14,7 @@ from django.views.decorators.http import require_POST
 from torneos.models import Categoria, Equipo, Tarjeta, Torneo
 from torneos.views import denegar_permiso_torneo, puede_gestionar_torneo, torneos_para_usuario
 
-from .forms import AbonoForm, EgresoForm
+from .forms import AbonoForm, EgresoForm, IngresoManualForm
 from .models import AbonoInscripcion, CobroTarjeta, Configuracion, CuentaEquipo, Egreso, Ingreso, PagoTarjetas
 from .signals import sincronizar_tarjeta
 
@@ -217,6 +217,23 @@ def nuevo_egreso(request):
         messages.success(request, "Egreso y soporte guardados.")
         return redirect("contabilidad:inicio")
     return render(request, "contabilidad/formulario.html", {"torneo": torneo, "titulo": "Registrar egreso", "form": form})
+
+
+@login_required
+def nuevo_ingreso(request):
+    torneo = _torneo_permitido(request)
+    if not torneo:
+        return denegar_permiso_torneo()
+    form = IngresoManualForm(request.POST or None, torneo=torneo)
+    if request.method == "POST" and form.is_valid():
+        ingreso = form.save(commit=False)
+        ingreso.torneo = torneo
+        ingreso.tipo = "OTRO"
+        ingreso.registrado_por = request.user
+        ingreso.save()
+        messages.success(request, "Ingreso guardado.")
+        return redirect("contabilidad:inicio")
+    return render(request, "contabilidad/formulario.html", {"torneo": torneo, "titulo": "Registrar ingreso", "form": form})
 
 
 def _tarjetas_filtradas(request, torneo):

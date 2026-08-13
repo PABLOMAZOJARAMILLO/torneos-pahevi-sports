@@ -6,7 +6,7 @@ from django.test import TestCase
 
 from torneos.models import Categoria, Equipo, Jugador, Partido, Tarjeta, Torneo
 
-from .models import CobroTarjeta, Configuracion, CuentaEquipo, Ingreso, PagoTarjetas
+from .models import CobroTarjeta, Configuracion, CuentaEquipo, Egreso, Ingreso, PagoTarjetas
 
 
 class ContabilidadIndependienteTests(TestCase):
@@ -129,3 +129,32 @@ class ContabilidadIndependienteTests(TestCase):
         respuesta = self.client.get("/contabilidad/")
         self.assertEqual(respuesta.status_code, 200)
         self.assertEqual(CobroTarjeta.objects.count(), 1)
+
+    def test_registro_manual_de_ingreso_usa_listado_y_fondo(self):
+        respuesta = self.client.post("/contabilidad/ingresos/nuevo/", {
+            "categoria": self.categoria.id,
+            "concepto": "Patrocinio",
+            "valor": "250000",
+            "fecha": "2026-01-03",
+            "forma_pago": "Transferencia",
+            "detalle": "Patrocinador principal",
+        })
+        self.assertEqual(respuesta.status_code, 302)
+        ingreso = Ingreso.objects.get(tipo="OTRO")
+        self.assertEqual(ingreso.concepto, "Patrocinio")
+        self.assertEqual(ingreso.categoria, self.categoria)
+        self.assertEqual(ingreso.forma_pago, "Transferencia")
+
+    def test_registro_egreso_usa_listado_y_fondo_general(self):
+        respuesta = self.client.post("/contabilidad/egresos/nuevo/", {
+            "categoria": "",
+            "concepto": "Pago de árbitros",
+            "valor": "80000",
+            "fecha": "2026-01-03",
+            "forma_pago": "Efectivo",
+            "observacion": "Fecha 1",
+        })
+        self.assertEqual(respuesta.status_code, 302)
+        egreso = Egreso.objects.get()
+        self.assertEqual(egreso.concepto, "Pago de árbitros")
+        self.assertIsNone(egreso.categoria)
