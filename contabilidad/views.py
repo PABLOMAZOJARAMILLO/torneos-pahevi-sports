@@ -271,6 +271,18 @@ def tarjetas(request):
         return denegar_permiso_torneo()
     _sincronizar(torneo)
     cobros = _tarjetas_filtradas(request, torneo)
+    totales = cobros.aggregate(
+        cantidad=Count("id"),
+        amarillas=Count("id", filter=Q(tipo="AMARILLA")),
+        rojas=Count("id", filter=Q(tipo="ROJA")),
+        valor_total=Sum("valor"),
+        valor_pagado=Sum("valor", filter=Q(pago__isnull=False)),
+        valor_pendiente=Sum("valor", filter=Q(pago__isnull=True)),
+    )
+    for clave in ("cantidad", "amarillas", "rojas"):
+        totales[clave] = totales[clave] or 0
+    for clave in ("valor_total", "valor_pagado", "valor_pendiente"):
+        totales[clave] = totales[clave] or Decimal("0")
     resumen = cobros.values("cuenta__categoria__nombre", "cuenta__equipo__nombre", "tarjeta__partido__fecha").annotate(
         cantidad=Count("id"), amarillas=Count("id", filter=Q(tipo="AMARILLA")),
         rojas=Count("id", filter=Q(tipo="ROJA")), total=Sum("valor"),
@@ -279,7 +291,7 @@ def tarjetas(request):
         "torneo": torneo, "cobros": cobros, "resumen": resumen,
         "categorias": Categoria.objects.filter(torneo=torneo).order_by("nombre"),
         "equipos": Equipo.objects.filter(categoria__torneo=torneo).select_related("categoria").order_by("categoria__nombre", "nombre"),
-        "filtros": request.GET, "total": cobros.aggregate(total=Sum("valor"))["total"] or Decimal("0"),
+        "filtros": request.GET, "totales": totales,
     })
 
 
@@ -293,8 +305,19 @@ def reporte_tarjetas(request):
     response["Content-Disposition"] = 'attachment; filename="tarjetas-contabilidad.csv"'
     response.write("\ufeff")
     writer = csv.writer(response)
+    cobros = _tarjetas_filtradas(request, torneo)
+    totales = cobros.aggregate(
+        cantidad=Count("id"), amarillas=Count("id", filter=Q(tipo="AMARILLA")),
+        rojas=Count("id", filter=Q(tipo="ROJA")), valor_total=Sum("valor"),
+        valor_pagado=Sum("valor", filter=Q(pago__isnull=False)),
+        valor_pendiente=Sum("valor", filter=Q(pago__isnull=True)),
+    )
+    writer.writerow(["TOTALIZADO DE TARJETAS"])
+    writer.writerow(["Amarillas", "Rojas", "Cantidad total", "Valor total", "Valor pagado", "Saldo pendiente"])
+    writer.writerow([totales["amarillas"] or 0, totales["rojas"] or 0, totales["cantidad"] or 0, totales["valor_total"] or 0, totales["valor_pagado"] or 0, totales["valor_pendiente"] or 0])
+    writer.writerow([])
     writer.writerow(["Fecha", "Categoría", "Equipo", "Jugador", "Partido", "Tipo", "Minuto", "Valor", "Estado"])
-    for cobro in _tarjetas_filtradas(request, torneo):
+    for cobro in cobros:
         tarjeta = cobro.tarjeta
         writer.writerow([tarjeta.partido.fecha, cobro.cuenta.categoria.nombre, cobro.cuenta.equipo.nombre, tarjeta.jugador.nombres, str(tarjeta.partido), tarjeta.get_tipo_display(), tarjeta.minuto or "", cobro.valor, "Pagado" if cobro.pago_id else "Pendiente"])
     return response

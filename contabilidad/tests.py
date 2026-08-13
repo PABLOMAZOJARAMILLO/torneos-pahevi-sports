@@ -71,6 +71,23 @@ class ContabilidadIndependienteTests(TestCase):
         self.assertEqual(respuesta.status_code, 200)
         self.assertIn("Equipo Uno", contenido)
         self.assertIn("Roja", contenido)
+        self.assertIn("TOTALIZADO DE TARJETAS", contenido)
+
+    def test_totalizado_tarjetas_muestra_cantidades_dinero_pagado_y_pendiente(self):
+        Tarjeta.objects.create(partido=self.partido, jugador=self.jugador, equipo=self.equipo, tipo="AMARILLA")
+        Tarjeta.objects.create(partido=self.partido, jugador=self.jugador, equipo=self.equipo, tipo="ROJA")
+        cuenta = CuentaEquipo.objects.get(torneo=self.torneo, equipo=self.equipo)
+        pagina = self.client.get("/contabilidad/tarjetas/")
+        self.assertEqual(pagina.context["totales"]["cantidad"], 2)
+        self.assertEqual(pagina.context["totales"]["amarillas"], 1)
+        self.assertEqual(pagina.context["totales"]["rojas"], 1)
+        self.assertEqual(pagina.context["totales"]["valor_total"], Decimal("13000"))
+        self.assertEqual(pagina.context["totales"]["valor_pendiente"], Decimal("13000"))
+
+        self.client.post(f"/contabilidad/cuentas/{cuenta.id}/pagar-tarjetas/")
+        pagina = self.client.get("/contabilidad/tarjetas/")
+        self.assertEqual(pagina.context["totales"]["valor_pagado"], Decimal("13000"))
+        self.assertEqual(pagina.context["totales"]["valor_pendiente"], Decimal("0"))
 
     def test_selector_contable_cambia_torneo_en_su_propia_sesion(self):
         otro = Torneo.objects.create(nombre="Otro torneo", fecha_inicio=date(2026, 2, 1))
