@@ -82,3 +82,10 @@ class ContabilidadIndependienteTests(TestCase):
         pagina = self.client.get("/contabilidad/")
         self.assertContains(pagina, "Otro torneo")
         self.assertEqual(pagina.context["torneo"], otro)
+
+    def test_torneo_finalizado_puede_consultarse_en_contabilidad(self):
+        self.torneo.estado = "FINALIZADO"
+        self.torneo.save(update_fields=["estado"])
+        respuesta = self.client.get("/contabilidad/")
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertContains(respuesta, "Torneo contable")

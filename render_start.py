@@ -15,6 +15,9 @@ def main():
         print(f"==> DATABASE_URL configurada: {'si' if os.environ.get('DATABASE_URL') else 'no'}", flush=True)
         run([sys.executable, "manage.py", "showmigrations", "torneos"])
         run([sys.executable, "manage.py", "migrate", "--noinput", "--verbosity", "2"])
+        # Render inicia directamente desde este archivo; recopilar aquí garantiza
+        # que los estilos de aplicaciones nuevas existan en el manifiesto de WhiteNoise.
+        run([sys.executable, "manage.py", "collectstatic", "--noinput", "--verbosity", "1"])
     except Exception:
         print("==> ERROR APLICANDO MIGRACIONES", flush=True)
         traceback.print_exc()
