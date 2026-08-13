@@ -89,3 +89,18 @@ class ContabilidadIndependienteTests(TestCase):
         respuesta = self.client.get("/contabilidad/")
         self.assertEqual(respuesta.status_code, 200)
         self.assertContains(respuesta, "Torneo contable")
+
+    def test_equipos_del_torneo_se_sincronizan_sin_crearlos_manualmente(self):
+        cuenta = CuentaEquipo.objects.get(equipo=self.equipo)
+        self.assertEqual(cuenta.torneo, self.torneo)
+        self.assertEqual(cuenta.categoria, self.categoria)
+
+        categoria_nueva = Categoria.objects.create(
+            nombre="Veteranos", torneo=self.torneo, edad_minima=35, edad_maxima=80,
+        )
+        self.equipo.categoria = categoria_nueva
+        self.equipo.save(update_fields=["categoria"])
+
+        cuenta.refresh_from_db()
+        self.assertEqual(CuentaEquipo.objects.filter(equipo=self.equipo).count(), 1)
+        self.assertEqual(cuenta.categoria, categoria_nueva)
