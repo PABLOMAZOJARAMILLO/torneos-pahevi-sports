@@ -104,3 +104,20 @@ class ContabilidadIndependienteTests(TestCase):
         cuenta.refresh_from_db()
         self.assertEqual(CuentaEquipo.objects.filter(equipo=self.equipo).count(), 1)
         self.assertEqual(cuenta.categoria, categoria_nueva)
+
+    def test_tarjeta_historica_no_derrumba_contabilidad_si_equipo_cambio_categoria(self):
+        tarjeta = Tarjeta.objects.create(
+            partido=self.partido, jugador=self.jugador, equipo=self.equipo, tipo="AMARILLA",
+        )
+        otro_torneo = Torneo.objects.create(nombre="Torneo posterior", fecha_inicio=date(2027, 1, 1))
+        otra_categoria = Categoria.objects.create(
+            nombre="Senior posterior", torneo=otro_torneo, edad_minima=18, edad_maxima=80,
+        )
+        self.equipo.categoria = otra_categoria
+        self.equipo.save(update_fields=["categoria"])
+
+        respuesta = self.client.get("/contabilidad/")
+        self.assertEqual(respuesta.status_code, 200)
+        cobro = CobroTarjeta.objects.get(tarjeta=tarjeta)
+        self.assertEqual(cobro.cuenta.torneo, self.torneo)
+        self.assertEqual(cobro.cuenta.categoria, self.categoria)

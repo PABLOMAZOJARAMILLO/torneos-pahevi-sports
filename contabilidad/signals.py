@@ -9,9 +9,10 @@ from .models import CobroTarjeta, Configuracion, CuentaEquipo
 def sincronizar_tarjeta(tarjeta):
     torneo = tarjeta.partido.categoria.torneo
     configuracion, _ = Configuracion.objects.get_or_create(torneo=torneo)
+    categoria = tarjeta.partido.categoria
     cuenta, _ = CuentaEquipo.objects.update_or_create(
         equipo=tarjeta.equipo,
-        defaults={"torneo": torneo, "categoria": tarjeta.equipo.categoria},
+        defaults={"torneo": torneo, "categoria": categoria},
     )
     CobroTarjeta.objects.update_or_create(
         tarjeta=tarjeta,

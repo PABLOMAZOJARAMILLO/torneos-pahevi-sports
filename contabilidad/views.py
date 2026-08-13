@@ -1,4 +1,5 @@
 import csv
+import logging
 from decimal import Decimal
 
 from django.contrib import messages
@@ -16,6 +17,9 @@ from torneos.views import denegar_permiso_torneo, puede_gestionar_torneo, torneo
 from .forms import AbonoForm, EgresoForm
 from .models import AbonoInscripcion, CobroTarjeta, Configuracion, CuentaEquipo, Egreso, Ingreso, PagoTarjetas
 from .signals import sincronizar_tarjeta
+
+
+logger = logging.getLogger(__name__)
 
 
 def _torneo_permitido(request):
@@ -38,10 +42,21 @@ def _torneos_contables(request):
 def _sincronizar(torneo):
     Configuracion.objects.get_or_create(torneo=torneo)
     for equipo in Equipo.objects.select_related("categoria").filter(categoria__torneo=torneo):
-        CuentaEquipo.objects.update_or_create(equipo=equipo, defaults={"torneo": torneo, "categoria": equipo.categoria})
+        try:
+            CuentaEquipo.objects.update_or_create(
+                equipo=equipo, defaults={"torneo": torneo, "categoria": equipo.categoria},
+            )
+        except Exception:
+            logger.exception("No se pudo sincronizar el equipo %s en contabilidad", equipo.id)
     tarjetas_existentes = Tarjeta.objects.filter(partido__categoria__torneo=torneo).select_related("partido__categoria__torneo", "equipo__categoria")
     for tarjeta in tarjetas_existentes:
-        sincronizar_tarjeta(tarjeta)
+        try:
+            # La cuenta debe seguir la categoría del partido que originó el cobro.
+            # Esto permite procesar tarjetas históricas aunque después el equipo
+            # haya sido reinscrito o movido a otra categoría/torneo.
+            sincronizar_tarjeta(tarjeta)
+        except Exception:
+            logger.exception("No se pudo sincronizar la tarjeta %s en contabilidad", tarjeta.id)
 
 
 def _contexto(torneo):
