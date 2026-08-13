@@ -1,0 +1,17 @@
+{% extends "contabilidad/base.html" %}
+{% block heading %}Tarjetas contables{% endblock %}
+{% block content %}
+<section class="tournament-line"><div><span>Torneo actual</span><strong>{{ torneo.nombre }}</strong></div><a class="link-button" href="{% url 'contabilidad:inicio' %}">Volver</a></section>
+<section class="panel">
+  <div class="section-heading"><div><p class="eyebrow">FILTROS</p><h2>Organizar por categoría, equipo y fecha</h2></div></div>
+  <form method="get"><div class="category-filter-row">
+    <label>Categoría<select name="categoria"><option value="">Todas</option>{% for categoria in categorias %}<option value="{{ categoria.id }}" {% if filtros.categoria == categoria.id|stringformat:'s' %}selected{% endif %}>{{ categoria.nombre }}</option>{% endfor %}</select></label>
+    <label>Equipo<select name="equipo"><option value="">Todos</option>{% for equipo in equipos %}<option value="{{ equipo.id }}" {% if filtros.equipo == equipo.id|stringformat:'s' %}selected{% endif %}>{{ equipo.categoria.nombre }} · {{ equipo.nombre }}</option>{% endfor %}</select></label>
+    <label>Desde<input type="date" name="desde" value="{{ filtros.desde }}"></label><label>Hasta<input type="date" name="hasta" value="{{ filtros.hasta }}"></label>
+    <label>Estado<select name="estado"><option value="">Todos</option><option value="pendiente" {% if filtros.estado == 'pendiente' %}selected{% endif %}>Pendientes</option><option value="pagado" {% if filtros.estado == 'pagado' %}selected{% endif %}>Pagadas</option></select></label>
+  </div><button class="primary">Aplicar filtros</button> <a class="secondary" href="{% url 'contabilidad:tarjetas' %}">Limpiar</a></form>
+  <p><strong>Total filtrado: $ {{ total|floatformat:0 }}</strong></p><a class="secondary report-button" href="{% url 'contabilidad:reporte_tarjetas' %}?{{ request.GET.urlencode }}">Descargar tarjetas filtradas</a>
+</section>
+<section class="panel"><div class="section-heading"><div><p class="eyebrow">RESUMEN</p><h2>Totales por fecha, categoría y equipo</h2></div></div><div class="team-list">{% for fila in resumen %}<article class="team-row"><div><h3>{{ fila.cuenta__equipo__nombre }}</h3><p>{{ fila.cuenta__categoria__nombre }} · {{ fila.tarjeta__partido__fecha }}</p></div><div class="team-status"><strong>$ {{ fila.total|floatformat:0 }}</strong><span>{{ fila.amarillas }} amarillas · {{ fila.rojas }} rojas</span></div></article>{% empty %}<div class="empty-state"><h3>No hay tarjetas con estos filtros</h3></div>{% endfor %}</div></section>
+<section class="panel"><div class="section-heading"><div><p class="eyebrow">DETALLE</p><h2>Tarjetas registradas</h2></div></div><div class="team-ledger">{% for cobro in cobros %}<div class="ledger-card"><div><p>{{ cobro.cuenta.equipo.nombre }} · {{ cobro.tipo }}</p><small>{{ cobro.cuenta.categoria.nombre }} · {{ cobro.tarjeta.partido.fecha }} · {{ cobro.tarjeta.jugador.nombres }}{% if cobro.tarjeta.minuto %} · {{ cobro.tarjeta.minuto }}'{% endif %}</small></div><div class="card-value"><strong>$ {{ cobro.valor|floatformat:0 }}</strong><span class="{% if cobro.pago_id %}paid{% else %}pending{% endif %}">{% if cobro.pago_id %}PAGADO{% else %}PENDIENTE{% endif %}</span></div></div>{% empty %}<p>No hay tarjetas.</p>{% endfor %}</div></section>
+{% endblock %}

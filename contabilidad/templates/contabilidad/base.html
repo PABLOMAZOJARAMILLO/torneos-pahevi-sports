@@ -1,0 +1,4 @@
+{% load static %}<!doctype html>
+<html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#12372a"><title>{% block title %}Cuentas del Torneo{% endblock %}</title><link rel="stylesheet" href="{% static 'contabilidad/styles.css' %}"></head>
+<body><header class="topbar"><div><p class="eyebrow">CONTROL CONTABLE</p><h1>{% block heading %}Cuentas del Torneo{% endblock %}</h1></div><a class="icon-button" href="{% url 'panel' %}" aria-label="Volver a la app de fútbol">⚽</a></header>
+<main>{% if messages %}{% for message in messages %}<div class="toast visible">{{ message }}</div>{% endfor %}{% endif %}{% block content %}{% endblock %}</main></body></html>

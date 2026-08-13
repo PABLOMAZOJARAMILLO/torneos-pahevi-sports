@@ -1,0 +1,1 @@
+{% extends "contabilidad/base.html" %}{% block heading %}{{ titulo }}{% endblock %}{% block content %}<section class="panel"><form method="post" enctype="multipart/form-data">{% csrf_token %}{{ form.as_p }}<button class="primary">Guardar</button><a class="secondary" href="{% url 'contabilidad:inicio' %}">Cancelar</a></form></section>{% endblock %}

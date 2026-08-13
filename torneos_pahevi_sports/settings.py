@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'import_export',
     'torneos',
+    'contabilidad',
 ]
 
 if os.getenv("USE_SUPABASE_STORAGE", "").lower() in {"1", "true", "yes"}:
