@@ -158,3 +158,24 @@ class ContabilidadIndependienteTests(TestCase):
         egreso = Egreso.objects.get()
         self.assertEqual(egreso.concepto, "Pago de árbitros")
         self.assertIsNone(egreso.categoria)
+
+    def test_inscripciones_pueden_financiar_premiacion_y_otros_gastos(self):
+        cuenta = CuentaEquipo.objects.get(torneo=self.torneo, equipo=self.equipo)
+        cuenta.valor_inscripcion = Decimal("500000")
+        cuenta.save(update_fields=["valor_inscripcion"])
+        self.client.post("/contabilidad/cuentas/%s/" % cuenta.id, {
+            "accion": "abono", "valor": "300000", "fecha": "2026-01-03",
+            "observacion": "Abono", "forma_pago": "Efectivo",
+        })
+        self.client.post("/contabilidad/egresos/nuevo/", {
+            "categoria": self.categoria.id, "concepto": "Premiación", "valor": "100000",
+            "fecha": "2026-01-04", "forma_pago": "Efectivo", "observacion": "Trofeos",
+        })
+        self.client.post("/contabilidad/egresos/nuevo/", {
+            "categoria": self.categoria.id, "concepto": "Alquiler de cancha", "valor": "50000",
+            "fecha": "2026-01-04", "forma_pago": "Efectivo", "observacion": "Fecha final",
+        })
+        pagina = self.client.get("/contabilidad/")
+        self.assertEqual(pagina.context["inscripciones_recaudadas"], Decimal("300000"))
+        self.assertEqual(pagina.context["gastos_desde_inscripciones"], Decimal("150000"))
+        self.assertEqual(pagina.context["inscripciones_disponibles"], Decimal("150000"))

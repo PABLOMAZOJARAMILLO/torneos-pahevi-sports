@@ -38,6 +38,8 @@ class EgresoForm(forms.ModelForm):
         self.fields["categoria"].required = False
         self.fields["categoria"].empty_label = "Fondo general"
         self.fields["categoria"].queryset = Categoria.objects.filter(torneo=torneo).order_by("nombre")
+        self.fields["categoria"].label = "Fondo que paga el egreso"
+        self.fields["categoria"].help_text = "Selecciona el fondo de inscripción de una categoría o el fondo general del torneo."
 
     def clean_valor(self):
         valor = self.cleaned_data["valor"]

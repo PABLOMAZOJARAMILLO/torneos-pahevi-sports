@@ -87,7 +87,11 @@ def _contexto(torneo):
         fondos.append({"categoria": categoria, "esperado": esperado, "recaudado": recaudado, "pendiente": max(Decimal("0"), esperado-recaudado), "disponible": recaudado-egresos})
     ingresos = Ingreso.objects.filter(torneo=torneo).aggregate(total=Sum("valor"))["total"] or Decimal("0")
     egresos = Egreso.objects.filter(torneo=torneo).aggregate(total=Sum("valor"))["total"] or Decimal("0")
-    return {"torneo": torneo, "cuentas": cuentas, "fondos": fondos, "ingresos": ingresos, "egresos_total": egresos, "balance": ingresos-egresos, "movimientos_ingreso": Ingreso.objects.filter(torneo=torneo)[:30], "movimientos_egreso": Egreso.objects.filter(torneo=torneo)[:30], "configuracion": Configuracion.objects.get(torneo=torneo)}
+    inscripciones = AbonoInscripcion.objects.filter(cuenta__torneo=torneo).aggregate(total=Sum("valor"))["total"] or Decimal("0")
+    gastos_inscripcion = Egreso.objects.filter(torneo=torneo, categoria__isnull=False).aggregate(total=Sum("valor"))["total"] or Decimal("0")
+    ingresos_generales = Ingreso.objects.filter(torneo=torneo).exclude(tipo="INSCRIPCION").aggregate(total=Sum("valor"))["total"] or Decimal("0")
+    egresos_generales = Egreso.objects.filter(torneo=torneo, categoria__isnull=True).aggregate(total=Sum("valor"))["total"] or Decimal("0")
+    return {"torneo": torneo, "cuentas": cuentas, "fondos": fondos, "ingresos": ingresos, "egresos_total": egresos, "balance": ingresos-egresos, "inscripciones_recaudadas": inscripciones, "gastos_desde_inscripciones": gastos_inscripcion, "inscripciones_disponibles": inscripciones-gastos_inscripcion, "fondo_general_disponible": ingresos_generales-egresos_generales, "movimientos_ingreso": Ingreso.objects.filter(torneo=torneo)[:30], "movimientos_egreso": Egreso.objects.filter(torneo=torneo)[:30], "configuracion": Configuracion.objects.get(torneo=torneo)}
 
 
 @login_required
