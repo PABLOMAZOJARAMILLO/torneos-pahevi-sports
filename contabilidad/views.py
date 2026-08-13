@@ -91,7 +91,38 @@ def _contexto(torneo):
     gastos_inscripcion = Egreso.objects.filter(torneo=torneo, categoria__isnull=False).aggregate(total=Sum("valor"))["total"] or Decimal("0")
     ingresos_generales = Ingreso.objects.filter(torneo=torneo).exclude(tipo="INSCRIPCION").aggregate(total=Sum("valor"))["total"] or Decimal("0")
     egresos_generales = Egreso.objects.filter(torneo=torneo, categoria__isnull=True).aggregate(total=Sum("valor"))["total"] or Decimal("0")
-    return {"torneo": torneo, "cuentas": cuentas, "fondos": fondos, "ingresos": ingresos, "egresos_total": egresos, "balance": ingresos-egresos, "inscripciones_recaudadas": inscripciones, "gastos_desde_inscripciones": gastos_inscripcion, "inscripciones_disponibles": inscripciones-gastos_inscripcion, "fondo_general_disponible": ingresos_generales-egresos_generales, "movimientos_ingreso": Ingreso.objects.filter(torneo=torneo)[:30], "movimientos_egreso": Egreso.objects.filter(torneo=torneo)[:30], "configuracion": Configuracion.objects.get(torneo=torneo)}
+    categorias = list(Categoria.objects.filter(torneo=torneo).order_by("nombre"))
+    cuentas_por_categoria = [
+        {"categoria": categoria, "cuentas": [c for c in cuentas if c.categoria_id == categoria.id]}
+        for categoria in categorias
+    ]
+    ingresos_recientes = list(Ingreso.objects.filter(torneo=torneo).select_related("categoria", "equipo")[:60])
+    egresos_recientes = list(Egreso.objects.filter(torneo=torneo).select_related("categoria")[:60])
+    movimientos = [
+        {"objeto": item, "tipo": "ingreso", "fecha": item.fecha, "creado_en": item.creado_en}
+        for item in ingresos_recientes
+    ] + [
+        {"objeto": item, "tipo": "egreso", "fecha": item.fecha, "creado_en": item.creado_en}
+        for item in egresos_recientes
+    ]
+    movimientos.sort(key=lambda item: (item["fecha"], item["creado_en"]), reverse=True)
+    movimientos = movimientos[:60]
+    movimientos_por_categoria = []
+    for categoria in categorias:
+        items = [m for m in movimientos if m["objeto"].categoria_id == categoria.id]
+        if items:
+            movimientos_por_categoria.append({"categoria": categoria, "movimientos": items})
+    movimientos_generales = [m for m in movimientos if m["objeto"].categoria_id is None]
+    return {
+        "torneo": torneo, "cuentas": cuentas, "cuentas_por_categoria": cuentas_por_categoria,
+        "fondos": fondos, "ingresos": ingresos, "egresos_total": egresos, "balance": ingresos-egresos,
+        "inscripciones_recaudadas": inscripciones, "gastos_desde_inscripciones": gastos_inscripcion,
+        "inscripciones_disponibles": inscripciones-gastos_inscripcion,
+        "fondo_general_disponible": ingresos_generales-egresos_generales,
+        "movimientos_por_categoria": movimientos_por_categoria,
+        "movimientos_generales": movimientos_generales,
+        "configuracion": Configuracion.objects.get(torneo=torneo),
+    }
 
 
 @login_required
