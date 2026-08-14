@@ -8,6 +8,7 @@ from django.db import transaction
 from django.db.models import Count, Q, Sum
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils import timezone
 from django.utils.dateparse import parse_date
 from django.views.decorators.http import require_POST
 
@@ -82,15 +83,15 @@ def _contexto(torneo):
     fondos = []
     for categoria in Categoria.objects.filter(torneo=torneo).order_by("nombre"):
         esperado = sum((c.valor_inscripcion for c in cuentas if c.categoria_id == categoria.id), Decimal("0"))
-        recaudado = AbonoInscripcion.objects.filter(cuenta__categoria=categoria).aggregate(total=Sum("valor"))["total"] or Decimal("0")
-        egresos = Egreso.objects.filter(torneo=torneo, categoria=categoria).aggregate(total=Sum("valor"))["total"] or Decimal("0")
+        recaudado = AbonoInscripcion.objects.filter(cuenta__categoria=categoria, ingreso__anulado=False).aggregate(total=Sum("valor"))["total"] or Decimal("0")
+        egresos = Egreso.objects.filter(torneo=torneo, categoria=categoria, anulado=False).aggregate(total=Sum("valor"))["total"] or Decimal("0")
         fondos.append({"categoria": categoria, "esperado": esperado, "recaudado": recaudado, "pendiente": max(Decimal("0"), esperado-recaudado), "disponible": recaudado-egresos})
-    ingresos = Ingreso.objects.filter(torneo=torneo).aggregate(total=Sum("valor"))["total"] or Decimal("0")
-    egresos = Egreso.objects.filter(torneo=torneo).aggregate(total=Sum("valor"))["total"] or Decimal("0")
-    inscripciones = AbonoInscripcion.objects.filter(cuenta__torneo=torneo).aggregate(total=Sum("valor"))["total"] or Decimal("0")
-    gastos_inscripcion = Egreso.objects.filter(torneo=torneo, categoria__isnull=False).aggregate(total=Sum("valor"))["total"] or Decimal("0")
-    ingresos_generales = Ingreso.objects.filter(torneo=torneo).exclude(tipo="INSCRIPCION").aggregate(total=Sum("valor"))["total"] or Decimal("0")
-    egresos_generales = Egreso.objects.filter(torneo=torneo, categoria__isnull=True).aggregate(total=Sum("valor"))["total"] or Decimal("0")
+    ingresos = Ingreso.objects.filter(torneo=torneo, anulado=False).aggregate(total=Sum("valor"))["total"] or Decimal("0")
+    egresos = Egreso.objects.filter(torneo=torneo, anulado=False).aggregate(total=Sum("valor"))["total"] or Decimal("0")
+    inscripciones = AbonoInscripcion.objects.filter(cuenta__torneo=torneo, ingreso__anulado=False).aggregate(total=Sum("valor"))["total"] or Decimal("0")
+    gastos_inscripcion = Egreso.objects.filter(torneo=torneo, categoria__isnull=False, anulado=False).aggregate(total=Sum("valor"))["total"] or Decimal("0")
+    ingresos_generales = Ingreso.objects.filter(torneo=torneo, anulado=False).exclude(tipo="INSCRIPCION").aggregate(total=Sum("valor"))["total"] or Decimal("0")
+    egresos_generales = Egreso.objects.filter(torneo=torneo, categoria__isnull=True, anulado=False).aggregate(total=Sum("valor"))["total"] or Decimal("0")
     categorias = list(Categoria.objects.filter(torneo=torneo).order_by("nombre"))
     cuentas_por_categoria = [
         {"categoria": categoria, "cuentas": [c for c in cuentas if c.categoria_id == categoria.id]}
@@ -121,6 +122,7 @@ def _contexto(torneo):
         "fondo_general_disponible": ingresos_generales-egresos_generales,
         "movimientos_por_categoria": movimientos_por_categoria,
         "movimientos_generales": movimientos_generales,
+        "puede_anular": False,
         "configuracion": Configuracion.objects.get(torneo=torneo),
     }
 
@@ -132,6 +134,7 @@ def inicio(request):
         return denegar_permiso_torneo()
     contexto = _contexto(torneo)
     contexto["torneos_contables"] = _torneos_contables(request)
+    contexto["puede_anular"] = request.user.is_superuser or request.user.is_staff
     return render(request, "contabilidad/inicio.html", contexto)
 
 
@@ -196,13 +199,16 @@ def cuenta(request, cuenta_id):
                 abono.save()
             messages.success(request, "Abono e ingreso registrados.")
             return redirect("contabilidad:cuenta", cuenta_id=objeto.id)
-    return render(request, "contabilidad/cuenta.html", {"torneo": torneo, "cuenta": objeto, "form": form, "cobros": objeto.cobros_tarjetas.select_related("tarjeta__jugador").all(), "abonos": objeto.abonos.all()})
+    return render(request, "contabilidad/cuenta.html", {"torneo": torneo, "cuenta": objeto, "form": form, "cobros": objeto.cobros_tarjetas.select_related("tarjeta__jugador").all(), "abonos": objeto.abonos.select_related("ingreso", "ingreso__anulado_por").all(), "puede_anular": request.user.is_superuser or request.user.is_staff})
 
 
 @login_required
 def editar_abono(request, abono_id):
     torneo = _torneo_permitido(request)
     abono = get_object_or_404(AbonoInscripcion.objects.select_related("cuenta", "ingreso"), id=abono_id, cuenta__torneo=torneo)
+    if abono.ingreso.anulado:
+        messages.error(request, "Un movimiento anulado no se puede editar.")
+        return redirect("contabilidad:cuenta", cuenta_id=abono.cuenta_id)
     form = AbonoForm(request.POST or None, instance=abono, initial={"forma_pago": abono.ingreso.forma_pago})
     if request.method == "POST" and form.is_valid():
         otros = abono.cuenta.total_abonado - abono.valor
@@ -269,6 +275,40 @@ def nuevo_ingreso(request):
         messages.success(request, "Ingreso guardado.")
         return redirect("contabilidad:inicio")
     return render(request, "contabilidad/formulario.html", {"torneo": torneo, "titulo": "Registrar ingreso", "form": form})
+
+
+@login_required
+@require_POST
+def anular_movimiento(request, tipo, movimiento_id):
+    torneo = _torneo_permitido(request)
+    if not torneo or not (request.user.is_superuser or request.user.is_staff):
+        return denegar_permiso_torneo()
+    motivo = (request.POST.get("motivo") or "").strip()
+    if len(motivo) < 5:
+        messages.error(request, "Escribe el motivo de la anulación (mínimo 5 caracteres).")
+        return redirect(request.POST.get("volver") or "contabilidad:inicio")
+    modelo = Ingreso if tipo == "ingreso" else Egreso if tipo == "egreso" else None
+    if modelo is None:
+        return denegar_permiso_torneo()
+    movimiento = get_object_or_404(modelo, id=movimiento_id, torneo=torneo)
+    if movimiento.anulado:
+        messages.info(request, "Este movimiento ya estaba anulado.")
+        return redirect(request.POST.get("volver") or "contabilidad:inicio")
+    with transaction.atomic():
+        movimiento.anulado = True
+        movimiento.motivo_anulacion = motivo[:300]
+        movimiento.anulado_por = request.user
+        movimiento.anulado_en = timezone.now()
+        movimiento.save(update_fields=["anulado", "motivo_anulacion", "anulado_por", "anulado_en"])
+        if tipo == "ingreso" and movimiento.tipo == "TARJETAS":
+            try:
+                pago = movimiento.pago_tarjetas
+            except PagoTarjetas.DoesNotExist:
+                pago = None
+            if pago:
+                CobroTarjeta.objects.filter(pago=pago).update(pago=None)
+    messages.success(request, "Movimiento anulado. Se conservará en la auditoría y ya no afectará los saldos.")
+    return redirect(request.POST.get("volver") or "contabilidad:inicio")
 
 
 def _tarjetas_filtradas(request, torneo):
@@ -367,9 +407,9 @@ def reporte(request):
         deuda = c.saldo_inscripcion + c.saldo_tarjetas
         writer.writerow([c.categoria.nombre, c.equipo.nombre, c.valor_inscripcion, c.total_abonado, c.saldo_inscripcion, c.saldo_tarjetas, "DEBE" if deuda else "PAZ Y SALVO"])
     writer.writerow([])
-    writer.writerow(["Fecha", "Tipo", "Categoría/Fondo", "Concepto", "Detalle", "Valor"])
+    writer.writerow(["Fecha", "Tipo", "Categoría/Fondo", "Concepto", "Detalle", "Valor", "Estado", "Motivo anulación", "Anulado por", "Fecha anulación"])
     for i in Ingreso.objects.filter(torneo=torneo):
-        writer.writerow([i.fecha, "Ingreso", i.categoria.nombre if i.categoria else "Fondo general", i.concepto, i.detalle, i.valor])
+        writer.writerow([i.fecha, "Ingreso", i.categoria.nombre if i.categoria else "Fondo general", i.concepto, i.detalle, i.valor, "ANULADO" if i.anulado else "ACTIVO", i.motivo_anulacion, i.anulado_por or "", i.anulado_en or ""])
     for e in Egreso.objects.filter(torneo=torneo):
-        writer.writerow([e.fecha, "Egreso", e.fondo, e.concepto, e.observacion, e.valor])
+        writer.writerow([e.fecha, "Egreso", e.fondo, e.concepto, e.observacion, e.valor, "ANULADO" if e.anulado else "ACTIVO", e.motivo_anulacion, e.anulado_por or "", e.anulado_en or ""])
     return response

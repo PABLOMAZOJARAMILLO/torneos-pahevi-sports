@@ -1,1 +1,13 @@
-{% with m=movimiento.objeto %}<article class="movement {{ movimiento.tipo }}"><div class="movement-icon">{% if movimiento.tipo == 'ingreso' %}↗{% else %}↘{% endif %}</div><div class="movement-info"><strong>{{ m.concepto }}</strong>{% if movimiento.tipo == 'ingreso' %}<small>{% if m.equipo %}{{ m.equipo.nombre }} · {% endif %}{{ m.detalle }}</small>{% else %}<small>{{ m.fondo }} · {{ m.observacion }}</small>{% if m.soporte %}<a href="{{ m.soporte.url }}" target="_blank">📷 Ver soporte</a>{% endif %}{% endif %}</div><div class="movement-value"><strong>{% if movimiento.tipo == 'ingreso' %}+{% else %}−{% endif %} $ {{ m.valor|floatformat:0 }}</strong><small>{{ m.fecha }}</small></div></article>{% endwith %}
+{% with m=movimiento.objeto %}
+<article class="movement {{ movimiento.tipo }}{% if m.anulado %} annulled{% endif %}">
+  <div class="movement-icon">{% if m.anulado %}×{% elif movimiento.tipo == 'ingreso' %}↗{% else %}↘{% endif %}</div>
+  <div class="movement-info">
+    <strong>{{ m.concepto }} {% if m.anulado %}<span class="audit-badge">ANULADO</span>{% endif %}</strong>
+    {% if movimiento.tipo == 'ingreso' %}<small>{% if m.equipo %}{{ m.equipo.nombre }} · {% endif %}{{ m.detalle }}</small>{% else %}<small>{{ m.fondo }} · {{ m.observacion }}</small>{% if m.soporte %}<a href="{{ m.soporte.url }}" target="_blank">📷 Ver soporte</a>{% endif %}{% endif %}
+    <small class="audit-line">Registró: {{ m.registrado_por.get_full_name|default:m.registrado_por.username|default:"Usuario no disponible" }} · {{ m.creado_en|date:"d/m/Y h:i A" }}</small>
+    {% if m.anulado %}<small class="audit-cancel">Motivo: {{ m.motivo_anulacion }}<br>Anuló: {{ m.anulado_por.get_full_name|default:m.anulado_por.username|default:"Usuario no disponible" }} · {{ m.anulado_en|date:"d/m/Y h:i A" }}</small>{% endif %}
+    {% if puede_anular and not m.anulado %}<form class="void-form" method="post" action="{% url 'contabilidad:anular_movimiento' movimiento.tipo m.id %}" onsubmit="return confirm('¿Confirmas la anulación? El movimiento quedará guardado en la auditoría.');">{% csrf_token %}<input type="hidden" name="volver" value="{{ request.path }}"><input type="text" name="motivo" minlength="5" maxlength="300" required placeholder="Motivo de la anulación"><button type="submit">Anular movimiento</button></form>{% endif %}
+  </div>
+  <div class="movement-value"><strong>{% if movimiento.tipo == 'ingreso' %}+{% else %}−{% endif %} $ {{ m.valor|floatformat:0 }}</strong><small>{{ m.fecha }}</small></div>
+</article>
+{% endwith %}

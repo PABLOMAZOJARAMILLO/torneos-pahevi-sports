@@ -196,3 +196,54 @@ class ContabilidadIndependienteTests(TestCase):
         self.assertEqual(pagina.context["inscripciones_recaudadas"], Decimal("300000"))
         self.assertEqual(pagina.context["gastos_desde_inscripciones"], Decimal("150000"))
         self.assertEqual(pagina.context["inscripciones_disponibles"], Decimal("150000"))
+
+    def test_anular_abono_lo_conserva_en_auditoria_y_restaura_deuda(self):
+        cuenta = CuentaEquipo.objects.get(torneo=self.torneo, equipo=self.equipo)
+        cuenta.valor_inscripcion = Decimal("150000")
+        cuenta.save(update_fields=["valor_inscripcion"])
+        self.client.post(f"/contabilidad/cuentas/{cuenta.id}/", {
+            "accion": "abono", "valor": "100000", "fecha": "2026-01-03",
+            "observacion": "Primer pago", "forma_pago": "Efectivo",
+        })
+        ingreso = Ingreso.objects.get(tipo="INSCRIPCION")
+        self.assertEqual(cuenta.saldo_inscripcion, Decimal("50000"))
+        respuesta = self.client.post(
+            f"/contabilidad/movimientos/ingreso/{ingreso.id}/anular/",
+            {"motivo": "Pago registrado por error"},
+        )
+        self.assertEqual(respuesta.status_code, 302)
+        ingreso.refresh_from_db()
+        self.assertTrue(ingreso.anulado)
+        self.assertEqual(ingreso.anulado_por, self.user)
+        self.assertEqual(cuenta.saldo_inscripcion, Decimal("150000"))
+        self.assertTrue(ingreso.abono_inscripcion.pk)
+
+    def test_anular_pago_tarjetas_devuelve_los_cobros_a_pendientes(self):
+        Tarjeta.objects.create(partido=self.partido, jugador=self.jugador, equipo=self.equipo, tipo="ROJA")
+        cuenta = CuentaEquipo.objects.get(torneo=self.torneo, equipo=self.equipo)
+        self.client.post(f"/contabilidad/cuentas/{cuenta.id}/pagar-tarjetas/")
+        ingreso = Ingreso.objects.get(tipo="TARJETAS")
+        self.assertEqual(cuenta.saldo_tarjetas, Decimal("0"))
+        self.client.post(
+            f"/contabilidad/movimientos/ingreso/{ingreso.id}/anular/",
+            {"motivo": "El pago no fue recibido"},
+        )
+        ingreso.refresh_from_db()
+        self.assertTrue(ingreso.anulado)
+        self.assertEqual(cuenta.saldo_tarjetas, Decimal("8000"))
+        self.assertIsNone(CobroTarjeta.objects.get().pago_id)
+
+    def test_anular_egreso_lo_excluye_del_balance_sin_borrarlo(self):
+        egreso = Egreso.objects.create(
+            torneo=self.torneo, categoria=self.categoria, concepto="Premiación",
+            valor=Decimal("50000"), registrado_por=self.user,
+        )
+        self.client.post(
+            f"/contabilidad/movimientos/egreso/{egreso.id}/anular/",
+            {"motivo": "Comprobante equivocado"},
+        )
+        egreso.refresh_from_db()
+        self.assertTrue(egreso.anulado)
+        pagina = self.client.get("/contabilidad/")
+        self.assertEqual(pagina.context["egresos_total"], Decimal("0"))
+        self.assertContains(pagina, "Comprobante equivocado")

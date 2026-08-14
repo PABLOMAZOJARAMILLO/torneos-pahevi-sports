@@ -41,7 +41,7 @@ class CuentaEquipo(models.Model):
 
     @property
     def total_abonado(self):
-        return self.abonos.aggregate(total=models.Sum("valor"))["total"] or Decimal("0")
+        return self.abonos.filter(ingreso__anulado=False).aggregate(total=models.Sum("valor"))["total"] or Decimal("0")
 
     @property
     def saldo_inscripcion(self):
@@ -71,6 +71,10 @@ class Ingreso(models.Model):
     forma_pago = models.CharField(max_length=40, default="Efectivo")
     registrado_por = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="contabilidad_ingresos_registrados")
     creado_en = models.DateTimeField(auto_now_add=True)
+    anulado = models.BooleanField(default=False)
+    motivo_anulacion = models.CharField(max_length=300, blank=True)
+    anulado_por = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="contabilidad_ingresos_anulados")
+    anulado_en = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         ordering = ["-fecha", "-creado_en"]
@@ -126,6 +130,10 @@ class Egreso(models.Model):
     observacion = models.TextField(blank=True)
     registrado_por = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="contabilidad_egresos_registrados")
     creado_en = models.DateTimeField(auto_now_add=True)
+    anulado = models.BooleanField(default=False)
+    motivo_anulacion = models.CharField(max_length=300, blank=True)
+    anulado_por = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="contabilidad_egresos_anulados")
+    anulado_en = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         ordering = ["-fecha", "-creado_en"]
