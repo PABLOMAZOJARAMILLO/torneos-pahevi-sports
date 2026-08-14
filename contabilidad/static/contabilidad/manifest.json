@@ -1,0 +1,20 @@
+{
+  "name": "Contabilidad de Torneos",
+  "short_name": "Contabilidad",
+  "description": "Control contable independiente de los torneos",
+  "id": "/contabilidad/",
+  "start_url": "/contabilidad/",
+  "scope": "/contabilidad/",
+  "display": "standalone",
+  "background_color": "#f4f7f5",
+  "theme_color": "#12372a",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "/static/contabilidad/icono-contable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
