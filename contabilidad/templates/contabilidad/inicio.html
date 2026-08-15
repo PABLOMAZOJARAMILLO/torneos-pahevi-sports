@@ -14,7 +14,7 @@
   <div class="category-funds">{% for fondo in fondos %}<article class="fund-card"><div class="fund-card-header"><h4>{{ fondo.categoria.nombre }}</h4><div><strong>$ {{ fondo.disponible|floatformat:0 }}</strong><small>DISPONIBLE</small></div></div><div class="fund-details"><div><span>Esperado</span><strong>$ {{ fondo.esperado|floatformat:0 }}</strong></div><div><span>Recaudado</span><strong>$ {{ fondo.recaudado|floatformat:0 }}</strong></div><div><span>Pendiente</span><strong>$ {{ fondo.pendiente|floatformat:0 }}</strong></div></div></article>{% endfor %}</div>
   <div class="category-accordions">
     {% for grupo in cuentas_por_categoria %}
-    <details class="category-accordion" {% if forloop.first %}open{% endif %}>
+    <details class="category-accordion">
       <summary><span><strong>{{ grupo.categoria.nombre }}</strong><small>{{ grupo.cuentas|length }} equipo{{ grupo.cuentas|length|pluralize }}</small></span><b>Ver equipos</b></summary>
       <div class="team-list">{% for cuenta in grupo.cuentas %}<article class="team-row"><div><h3>{{ cuenta.equipo.nombre }}</h3><p>Inscripción: $ {{ cuenta.valor_inscripcion|floatformat:0 }}</p></div><div class="team-status"><strong>$ {{ cuenta.saldo_inscripcion|add:cuenta.saldo_tarjetas|floatformat:0 }}</strong><span class="{% if cuenta.saldo_inscripcion or cuenta.saldo_tarjetas %}due{% else %}current{% endif %}">{% if cuenta.saldo_inscripcion or cuenta.saldo_tarjetas %}DEBE{% else %}PAZ Y SALVO{% endif %}</span></div><a class="view-account" href="{% url 'contabilidad:cuenta' cuenta.id %}">Ver cuenta</a></article>{% empty %}<div class="empty-state small-empty"><h3>No hay equipos en esta categoría</h3></div>{% endfor %}</div>
     </details>
@@ -26,7 +26,7 @@
   <div class="section-heading"><div><p class="eyebrow">HISTORIAL</p><h2>Últimos movimientos</h2><p class="section-help">Despliega una categoría para consultar sus movimientos.</p></div></div>
   <div class="category-accordions movement-accordions">
     {% for grupo in movimientos_por_categoria %}
-    <details class="category-accordion" {% if forloop.first %}open{% endif %}>
+    <details class="category-accordion">
       <summary><span><strong>{{ grupo.categoria.nombre }}</strong><small>{{ grupo.movimientos|length }} movimiento{{ grupo.movimientos|length|pluralize }}</small></span><b>Ver historial</b></summary>
       <div class="movement-list">{% for movimiento in grupo.movimientos %}{% include "contabilidad/_movimiento.html" with movimiento=movimiento %}{% endfor %}</div>
     </details>

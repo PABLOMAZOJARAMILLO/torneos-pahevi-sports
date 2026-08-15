@@ -46,6 +46,7 @@ class ContabilidadIndependienteTests(TestCase):
         respuesta = self.client.get("/contabilidad/")
         self.assertEqual(respuesta.status_code, 200)
         self.assertContains(respuesta, "CONTROL CONTABLE")
+        self.assertNotContains(respuesta, 'class="category-accordion" open')
         Configuracion.objects.get(torneo=self.torneo)
 
     def test_tarjetas_se_filtran_por_categoria_equipo_y_fecha(self):
