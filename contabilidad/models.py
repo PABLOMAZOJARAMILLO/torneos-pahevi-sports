@@ -7,7 +7,7 @@ from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils import timezone
 
-from torneos.models import Categoria, Equipo, Tarjeta, Torneo
+from torneos.models import Categoria, Equipo, Partido, Tarjeta, Torneo
 
 
 def ruta_soporte(instance, filename):
@@ -128,6 +128,12 @@ class CobroTarjeta(models.Model):
 class Egreso(models.Model):
     torneo = models.ForeignKey(Torneo, on_delete=models.CASCADE, related_name="contabilidad_egresos")
     categoria = models.ForeignKey(Categoria, on_delete=models.SET_NULL, null=True, blank=True)
+    partidos = models.ManyToManyField(
+        Partido,
+        blank=True,
+        related_name="egresos_arbitraje",
+        verbose_name="Partidos asociados",
+    )
     concepto = models.CharField(max_length=180)
     valor = models.DecimalField(max_digits=12, decimal_places=2)
     fecha = models.DateField(default=timezone.localdate)

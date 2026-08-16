@@ -218,6 +218,7 @@ class ContabilidadIndependienteTests(TestCase):
         respuesta = self.client.post("/contabilidad/egresos/nuevo/", {
             "categoria": "",
             "concepto": "Pago de árbitros",
+            "partidos": [self.partido.id],
             "valor": "80000",
             "fecha": "2026-01-03",
             "forma_pago": "Efectivo",
@@ -227,6 +228,31 @@ class ContabilidadIndependienteTests(TestCase):
         egreso = Egreso.objects.get()
         self.assertEqual(egreso.concepto, "Pago de árbitros")
         self.assertIsNone(egreso.categoria)
+        self.assertEqual(list(egreso.partidos.all()), [self.partido])
+        pagina = self.client.get("/contabilidad/")
+        self.assertContains(pagina, "Equipo Uno vs Equipo Dos")
+
+    def test_partidos_del_arbitraje_se_limit_an_al_torneo_contable(self):
+        otro_torneo = Torneo.objects.create(nombre="Otro", fecha_inicio=date(2026, 2, 1))
+        otra_categoria = Categoria.objects.create(
+            nombre="Otra", torneo=otro_torneo, edad_minima=18, edad_maxima=70,
+        )
+        otro_local = Equipo.objects.create(nombre="Otro local", categoria=otra_categoria)
+        otro_visitante = Equipo.objects.create(nombre="Otro visitante", categoria=otra_categoria)
+        otro_partido = Partido.objects.create(
+            categoria=otra_categoria, equipo_local=otro_local, equipo_visitante=otro_visitante,
+            fecha=date(2026, 2, 2), hora=time(16),
+        )
+
+        respuesta = self.client.post("/contabilidad/egresos/nuevo/", {
+            "categoria": "", "concepto": "Pago de árbitros",
+            "partidos": [otro_partido.id], "valor": "80000",
+            "fecha": "2026-01-03", "forma_pago": "Efectivo",
+        })
+
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertFalse(Egreso.objects.exists())
+        self.assertContains(respuesta, "Escoja una opción válida")
 
     def test_inscripciones_pueden_financiar_premiacion_y_otros_gastos(self):
         cuenta = CuentaEquipo.objects.get(torneo=self.torneo, equipo=self.equipo)

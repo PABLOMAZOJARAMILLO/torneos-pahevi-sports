@@ -1,6 +1,6 @@
 from django import forms
 
-from torneos.models import Categoria
+from torneos.models import Categoria, Partido
 
 from .models import AbonoInscripcion, Egreso, Ingreso
 
@@ -30,8 +30,13 @@ class EgresoForm(forms.ModelForm):
     forma_pago = forms.ChoiceField(choices=FORMAS_PAGO)
     class Meta:
         model = Egreso
-        fields = ["categoria", "concepto", "valor", "fecha", "forma_pago", "soporte", "observacion"]
-        widgets = {"fecha": forms.DateInput(attrs={"type": "date"}), "soporte": forms.ClearableFileInput(attrs={"accept": "image/*", "capture": "environment"}), "observacion": forms.Textarea(attrs={"rows": 2})}
+        fields = ["categoria", "concepto", "partidos", "valor", "fecha", "forma_pago", "soporte", "observacion"]
+        widgets = {
+            "fecha": forms.DateInput(attrs={"type": "date"}),
+            "partidos": forms.CheckboxSelectMultiple(),
+            "soporte": forms.ClearableFileInput(attrs={"accept": "image/*", "capture": "environment"}),
+            "observacion": forms.Textarea(attrs={"rows": 2}),
+        }
 
     def __init__(self, *args, torneo=None, **kwargs):
         super().__init__(*args, **kwargs)
@@ -40,6 +45,24 @@ class EgresoForm(forms.ModelForm):
         self.fields["categoria"].queryset = Categoria.objects.filter(torneo=torneo).order_by("nombre")
         self.fields["categoria"].label = "Fondo que paga el egreso"
         self.fields["categoria"].help_text = "Selecciona el fondo de inscripción de una categoría o el fondo general del torneo."
+        self.fields["partidos"].required = False
+        self.fields["partidos"].label = "Partidos en los que se pagó arbitraje (opcional)"
+        self.fields["partidos"].help_text = "Puedes marcar uno o varios partidos incluidos en este pago."
+        self.fields["partidos"].queryset = Partido.objects.filter(
+            categoria__torneo=torneo,
+        ).select_related("categoria", "equipo_local", "equipo_visitante").order_by(
+            "-fecha", "-hora", "categoria__nombre",
+        )
+        self.fields["partidos"].label_from_instance = lambda partido: (
+            f"{partido.fecha:%d/%m/%Y} · {partido.categoria.nombre} · "
+            f"{partido.equipo_local.nombre} vs {partido.equipo_visitante.nombre}"
+        )
+
+    def clean(self):
+        datos = super().clean()
+        if datos.get("concepto") != "Pago de árbitros":
+            datos["partidos"] = Partido.objects.none()
+        return datos
 
     def clean_valor(self):
         valor = self.cleaned_data["valor"]
