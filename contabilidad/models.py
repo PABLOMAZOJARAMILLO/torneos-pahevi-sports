@@ -27,7 +27,7 @@ class Configuracion(models.Model):
     actualizado_en = models.DateTimeField(auto_now=True)
 
     def valor_tarjeta(self, tipo):
-        return self.valor_roja if tipo == "ROJA" else self.valor_amarilla
+        return self.valor_roja if str(tipo).upper() == "ROJA" else self.valor_amarilla
 
 
 class CuentaEquipo(models.Model):

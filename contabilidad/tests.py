@@ -72,6 +72,23 @@ class ContabilidadIndependienteTests(TestCase):
         self.assertIn("Amarillas: 1 x $6000", pago.ingreso.detalle)
         self.assertEqual(self.client.get("/contabilidad/").context["ingresos"], Decimal("16000"))
 
+    def test_abrir_tarjetas_repara_valores_historicos_desactualizados(self):
+        tarjeta = Tarjeta.objects.create(
+            partido=self.partido, jugador=self.jugador, equipo=self.equipo, tipo="AMARILLA"
+        )
+        cobro = CobroTarjeta.objects.get(tarjeta=tarjeta)
+        configuracion = Configuracion.objects.get(torneo=self.torneo)
+        configuracion.valor_amarilla = Decimal("4000")
+        configuracion.save(update_fields=["valor_amarilla"])
+
+        self.assertEqual(cobro.valor, Decimal("5000"))
+        respuesta = self.client.get("/contabilidad/tarjetas/")
+
+        self.assertEqual(respuesta.status_code, 200)
+        cobro.refresh_from_db()
+        self.assertEqual(cobro.valor, Decimal("4000"))
+        self.assertContains(respuesta, "$ 4000")
+
     def test_interfaz_es_ruta_separada(self):
         respuesta = self.client.get("/contabilidad/")
         self.assertEqual(respuesta.status_code, 200)

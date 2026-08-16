@@ -45,8 +45,50 @@ def _torneos_contables(request):
     return [torneo for torneo in torneos_para_usuario(request) if puede_gestionar_torneo(request, torneo, "editar")]
 
 
+def _recalcular_tarifas_tarjetas(torneo, configuracion=None, force=False):
+    configuracion = configuracion or Configuracion.objects.get_or_create(torneo=torneo)[0]
+    cobros_torneo = CobroTarjeta.objects.filter(cuenta__torneo=torneo)
+    pagos_activos = PagoTarjetas.objects.filter(cuenta__torneo=torneo, ingreso__anulado=False)
+    hay_diferencias = cobros_torneo.filter(
+        Q(tipo__iexact="AMARILLA") & ~Q(valor=configuracion.valor_amarilla)
+        | Q(tipo__iexact="ROJA") & ~Q(valor=configuracion.valor_roja)
+    ).exists() or pagos_activos.filter(
+        ~Q(valor_unitario_amarilla=configuracion.valor_amarilla)
+        | ~Q(valor_unitario_roja=configuracion.valor_roja)
+    ).exists()
+    if not force and not hay_diferencias:
+        return
+
+    cobros_torneo.filter(tipo__iexact="AMARILLA").update(
+        tipo="AMARILLA", valor=configuracion.valor_amarilla,
+    )
+    cobros_torneo.filter(tipo__iexact="ROJA").update(
+        tipo="ROJA", valor=configuracion.valor_roja,
+    )
+    for pago in pagos_activos.select_related("ingreso").prefetch_related("cobros"):
+        cobros = list(pago.cobros.all())
+        amarillas = sum(1 for cobro in cobros if cobro.tipo.upper() == "AMARILLA")
+        rojas = sum(1 for cobro in cobros if cobro.tipo.upper() == "ROJA")
+        total = amarillas * configuracion.valor_amarilla + rojas * configuracion.valor_roja
+        pago.cantidad_amarillas = amarillas
+        pago.cantidad_rojas = rojas
+        pago.valor_unitario_amarilla = configuracion.valor_amarilla
+        pago.valor_unitario_roja = configuracion.valor_roja
+        pago.total = total
+        pago.save(update_fields=[
+            "cantidad_amarillas", "cantidad_rojas", "valor_unitario_amarilla",
+            "valor_unitario_roja", "total",
+        ])
+        pago.ingreso.valor = total
+        pago.ingreso.detalle = (
+            f"Amarillas: {amarillas} x ${configuracion.valor_amarilla}; "
+            f"rojas: {rojas} x ${configuracion.valor_roja}; total: ${total}"
+        )
+        pago.ingreso.save(update_fields=["valor", "detalle"])
+
+
 def _sincronizar(torneo):
-    Configuracion.objects.get_or_create(torneo=torneo)
+    configuracion, _ = Configuracion.objects.get_or_create(torneo=torneo)
     cuentas_actuales = {
         cuenta.equipo_id: (cuenta.torneo_id, cuenta.categoria_id)
         for cuenta in CuentaEquipo.objects.filter(torneo=torneo).only("equipo_id", "torneo_id", "categoria_id")
@@ -80,6 +122,7 @@ def _sincronizar(torneo):
             sincronizar_tarjeta(tarjeta)
         except Exception:
             logger.exception("No se pudo sincronizar la tarjeta %s en contabilidad", tarjeta.id)
+    _recalcular_tarifas_tarjetas(torneo, configuracion)
 
 
 def _contexto(torneo):
@@ -177,36 +220,10 @@ def configurar(request):
                 raise ValueError("El mes inicial no puede ser posterior al mes final.")
             configuracion.save()
 
-            cobros_torneo = CobroTarjeta.objects.filter(cuenta__torneo=torneo)
-            cobros_torneo.filter(tipo="AMARILLA").update(valor=configuracion.valor_amarilla)
-            cobros_torneo.filter(tipo="ROJA").update(valor=configuracion.valor_roja)
-
-            pagos = PagoTarjetas.objects.filter(
-                cuenta__torneo=torneo,
-                ingreso__anulado=False,
-            ).select_related("ingreso").prefetch_related("cobros")
-            for pago in pagos:
-                cobros = list(pago.cobros.all())
-                amarillas = sum(1 for cobro in cobros if cobro.tipo == "AMARILLA")
-                rojas = sum(1 for cobro in cobros if cobro.tipo == "ROJA")
-                total = amarillas * configuracion.valor_amarilla + rojas * configuracion.valor_roja
-                pago.cantidad_amarillas = amarillas
-                pago.cantidad_rojas = rojas
-                pago.valor_unitario_amarilla = configuracion.valor_amarilla
-                pago.valor_unitario_roja = configuracion.valor_roja
-                pago.total = total
-                pago.save(update_fields=[
-                    "cantidad_amarillas", "cantidad_rojas", "valor_unitario_amarilla",
-                    "valor_unitario_roja", "total",
-                ])
-                pago.ingreso.valor = total
-                pago.ingreso.detalle = (
-                    f"Amarillas: {amarillas} x ${configuracion.valor_amarilla}; "
-                    f"rojas: {rojas} x ${configuracion.valor_roja}; total: ${total}"
-                )
-                pago.ingreso.save(update_fields=["valor", "detalle"])
+            _recalcular_tarifas_tarjetas(torneo, configuracion, force=True)
         messages.success(request, "Configuración contable actualizada.")
     except Exception:
+        logger.exception("No se pudo actualizar la configuración contable del torneo %s", torneo.id)
         messages.error(request, "Escribe valores numéricos válidos.")
     return redirect("contabilidad:inicio")
 
