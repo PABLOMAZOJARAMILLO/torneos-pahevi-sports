@@ -131,6 +131,8 @@ class ContabilidadIndependienteTests(TestCase):
         self.assertEqual(pagina.context["totales"]["cantidad"], 2)
         self.assertEqual(pagina.context["totales"]["amarillas"], 1)
         self.assertEqual(pagina.context["totales"]["rojas"], 1)
+        self.assertEqual(pagina.context["totales"]["valor_amarillas"], Decimal("5000"))
+        self.assertEqual(pagina.context["totales"]["valor_rojas"], Decimal("8000"))
         self.assertEqual(pagina.context["totales"]["valor_total"], Decimal("13000"))
         self.assertEqual(pagina.context["totales"]["valor_pendiente"], Decimal("13000"))
 
