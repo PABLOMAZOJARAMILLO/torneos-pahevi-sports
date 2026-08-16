@@ -119,6 +119,11 @@ class Torneo(models.Model):
         help_text='Escribe una cancha por línea.',
     )
     estado = models.CharField(max_length=20, choices=ESTADOS, default='ACTIVO', verbose_name='Estado')
+    visible_publico = models.BooleanField(
+        default=True,
+        verbose_name='Visible para el público',
+        help_text='Desactiva esta opción para ocultar el torneo del portal y de los enlaces públicos.',
+    )
     creado_en = models.DateTimeField(auto_now_add=True, verbose_name='Creado en')
 
     class Meta:

@@ -25,6 +25,53 @@ from .storage_backends import CloudinaryMediaStorage
 from .views import buscar_planilleros_excel, construir_estructura, construir_estadisticas_foraneos, construir_partidos_portada, construir_partidos_programacion, enriquecer_registros_actividad_legacy, fechas_presentes_en_programacion, foraneos_no_habilitados_fase_final, _clave_orden_evento_resumen, _equipo_turno_tanda, _minuto_evento_en_vivo, _sincronizar_no_disponibles_por_tarjetas, etiqueta_columna_planilla, etiqueta_edad_jugador, jugadores_actuales_en_cancha, nombre_corto_jugador, nombre_resumen_jugador, puede_descargar_programacion, podios_torneo, reglas_edad_para_frontend, texto_edad_jugador, tabla_general_mata_mata_ida_vuelta, url_imagen_cloudinary, validar_reglas_edad_titulares
 
 
+class VisibilidadPublicaTorneoTests(TestCase):
+    def setUp(self):
+        self.visible = Torneo.objects.create(
+            nombre="Copa pública", fecha_inicio=date(2026, 1, 1), visible_publico=True,
+        )
+        self.oculto = Torneo.objects.create(
+            nombre="Copa privada", fecha_inicio=date(2026, 2, 1), visible_publico=False,
+        )
+        categoria = Categoria.objects.create(
+            nombre="Única", torneo=self.oculto, edad_minima=18, edad_maxima=80,
+        )
+        local = Equipo.objects.create(nombre="Local privado", categoria=categoria)
+        visitante = Equipo.objects.create(nombre="Visitante privado", categoria=categoria)
+        self.partido_oculto = Partido.objects.create(
+            categoria=categoria, equipo_local=local, equipo_visitante=visitante,
+            fecha=date(2026, 2, 2), hora=time(16),
+        )
+
+    @override_settings(STORAGES={
+        "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+        "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
+    })
+    def test_portal_publico_no_muestra_torneo_oculto(self):
+        respuesta = self.client.get("/?portal=1")
+
+        self.assertContains(respuesta, "Copa pública")
+        self.assertNotContains(respuesta, "Copa privada")
+
+    def test_enlace_directo_de_partido_oculto_no_es_publico(self):
+        self.assertEqual(self.client.get(f"/partido/{self.partido_oculto.id}/live/").status_code, 404)
+        self.assertEqual(self.client.get(f"/partido/{self.partido_oculto.id}/live/revision/").status_code, 404)
+
+    def test_administrador_puede_cambiar_visibilidad(self):
+        admin = User.objects.create_superuser("admin-visibilidad", password="clave")
+        self.client.force_login(admin)
+
+        respuesta = self.client.post(f"/gestion/torneos/{self.visible.id}/visibilidad/")
+
+        self.assertEqual(respuesta.status_code, 302)
+        self.visible.refresh_from_db()
+        self.assertFalse(self.visible.visible_publico)
+        self.assertEqual(self.client.get(f"/partido/{self.partido_oculto.id}/live/").status_code, 200)
+
+    def test_formulario_incluye_control_de_visibilidad(self):
+        self.assertIn("visible_publico", TorneoForm().fields)
+
+
 class EquipoCuerpoTecnicoFormTests(TestCase):
     def test_datos_de_cada_miembro_aparecen_consecutivos(self):
         consecutivos = [

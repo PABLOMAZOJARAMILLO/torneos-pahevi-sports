@@ -544,7 +544,7 @@ def torneos_para_usuario(request):
     usuario = getattr(request, "user", None)
 
     if not usuario or not usuario.is_authenticated:
-        return torneos
+        return torneos.filter(visible_publico=True)
 
     if usuario.is_superuser:
         return torneos
@@ -6866,6 +6866,26 @@ def gestion_torneo_activar(request, torneo_id):
 @login_required
 @user_passes_test(es_editor_torneo)
 @require_POST
+def gestion_torneo_visibilidad(request, torneo_id):
+    torneo = get_object_or_404(torneos_para_usuario(request), id=torneo_id)
+    if not puede_gestionar_torneo(request, torneo, "editar"):
+        return denegar_permiso_torneo()
+    torneo.visible_publico = not torneo.visible_publico
+    torneo.save(update_fields=["visible_publico"])
+    estado = "visible para el público" if torneo.visible_publico else "oculto para el público"
+    registrar_actividad(
+        request,
+        "CAMBIAR_VISIBILIDAD_TORNEO",
+        torneo,
+        descripcion=f"Marcó el torneo {torneo.nombre} como {estado}.",
+    )
+    messages.success(request, f"{torneo.nombre}: {estado}.")
+    return redirect("gestion_torneos")
+
+
+@login_required
+@user_passes_test(es_editor_torneo)
+@require_POST
 def gestion_torneo_finalizar(request, torneo_id):
     torneo = get_object_or_404(torneos_para_usuario(request), id=torneo_id)
     if not puede_gestionar_torneo(request, torneo, "editar"):
@@ -9126,7 +9146,10 @@ def _revision_partido_live(partido):
 
 
 def revision_partido_live(request, partido_id):
-    partido = get_object_or_404(Partido, id=partido_id)
+    partidos = Partido.objects.select_related("categoria__torneo")
+    if not request.user.is_authenticated:
+        partidos = partidos.filter(categoria__torneo__visible_publico=True)
+    partido = get_object_or_404(partidos, id=partido_id)
     revision = _revision_partido_live(partido)
     etag = f'"{revision}"'
     if request.GET.get("revision") == revision:
@@ -9172,15 +9195,15 @@ def gestion_planilla_juego_eliminar(request, documento_id):
 
 
 def partido_live(request, partido_id):
-    partido = get_object_or_404(
-        Partido.objects.select_related(
+    partidos = Partido.objects.select_related(
             "categoria",
             "categoria__torneo",
             "equipo_local",
             "equipo_visitante"
-        ),
-        id=partido_id
-    )
+        )
+    if not request.user.is_authenticated:
+        partidos = partidos.filter(categoria__torneo__visible_publico=True)
+    partido = get_object_or_404(partidos, id=partido_id)
     volver_url = request.GET.get("volver", "").strip()
     if volver_url and not url_has_allowed_host_and_scheme(
         volver_url,

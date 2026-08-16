@@ -18,6 +18,7 @@
             <div class="muted">
                 Organizador: {% if torneo.organizador %}{{ torneo.organizador.nombre }}{% else %}Sin organizador{% endif %} - Estado: {{ torneo.get_estado_display }} - Inicio: {{ torneo.fecha_inicio }}
                 {% if torneo.fecha_fin %} - Fin: {{ torneo.fecha_fin }}{% endif %}
+                - Público: {% if torneo.visible_publico %}<strong style="color:#167447;">VISIBLE</strong>{% else %}<strong style="color:#a12f2f;">OCULTO</strong>{% endif %}
             </div>
             {% if torneo.descripcion %}
                 <p class="muted">{{ torneo.descripcion }}</p>
@@ -44,6 +45,10 @@
             <form method="post" action="{% url 'gestion_torneo_activar' torneo.id %}" style="padding:0;border:0;background:transparent;box-shadow:none;">
                 {% csrf_token %}
                 <button class="btn" type="submit">Gestionar</button>
+            </form>
+            <form method="post" action="{% url 'gestion_torneo_visibilidad' torneo.id %}" style="padding:0;border:0;background:transparent;box-shadow:none;" onsubmit="return confirm('{% if torneo.visible_publico %}¿Ocultar este torneo para todos los visitantes?{% else %}¿Volver a mostrar este torneo al público?{% endif %}');">
+                {% csrf_token %}
+                <button class="btn secondary" type="submit">{% if torneo.visible_publico %}Ocultar al público{% else %}Hacer público{% endif %}</button>
             </form>
             {% if torneo.estado == "FINALIZADO" %}
             <form method="post" action="{% url 'gestion_torneo_archivar' torneo.id %}" style="padding:0;border:0;background:transparent;box-shadow:none;" onsubmit="return confirm('Archivar este torneo y mostrar públicamente solo campeón y subcampeón?');">

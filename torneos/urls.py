@@ -222,6 +222,7 @@ urlpatterns = [
     path('gestion/torneos/<int:torneo_id>/admins/', views.gestion_torneo_admins, name='gestion_torneo_admins'),
     path('gestion/torneos/admins/<int:asignacion_id>/eliminar/', views.gestion_torneo_admin_eliminar, name='gestion_torneo_admin_eliminar'),
     path('gestion/torneos/<int:torneo_id>/activar/', views.gestion_torneo_activar, name='gestion_torneo_activar'),
+    path('gestion/torneos/<int:torneo_id>/visibilidad/', views.gestion_torneo_visibilidad, name='gestion_torneo_visibilidad'),
     path('gestion/torneos/<int:torneo_id>/finalizar/', views.gestion_torneo_finalizar, name='gestion_torneo_finalizar'),
     path('gestion/torneos/<int:torneo_id>/archivar/', views.gestion_torneo_archivar, name='gestion_torneo_archivar'),
     path('gestion/torneos/<int:torneo_id>/desarchivar/', views.gestion_torneo_desarchivar, name='gestion_torneo_desarchivar'),
