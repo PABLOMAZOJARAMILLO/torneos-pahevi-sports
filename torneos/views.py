@@ -7740,6 +7740,7 @@ def gestion_generar_fixture(request):
     tipo_fixture = request.GET.get("tipo_fixture") or request.POST.get("tipo_fixture") or "GRUPOS"
     if tipo_fixture not in {"GRUPOS", "MATA_MATA_IDA_VUELTA"}:
         tipo_fixture = "GRUPOS"
+    ida_vuelta = (request.GET.get("ida_vuelta") or request.POST.get("ida_vuelta")) in {"1", "on", "true"}
     grupos_generados = None
     resumen_programacion = None
     advertencias_programacion = []
@@ -7841,6 +7842,14 @@ def gestion_generar_fixture(request):
                 for indice_fecha, partidos_fecha in enumerate(calendario, start=1):
                     for local, visitante in partidos_fecha:
                         partidos_a_crear.append((grupo_nombre, indice_fecha, local, visitante))
+
+                if ida_vuelta:
+                    cantidad_fechas_ida = len(calendario)
+                    for indice_fecha, partidos_fecha in enumerate(
+                        calendario, start=cantidad_fechas_ida + 1,
+                    ):
+                        for local, visitante in partidos_fecha:
+                            partidos_a_crear.append((grupo_nombre, indice_fecha, visitante, local))
 
         if reemplazar:
             Partido.objects.filter(categoria=categoria, fase="GRUPOS").delete()
@@ -7949,6 +7958,7 @@ def gestion_generar_fixture(request):
                 "programacion_automatica": generar_programacion,
                 "cancha_obligatoria": cancha_obligatoria if generar_programacion else "",
                 "tipo_fixture": tipo_fixture,
+                "ida_vuelta": ida_vuelta,
             },
         )
 
@@ -7958,6 +7968,7 @@ def gestion_generar_fixture(request):
         "equipos": equipos,
         "cantidad_grupos": cantidad_grupos,
         "tipo_fixture": tipo_fixture,
+        "ida_vuelta": ida_vuelta,
         "letras_grupos": letras_grupos,
         "parejas_mata_mata": parejas_mata_mata,
         "grupos_generados": grupos_generados,

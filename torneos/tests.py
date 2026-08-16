@@ -9,6 +9,7 @@ from django.core.exceptions import ValidationError
 from django.contrib.auth.models import User
 from django.contrib.auth.models import AnonymousUser
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.db.models import Q
 from django.http import HttpResponse
 from django.template.loader import render_to_string
 from django.test import RequestFactory, TestCase, TransactionTestCase, override_settings
@@ -4130,6 +4131,51 @@ class FixtureProgramacionBalanceadaTests(TestCase):
         self.assertTrue(all(partido.cancha == "" for partido in partidos))
         self.assertTrue(all(partido.hora == time(0, 0) for partido in partidos))
         self.assertTrue(all(partido.estado_programacion == "MANUAL" for partido in partidos))
+
+    def test_fixture_grupo_ida_vuelta_duplica_fechas_e_invierte_localias(self):
+        self.client.force_login(self.admin)
+        datos = self.datos_fixture()
+        datos["ida_vuelta"] = "1"
+
+        respuesta = self.client.post("/gestion/generar-fixture/", datos)
+
+        self.assertEqual(respuesta.status_code, 200)
+        partidos = Partido.objects.filter(categoria=self.categoria).order_by("numero_fecha", "id")
+        self.assertEqual(partidos.count(), 12)
+        self.assertEqual(
+            {int(partido.numero_fecha) for partido in partidos},
+            set(range(1, 7)),
+        )
+        cruces = {
+            (partido.equipo_local_id, partido.equipo_visitante_id)
+            for partido in partidos
+        }
+        for local in self.equipos:
+            for visitante in self.equipos:
+                if local != visitante:
+                    self.assertIn((local.id, visitante.id), cruces)
+
+    def test_fixture_ida_vuelta_admite_un_grupo_de_diez_equipos(self):
+        for indice in range(5, 11):
+            self.equipos.append(
+                Equipo.objects.create(nombre=f"Equipo {indice}", categoria=self.categoria)
+            )
+        self.client.force_login(self.admin)
+        datos = self.datos_fixture()
+        datos["ida_vuelta"] = "1"
+
+        respuesta = self.client.post("/gestion/generar-fixture/", datos)
+
+        self.assertEqual(respuesta.status_code, 200)
+        partidos = Partido.objects.filter(categoria=self.categoria)
+        self.assertEqual(partidos.count(), 90)
+        self.assertEqual(
+            {int(numero) for numero in partidos.values_list("numero_fecha", flat=True)},
+            set(range(1, 19)),
+        )
+        for equipo in self.equipos:
+            jugados = partidos.filter(Q(equipo_local=equipo) | Q(equipo_visitante=equipo)).count()
+            self.assertEqual(jugados, 18)
 
     def test_portada_distingue_programados_reales_de_futuros_sin_programar(self):
         programado = Partido.objects.create(

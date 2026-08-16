@@ -74,6 +74,14 @@
         {% endfor %}
     </div>
     {% else %}
+    <div class="card">
+        <h2>Modalidad del grupo</h2>
+        <label style="display:flex;align-items:center;gap:8px;color:white;">
+            <input type="checkbox" name="ida_vuelta" value="1" {% if ida_vuelta %}checked{% endif %}>
+            Todos contra todos con partidos de ida y vuelta
+        </label>
+        <p class="muted">Primero se generan todas las fechas de ida y después las fechas de vuelta, intercambiando local y visitante.</p>
+    </div>
     <div class="grid">
         {% for grupo in letras_grupos %}
         <div class="card">
