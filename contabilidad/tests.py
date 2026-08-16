@@ -77,6 +77,8 @@ class ContabilidadIndependienteTests(TestCase):
         self.assertEqual(respuesta.status_code, 200)
         self.assertContains(respuesta, "CONTROL CONTABLE")
         self.assertNotContains(respuesta, 'class="category-accordion" open')
+        self.assertContains(respuesta, 'class="configuration-disclosure"')
+        self.assertNotContains(respuesta, 'class="configuration-disclosure" open')
         Configuracion.objects.get(torneo=self.torneo)
 
     def test_tarjetas_se_filtran_por_categoria_equipo_y_fecha(self):
