@@ -145,7 +145,7 @@ def _contexto(torneo):
         {"categoria": categoria, "cuentas": [c for c in cuentas if c.categoria_id == categoria.id]}
         for categoria in categorias
     ]
-    ingresos_recientes = list(Ingreso.objects.filter(torneo=torneo).select_related("categoria", "equipo")[:60])
+    ingresos_recientes = list(Ingreso.objects.filter(torneo=torneo).select_related("categoria", "equipo").prefetch_related("partidos")[:60])
     egresos_recientes = list(Egreso.objects.filter(torneo=torneo).select_related("categoria").prefetch_related("partidos")[:60])
     movimientos = [
         {"objeto": item, "tipo": "ingreso", "fecha": item.fecha, "creado_en": item.creado_en}
@@ -331,6 +331,7 @@ def nuevo_ingreso(request):
         ingreso.tipo = "OTRO"
         ingreso.registrado_por = request.user
         ingreso.save()
+        form.save_m2m()
         messages.success(request, "Ingreso guardado.")
         return redirect("contabilidad:inicio")
     return render(request, "contabilidad/formulario.html", {"torneo": torneo, "titulo": "Registrar ingreso", "form": form})
@@ -550,7 +551,12 @@ def reporte(request):
     writer.writerow([])
     writer.writerow(["Fecha", "Tipo", "Categoría/Fondo", "Equipo", "Mes mensualidad", "Concepto", "Detalle/Partidos", "Valor", "Estado", "Motivo anulación", "Anulado por", "Fecha anulación"])
     for i in Ingreso.objects.filter(torneo=torneo):
-        writer.writerow([i.fecha, "Ingreso", i.categoria.nombre if i.categoria else "Fondo general", i.equipo.nombre if i.equipo else "", i.periodo_mensualidad.strftime("%Y-%m") if i.periodo_mensualidad else "", i.concepto, i.detalle, i.valor, "ANULADO" if i.anulado else "ACTIVO", i.motivo_anulacion, i.anulado_por or "", i.anulado_en or ""])
+        partidos = " | ".join(
+            f"{p.fecha}: {p.equipo_local.nombre} vs {p.equipo_visitante.nombre}"
+            for p in i.partidos.select_related("equipo_local", "equipo_visitante").all()
+        )
+        detalle = " · ".join(item for item in (i.detalle, partidos) if item)
+        writer.writerow([i.fecha, "Ingreso", i.categoria.nombre if i.categoria else "Fondo general", i.equipo.nombre if i.equipo else "", i.periodo_mensualidad.strftime("%Y-%m") if i.periodo_mensualidad else "", i.concepto, detalle, i.valor, "ANULADO" if i.anulado else "ACTIVO", i.motivo_anulacion, i.anulado_por or "", i.anulado_en or ""])
     for e in Egreso.objects.filter(torneo=torneo):
         partidos = " | ".join(
             f"{p.fecha}: {p.equipo_local.nombre} vs {p.equipo_visitante.nombre}"

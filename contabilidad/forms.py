@@ -77,8 +77,12 @@ class IngresoManualForm(forms.ModelForm):
 
     class Meta:
         model = Ingreso
-        fields = ["categoria", "concepto", "valor", "fecha", "forma_pago", "detalle"]
-        widgets = {"fecha": forms.DateInput(attrs={"type": "date"}), "detalle": forms.Textarea(attrs={"rows": 2})}
+        fields = ["categoria", "concepto", "partidos", "valor", "fecha", "forma_pago", "detalle"]
+        widgets = {
+            "fecha": forms.DateInput(attrs={"type": "date"}),
+            "partidos": forms.CheckboxSelectMultiple(),
+            "detalle": forms.Textarea(attrs={"rows": 2}),
+        }
 
     def __init__(self, *args, torneo=None, **kwargs):
         super().__init__(*args, **kwargs)
@@ -86,6 +90,24 @@ class IngresoManualForm(forms.ModelForm):
         self.fields["categoria"].empty_label = "Fondo general"
         self.fields["categoria"].queryset = Categoria.objects.filter(torneo=torneo).order_by("nombre")
         self.fields["detalle"].label = "Descripción"
+        self.fields["partidos"].required = False
+        self.fields["partidos"].label = "Partidos que generan el ingreso de arbitraje (opcional)"
+        self.fields["partidos"].help_text = "Puedes marcar uno o varios partidos incluidos en este recaudo."
+        self.fields["partidos"].queryset = Partido.objects.filter(
+            categoria__torneo=torneo,
+        ).select_related("categoria", "equipo_local", "equipo_visitante").order_by(
+            "-fecha", "-hora", "categoria__nombre",
+        )
+        self.fields["partidos"].label_from_instance = lambda partido: (
+            f"{partido.fecha:%d/%m/%Y} · {partido.categoria.nombre} · "
+            f"{partido.equipo_local.nombre} vs {partido.equipo_visitante.nombre}"
+        )
+
+    def clean(self):
+        datos = super().clean()
+        if datos.get("concepto") != "Pago de arbitraje":
+            datos["partidos"] = Partido.objects.none()
+        return datos
 
     def clean_valor(self):
         valor = self.cleaned_data["valor"]

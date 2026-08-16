@@ -214,6 +214,23 @@ class ContabilidadIndependienteTests(TestCase):
         self.assertEqual(ingreso.categoria, self.categoria)
         self.assertEqual(ingreso.forma_pago, "Transferencia")
 
+    def test_ingreso_de_arbitraje_puede_asociarse_a_partidos(self):
+        respuesta = self.client.post("/contabilidad/ingresos/nuevo/", {
+            "categoria": self.categoria.id,
+            "concepto": "Pago de arbitraje",
+            "partidos": [self.partido.id],
+            "valor": "90000",
+            "fecha": "2026-01-03",
+            "forma_pago": "Efectivo",
+            "detalle": "Recaudo de la fecha",
+        })
+
+        self.assertEqual(respuesta.status_code, 302)
+        ingreso = Ingreso.objects.get(tipo="OTRO")
+        self.assertEqual(list(ingreso.partidos.all()), [self.partido])
+        pagina = self.client.get("/contabilidad/")
+        self.assertContains(pagina, "Equipo Uno vs Equipo Dos")
+
     def test_registro_egreso_usa_listado_y_fondo_general(self):
         respuesta = self.client.post("/contabilidad/egresos/nuevo/", {
             "categoria": "",

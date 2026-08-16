@@ -68,6 +68,12 @@ class Ingreso(models.Model):
     torneo = models.ForeignKey(Torneo, on_delete=models.CASCADE, related_name="contabilidad_ingresos")
     categoria = models.ForeignKey(Categoria, on_delete=models.SET_NULL, null=True, blank=True)
     equipo = models.ForeignKey(Equipo, on_delete=models.SET_NULL, null=True, blank=True)
+    partidos = models.ManyToManyField(
+        Partido,
+        blank=True,
+        related_name="ingresos_arbitraje",
+        verbose_name="Partidos asociados",
+    )
     tipo = models.CharField(max_length=20, choices=TIPOS)
     concepto = models.CharField(max_length=180)
     detalle = models.TextField(blank=True)
