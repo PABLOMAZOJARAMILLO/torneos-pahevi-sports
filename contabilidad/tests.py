@@ -42,6 +42,36 @@ class ContabilidadIndependienteTests(TestCase):
         self.assertEqual(Ingreso.objects.filter(tipo="TARJETAS").count(), 1)
         self.assertIn("Amarillas: 1", pago.ingreso.detalle)
 
+    def test_cambiar_valores_tarjetas_recalcula_pagos_e_ingresos_activos(self):
+        amarilla = Tarjeta.objects.create(
+            partido=self.partido, jugador=self.jugador, equipo=self.equipo, tipo="AMARILLA"
+        )
+        roja = Tarjeta.objects.create(
+            partido=self.partido, jugador=self.jugador, equipo=self.equipo, tipo="ROJA"
+        )
+        cuenta = CuentaEquipo.objects.get(torneo=self.torneo, equipo=self.equipo)
+        self.client.post(f"/contabilidad/cuentas/{cuenta.id}/pagar-tarjetas/")
+        pago = PagoTarjetas.objects.get()
+
+        respuesta = self.client.post("/contabilidad/configurar/", {
+            "valor_amarilla": "6000",
+            "valor_roja": "10000",
+            "valor_mensualidad": "0",
+            "dia_limite_mensualidad": "10",
+        })
+
+        self.assertEqual(respuesta.status_code, 302)
+        self.assertEqual(CobroTarjeta.objects.get(tarjeta=amarilla).valor, Decimal("6000"))
+        self.assertEqual(CobroTarjeta.objects.get(tarjeta=roja).valor, Decimal("10000"))
+        pago.refresh_from_db()
+        pago.ingreso.refresh_from_db()
+        self.assertEqual(pago.valor_unitario_amarilla, Decimal("6000"))
+        self.assertEqual(pago.valor_unitario_roja, Decimal("10000"))
+        self.assertEqual(pago.total, Decimal("16000"))
+        self.assertEqual(pago.ingreso.valor, Decimal("16000"))
+        self.assertIn("Amarillas: 1 x $6000", pago.ingreso.detalle)
+        self.assertEqual(self.client.get("/contabilidad/").context["ingresos"], Decimal("16000"))
+
     def test_interfaz_es_ruta_separada(self):
         respuesta = self.client.get("/contabilidad/")
         self.assertEqual(respuesta.status_code, 200)

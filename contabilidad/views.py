@@ -163,21 +163,48 @@ def configurar(request):
         return denegar_permiso_torneo()
     configuracion, _ = Configuracion.objects.get_or_create(torneo=torneo)
     try:
-        configuracion.valor_amarilla = max(Decimal("0"), Decimal(request.POST.get("valor_amarilla", "5000")))
-        configuracion.valor_roja = max(Decimal("0"), Decimal(request.POST.get("valor_roja", "8000")))
-        configuracion.mensualidades_habilitadas = request.POST.get("mensualidades_habilitadas") == "1"
-        configuracion.valor_mensualidad = max(Decimal("0"), Decimal(request.POST.get("valor_mensualidad", "0") or "0"))
-        configuracion.dia_limite_mensualidad = min(31, max(1, int(request.POST.get("dia_limite_mensualidad", "10") or "10")))
-        inicio = (request.POST.get("mes_inicio_mensualidades") or "").strip()
-        fin = (request.POST.get("mes_fin_mensualidades") or "").strip()
-        configuracion.mes_inicio_mensualidades = parse_date(f"{inicio}-01") if inicio else None
-        configuracion.mes_fin_mensualidades = parse_date(f"{fin}-01") if fin else None
-        if configuracion.mes_inicio_mensualidades and configuracion.mes_fin_mensualidades and configuracion.mes_inicio_mensualidades > configuracion.mes_fin_mensualidades:
-            raise ValueError("El mes inicial no puede ser posterior al mes final.")
-        configuracion.save()
-        for cobro in CobroTarjeta.objects.filter(cuenta__torneo=torneo, pago__isnull=True):
-            cobro.valor = configuracion.valor_tarjeta(cobro.tipo)
-            cobro.save(update_fields=["valor"])
+        with transaction.atomic():
+            configuracion.valor_amarilla = max(Decimal("0"), Decimal(request.POST.get("valor_amarilla", "5000")))
+            configuracion.valor_roja = max(Decimal("0"), Decimal(request.POST.get("valor_roja", "8000")))
+            configuracion.mensualidades_habilitadas = request.POST.get("mensualidades_habilitadas") == "1"
+            configuracion.valor_mensualidad = max(Decimal("0"), Decimal(request.POST.get("valor_mensualidad", "0") or "0"))
+            configuracion.dia_limite_mensualidad = min(31, max(1, int(request.POST.get("dia_limite_mensualidad", "10") or "10")))
+            inicio = (request.POST.get("mes_inicio_mensualidades") or "").strip()
+            fin = (request.POST.get("mes_fin_mensualidades") or "").strip()
+            configuracion.mes_inicio_mensualidades = parse_date(f"{inicio}-01") if inicio else None
+            configuracion.mes_fin_mensualidades = parse_date(f"{fin}-01") if fin else None
+            if configuracion.mes_inicio_mensualidades and configuracion.mes_fin_mensualidades and configuracion.mes_inicio_mensualidades > configuracion.mes_fin_mensualidades:
+                raise ValueError("El mes inicial no puede ser posterior al mes final.")
+            configuracion.save()
+
+            cobros_torneo = CobroTarjeta.objects.filter(cuenta__torneo=torneo)
+            cobros_torneo.filter(tipo="AMARILLA").update(valor=configuracion.valor_amarilla)
+            cobros_torneo.filter(tipo="ROJA").update(valor=configuracion.valor_roja)
+
+            pagos = PagoTarjetas.objects.filter(
+                cuenta__torneo=torneo,
+                ingreso__anulado=False,
+            ).select_related("ingreso").prefetch_related("cobros")
+            for pago in pagos:
+                cobros = list(pago.cobros.all())
+                amarillas = sum(1 for cobro in cobros if cobro.tipo == "AMARILLA")
+                rojas = sum(1 for cobro in cobros if cobro.tipo == "ROJA")
+                total = amarillas * configuracion.valor_amarilla + rojas * configuracion.valor_roja
+                pago.cantidad_amarillas = amarillas
+                pago.cantidad_rojas = rojas
+                pago.valor_unitario_amarilla = configuracion.valor_amarilla
+                pago.valor_unitario_roja = configuracion.valor_roja
+                pago.total = total
+                pago.save(update_fields=[
+                    "cantidad_amarillas", "cantidad_rojas", "valor_unitario_amarilla",
+                    "valor_unitario_roja", "total",
+                ])
+                pago.ingreso.valor = total
+                pago.ingreso.detalle = (
+                    f"Amarillas: {amarillas} x ${configuracion.valor_amarilla}; "
+                    f"rojas: {rojas} x ${configuracion.valor_roja}; total: ${total}"
+                )
+                pago.ingreso.save(update_fields=["valor", "detalle"])
         messages.success(request, "Configuración contable actualizada.")
     except Exception:
         messages.error(request, "Escribe valores numéricos válidos.")
