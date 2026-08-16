@@ -1378,7 +1378,7 @@ button.live-icon {
                     {% if item.rol == "TITULAR" %}
                     <div class="jugador-campo posicion-{{ item.posicion|default:'SIN' }}">
                         <div class="jugador-foto">
-                            {% if item.foto %}<img src="{{ item.foto }}" alt="{{ item.nombre }}">{% else %}{{ item.iniciales }}{% endif %}
+                            {% if item.foto %}<img src="{{ item.foto }}" alt="{{ item.nombre }}" loading="lazy" decoding="async">{% else %}{{ item.iniciales }}{% endif %}
                             {% if item.dorsal %}<span class="jugador-dorsal">{{ item.dorsal }}</span>{% endif %}
                             {% if item.eventos %}
                             <span class="jugador-eventos">
@@ -1398,7 +1398,7 @@ button.live-icon {
                     <div class="empty-state">Alineaci&oacute;n pendiente.</div>
                 {% endfor %}
             </div>
-            <img class="cancha-watermark" src="{% static 'torneos/img/logo_app.png' %}" alt="Pahevi Sports">
+            <img class="cancha-watermark" src="{% static 'torneos/img/logo_app.png' %}" alt="Pahevi Sports" loading="lazy" decoding="async">
             <span class="formacion-chip">Equipo local</span>
         </div>
 
@@ -1414,7 +1414,7 @@ button.live-icon {
                     {% if item.rol == "TITULAR" %}
                     <div class="jugador-campo posicion-{{ item.posicion|default:'SIN' }}">
                         <div class="jugador-foto">
-                            {% if item.foto %}<img src="{{ item.foto }}" alt="{{ item.nombre }}">{% else %}{{ item.iniciales }}{% endif %}
+                            {% if item.foto %}<img src="{{ item.foto }}" alt="{{ item.nombre }}" loading="lazy" decoding="async">{% else %}{{ item.iniciales }}{% endif %}
                             {% if item.dorsal %}<span class="jugador-dorsal">{{ item.dorsal }}</span>{% endif %}
                             {% if item.eventos %}
                             <span class="jugador-eventos">
@@ -1434,7 +1434,7 @@ button.live-icon {
                     <div class="empty-state">Alineaci&oacute;n pendiente.</div>
                 {% endfor %}
             </div>
-            <img class="cancha-watermark" src="{% static 'torneos/img/logo_app.png' %}" alt="Pahevi Sports">
+            <img class="cancha-watermark" src="{% static 'torneos/img/logo_app.png' %}" alt="Pahevi Sports" loading="lazy" decoding="async">
             <span class="formacion-chip">Equipo visitante</span>
         </div>
 
@@ -1443,7 +1443,7 @@ button.live-icon {
                 <div class="roster-title">Cuerpo t&eacute;cnico y Admin App</div>
                 <div class="staff-grid">
                     {% for persona in cuerpo_tecnico_local %}
-                    <div class="staff-card"><span class="staff-photo">{% if persona.foto %}<img src="{{ persona.foto.url }}" alt="{{ persona.nombre }}">{% else %}{{ persona.iniciales }}{% endif %}</span><div><div class="staff-role">{{ persona.cargo }}</div><div class="staff-name">{{ persona.nombre }}</div></div></div>
+                    <div class="staff-card"><span class="staff-photo">{% if persona.foto %}<img src="{{ persona.foto.url }}" alt="{{ persona.nombre }}" loading="lazy" decoding="async">{% else %}{{ persona.iniciales }}{% endif %}</span><div><div class="staff-role">{{ persona.cargo }}</div><div class="staff-name">{{ persona.nombre }}</div></div></div>
                     {% endfor %}
                 </div>
             </div>
@@ -1456,8 +1456,8 @@ button.live-icon {
                         <div class="sub-card">
                             <div class="sub-minute">{% if cambio.minuto %}{{ cambio.minuto }}'{% else %}--{% endif %}</div>
                             <div>
-                                <div class="sub-in"><span class="sub-arrow">&uarr;</span><span class="sub-player-avatar">{% if cambio.jugador_entra_foto %}<img src="{{ cambio.jugador_entra_foto }}" alt="">{% else %}{{ cambio.jugador_entra_iniciales }}{% endif %}</span><span>{{ cambio.jugador_entra_corto }}{% if cambio.jugador_entra_edad %}<span class="edad-badge">{{ cambio.jugador_entra_edad }}</span>{% endif %}</span></div>
-                                <div class="sub-out"><span class="sub-arrow">&darr;</span><span class="sub-player-avatar">{% if cambio.jugador_sale_foto %}<img src="{{ cambio.jugador_sale_foto }}" alt="">{% else %}{{ cambio.jugador_sale_iniciales }}{% endif %}</span><span>{{ cambio.jugador_sale_corto }}{% if cambio.jugador_sale_edad %}<span class="edad-badge">{{ cambio.jugador_sale_edad }}</span>{% endif %}</span></div>
+                                <div class="sub-in"><span class="sub-arrow">&uarr;</span><span class="sub-player-avatar">{% if cambio.jugador_entra_foto %}<img src="{{ cambio.jugador_entra_foto }}" alt="" loading="lazy" decoding="async">{% else %}{{ cambio.jugador_entra_iniciales }}{% endif %}</span><span>{{ cambio.jugador_entra_corto }}{% if cambio.jugador_entra_edad %}<span class="edad-badge">{{ cambio.jugador_entra_edad }}</span>{% endif %}</span></div>
+                                <div class="sub-out"><span class="sub-arrow">&darr;</span><span class="sub-player-avatar">{% if cambio.jugador_sale_foto %}<img src="{{ cambio.jugador_sale_foto }}" alt="" loading="lazy" decoding="async">{% else %}{{ cambio.jugador_sale_iniciales }}{% endif %}</span><span>{{ cambio.jugador_sale_corto }}{% if cambio.jugador_sale_edad %}<span class="edad-badge">{{ cambio.jugador_sale_edad }}</span>{% endif %}</span></div>
                             </div>
                         </div>
                     {% endfor %}
@@ -1471,7 +1471,7 @@ button.live-icon {
                 <div class="roster-title">Banco</div>
                 {% for item in suplentes_local %}
                 <div class="roster-row">
-                    <div class="roster-avatar">{% if item.foto %}<img src="{{ item.foto }}" alt="{{ item.nombre }}">{% else %}{{ item.iniciales }}{% endif %}{% if item.dorsal %}<span class="roster-dorsal">{{ item.dorsal }}</span>{% endif %}</div>
+                    <div class="roster-avatar">{% if item.foto %}<img src="{{ item.foto }}" alt="{{ item.nombre }}" loading="lazy" decoding="async">{% else %}{{ item.iniciales }}{% endif %}{% if item.dorsal %}<span class="roster-dorsal">{{ item.dorsal }}</span>{% endif %}</div>
                     <div>
                         <div class="roster-name">{{ item.nombre_corto }}{% if item.etiqueta_edad %}<span class="edad-badge">{{ item.etiqueta_edad }}</span>{% endif %}</div>
                     </div>
@@ -1492,7 +1492,7 @@ button.live-icon {
                 <div class="roster-title">Jugadores no disponibles</div>
                 {% for item in no_disponibles_local %}
                 <div class="roster-row">
-                    <div class="roster-avatar">{% if item.foto %}<img src="{{ item.foto }}" alt="{{ item.nombre }}">{% else %}{{ item.iniciales }}{% endif %}{% if item.dorsal %}<span class="roster-dorsal">{{ item.dorsal }}</span>{% endif %}</div>
+                    <div class="roster-avatar">{% if item.foto %}<img src="{{ item.foto }}" alt="{{ item.nombre }}" loading="lazy" decoding="async">{% else %}{{ item.iniciales }}{% endif %}{% if item.dorsal %}<span class="roster-dorsal">{{ item.dorsal }}</span>{% endif %}</div>
                     <div>
                         <div class="roster-name">{{ item.nombre_corto }}{% if item.etiqueta_edad %}<span class="edad-badge">{{ item.etiqueta_edad }}</span>{% endif %}</div>
                         <div class="roster-meta">{% if item.dorsal %}#{{ item.dorsal }}{% else %}Sin dorsal{% endif %} &middot; sancionado, lesionado o suspendido</div>
@@ -1518,7 +1518,7 @@ button.live-icon {
                 <div class="roster-title">Cuerpo t&eacute;cnico y Admin App</div>
                 <div class="staff-grid">
                     {% for persona in cuerpo_tecnico_visitante %}
-                    <div class="staff-card"><span class="staff-photo">{% if persona.foto %}<img src="{{ persona.foto.url }}" alt="{{ persona.nombre }}">{% else %}{{ persona.iniciales }}{% endif %}</span><div><div class="staff-role">{{ persona.cargo }}</div><div class="staff-name">{{ persona.nombre }}</div></div></div>
+                    <div class="staff-card"><span class="staff-photo">{% if persona.foto %}<img src="{{ persona.foto.url }}" alt="{{ persona.nombre }}" loading="lazy" decoding="async">{% else %}{{ persona.iniciales }}{% endif %}</span><div><div class="staff-role">{{ persona.cargo }}</div><div class="staff-name">{{ persona.nombre }}</div></div></div>
                     {% endfor %}
                 </div>
             </div>
@@ -1531,8 +1531,8 @@ button.live-icon {
                         <div class="sub-card">
                             <div class="sub-minute">{% if cambio.minuto %}{{ cambio.minuto }}'{% else %}--{% endif %}</div>
                             <div>
-                                <div class="sub-in"><span class="sub-arrow">&uarr;</span><span class="sub-player-avatar">{% if cambio.jugador_entra_foto %}<img src="{{ cambio.jugador_entra_foto }}" alt="">{% else %}{{ cambio.jugador_entra_iniciales }}{% endif %}</span><span>{{ cambio.jugador_entra_corto }}{% if cambio.jugador_entra_edad %}<span class="edad-badge">{{ cambio.jugador_entra_edad }}</span>{% endif %}</span></div>
-                                <div class="sub-out"><span class="sub-arrow">&darr;</span><span class="sub-player-avatar">{% if cambio.jugador_sale_foto %}<img src="{{ cambio.jugador_sale_foto }}" alt="">{% else %}{{ cambio.jugador_sale_iniciales }}{% endif %}</span><span>{{ cambio.jugador_sale_corto }}{% if cambio.jugador_sale_edad %}<span class="edad-badge">{{ cambio.jugador_sale_edad }}</span>{% endif %}</span></div>
+                                <div class="sub-in"><span class="sub-arrow">&uarr;</span><span class="sub-player-avatar">{% if cambio.jugador_entra_foto %}<img src="{{ cambio.jugador_entra_foto }}" alt="" loading="lazy" decoding="async">{% else %}{{ cambio.jugador_entra_iniciales }}{% endif %}</span><span>{{ cambio.jugador_entra_corto }}{% if cambio.jugador_entra_edad %}<span class="edad-badge">{{ cambio.jugador_entra_edad }}</span>{% endif %}</span></div>
+                                <div class="sub-out"><span class="sub-arrow">&darr;</span><span class="sub-player-avatar">{% if cambio.jugador_sale_foto %}<img src="{{ cambio.jugador_sale_foto }}" alt="" loading="lazy" decoding="async">{% else %}{{ cambio.jugador_sale_iniciales }}{% endif %}</span><span>{{ cambio.jugador_sale_corto }}{% if cambio.jugador_sale_edad %}<span class="edad-badge">{{ cambio.jugador_sale_edad }}</span>{% endif %}</span></div>
                             </div>
                         </div>
                     {% endfor %}
@@ -1546,7 +1546,7 @@ button.live-icon {
                 <div class="roster-title">Banco</div>
                 {% for item in suplentes_visitante %}
                 <div class="roster-row">
-                    <div class="roster-avatar">{% if item.foto %}<img src="{{ item.foto }}" alt="{{ item.nombre }}">{% else %}{{ item.iniciales }}{% endif %}{% if item.dorsal %}<span class="roster-dorsal">{{ item.dorsal }}</span>{% endif %}</div>
+                    <div class="roster-avatar">{% if item.foto %}<img src="{{ item.foto }}" alt="{{ item.nombre }}" loading="lazy" decoding="async">{% else %}{{ item.iniciales }}{% endif %}{% if item.dorsal %}<span class="roster-dorsal">{{ item.dorsal }}</span>{% endif %}</div>
                     <div>
                         <div class="roster-name">{{ item.nombre_corto }}{% if item.etiqueta_edad %}<span class="edad-badge">{{ item.etiqueta_edad }}</span>{% endif %}</div>
                     </div>
@@ -1567,7 +1567,7 @@ button.live-icon {
                 <div class="roster-title">Jugadores no disponibles</div>
                 {% for item in no_disponibles_visitante %}
                 <div class="roster-row">
-                    <div class="roster-avatar">{% if item.foto %}<img src="{{ item.foto }}" alt="{{ item.nombre }}">{% else %}{{ item.iniciales }}{% endif %}{% if item.dorsal %}<span class="roster-dorsal">{{ item.dorsal }}</span>{% endif %}</div>
+                    <div class="roster-avatar">{% if item.foto %}<img src="{{ item.foto }}" alt="{{ item.nombre }}" loading="lazy" decoding="async">{% else %}{{ item.iniciales }}{% endif %}{% if item.dorsal %}<span class="roster-dorsal">{{ item.dorsal }}</span>{% endif %}</div>
                     <div>
                         <div class="roster-name">{{ item.nombre_corto }}{% if item.etiqueta_edad %}<span class="edad-badge">{{ item.etiqueta_edad }}</span>{% endif %}</div>
                         <div class="roster-meta">{% if item.dorsal %}#{{ item.dorsal }}{% else %}Sin dorsal{% endif %} &middot; sancionado, lesionado o suspendido</div>
@@ -1751,6 +1751,8 @@ document.querySelectorAll("[data-live-tab]").forEach(function(btn) {
 
     let revisionActual = "{{ revision_live|escapejs }}";
     let consultando = false;
+    const conexion = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+    const intervaloRevision = conexion && conexion.saveData ? 45000 : 30000;
     const claveTab = "partido-live-tab-{{ partido.id }}";
     const claveScroll = "partido-live-scroll-{{ partido.id }}";
 
@@ -1770,10 +1772,12 @@ document.querySelectorAll("[data-live-tab]").forEach(function(btn) {
         if (consultando || document.hidden) return;
         consultando = true;
         try {
-            const respuesta = await fetch("{% url 'revision_partido_live' partido.id %}", {
-                cache: "no-store",
+            const urlRevision = "{% url 'revision_partido_live' partido.id %}?revision=" + encodeURIComponent(revisionActual);
+            const respuesta = await fetch(urlRevision, {
+                cache: "no-cache",
                 headers: {"X-Requested-With": "XMLHttpRequest"}
             });
+            if (respuesta.status === 204) return;
             if (!respuesta.ok) return;
             const datos = await respuesta.json();
             if (datos.revision && datos.revision !== revisionActual) {
@@ -1791,7 +1795,7 @@ document.querySelectorAll("[data-live-tab]").forEach(function(btn) {
         }
     }
 
-    const intervalo = window.setInterval(revisarCambios, 15000);
+    const intervalo = window.setInterval(revisarCambios, intervaloRevision);
     document.addEventListener("visibilitychange", function() {
         if (!document.hidden) revisarCambios();
     });

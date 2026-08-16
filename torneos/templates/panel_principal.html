@@ -7514,8 +7514,9 @@ document.addEventListener('DOMContentLoaded', function() {
     let actualizando = false;
     let temporizador = null;
     let firmaAnterior = '';
-    const INTERVALO_NORMAL = 15000;
-    const INTERVALO_CAMBIO = 6000;
+    const conexion = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+    const INTERVALO_NORMAL = conexion && conexion.saveData ? 45000 : 30000;
+    const INTERVALO_CAMBIO = conexion && conexion.saveData ? 20000 : 10000;
 
     function detener() {
         if (temporizador) {

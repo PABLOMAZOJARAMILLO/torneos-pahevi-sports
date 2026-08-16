@@ -9127,11 +9127,19 @@ def _revision_partido_live(partido):
 
 def revision_partido_live(request, partido_id):
     partido = get_object_or_404(Partido, id=partido_id)
+    revision = _revision_partido_live(partido)
+    etag = f'"{revision}"'
+    if request.GET.get("revision") == revision:
+        respuesta = HttpResponse(status=204)
+        respuesta["ETag"] = etag
+        respuesta["Cache-Control"] = "private, no-cache, max-age=0"
+        return respuesta
     respuesta = JsonResponse({
-        "revision": _revision_partido_live(partido),
+        "revision": revision,
         "estado": partido.estado,
     })
-    respuesta["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    respuesta["ETag"] = etag
+    respuesta["Cache-Control"] = "private, no-cache, max-age=0"
     return respuesta
 
 

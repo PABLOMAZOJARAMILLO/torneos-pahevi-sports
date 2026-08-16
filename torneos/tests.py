@@ -2632,7 +2632,7 @@ class PlanilleroPartidoTests(TestCase):
             f"/partido/{self.partido.id}/live/revision/"
         )
 
-        self.assertContains(pagina, "setInterval(revisarCambios, 15000)")
+        self.assertContains(pagina, "setInterval(revisarCambios, intervaloRevision)")
         self.assertContains(pagina, f"/partido/{self.partido.id}/live/revision/")
         self.assertEqual(revision_antes.status_code, 200)
         self.assertEqual(revision_despues.status_code, 200)
@@ -2640,7 +2640,15 @@ class PlanilleroPartidoTests(TestCase):
             revision_antes.json()["revision"],
             revision_despues.json()["revision"],
         )
-        self.assertIn("no-store", revision_despues["Cache-Control"])
+        self.assertIn("no-cache", revision_despues["Cache-Control"])
+        self.assertIn("ETag", revision_despues)
+
+        sin_cambios = self.client.get(
+            f"/partido/{self.partido.id}/live/revision/",
+            {"revision": revision_despues.json()["revision"]},
+        )
+        self.assertEqual(sin_cambios.status_code, 204)
+        self.assertEqual(sin_cambios.content, b"")
 
     @override_settings(STORAGES={
         "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
