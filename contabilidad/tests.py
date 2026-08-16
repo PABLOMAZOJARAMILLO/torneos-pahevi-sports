@@ -7,6 +7,7 @@ from django.test import TestCase
 from torneos.models import Categoria, Equipo, Jugador, Partido, Tarjeta, Torneo
 
 from .models import CobroTarjeta, Configuracion, CuentaEquipo, Egreso, Ingreso, PagoTarjetas
+from .forms import EgresoForm
 
 
 class ContabilidadIndependienteTests(TestCase):
@@ -248,6 +249,13 @@ class ContabilidadIndependienteTests(TestCase):
         self.assertEqual(list(egreso.partidos.all()), [self.partido])
         pagina = self.client.get("/contabilidad/")
         self.assertContains(pagina, "Equipo Uno vs Equipo Dos")
+
+    def test_listado_de_egresos_incluye_agua_cal_y_planillero(self):
+        conceptos = {valor for valor, _ in EgresoForm(torneo=self.torneo).fields["concepto"].choices}
+
+        self.assertIn("Compra de agua", conceptos)
+        self.assertIn("Compra de cal", conceptos)
+        self.assertIn("Pago de planillero", conceptos)
 
     def test_partidos_del_arbitraje_se_limit_an_al_torneo_contable(self):
         otro_torneo = Torneo.objects.create(nombre="Otro", fecha_inicio=date(2026, 2, 1))
