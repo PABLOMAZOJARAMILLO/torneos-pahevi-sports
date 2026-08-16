@@ -216,6 +216,8 @@ class ContabilidadIndependienteTests(TestCase):
         self.assertEqual(ingreso.forma_pago, "Transferencia")
 
     def test_ingreso_de_arbitraje_puede_asociarse_a_partidos(self):
+        self.partido.estado = "PROGRAMADO"
+        self.partido.save(update_fields=["estado"])
         respuesta = self.client.post("/contabilidad/ingresos/nuevo/", {
             "categoria": self.categoria.id,
             "concepto": "Pago de arbitraje",
@@ -233,6 +235,8 @@ class ContabilidadIndependienteTests(TestCase):
         self.assertContains(pagina, "Equipo Uno vs Equipo Dos")
 
     def test_registro_egreso_usa_listado_y_fondo_general(self):
+        self.partido.estado = "PROGRAMADO"
+        self.partido.save(update_fields=["estado"])
         respuesta = self.client.post("/contabilidad/egresos/nuevo/", {
             "categoria": "",
             "concepto": "Pago de árbitros",
@@ -249,6 +253,57 @@ class ContabilidadIndependienteTests(TestCase):
         self.assertEqual(list(egreso.partidos.all()), [self.partido])
         pagina = self.client.get("/contabilidad/")
         self.assertContains(pagina, "Equipo Uno vs Equipo Dos")
+
+    def test_selector_de_partidos_esta_oculto_hasta_elegir_arbitraje(self):
+        respuesta = self.client.get("/contabilidad/egresos/nuevo/")
+
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertContains(respuesta, 'class="form-field referee-parties-field" hidden')
+        self.assertContains(respuesta, '"Pago de árbitros", "Pago de arbitraje"')
+
+    def test_egreso_muestra_solo_programados_sin_pago_de_arbitros(self):
+        self.partido.estado = "PROGRAMADO"
+        self.partido.save(update_fields=["estado"])
+        finalizado = Partido.objects.create(
+            categoria=self.categoria,
+            equipo_local=self.rival,
+            equipo_visitante=self.equipo,
+            fecha=date(2026, 1, 4),
+            hora=time(18),
+            estado="FINALIZADO",
+        )
+
+        formulario = EgresoForm(torneo=self.torneo)
+        self.assertEqual(list(formulario.fields["partidos"].queryset), [self.partido])
+
+        egreso = Egreso.objects.create(
+            torneo=self.torneo,
+            concepto="Pago de árbitros",
+            valor=Decimal("80000"),
+            fecha=date(2026, 1, 3),
+        )
+        egreso.partidos.add(self.partido)
+
+        formulario = EgresoForm(torneo=self.torneo)
+        self.assertFalse(formulario.fields["partidos"].queryset.exists())
+        self.assertNotIn(finalizado, formulario.fields["partidos"].queryset)
+
+    def test_ingreso_muestra_solo_programados_sin_recaudo_de_arbitraje(self):
+        self.partido.estado = "PROGRAMADO"
+        self.partido.save(update_fields=["estado"])
+
+        ingreso = Ingreso.objects.create(
+            torneo=self.torneo,
+            tipo="OTRO",
+            concepto="Pago de arbitraje",
+            valor=Decimal("90000"),
+            fecha=date(2026, 1, 3),
+        )
+        ingreso.partidos.add(self.partido)
+
+        respuesta = self.client.get("/contabilidad/ingresos/nuevo/")
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertFalse(respuesta.context["form"].fields["partidos"].queryset.exists())
 
     def test_listado_de_egresos_incluye_agua_cal_y_planillero(self):
         conceptos = {valor for valor, _ in EgresoForm(torneo=self.torneo).fields["concepto"].choices}

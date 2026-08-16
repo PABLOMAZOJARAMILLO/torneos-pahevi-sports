@@ -62,9 +62,16 @@ class EgresoForm(forms.ModelForm):
         self.fields["partidos"].help_text = "Puedes marcar uno o varios partidos incluidos en este pago."
         self.fields["partidos"].queryset = Partido.objects.filter(
             categoria__torneo=torneo,
+            estado="PROGRAMADO",
+        ).exclude(
+            egresos_arbitraje__in=Egreso.objects.filter(
+                torneo=torneo,
+                concepto="Pago de árbitros",
+                anulado=False,
+            ),
         ).select_related("categoria", "equipo_local", "equipo_visitante").order_by(
-            "-fecha", "-hora", "categoria__nombre",
-        )
+            "fecha", "hora", "categoria__nombre",
+        ).distinct()
         self.fields["partidos"].label_from_instance = lambda partido: (
             f"{partido.fecha:%d/%m/%Y} · {partido.categoria.nombre} · "
             f"{partido.equipo_local.nombre} vs {partido.equipo_visitante.nombre}"
@@ -107,9 +114,16 @@ class IngresoManualForm(forms.ModelForm):
         self.fields["partidos"].help_text = "Puedes marcar uno o varios partidos incluidos en este recaudo."
         self.fields["partidos"].queryset = Partido.objects.filter(
             categoria__torneo=torneo,
+            estado="PROGRAMADO",
+        ).exclude(
+            ingresos_arbitraje__in=Ingreso.objects.filter(
+                torneo=torneo,
+                concepto="Pago de arbitraje",
+                anulado=False,
+            ),
         ).select_related("categoria", "equipo_local", "equipo_visitante").order_by(
-            "-fecha", "-hora", "categoria__nombre",
-        )
+            "fecha", "hora", "categoria__nombre",
+        ).distinct()
         self.fields["partidos"].label_from_instance = lambda partido: (
             f"{partido.fecha:%d/%m/%Y} · {partido.categoria.nombre} · "
             f"{partido.equipo_local.nombre} vs {partido.equipo_visitante.nombre}"
