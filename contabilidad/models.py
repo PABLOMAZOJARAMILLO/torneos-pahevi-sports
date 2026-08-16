@@ -19,6 +19,11 @@ class Configuracion(models.Model):
     torneo = models.OneToOneField(Torneo, on_delete=models.CASCADE, related_name="contabilidad_configuracion")
     valor_amarilla = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("5000"))
     valor_roja = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("8000"))
+    mensualidades_habilitadas = models.BooleanField(default=False)
+    valor_mensualidad = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    dia_limite_mensualidad = models.PositiveSmallIntegerField(default=10)
+    mes_inicio_mensualidades = models.DateField(null=True, blank=True)
+    mes_fin_mensualidades = models.DateField(null=True, blank=True)
     actualizado_en = models.DateTimeField(auto_now=True)
 
     def valor_tarjeta(self, tipo):
@@ -59,7 +64,7 @@ class CuentaEquipo(models.Model):
 
 
 class Ingreso(models.Model):
-    TIPOS = [("INSCRIPCION", "Inscripción"), ("TARJETAS", "Pago de tarjetas"), ("OTRO", "Otro")]
+    TIPOS = [("INSCRIPCION", "Inscripción"), ("TARJETAS", "Pago de tarjetas"), ("MENSUALIDAD", "Pago de mensualidad"), ("OTRO", "Otro")]
     torneo = models.ForeignKey(Torneo, on_delete=models.CASCADE, related_name="contabilidad_ingresos")
     categoria = models.ForeignKey(Categoria, on_delete=models.SET_NULL, null=True, blank=True)
     equipo = models.ForeignKey(Equipo, on_delete=models.SET_NULL, null=True, blank=True)
@@ -69,6 +74,7 @@ class Ingreso(models.Model):
     valor = models.DecimalField(max_digits=12, decimal_places=2)
     fecha = models.DateField(default=timezone.localdate)
     forma_pago = models.CharField(max_length=40, default="Efectivo")
+    periodo_mensualidad = models.DateField(null=True, blank=True)
     registrado_por = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="contabilidad_ingresos_registrados")
     creado_en = models.DateTimeField(auto_now_add=True)
     anulado = models.BooleanField(default=False)

@@ -248,3 +248,55 @@ class ContabilidadIndependienteTests(TestCase):
         pagina = self.client.get("/contabilidad/")
         self.assertEqual(pagina.context["egresos_total"], Decimal("0"))
         self.assertContains(pagina, "Comprobante equivocado")
+
+    def test_mensualidades_permanecen_ocultas_en_torneos_no_habilitados(self):
+        pagina = self.client.get("/contabilidad/")
+        self.assertNotContains(pagina, ">Mensualidades</a>")
+        respuesta = self.client.get("/contabilidad/mensualidades/")
+        self.assertRedirects(respuesta, "/contabilidad/")
+
+    def test_torneo_puede_habilitar_mensualidades_sin_afectar_otros_torneos(self):
+        otro = Torneo.objects.create(nombre="Torneo sin mensualidad", fecha_inicio=date(2026, 2, 1))
+        Configuracion.objects.create(torneo=otro)
+        respuesta = self.client.post("/contabilidad/configurar/", {
+            "valor_amarilla": "5000", "valor_roja": "8000",
+            "mensualidades_habilitadas": "1", "valor_mensualidad": "100000",
+            "dia_limite_mensualidad": "10", "mes_inicio_mensualidades": "2026-08",
+            "mes_fin_mensualidades": "2026-12",
+        })
+        self.assertEqual(respuesta.status_code, 302)
+        configuracion = Configuracion.objects.get(torneo=self.torneo)
+        self.assertTrue(configuracion.mensualidades_habilitadas)
+        self.assertEqual(configuracion.valor_mensualidad, Decimal("100000"))
+        self.assertFalse(Configuracion.objects.get(torneo=otro).mensualidades_habilitadas)
+        self.assertContains(self.client.get("/contabilidad/"), "Mensualidades")
+
+    def test_mensualidad_admite_abonos_y_anulacion_restaura_el_pendiente(self):
+        configuracion = Configuracion.objects.get_or_create(torneo=self.torneo)[0]
+        configuracion.mensualidades_habilitadas = True
+        configuracion.valor_mensualidad = Decimal("100000")
+        configuracion.mes_inicio_mensualidades = date(2026, 8, 1)
+        configuracion.mes_fin_mensualidades = date(2026, 12, 1)
+        configuracion.save()
+        cuenta = CuentaEquipo.objects.get(torneo=self.torneo, equipo=self.equipo)
+        respuesta = self.client.post("/contabilidad/mensualidades/", {
+            "cuenta_id": cuenta.id, "periodo": "2026-08", "valor": "40000",
+            "fecha": "2026-08-05", "forma_pago": "Nequi", "observacion": "Primer abono",
+        })
+        self.assertEqual(respuesta.status_code, 302)
+        pago = Ingreso.objects.get(tipo="MENSUALIDAD")
+        self.assertEqual(pago.equipo, self.equipo)
+        self.assertEqual(pago.periodo_mensualidad, date(2026, 8, 1))
+        pagina = self.client.get("/contabilidad/mensualidades/?periodo=2026-08")
+        fila = next(item for item in pagina.context["filas"] if item["cuenta"] == cuenta)
+        self.assertEqual(fila["pagado"], Decimal("40000"))
+        self.assertEqual(fila["pendiente"], Decimal("60000"))
+        self.assertEqual(fila["estado"], "ABONO")
+
+        self.client.post(f"/contabilidad/movimientos/ingreso/{pago.id}/anular/", {
+            "motivo": "Pago registrado por error", "volver": "/contabilidad/mensualidades/?periodo=2026-08",
+        })
+        pagina = self.client.get("/contabilidad/mensualidades/?periodo=2026-08")
+        fila = next(item for item in pagina.context["filas"] if item["cuenta"] == cuenta)
+        self.assertEqual(fila["pagado"], Decimal("0"))
+        self.assertEqual(fila["pendiente"], Decimal("100000"))

@@ -23,6 +23,11 @@ from .signals import sincronizar_tarjeta
 logger = logging.getLogger(__name__)
 
 
+def _destino_contabilidad(request):
+    destino = (request.POST.get("volver") or "").strip()
+    return destino if destino.startswith("/contabilidad/") else "contabilidad:inicio"
+
+
 def _torneo_permitido(request):
     torneos = torneos_para_usuario(request)
     torneo_id = request.session.get("contabilidad_torneo_id") or request.session.get("torneo_id")
@@ -160,11 +165,20 @@ def configurar(request):
     try:
         configuracion.valor_amarilla = max(Decimal("0"), Decimal(request.POST.get("valor_amarilla", "5000")))
         configuracion.valor_roja = max(Decimal("0"), Decimal(request.POST.get("valor_roja", "8000")))
+        configuracion.mensualidades_habilitadas = request.POST.get("mensualidades_habilitadas") == "1"
+        configuracion.valor_mensualidad = max(Decimal("0"), Decimal(request.POST.get("valor_mensualidad", "0") or "0"))
+        configuracion.dia_limite_mensualidad = min(31, max(1, int(request.POST.get("dia_limite_mensualidad", "10") or "10")))
+        inicio = (request.POST.get("mes_inicio_mensualidades") or "").strip()
+        fin = (request.POST.get("mes_fin_mensualidades") or "").strip()
+        configuracion.mes_inicio_mensualidades = parse_date(f"{inicio}-01") if inicio else None
+        configuracion.mes_fin_mensualidades = parse_date(f"{fin}-01") if fin else None
+        if configuracion.mes_inicio_mensualidades and configuracion.mes_fin_mensualidades and configuracion.mes_inicio_mensualidades > configuracion.mes_fin_mensualidades:
+            raise ValueError("El mes inicial no puede ser posterior al mes final.")
         configuracion.save()
         for cobro in CobroTarjeta.objects.filter(cuenta__torneo=torneo, pago__isnull=True):
             cobro.valor = configuracion.valor_tarjeta(cobro.tipo)
             cobro.save(update_fields=["valor"])
-        messages.success(request, "Valores de tarjetas actualizados.")
+        messages.success(request, "Configuración contable actualizada.")
     except Exception:
         messages.error(request, "Escribe valores numéricos válidos.")
     return redirect("contabilidad:inicio")
@@ -278,6 +292,82 @@ def nuevo_ingreso(request):
 
 
 @login_required
+def mensualidades(request):
+    torneo = _torneo_permitido(request)
+    if not torneo:
+        return denegar_permiso_torneo()
+    _sincronizar(torneo)
+    configuracion = Configuracion.objects.get(torneo=torneo)
+    if not configuracion.mensualidades_habilitadas:
+        messages.info(request, "Las mensualidades no están habilitadas para este torneo.")
+        return redirect("contabilidad:inicio")
+
+    periodo_texto = (request.POST.get("periodo") or request.GET.get("periodo") or "").strip()
+    periodo = parse_date(f"{periodo_texto}-01") if periodo_texto else None
+    periodo = periodo or timezone.localdate().replace(day=1)
+    cuentas = list(CuentaEquipo.objects.filter(torneo=torneo).select_related("equipo").order_by("equipo__nombre"))
+    pagos_activos = Ingreso.objects.filter(
+        torneo=torneo, tipo="MENSUALIDAD", periodo_mensualidad=periodo, anulado=False,
+    )
+    pagado_por_equipo = {
+        fila["equipo_id"]: fila["total"] or Decimal("0")
+        for fila in pagos_activos.values("equipo_id").annotate(total=Sum("valor"))
+    }
+
+    if request.method == "POST":
+        cuenta = get_object_or_404(CuentaEquipo, torneo=torneo, id=request.POST.get("cuenta_id"))
+        try:
+            valor = Decimal(request.POST.get("valor", "0"))
+        except Exception:
+            valor = Decimal("0")
+        pagado = pagado_por_equipo.get(cuenta.equipo_id, Decimal("0"))
+        pendiente = max(Decimal("0"), configuracion.valor_mensualidad - pagado)
+        fuera_periodo = (
+            (configuracion.mes_inicio_mensualidades and periodo < configuracion.mes_inicio_mensualidades)
+            or (configuracion.mes_fin_mensualidades and periodo > configuracion.mes_fin_mensualidades)
+        )
+        if fuera_periodo:
+            messages.error(request, "El mes seleccionado está fuera del periodo configurado.")
+        elif valor <= 0:
+            messages.error(request, "El valor del pago debe ser mayor que cero.")
+        elif valor > pendiente:
+            messages.error(request, f"El pago supera el saldo pendiente de ${pendiente:.0f}.")
+        else:
+            Ingreso.objects.create(
+                torneo=torneo, categoria=cuenta.categoria, equipo=cuenta.equipo,
+                tipo="MENSUALIDAD", concepto=f"Mensualidad - {cuenta.equipo.nombre}",
+                detalle=(request.POST.get("observacion") or "")[:300], valor=valor,
+                fecha=parse_date(request.POST.get("fecha", "")) or timezone.localdate(),
+                forma_pago=(request.POST.get("forma_pago") or "Efectivo")[:40],
+                periodo_mensualidad=periodo, registrado_por=request.user,
+            )
+            messages.success(request, "Pago mensual registrado correctamente.")
+        return redirect(f"/contabilidad/mensualidades/?periodo={periodo:%Y-%m}")
+
+    filas = []
+    for cuenta in cuentas:
+        pagado = pagado_por_equipo.get(cuenta.equipo_id, Decimal("0"))
+        pendiente = max(Decimal("0"), configuracion.valor_mensualidad - pagado)
+        filas.append({
+            "cuenta": cuenta, "esperado": configuracion.valor_mensualidad,
+            "pagado": pagado, "pendiente": pendiente,
+            "estado": "PAGADO" if not pendiente else "ABONO" if pagado else "PENDIENTE",
+        })
+    esperado_total = configuracion.valor_mensualidad * len(cuentas)
+    recaudado_total = sum((fila["pagado"] for fila in filas), Decimal("0"))
+    historial = Ingreso.objects.filter(
+        torneo=torneo, tipo="MENSUALIDAD", periodo_mensualidad=periodo,
+    ).select_related("equipo", "registrado_por", "anulado_por")
+    return render(request, "contabilidad/mensualidades.html", {
+        "torneo": torneo, "configuracion": configuracion, "periodo": periodo,
+        "periodo_texto": periodo.strftime("%Y-%m"), "filas": filas,
+        "esperado_total": esperado_total, "recaudado_total": recaudado_total,
+        "pendiente_total": max(Decimal("0"), esperado_total - recaudado_total),
+        "historial": historial, "puede_anular": request.user.is_superuser or request.user.is_staff,
+    })
+
+
+@login_required
 @require_POST
 def anular_movimiento(request, tipo, movimiento_id):
     torneo = _torneo_permitido(request)
@@ -286,14 +376,14 @@ def anular_movimiento(request, tipo, movimiento_id):
     motivo = (request.POST.get("motivo") or "").strip()
     if len(motivo) < 5:
         messages.error(request, "Escribe el motivo de la anulación (mínimo 5 caracteres).")
-        return redirect(request.POST.get("volver") or "contabilidad:inicio")
+        return redirect(_destino_contabilidad(request))
     modelo = Ingreso if tipo == "ingreso" else Egreso if tipo == "egreso" else None
     if modelo is None:
         return denegar_permiso_torneo()
     movimiento = get_object_or_404(modelo, id=movimiento_id, torneo=torneo)
     if movimiento.anulado:
         messages.info(request, "Este movimiento ya estaba anulado.")
-        return redirect(request.POST.get("volver") or "contabilidad:inicio")
+        return redirect(_destino_contabilidad(request))
     with transaction.atomic():
         movimiento.anulado = True
         movimiento.motivo_anulacion = motivo[:300]
@@ -308,7 +398,7 @@ def anular_movimiento(request, tipo, movimiento_id):
             if pago:
                 CobroTarjeta.objects.filter(pago=pago).update(pago=None)
     messages.success(request, "Movimiento anulado. Se conservará en la auditoría y ya no afectará los saldos.")
-    return redirect(request.POST.get("volver") or "contabilidad:inicio")
+    return redirect(_destino_contabilidad(request))
 
 
 def _tarjetas_filtradas(request, torneo):
@@ -407,9 +497,9 @@ def reporte(request):
         deuda = c.saldo_inscripcion + c.saldo_tarjetas
         writer.writerow([c.categoria.nombre, c.equipo.nombre, c.valor_inscripcion, c.total_abonado, c.saldo_inscripcion, c.saldo_tarjetas, "DEBE" if deuda else "PAZ Y SALVO"])
     writer.writerow([])
-    writer.writerow(["Fecha", "Tipo", "Categoría/Fondo", "Concepto", "Detalle", "Valor", "Estado", "Motivo anulación", "Anulado por", "Fecha anulación"])
+    writer.writerow(["Fecha", "Tipo", "Categoría/Fondo", "Equipo", "Mes mensualidad", "Concepto", "Detalle", "Valor", "Estado", "Motivo anulación", "Anulado por", "Fecha anulación"])
     for i in Ingreso.objects.filter(torneo=torneo):
-        writer.writerow([i.fecha, "Ingreso", i.categoria.nombre if i.categoria else "Fondo general", i.concepto, i.detalle, i.valor, "ANULADO" if i.anulado else "ACTIVO", i.motivo_anulacion, i.anulado_por or "", i.anulado_en or ""])
+        writer.writerow([i.fecha, "Ingreso", i.categoria.nombre if i.categoria else "Fondo general", i.equipo.nombre if i.equipo else "", i.periodo_mensualidad.strftime("%Y-%m") if i.periodo_mensualidad else "", i.concepto, i.detalle, i.valor, "ANULADO" if i.anulado else "ACTIVO", i.motivo_anulacion, i.anulado_por or "", i.anulado_en or ""])
     for e in Egreso.objects.filter(torneo=torneo):
-        writer.writerow([e.fecha, "Egreso", e.fondo, e.concepto, e.observacion, e.valor, "ANULADO" if e.anulado else "ACTIVO", e.motivo_anulacion, e.anulado_por or "", e.anulado_en or ""])
+        writer.writerow([e.fecha, "Egreso", e.fondo, "", "", e.concepto, e.observacion, e.valor, "ANULADO" if e.anulado else "ACTIVO", e.motivo_anulacion, e.anulado_por or "", e.anulado_en or ""])
     return response

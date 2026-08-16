@@ -1,0 +1,20 @@
+{% extends "contabilidad/base.html" %}
+{% block heading %}Mensualidades{% endblock %}
+{% block content %}
+<section class="tournament-line"><div><span>Torneo con mensualidades</span><strong>{{ torneo.nombre }}</strong></div><a class="link-button" href="{% url 'contabilidad:inicio' %}">Volver</a></section>
+<section class="panel">
+  <div class="section-heading"><div><p class="eyebrow">CONTROL MENSUAL</p><h2>Aportes de los equipos</h2><p class="section-help">Un solo grupo · Día límite de pago: {{ configuracion.dia_limite_mensualidad }}</p></div></div>
+  <form method="get" class="category-filter-row"><label>Mes que deseas consultar<input type="month" name="periodo" value="{{ periodo_texto }}"></label><button class="primary compact" type="submit">Consultar mes</button></form>
+  <div class="monthly-summary"><div><span>Esperado</span><strong>$ {{ esperado_total|floatformat:0 }}</strong></div><div><span>Recaudado</span><strong>$ {{ recaudado_total|floatformat:0 }}</strong></div><div><span>Pendiente</span><strong>$ {{ pendiente_total|floatformat:0 }}</strong></div></div>
+</section>
+
+<section class="panel">
+  <div class="section-heading"><div><p class="eyebrow">EQUIPOS</p><h2>Estado de {{ periodo|date:"F Y" }}</h2></div></div>
+  <div>{% for fila in filas %}<article class="monthly-row"><div><h3>{{ fila.cuenta.equipo.nombre }}</h3><small>Mensualidad: $ {{ fila.esperado|floatformat:0 }}</small></div><div><small>Pagado</small><strong>$ {{ fila.pagado|floatformat:0 }}</strong></div><div><small>Pendiente</small><strong>$ {{ fila.pendiente|floatformat:0 }}</strong></div><span class="monthly-state {{ fila.estado }}">{{ fila.estado }}</span>{% if fila.pendiente %}<details class="monthly-payment"><summary class="view-account">Registrar pago o abono</summary><form method="post">{% csrf_token %}<input type="hidden" name="cuenta_id" value="{{ fila.cuenta.id }}"><input type="hidden" name="periodo" value="{{ periodo_texto }}"><div class="two-columns"><label>Valor<input type="number" name="valor" min="1" max="{{ fila.pendiente|floatformat:0 }}" value="{{ fila.pendiente|floatformat:0 }}" required></label><label>Fecha<input type="date" name="fecha" required></label><label>Forma de pago<select name="forma_pago"><option>Efectivo</option><option>Transferencia</option><option>Nequi</option><option>Daviplata</option><option>Otro</option></select></label><label>Observación<input name="observacion" maxlength="300"></label></div><button class="primary" type="submit">Guardar pago</button></form></details>{% endif %}</article>{% empty %}<div class="empty-state"><h3>No hay equipos en este torneo</h3></div>{% endfor %}</div>
+</section>
+
+<section class="panel">
+  <div class="section-heading"><div><p class="eyebrow">HISTORIAL</p><h2>Pagos del mes</h2></div></div>
+  <div class="movement-list">{% for pago in historial %}<article class="movement income{% if pago.anulado %} annulled{% endif %}"><div class="movement-icon">{% if pago.anulado %}×{% else %}↗{% endif %}</div><div class="movement-info"><strong>{{ pago.equipo.nombre }} {% if pago.anulado %}<span class="audit-badge">ANULADO</span>{% endif %}</strong><small>{{ pago.forma_pago }} · {{ pago.detalle|default:"Sin observación" }}</small><small class="audit-line">Registró: {{ pago.registrado_por.get_full_name|default:pago.registrado_por.username|default:"Usuario no disponible" }}</small>{% if pago.anulado %}<small class="audit-cancel">{{ pago.motivo_anulacion }}</small>{% elif puede_anular %}<form class="void-form" method="post" action="{% url 'contabilidad:anular_movimiento' 'ingreso' pago.id %}" onsubmit="return confirm('¿Confirmas la anulación de este pago?');">{% csrf_token %}<input type="hidden" name="volver" value="{{ request.get_full_path }}"><input name="motivo" minlength="5" maxlength="300" required placeholder="Motivo de la anulación"><button>Anular</button></form>{% endif %}</div><div class="movement-value"><strong>+ $ {{ pago.valor|floatformat:0 }}</strong><small>{{ pago.fecha }}</small></div></article>{% empty %}<div class="empty-state"><h3>No hay pagos registrados en este mes</h3></div>{% endfor %}</div>
+</section>
+{% endblock %}
