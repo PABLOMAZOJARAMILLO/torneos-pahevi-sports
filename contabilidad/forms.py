@@ -6,8 +6,8 @@ from .models import AbonoInscripcion, Egreso, Ingreso
 
 
 FORMAS_PAGO = [(x, x) for x in ["Efectivo", "Transferencia", "Nequi", "Daviplata", "Otro"]]
-CONCEPTOS_INGRESO = [(x, x) for x in ["Pago de arbitraje", "Patrocinio", "Venta de alimentos", "Venta de entradas", "Multas", "Otro ingreso"]]
-CONCEPTOS_EGRESO = [(x, x) for x in [
+CONCEPTOS_INGRESO = [("", "Seleccione un concepto")] + [(x, x) for x in ["Pago de arbitraje", "Patrocinio", "Venta de alimentos", "Venta de entradas", "Multas", "Otro ingreso"]]
+CONCEPTOS_EGRESO = [("", "Seleccione un concepto")] + [(x, x) for x in [
     "Pago de árbitros",
     "Pago de planillero",
     "Compra de agua",

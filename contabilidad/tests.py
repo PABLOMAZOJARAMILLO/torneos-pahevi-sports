@@ -7,7 +7,7 @@ from django.test import TestCase
 from torneos.models import Categoria, Equipo, Jugador, Partido, Tarjeta, Torneo
 
 from .models import CobroTarjeta, Configuracion, CuentaEquipo, Egreso, Ingreso, PagoTarjetas
-from .forms import EgresoForm
+from .forms import EgresoForm, IngresoManualForm
 
 
 class ContabilidadIndependienteTests(TestCase):
@@ -260,6 +260,15 @@ class ContabilidadIndependienteTests(TestCase):
         self.assertEqual(respuesta.status_code, 200)
         self.assertContains(respuesta, 'class="form-field referee-parties-field" hidden')
         self.assertContains(respuesta, '"Pago de árbitros", "Pago de arbitraje"')
+
+    def test_concepto_de_ingreso_y_egreso_no_selecciona_arbitraje_por_defecto(self):
+        ingreso = IngresoManualForm(torneo=self.torneo)
+        egreso = EgresoForm(torneo=self.torneo)
+
+        self.assertEqual(ingreso.fields["concepto"].choices[0], ("", "Seleccione un concepto"))
+        self.assertEqual(egreso.fields["concepto"].choices[0], ("", "Seleccione un concepto"))
+        self.assertIsNone(ingreso["concepto"].value())
+        self.assertIsNone(egreso["concepto"].value())
 
     def test_egreso_muestra_partidos_pendientes_sin_pago_de_arbitros(self):
         self.partido.estado = "PROGRAMADO"
