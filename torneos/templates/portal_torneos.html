@@ -108,6 +108,39 @@
             font-size: clamp(20px, 4.8vw, 32px);
             line-height: 1.18;
         }
+        .torneo-card-bloque {
+            display: grid;
+            align-content: start;
+            gap: 12px;
+        }
+        .torneo-card-bloque .torneo-card {
+            height: 100%;
+        }
+        .torneo-contabilidad-form {
+            display: flex;
+            justify-content: center;
+            margin: 0;
+        }
+        .torneo-contabilidad {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            min-height: 42px;
+            padding: 0 17px;
+            border: 0;
+            border-radius: 999px;
+            background: #12372a;
+            color: #fff;
+            box-shadow: 0 8px 18px rgba(18, 55, 42, .22);
+            font: inherit;
+            font-size: 14px;
+            font-weight: 900;
+            cursor: pointer;
+        }
+        .torneo-contabilidad:hover {
+            background: #1f5b45;
+        }
         .torneo-card-imagen {
             width: min(100%, 270px);
             aspect-ratio: 1 / 1;
@@ -242,6 +275,7 @@
         {% if organizador_actual and torneos_menu %}
             <section class="torneos-grid">
                 {% for torneo in torneos_menu %}
+                  <article class="torneo-card-bloque">
                     <a class="torneo-card{% if torneo.estado == 'ARCHIVADO' %} torneo-archivado{% endif %}" href="{% url 'panel' %}?torneo={{ torneo.id }}">
                         {% if torneo.logo_portada %}
                             <img src="{{ torneo.logo_portada.url }}" class="torneo-card-imagen" alt="{{ torneo.nombre }}">
@@ -269,6 +303,16 @@
                             </span>
                         {% endif %}
                     </a>
+                    {% if tiene_gestion_torneo %}
+                      <form class="torneo-contabilidad-form" method="post" action="{% url 'contabilidad:seleccionar_torneo' %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="torneo_id" value="{{ torneo.id }}">
+                        <button class="torneo-contabilidad" type="submit" aria-label="Abrir contabilidad de {{ torneo.nombre }}">
+                          <span aria-hidden="true">⚙</span> App contable
+                        </button>
+                      </form>
+                    {% endif %}
+                  </article>
                 {% endfor %}
             </section>
         {% elif not organizador_actual and organizadores_portal %}

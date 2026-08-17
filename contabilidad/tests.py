@@ -2,9 +2,9 @@ from datetime import date, time
 from decimal import Decimal
 
 from django.contrib.auth.models import User
-from django.test import TestCase
+from django.test import TestCase, override_settings
 
-from torneos.models import Categoria, Equipo, Jugador, Partido, Tarjeta, Torneo
+from torneos.models import Categoria, Equipo, Jugador, Organizador, Partido, Tarjeta, Torneo
 
 from .models import CobroTarjeta, Configuracion, CuentaEquipo, Egreso, Ingreso, PagoTarjetas
 from .forms import EgresoForm, IngresoManualForm
@@ -269,6 +269,25 @@ class ContabilidadIndependienteTests(TestCase):
         self.assertEqual(egreso.fields["concepto"].choices[0], ("", "Seleccione un concepto"))
         self.assertIsNone(ingreso["concepto"].value())
         self.assertIsNone(egreso["concepto"].value())
+
+    @override_settings(STORAGES={
+        "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+        "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
+    })
+    def test_admin_ve_acceso_contable_en_torneos_del_organizador(self):
+        organizador = Organizador.objects.create(nombre="Organizador contable")
+        self.torneo.organizador = organizador
+        self.torneo.save(update_fields=["organizador"])
+
+        respuesta = self.client.get(f"/?portal=1&organizador={organizador.id}")
+
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertContains(respuesta, "App contable")
+        self.assertContains(respuesta, f'name="torneo_id" value="{self.torneo.id}"')
+
+        self.client.logout()
+        respuesta_publica = self.client.get(f"/?portal=1&organizador={organizador.id}")
+        self.assertNotContains(respuesta_publica, "App contable")
 
     def test_egreso_muestra_partidos_pendientes_sin_pago_de_arbitros(self):
         self.partido.estado = "PROGRAMADO"
