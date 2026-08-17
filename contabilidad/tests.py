@@ -261,7 +261,7 @@ class ContabilidadIndependienteTests(TestCase):
         self.assertContains(respuesta, 'class="form-field referee-parties-field" hidden')
         self.assertContains(respuesta, '"Pago de árbitros", "Pago de arbitraje"')
 
-    def test_egreso_muestra_solo_programados_sin_pago_de_arbitros(self):
+    def test_egreso_muestra_partidos_pendientes_sin_pago_de_arbitros(self):
         self.partido.estado = "PROGRAMADO"
         self.partido.save(update_fields=["estado"])
         finalizado = Partido.objects.create(
@@ -274,7 +274,10 @@ class ContabilidadIndependienteTests(TestCase):
         )
 
         formulario = EgresoForm(torneo=self.torneo)
-        self.assertEqual(list(formulario.fields["partidos"].queryset), [self.partido])
+        self.assertEqual(
+            list(formulario.fields["partidos"].queryset),
+            [self.partido, finalizado],
+        )
 
         egreso = Egreso.objects.create(
             torneo=self.torneo,
@@ -285,8 +288,7 @@ class ContabilidadIndependienteTests(TestCase):
         egreso.partidos.add(self.partido)
 
         formulario = EgresoForm(torneo=self.torneo)
-        self.assertFalse(formulario.fields["partidos"].queryset.exists())
-        self.assertNotIn(finalizado, formulario.fields["partidos"].queryset)
+        self.assertEqual(list(formulario.fields["partidos"].queryset), [finalizado])
 
     def test_ingreso_muestra_solo_programados_sin_recaudo_de_arbitraje(self):
         self.partido.estado = "PROGRAMADO"

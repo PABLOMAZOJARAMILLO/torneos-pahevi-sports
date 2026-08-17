@@ -8,6 +8,7 @@
       <div class="form-field{% if field.name == 'partidos' %} referee-parties-field{% endif %}"{% if field.name == 'partidos' %} hidden{% endif %}>
         <label for="{{ field.id_for_label }}">{{ field.label }}</label>
         {{ field }}
+        {% if field.name == 'partidos' and not field.field.queryset.exists %}<small class="field-note empty-matches">No hay partidos pendientes de registrar para este torneo.</small>{% endif %}
         {% if field.help_text %}<small class="field-note">{{ field.help_text }}</small>{% endif %}
         {% for error in field.errors %}<small class="field-error">{{ error }}</small>{% endfor %}
       </div>
