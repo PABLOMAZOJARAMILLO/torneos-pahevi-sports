@@ -1740,6 +1740,15 @@ def etiqueta_columna_planilla(columna):
     return f"F{texto}"
 
 
+def clave_orden_fecha_fixture(valor):
+    """Orden natural para jornadas: Fecha 2 debe ir antes de Fecha 10."""
+    texto = str(valor or "").strip()
+    numeros = re.findall(r"\d+", texto)
+    if numeros:
+        return (0, tuple(int(numero) for numero in numeros), texto.casefold())
+    return (1, (), texto.casefold())
+
+
 ESTADOS_PARTIDO_CERRADO = ["FINALIZADO", "DECIDIDO_COMITE", "WO"]
 
 
@@ -2620,6 +2629,11 @@ def construir_estructura(torneo=None):
             })
 
         datos_categoria["equipos"] = lista_equipos
+
+        datos_categoria["partidos_por_fecha"] = dict(sorted(
+            datos_categoria["partidos_por_fecha"].items(),
+            key=lambda item: clave_orden_fecha_fixture(item[0]),
+        ))
     return estructura
 
 

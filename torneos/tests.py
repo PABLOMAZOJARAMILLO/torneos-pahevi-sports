@@ -3202,6 +3202,30 @@ class PlanilleroPartidoTests(TestCase):
         self.assertEqual(estructura["Senior"]["goleadores_planilla"][0]["total"], 2)
 
 
+class OrdenFechasFaseUnoTests(TestCase):
+    def test_fechas_fase_uno_se_ordenan_numericamente(self):
+        torneo = Torneo.objects.create(nombre="Liga", fecha_inicio=date(2026, 1, 1))
+        categoria = Categoria.objects.create(
+            nombre="Unica", torneo=torneo, edad_minima=18, edad_maxima=80,
+        )
+        local = Equipo.objects.create(nombre="Local", categoria=categoria)
+        visitante = Equipo.objects.create(nombre="Visitante", categoria=categoria)
+        for numero in ("Fecha 1", "Fecha 10", "Fecha 2", "Fecha 15", "Fecha 3"):
+            Partido.objects.create(
+                categoria=categoria,
+                equipo_local=local,
+                equipo_visitante=visitante,
+                numero_fecha=numero,
+                fase="GRUPOS",
+                fecha=date(2026, 1, 2),
+                hora=time(16, 0),
+            )
+
+        fechas = list(construir_estructura(torneo)["Unica"]["partidos_por_fecha"])
+
+        self.assertEqual(fechas, ["Fecha 1", "Fecha 2", "Fecha 3", "Fecha 10", "Fecha 15"])
+
+
 class AdminTorneoPermisosTests(TestCase):
     def setUp(self):
         self.organizador = Organizador.objects.create(nombre="Liga Pahevi")
