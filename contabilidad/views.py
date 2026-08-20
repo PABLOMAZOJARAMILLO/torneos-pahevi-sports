@@ -16,7 +16,10 @@ from torneos.models import Categoria, Equipo, Tarjeta, Torneo
 from torneos.views import denegar_permiso_torneo, puede_gestionar_torneo, torneos_para_usuario
 
 from .forms import AbonoForm, EgresoForm, IngresoManualForm
-from .models import AbonoInscripcion, CobroTarjeta, Configuracion, CuentaEquipo, Egreso, Ingreso, PagoTarjetas
+from .models import (
+    AbonoInscripcion, CobroTarjeta, Configuracion,
+    ConfiguracionInscripcionCategoria, CuentaEquipo, Egreso, Ingreso, PagoTarjetas,
+)
 from .signals import sincronizar_tarjeta
 
 
@@ -89,6 +92,9 @@ def _recalcular_tarifas_tarjetas(torneo, configuracion=None, force=False):
 
 def _sincronizar(torneo):
     configuracion, _ = Configuracion.objects.get_or_create(torneo=torneo)
+    valores_inscripcion = dict(
+        ConfiguracionInscripcionCategoria.objects.filter(torneo=torneo).values_list("categoria_id", "valor")
+    )
     cuentas_actuales = {
         cuenta.equipo_id: (cuenta.torneo_id, cuenta.categoria_id)
         for cuenta in CuentaEquipo.objects.filter(torneo=torneo).only("equipo_id", "torneo_id", "categoria_id")
@@ -101,7 +107,12 @@ def _sincronizar(torneo):
             continue
         try:
             CuentaEquipo.objects.update_or_create(
-                torneo=torneo, equipo=equipo, defaults={"categoria": equipo.categoria},
+                torneo=torneo,
+                equipo=equipo,
+                defaults={
+                    "categoria": equipo.categoria,
+                    "valor_inscripcion": valores_inscripcion.get(equipo.categoria_id, Decimal("0")),
+                },
             )
         except Exception:
             logger.exception("No se pudo sincronizar el equipo %s en contabilidad", equipo.id)
@@ -141,6 +152,13 @@ def _contexto(torneo):
     ingresos_generales = Ingreso.objects.filter(torneo=torneo, anulado=False).exclude(tipo="INSCRIPCION").aggregate(total=Sum("valor"))["total"] or Decimal("0")
     egresos_generales = Egreso.objects.filter(torneo=torneo, categoria__isnull=True, anulado=False).aggregate(total=Sum("valor"))["total"] or Decimal("0")
     categorias = list(Categoria.objects.filter(torneo=torneo).order_by("nombre"))
+    configuraciones_inscripcion = dict(
+        ConfiguracionInscripcionCategoria.objects.filter(torneo=torneo).values_list("categoria_id", "valor")
+    )
+    categorias_configuracion = [
+        {"categoria": categoria, "valor": configuraciones_inscripcion.get(categoria.id, Decimal("0"))}
+        for categoria in categorias
+    ]
     cuentas_por_categoria = [
         {"categoria": categoria, "cuentas": [c for c in cuentas if c.categoria_id == categoria.id]}
         for categoria in categorias
@@ -170,6 +188,7 @@ def _contexto(torneo):
         "fondo_general_disponible": ingresos_generales-egresos_generales,
         "movimientos_por_categoria": movimientos_por_categoria,
         "movimientos_generales": movimientos_generales,
+        "categorias_configuracion": categorias_configuracion,
         "puede_anular": False,
         "configuracion": Configuracion.objects.get(torneo=torneo),
     }
@@ -219,6 +238,16 @@ def configurar(request):
             if configuracion.mes_inicio_mensualidades and configuracion.mes_fin_mensualidades and configuracion.mes_inicio_mensualidades > configuracion.mes_fin_mensualidades:
                 raise ValueError("El mes inicial no puede ser posterior al mes final.")
             configuracion.save()
+
+            for categoria in Categoria.objects.filter(torneo=torneo).only("id"):
+                nombre_campo = f"valor_inscripcion_categoria_{categoria.id}"
+                if nombre_campo not in request.POST:
+                    continue
+                valor = max(Decimal("0"), Decimal(request.POST.get(nombre_campo, "0") or "0"))
+                ConfiguracionInscripcionCategoria.objects.update_or_create(
+                    torneo=torneo, categoria=categoria, defaults={"valor": valor},
+                )
+                CuentaEquipo.objects.filter(torneo=torneo, categoria=categoria).update(valor_inscripcion=valor)
 
             _recalcular_tarifas_tarjetas(torneo, configuracion, force=True)
         messages.success(request, "Configuración contable actualizada.")

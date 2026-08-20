@@ -30,6 +30,20 @@ class Configuracion(models.Model):
         return self.valor_roja if str(tipo).upper() == "ROJA" else self.valor_amarilla
 
 
+class ConfiguracionInscripcionCategoria(models.Model):
+    torneo = models.ForeignKey(Torneo, on_delete=models.CASCADE, related_name="contabilidad_inscripciones_configuradas")
+    categoria = models.OneToOneField(Categoria, on_delete=models.CASCADE, related_name="contabilidad_inscripcion_configurada")
+    valor = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    actualizado_en = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["categoria__nombre"]
+
+    def clean(self):
+        if self.categoria_id and self.torneo_id and self.categoria.torneo_id != self.torneo_id:
+            raise ValidationError("La categoría no pertenece al torneo seleccionado.")
+
+
 class CuentaEquipo(models.Model):
     torneo = models.ForeignKey(Torneo, on_delete=models.CASCADE, related_name="contabilidad_cuentas")
     categoria = models.ForeignKey(Categoria, on_delete=models.CASCADE, related_name="contabilidad_cuentas")

@@ -3,7 +3,7 @@ from django.dispatch import receiver
 
 from torneos.models import Equipo, Tarjeta
 
-from .models import CobroTarjeta, Configuracion, CuentaEquipo
+from .models import CobroTarjeta, Configuracion, ConfiguracionInscripcionCategoria, CuentaEquipo
 
 
 def sincronizar_tarjeta(tarjeta):
@@ -31,11 +31,19 @@ def equipo_a_contabilidad(sender, instance, **kwargs):
     """Mantiene una única cuenta contable por cada equipo de la app deportiva."""
     if not instance.categoria_id:
         return
-    CuentaEquipo.objects.update_or_create(
+    valor_inscripcion = ConfiguracionInscripcionCategoria.objects.filter(
+        torneo=instance.categoria.torneo, categoria=instance.categoria,
+    ).values_list("valor", flat=True).first() or 0
+    cuenta, creada = CuentaEquipo.objects.get_or_create(
         torneo=instance.categoria.torneo,
         equipo=instance,
         defaults={
             "torneo": instance.categoria.torneo,
             "categoria": instance.categoria,
+            "valor_inscripcion": valor_inscripcion,
         },
     )
+    if not creada and cuenta.categoria_id != instance.categoria_id:
+        cuenta.categoria = instance.categoria
+        cuenta.valor_inscripcion = valor_inscripcion
+        cuenta.save(update_fields=["categoria", "valor_inscripcion", "actualizado_en"])

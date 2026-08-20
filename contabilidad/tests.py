@@ -6,7 +6,10 @@ from django.test import TestCase, override_settings
 
 from torneos.models import Categoria, Equipo, Jugador, Organizador, Partido, Tarjeta, Torneo
 
-from .models import CobroTarjeta, Configuracion, CuentaEquipo, Egreso, Ingreso, PagoTarjetas
+from .models import (
+    AbonoInscripcion, CobroTarjeta, Configuracion,
+    ConfiguracionInscripcionCategoria, CuentaEquipo, Egreso, Ingreso, PagoTarjetas,
+)
 from .forms import EgresoForm, IngresoManualForm
 
 
@@ -98,6 +101,39 @@ class ContabilidadIndependienteTests(TestCase):
         self.assertContains(respuesta, 'class="configuration-disclosure"')
         self.assertNotContains(respuesta, 'class="configuration-disclosure" open')
         Configuracion.objects.get(torneo=self.torneo)
+
+    def test_configurar_inscripcion_por_categoria_actualiza_todos_los_equipos(self):
+        respuesta = self.client.post("/contabilidad/configurar/", {
+            "valor_amarilla": "5000",
+            "valor_roja": "8000",
+            "valor_mensualidad": "0",
+            "dia_limite_mensualidad": "10",
+            f"valor_inscripcion_categoria_{self.categoria.id}": "175000",
+        })
+
+        self.assertEqual(respuesta.status_code, 302)
+        self.assertEqual(
+            ConfiguracionInscripcionCategoria.objects.get(categoria=self.categoria).valor,
+            Decimal("175000"),
+        )
+        self.assertFalse(
+            CuentaEquipo.objects.filter(torneo=self.torneo, categoria=self.categoria)
+            .exclude(valor_inscripcion=Decimal("175000")).exists()
+        )
+        self.assertEqual(Ingreso.objects.count(), 0)
+        self.assertEqual(AbonoInscripcion.objects.count(), 0)
+
+    def test_equipo_nuevo_hereda_inscripcion_configurada_de_su_categoria(self):
+        ConfiguracionInscripcionCategoria.objects.create(
+            torneo=self.torneo, categoria=self.categoria, valor=Decimal("210000"),
+        )
+
+        nuevo = Equipo.objects.create(nombre="Equipo Tres", categoria=self.categoria)
+
+        self.assertEqual(
+            CuentaEquipo.objects.get(torneo=self.torneo, equipo=nuevo).valor_inscripcion,
+            Decimal("210000"),
+        )
 
     def test_tarjetas_se_filtran_por_categoria_equipo_y_fecha(self):
         Tarjeta.objects.create(partido=self.partido, jugador=self.jugador, equipo=self.equipo, tipo="AMARILLA")
