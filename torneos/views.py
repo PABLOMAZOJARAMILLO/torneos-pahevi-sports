@@ -40,7 +40,7 @@ from openpyxl import Workbook, load_workbook
 from openpyxl.styles import Alignment, Font, PatternFill
 
 from .forms import TorneoForm, OrganizadorForm, CategoriaForm, ReglaEdadCategoriaFormSet, DocumentoForm, PlanillaJuegoUploadForm, EquipoForm, EquipoDelegadoForm, EquipoFotosCuerpoTecnicoDelegadoForm, EquipoReinscripcionForm, JugadorForm, JugadorDelegadoForm, JugadorFotoDelegadoForm, PartidoForm, PartidoProgramacionForm, AdminTorneoForm, AdminOrganizadorForm, CrearAdminOrganizadorForm
-from .models import Torneo, Organizador, Categoria, Documento, Equipo, Partido, Gol, CobroPenal, Tarjeta, Jugador, AlineacionPartido, EntregaAlineacionPartido, SustitucionPartido, IncidenciaReglaEdad, ReglaEdadCategoria, AdminTorneo, AdminOrganizador, RegistroActividad, VisitaPublicaDiaria, SolicitudValidacion, limpiar_ruta_cloudinary
+from .models import Torneo, Organizador, Categoria, Documento, Equipo, Partido, Gol, CobroPenal, Tarjeta, Jugador, AlineacionPartido, EntregaAlineacionPartido, SustitucionPartido, IncidenciaReglaEdad, ReglaEdadCategoria, AdminTorneo, AdminOrganizador, RegistroActividad, VisitaPublicaDiaria, SolicitudValidacion, limpiar_ruta_cloudinary, normalizar_nombre_persona
 from .media_cleanup import nombres_imagenes_instancias, programar_limpieza_imagenes
 from .planillas_pdf import generar_planilla_juego_pdf, nombre_archivo_planilla
 from .templatetags.texto_limpio import etiqueta_fecha
@@ -8614,7 +8614,7 @@ def gestion_equipo_jugadores_guardar(request, equipo_id):
             continue
 
         jugador.dorsal = request.POST.get(prefijo + "dorsal") or None
-        jugador.nombres = nombres.upper()
+        jugador.nombres = normalizar_nombre_persona(nombres)
         jugador.cedula = cedula
         jugador.fecha_nacimiento = fecha_nacimiento
         jugador.estado = estado
@@ -8636,7 +8636,7 @@ def gestion_equipo_jugadores_guardar(request, equipo_id):
             nuevo = Jugador(
                 equipo=equipo,
                 dorsal=request.POST.get("nuevo_dorsal") or None,
-                nombres=nuevo_nombre.upper(),
+                nombres=normalizar_nombre_persona(nuevo_nombre),
                 cedula=nuevo_cedula,
                 fecha_nacimiento=nuevo_fecha,
                 estado=request.POST.get("nuevo_estado") or "ACTIVO",
@@ -8931,7 +8931,7 @@ def gestion_importar_planilla(request):
                     cedula=cedula,
                     defaults={
                         "dorsal": dorsal,
-                        "nombres": nombre.upper(),
+                        "nombres": normalizar_nombre_persona(nombre),
                         "fecha_nacimiento": fecha_nacimiento,
                         "estado": "ACTIVO",
                     },

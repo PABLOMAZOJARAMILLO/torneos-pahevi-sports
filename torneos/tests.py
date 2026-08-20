@@ -4799,7 +4799,7 @@ class ImportacionJugadoresPlanillaTests(TestCase):
         hoja = workbook.active
         hoja["D3"] = self.categoria.nombre
         hoja["I3"] = self.equipo.nombre
-        hoja["C8"] = "Jugador Nuevo"
+        hoja["C8"] = "JUGADOR NUEVO DE PRUEBA"
         hoja["D8"] = 10
         hoja["E8"] = 1
         hoja["F8"] = 1
@@ -4837,6 +4837,10 @@ class ImportacionJugadoresPlanillaTests(TestCase):
 
         self.assertEqual(respuesta.status_code, 302)
         self.assertTrue(Jugador.objects.filter(equipo=self.equipo, cedula="12345").exists())
+        self.assertEqual(
+            Jugador.objects.get(equipo=self.equipo, cedula="12345").nombres,
+            "Jugador Nuevo De Prueba",
+        )
         self.assertFalse(Jugador.objects.filter(equipo=self.equipo, cedula="99999").exists())
 
     def test_importa_administrador_app_y_telefonos_del_cuerpo_tecnico(self):
@@ -5466,7 +5470,7 @@ class DelegadoEquipoTests(TestCase):
         )
 
         self.assertEqual(respuesta.status_code, 302)
-        jugador = Jugador.objects.get(equipo=self.equipo, cedula="456", nombres="JUGADOR NUEVO")
+        jugador = Jugador.objects.get(equipo=self.equipo, cedula="456", nombres="Jugador Nuevo")
         self.assertTrue(RegistroActividad.objects.filter(
             usuario=self.delegado,
             torneo=self.torneo,

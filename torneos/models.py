@@ -15,6 +15,12 @@ def limpiar_ruta_cloudinary(valor):
     return valor or "SIN_NOMBRE"
 
 
+def normalizar_nombre_persona(valor):
+    """Mayúscula inicial por palabra y espacios uniformes para nombres."""
+    texto = re.sub(r"\s+", " ", str(valor or "").strip())
+    return texto.lower().title()
+
+
 def extension_archivo(nombre_archivo):
     _, extension = os.path.splitext(nombre_archivo or "")
     return extension.lower() or ".jpg"
@@ -461,6 +467,7 @@ class Jugador(models.Model):
             })
 
     def save(self, *args, **kwargs):
+        self.nombres = normalizar_nombre_persona(self.nombres)
         self.clean()
         return super().save(*args, **kwargs)
 
