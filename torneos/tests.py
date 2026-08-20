@@ -2172,6 +2172,44 @@ class JugadorFormTests(TestCase):
         self.assertIn('value="1980-05-07"', html)
 
 
+class GestionJugadoresConservaFiltrosTests(TestCase):
+    def setUp(self):
+        self.torneo = Torneo.objects.create(nombre="Liga filtros", fecha_inicio=date(2026, 1, 1))
+        self.categoria = Categoria.objects.create(
+            nombre="Senior", torneo=self.torneo, edad_minima=18, edad_maxima=80,
+        )
+        self.equipo = Equipo.objects.create(nombre="Equipo Uno", categoria=self.categoria)
+        self.jugador = Jugador.objects.create(
+            equipo=self.equipo,
+            nombres="Jugador Filtro",
+            cedula="998877",
+            fecha_nacimiento=date(1990, 1, 1),
+        )
+        self.admin = User.objects.create_superuser("admin-filtros-jugadores", password="test")
+        self.client.force_login(self.admin)
+        session = self.client.session
+        session["torneo_id"] = self.torneo.id
+        session.save()
+        self.filtros = f"/gestion/jugadores/?categoria={self.categoria.id}&equipo={self.equipo.id}&q=Jugador"
+
+    def test_editar_jugador_recibe_retorno_al_listado_filtrado(self):
+        respuesta = self.client.get(
+            f"/gestion/jugadores/{self.jugador.id}/editar/",
+            {"volver": self.filtros},
+        )
+
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertEqual(respuesta.context["volver_href"], self.filtros)
+
+    def test_eliminar_jugador_regresa_a_los_mismos_filtros(self):
+        respuesta = self.client.post(
+            f"/gestion/jugadores/{self.jugador.id}/eliminar/",
+            {"volver": self.filtros},
+        )
+
+        self.assertRedirects(respuesta, self.filtros, fetch_redirect_response=False)
+
+
 class PlanilleroPartidoTests(TestCase):
     def setUp(self):
         self.torneo = Torneo.objects.create(

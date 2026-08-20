@@ -8721,6 +8721,7 @@ def gestion_jugadores(request):
         "q": q,
         "categoria_id": categoria_id,
         "equipo_id": equipo_id,
+        "filtros_url": request.get_full_path(),
     })
 
 
@@ -8731,6 +8732,7 @@ def gestion_jugador_nuevo(request):
     if not puede_gestionar_torneo(request, torneo, "editar"):
         return denegar_permiso_torneo()
     form = JugadorForm(request.POST or None, request.FILES or None, torneo=torneo)
+    volver_url = url_retorno_gestion(request, "gestion_jugadores")
 
     if request.method == "POST" and form.is_valid():
         jugador = form.save(commit=False)
@@ -8744,12 +8746,13 @@ def gestion_jugador_nuevo(request):
         form.save_m2m()
         registrar_actividad(request, "CREAR", jugador, descripcion=f"Creo jugador {jugador.nombres}.")
         messages.success(request, "Jugador creado correctamente.")
-        return redirect("gestion_jugador_editar", jugador_id=jugador.id)
+        return redirect(f"{reverse('gestion_jugador_editar', args=[jugador.id])}?volver={quote(volver_url, safe='')}")
 
     return render(request, "gestion/formulario.html", {
         "titulo": "Nuevo jugador",
         "form": form,
         "volver_url": "gestion_jugadores",
+        "volver_href": volver_url,
         "cloudinary_images": listar_imagenes_cloudinary(),
         "cloudinary_label": "Seleccionar foto existente de Cloudinary",
     })
@@ -8765,6 +8768,7 @@ def gestion_jugador_editar(request, jugador_id):
     if torneo:
         jugadores = jugadores.filter(equipo__categoria__torneo=torneo)
     jugador = get_object_or_404(jugadores, id=jugador_id)
+    volver_url = url_retorno_gestion(request, "gestion_jugadores")
     form = JugadorForm(request.POST or None, request.FILES or None, instance=jugador, torneo=torneo)
 
     if request.method == "POST" and form.is_valid():
@@ -8779,12 +8783,13 @@ def gestion_jugador_editar(request, jugador_id):
         form.save_m2m()
         registrar_actividad(request, "EDITAR", jugador, descripcion=f"Actualizo jugador {jugador.nombres}.")
         messages.success(request, "Jugador actualizado correctamente.")
-        return redirect("gestion_jugadores")
+        return redirect(volver_url)
 
     return render(request, "gestion/formulario.html", {
         "titulo": f"Editar jugador: {jugador.nombres}",
         "form": form,
         "volver_url": "gestion_jugadores",
+        "volver_href": volver_url,
         "cloudinary_images": listar_imagenes_cloudinary(),
         "cloudinary_label": "Seleccionar foto existente de Cloudinary",
     })
@@ -8801,13 +8806,14 @@ def gestion_jugador_eliminar(request, jugador_id):
     if torneo:
         jugadores = jugadores.filter(equipo__categoria__torneo=torneo)
     jugador = get_object_or_404(jugadores, id=jugador_id)
+    volver_url = url_retorno_gestion(request, "gestion_jugadores")
     nombre = jugador.nombres
     registrar_actividad(request, "ELIMINAR", jugador, descripcion=f"Elimino jugador {nombre}.")
     imagenes = nombres_imagenes_instancias([jugador])
     jugador.delete()
     programar_limpieza_imagenes(imagenes)
     messages.success(request, f"Jugador eliminado: {nombre}.")
-    return redirect("gestion_jugadores")
+    return redirect(volver_url)
 
 
 @login_required

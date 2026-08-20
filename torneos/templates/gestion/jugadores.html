@@ -6,7 +6,7 @@
 
 {% block content %}
 <p>
-    <a class="btn" href="{% url 'gestion_jugador_nuevo' %}">Nuevo jugador</a>
+    <a class="btn" href="{% url 'gestion_jugador_nuevo' %}?volver={{ filtros_url|urlencode }}">Nuevo jugador</a>
     <a class="btn" href="{% url 'gestion_importar_planilla' %}">Importar planilla</a>
     <a class="btn secondary" href="{% url 'gestion_panel' %}">Gestión</a>
 </p>
@@ -52,9 +52,10 @@
         </div>
     </div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;">
-        <a class="btn" href="{% url 'gestion_jugador_editar' jugador.id %}">Editar</a>
+        <a class="btn" href="{% url 'gestion_jugador_editar' jugador.id %}?volver={{ filtros_url|urlencode }}">Editar</a>
         <form class="inline-form" method="post" action="{% url 'gestion_jugador_eliminar' jugador.id %}" onsubmit="return confirm('Eliminar este jugador y sus registros asociados. ¿Continuar?');">
             {% csrf_token %}
+            <input type="hidden" name="volver" value="{{ filtros_url }}">
             <button class="btn danger" type="submit">Eliminar</button>
         </form>
     </div>
