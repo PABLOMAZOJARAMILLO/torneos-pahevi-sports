@@ -3891,6 +3891,8 @@ class DescargaProgramacionFiltrosTests(TestCase):
         self.assertIn("LOCAL", html.upper())
         self.assertIn("VISITANTE", html.upper())
         self.assertIn("VS", html)
+        self.assertIn("&#128737;&#65039;", html)
+        self.assertNotIn("logo_imcred", html)
         self.assertNotIn("18/07/2026", html)
         self.assertNotIn("4:00 PM", html)
         self.assertNotIn("Teresa Sierra", html)
