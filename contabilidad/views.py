@@ -156,7 +156,17 @@ def _contexto(torneo):
         ConfiguracionInscripcionCategoria.objects.filter(torneo=torneo).values_list("categoria_id", "valor")
     )
     categorias_configuracion = [
-        {"categoria": categoria, "valor": configuraciones_inscripcion.get(categoria.id, Decimal("0"))}
+        {
+            "categoria": categoria,
+            "valor": configuraciones_inscripcion.get(
+                categoria.id,
+                next(
+                    (cuenta.valor_inscripcion for cuenta in cuentas
+                     if cuenta.categoria_id == categoria.id and cuenta.valor_inscripcion > 0),
+                    Decimal("0"),
+                ),
+            ),
+        }
         for categoria in categorias
     ]
     cuentas_por_categoria = [

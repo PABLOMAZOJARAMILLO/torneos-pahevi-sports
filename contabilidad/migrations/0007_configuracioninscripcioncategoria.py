@@ -2,23 +2,6 @@ from django.db import migrations, models
 import django.db.models.deletion
 
 
-def migrar_valores_existentes(apps, schema_editor):
-    CuentaEquipo = apps.get_model("contabilidad", "CuentaEquipo")
-    ConfiguracionCategoria = apps.get_model("contabilidad", "ConfiguracionInscripcionCategoria")
-    categorias = CuentaEquipo.objects.values_list("torneo_id", "categoria_id").distinct()
-    for torneo_id, categoria_id in categorias.iterator():
-        valores = list(
-            CuentaEquipo.objects.filter(torneo_id=torneo_id, categoria_id=categoria_id)
-            .values_list("valor_inscripcion", flat=True)
-        )
-        if not valores:
-            continue
-        valor = max(set(valores), key=lambda item: (valores.count(item), item))
-        ConfiguracionCategoria.objects.create(
-            torneo_id=torneo_id, categoria_id=categoria_id, valor=valor,
-        )
-
-
 class Migration(migrations.Migration):
 
     dependencies = [
@@ -38,5 +21,4 @@ class Migration(migrations.Migration):
             ],
             options={"ordering": ["categoria__nombre"]},
         ),
-        migrations.RunPython(migrar_valores_existentes, migrations.RunPython.noop),
     ]
