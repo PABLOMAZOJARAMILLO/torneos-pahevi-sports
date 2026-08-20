@@ -5262,6 +5262,47 @@ class DelegadoEquipoTests(TestCase):
             ).exists()
         )
 
+    def test_delegado_no_ve_ni_abre_alineacion_de_partido_futuro(self):
+        ahora_local = timezone.localtime()
+        partido_futuro = Partido.objects.create(
+            categoria=self.categoria,
+            equipo_local=self.equipo,
+            equipo_visitante=self.otro_equipo,
+            fecha=(ahora_local + timedelta(days=2)).date(),
+            hora=(ahora_local + timedelta(days=2)).time(),
+            estado="PROGRAMADO",
+        )
+        self.client.force_login(self.delegado)
+
+        respuesta_lista = self.client.get(f"/delegado/equipos/{self.equipo.id}/partidos/")
+        respuesta_directa = self.client.get(
+            f"/delegado/equipos/{self.equipo.id}/partidos/{partido_futuro.id}/alineacion/"
+        )
+
+        self.assertNotContains(respuesta_lista, "Rival")
+        self.assertContains(respuesta_lista, "No hay partidos con la ventana de alineaci")
+        self.assertEqual(respuesta_directa.status_code, 403)
+
+    def test_responsable_staff_tampoco_salta_ventana_de_partido_futuro(self):
+        self.delegado.is_staff = True
+        self.delegado.save(update_fields=["is_staff"])
+        ahora_local = timezone.localtime()
+        partido_futuro = Partido.objects.create(
+            categoria=self.categoria,
+            equipo_local=self.equipo,
+            equipo_visitante=self.otro_equipo,
+            fecha=(ahora_local + timedelta(days=2)).date(),
+            hora=(ahora_local + timedelta(days=2)).time(),
+            estado="PROGRAMADO",
+        )
+        self.client.force_login(self.delegado)
+
+        respuesta = self.client.get(
+            f"/delegado/equipos/{self.equipo.id}/partidos/{partido_futuro.id}/alineacion/"
+        )
+
+        self.assertIn(respuesta.status_code, (403, 404))
+
     def test_editar_equipo_bloqueado_redirige_a_partidos_de_alineacion(self):
         self.equipo.acceso_delegado_hasta = None
         self.equipo.save(update_fields=["acceso_delegado_hasta"])

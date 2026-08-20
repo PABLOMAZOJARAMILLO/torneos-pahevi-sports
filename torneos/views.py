@@ -315,16 +315,18 @@ def partido_pertenece_equipo(partido, equipo):
 def puede_editar_alineacion_delegado(user, partido, equipo):
     if user.is_authenticated and user.is_superuser:
         return partido_pertenece_equipo(partido, equipo)
+    # Un usuario responsable del equipo conserva siempre las restricciones de
+    # la ventana de alineacion, aunque tambien tenga la marca is_staff.
+    if user.is_authenticated and equipo.responsable_id == user.id:
+        if not partido_pertenece_equipo(partido, equipo):
+            return False
+        habilitado, _ = ventana_alineacion_delegado(partido, equipo)
+        return habilitado
     if user.is_authenticated and user.is_staff:
         if not tabla_disponible("torneos_admintorneo"):
             return partido_pertenece_equipo(partido, equipo)
         return partido_pertenece_equipo(partido, equipo) and usuario_puede_editar_torneo(user, partido.categoria.torneo if partido.categoria_id else None)
-    if not user.is_authenticated or equipo.responsable_id != user.id:
-        return False
-    if not partido_pertenece_equipo(partido, equipo):
-        return False
-    habilitado, _ = ventana_alineacion_delegado(partido, equipo)
-    return habilitado
+    return False
 
 
 def partidos_alineacion_para_equipo(equipo):
@@ -348,6 +350,10 @@ def partidos_alineacion_para_equipo(equipo):
         if partido.id in entregados:
             continue
         habilitado, motivo = ventana_alineacion_delegado(partido, equipo)
+        # El portal del equipo es operativo: no anticipa alineaciones de
+        # jornadas futuras. El partido aparece cuando abre su ventana.
+        if not habilitado:
+            continue
         items.append(SimpleNamespace(
             partido=partido,
             rival=partido.equipo_visitante if partido.equipo_local_id == equipo.id else partido.equipo_local,
