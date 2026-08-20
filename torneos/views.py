@@ -36,7 +36,8 @@ from django.utils.dateparse import parse_date, parse_datetime
 from django.utils.text import slugify
 from html2image import Html2Image
 from django.views.decorators.http import require_POST
-from openpyxl import load_workbook
+from openpyxl import Workbook, load_workbook
+from openpyxl.styles import Alignment, Font, PatternFill
 
 from .forms import TorneoForm, OrganizadorForm, CategoriaForm, ReglaEdadCategoriaFormSet, DocumentoForm, PlanillaJuegoUploadForm, EquipoForm, EquipoDelegadoForm, EquipoFotosCuerpoTecnicoDelegadoForm, EquipoReinscripcionForm, JugadorForm, JugadorDelegadoForm, JugadorFotoDelegadoForm, PartidoForm, PartidoProgramacionForm, AdminTorneoForm, AdminOrganizadorForm, CrearAdminOrganizadorForm
 from .models import Torneo, Organizador, Categoria, Documento, Equipo, Partido, Gol, CobroPenal, Tarjeta, Jugador, AlineacionPartido, EntregaAlineacionPartido, SustitucionPartido, IncidenciaReglaEdad, ReglaEdadCategoria, AdminTorneo, AdminOrganizador, RegistroActividad, VisitaPublicaDiaria, SolicitudValidacion, limpiar_ruta_cloudinary
@@ -4620,6 +4621,100 @@ def descargar_programacion_general(request):
 
     nombre = limpiar_nombre(f"PROGRAMACION_{titulo_programacion}.png")
     return crear_imagen_desde_html(html, nombre, medidas["ancho"], medidas["alto"], url_retorno_descarga(request))
+
+
+@login_required
+@user_passes_test(puede_descargar_programacion)
+def descargar_fixture_completo(request):
+    torneo = torneo_actual(request)
+    if not torneo:
+        return HttpResponse("Selecciona un torneo para descargar su fixture.", status=400)
+
+    categoria_id = (request.GET.get("categoria") or "").strip()
+    categoria_obj = None
+    partidos = Partido.objects.filter(categoria__torneo=torneo).select_related(
+        "categoria", "equipo_local", "equipo_visitante",
+    )
+    if categoria_id:
+        categoria_obj = Categoria.objects.filter(id=categoria_id, torneo=torneo).first()
+        if not categoria_obj:
+            return HttpResponse("Categoría no encontrada.", status=404)
+        partidos = partidos.filter(categoria=categoria_obj)
+
+    orden_fase = Case(
+        When(fase="GRUPOS", then=Value(1)),
+        When(fase="CUARTOS", then=Value(2)),
+        When(fase="SEMIFINAL", then=Value(3)),
+        When(fase="TERCER_PUESTO", then=Value(4)),
+        When(fase="FINAL", then=Value(5)),
+        default=Value(9),
+        output_field=IntegerField(),
+    )
+    partidos = partidos.annotate(orden_fase=orden_fase).order_by(
+        "categoria__nombre", "orden_fase", "grupo", "fecha", "hora", "id",
+    )
+
+    if not partidos.exists():
+        return respuesta_descarga_sin_partidos(request, "No hay partidos creados en el fixture seleccionado.")
+
+    libro = Workbook()
+    hoja = libro.active
+    hoja.title = "Fixture completo"
+    encabezados = [
+        "Categoría", "Fase", "Grupo", "Fecha fixture", "Fecha calendario",
+        "Hora", "Cancha", "Equipo local", "Equipo visitante", "Estado", "Marcador",
+    ]
+    hoja.append(encabezados)
+
+    relleno = PatternFill("solid", fgColor="12372A")
+    for celda in hoja[1]:
+        celda.fill = relleno
+        celda.font = Font(color="FFFFFF", bold=True)
+        celda.alignment = Alignment(horizontal="center", vertical="center")
+
+    for partido in partidos:
+        marcador = ""
+        if partido.estado in {"FINALIZADO", "WO", "DECIDIDO_COMITE"}:
+            marcador = f"{partido.goles_local} - {partido.goles_visitante}"
+            if partido.goles_local_penales or partido.goles_visitante_penales:
+                marcador += f" (Penales {partido.goles_local_penales} - {partido.goles_visitante_penales})"
+        hora_texto = "Por definir" if partido.hora == time(0, 0) else formatear_hora_12(partido.hora)
+        hoja.append([
+            partido.categoria.nombre,
+            partido.get_fase_display(),
+            partido.grupo or "Sin grupo",
+            etiqueta_fecha(partido.numero_fecha) or "Sin fecha fixture",
+            partido.fecha,
+            hora_texto,
+            partido.cancha or "Por definir",
+            partido.equipo_local.nombre,
+            partido.equipo_visitante.nombre,
+            partido.get_estado_display(),
+            marcador,
+        ])
+
+    hoja.freeze_panes = "A2"
+    hoja.auto_filter.ref = hoja.dimensions
+    hoja.row_dimensions[1].height = 26
+    anchos = [20, 18, 14, 20, 18, 14, 22, 28, 28, 18, 24]
+    for indice, ancho in enumerate(anchos, start=1):
+        hoja.column_dimensions[hoja.cell(row=1, column=indice).column_letter].width = ancho
+    for fila in hoja.iter_rows(min_row=2):
+        fila[4].number_format = "dd/mm/yyyy"
+        for celda in fila:
+            celda.alignment = Alignment(vertical="center", wrap_text=True)
+
+    salida = BytesIO()
+    libro.save(salida)
+    salida.seek(0)
+    titulo = categoria_obj.nombre if categoria_obj else "TODAS LAS CATEGORIAS"
+    nombre = limpiar_nombre(f"FIXTURE_COMPLETO_{torneo.nombre}_{titulo}.xlsx")
+    respuesta = HttpResponse(
+        salida.getvalue(),
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
+    respuesta["Content-Disposition"] = f'attachment; filename="{nombre}"'
+    return respuesta
 
 
 # ======================================================

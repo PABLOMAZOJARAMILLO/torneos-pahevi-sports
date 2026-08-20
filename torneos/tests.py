@@ -14,7 +14,7 @@ from django.http import HttpResponse
 from django.template.loader import render_to_string
 from django.test import RequestFactory, TestCase, TransactionTestCase, override_settings
 from django.utils import timezone
-from openpyxl import Workbook
+from openpyxl import Workbook, load_workbook
 from PIL import Image
 
 from .forms import EquipoDelegadoForm, EquipoForm, JugadorForm, PartidoForm, PartidoProgramacionForm, TorneoForm
@@ -3824,6 +3824,46 @@ class DescargaProgramacionFiltrosTests(TestCase):
         self.assertContains(respuesta, "Fecha 1")
         self.assertContains(respuesta, "18/07/2026")
         self.assertContains(respuesta, f'value="{self.categoria.id}"')
+        self.assertContains(respuesta, "Descargar fixture completo (Excel)")
+
+    def test_descarga_fixture_completo_incluye_todos_los_estados_y_columnas(self):
+        self.partido.estado = "FINALIZADO"
+        self.partido.goles_local = 2
+        self.partido.goles_visitante = 1
+        self.partido.save(update_fields=["estado", "goles_local", "goles_visitante"])
+
+        respuesta = self.client.get("/descargar/fixture-completo/")
+
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertEqual(
+            respuesta["Content-Type"],
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+        libro = load_workbook(BytesIO(respuesta.content))
+        hoja = libro["Fixture completo"]
+        self.assertEqual(hoja.max_row, 3)
+        self.assertEqual(
+            [celda.value for celda in hoja[1]],
+            [
+                "Categoría", "Fase", "Grupo", "Fecha fixture", "Fecha calendario",
+                "Hora", "Cancha", "Equipo local", "Equipo visitante", "Estado", "Marcador",
+            ],
+        )
+        filas = list(hoja.iter_rows(min_row=2, values_only=True))
+        self.assertIn("Finalizado", [fila[9] for fila in filas])
+        self.assertIn("2 - 1", [fila[10] for fila in filas])
+        self.assertIn("4:00 PM", [fila[5] for fila in filas])
+
+    def test_fixture_completo_se_puede_filtrar_por_categoria(self):
+        respuesta = self.client.get(
+            "/descargar/fixture-completo/",
+            {"categoria": self.categoria.id},
+        )
+
+        libro = load_workbook(BytesIO(respuesta.content))
+        filas = list(libro["Fixture completo"].iter_rows(min_row=2, values_only=True))
+        self.assertEqual(len(filas), 1)
+        self.assertEqual(filas[0][0], "Senior")
 
     def test_etiquetas_de_valla_abrevian_fechas_y_fases(self):
         self.assertEqual(etiqueta_columna_planilla("1"), "F1")

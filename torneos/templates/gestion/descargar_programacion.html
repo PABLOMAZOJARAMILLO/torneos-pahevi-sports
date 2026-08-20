@@ -45,6 +45,7 @@
 
     <p>
         <button class="btn" type="submit">Descargar programacion</button>
+        <button class="btn secondary" type="submit" formaction="{% url 'descargar_fixture_completo' %}">Descargar fixture completo (Excel)</button>
     </p>
 </form>
 
@@ -52,5 +53,6 @@
     <h2>Opciones rapidas</h2>
     <p class="muted">Para descargar todo, deja los tres filtros en "Todas" y presiona descargar.</p>
     <p class="muted">Para una categoria, selecciona solo la categoria. Para una fecha o dia, selecciona solo ese filtro.</p>
+    <p class="muted">El fixture completo incluye también los partidos jugados, finalizados, aplazados o pendientes de programar.</p>
 </div>
 {% endblock %}

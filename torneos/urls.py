@@ -15,6 +15,7 @@ from .views import (
     generar_tercer_puesto,
     descargar_programacion_categoria,
     descargar_programacion_general,
+    descargar_fixture_completo,
     seleccionar_descarga_programacion,
     editor_partido_movil,
     guardar_info_partido_movil,
@@ -130,6 +131,11 @@ urlpatterns = [
         'descargar/programacion-general/',
         descargar_programacion_general,
         name='descargar_programacion_general'
+    ),
+    path(
+        'descargar/fixture-completo/',
+        descargar_fixture_completo,
+        name='descargar_fixture_completo'
     ),
 
     # Editor móvil profesional de partidos
