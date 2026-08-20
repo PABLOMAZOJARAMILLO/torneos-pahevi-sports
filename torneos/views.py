@@ -4794,12 +4794,12 @@ def descargar_fixture_compartible(request):
         return respuesta_descarga_sin_partidos(request, "No hay partidos de fase 1 creados en el fixture seleccionado.")
 
     total_fechas_maximo = max(len(categoria["fechas"]) for categoria in categorias_fixture)
-    columnas = 5 if total_fechas_maximo >= 10 else (4 if total_fechas_maximo >= 7 else 3)
+    columnas = 4 if total_fechas_maximo >= 7 else 3
     filas_bloques = 0
     for categoria in categorias_fixture:
         fechas = categoria["fechas"]
         for indice in range(0, len(fechas), columnas):
-            filas_bloques += 140 + max(len(fecha["partidos"]) for fecha in fechas[indice:indice + columnas]) * 92
+            filas_bloques += 130 + max(len(fecha["partidos"]) for fecha in fechas[indice:indice + columnas]) * 82
     alto = max(900, 260 + filas_bloques + len(categorias_fixture) * 90)
     ancho = 440 * columnas + 100
     logos = logos_torneo(request, torneo)

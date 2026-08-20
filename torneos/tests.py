@@ -3898,7 +3898,7 @@ class DescargaProgramacionFiltrosTests(TestCase):
         self.assertNotIn("Teresa Sierra", html)
 
     @patch("torneos.views.crear_imagen_desde_html")
-    def test_fixture_extenso_usa_cinco_fechas_por_fila(self, crear_imagen):
+    def test_fixture_extenso_usa_cuatro_fechas_por_fila(self, crear_imagen):
         crear_imagen.return_value = HttpResponse(b"png", content_type="image/png")
         for numero in range(2, 11):
             Partido.objects.create(
@@ -3919,8 +3919,8 @@ class DescargaProgramacionFiltrosTests(TestCase):
 
         self.assertEqual(respuesta.status_code, 200)
         html = crear_imagen.call_args.args[0]
-        self.assertIn("grid-template-columns:repeat(5", html)
-        self.assertEqual(crear_imagen.call_args.args[2], 2300)
+        self.assertIn("grid-template-columns:repeat(4", html)
+        self.assertEqual(crear_imagen.call_args.args[2], 1860)
 
     def test_descarga_fixture_completo_incluye_todos_los_estados_y_columnas(self):
         self.partido.estado = "FINALIZADO"
