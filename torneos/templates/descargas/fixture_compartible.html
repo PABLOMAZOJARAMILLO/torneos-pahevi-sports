@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<style>
+*{box-sizing:border-box}html,body{margin:0;width:{{ ancho }}px;background:#07111f;color:#fff;font-family:Arial,sans-serif}body{padding:42px}.encabezado{display:grid;grid-template-columns:220px 1fr 220px;align-items:center;gap:28px;margin-bottom:28px}.encabezado img{width:220px;height:112px;object-fit:contain}.titulo{text-align:center}.titulo h1{margin:0;font-size:42px}.titulo p{margin:8px 0 0;color:#22e57a;font-size:27px;font-weight:900;letter-spacing:3px}.categoria{margin:34px 0 18px;text-align:center;font-size:30px;color:#fff}.fechas{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:22px;align-items:start}.fecha{border:2px solid #22e57a;border-radius:14px;overflow:hidden;background:#0d1728;margin-bottom:22px}.fecha h3{margin:0;padding:13px;background:#e8bf43;color:#07111f;text-align:center;font-size:25px;text-transform:uppercase}.partido{display:grid;grid-template-columns:minmax(0,1fr) 48px minmax(0,1fr);align-items:center;min-height:88px;padding:10px;border-top:1px solid #344155;gap:7px}.equipo{display:flex;align-items:center;gap:8px;min-width:0;font-size:16px;font-weight:900}.equipo.visitante{justify-content:flex-end;text-align:right}.equipo img{width:42px;height:42px;object-fit:contain;flex:0 0 42px}.nombre{line-height:1.08;overflow-wrap:anywhere}.centro{text-align:center;color:#e8bf43;font-size:17px;font-weight:1000}.pie{text-align:center;color:#8ba0b8;font-size:16px;margin-top:18px}
+</style>
+</head>
+<body>
+<header class="encabezado">
+  <img src="{{ logo_alcaldia }}" alt="">
+  <div class="titulo"><h1>{{ torneo.nombre|upper }}</h1><p>FIXTURE DE PARTIDOS</p></div>
+  <img src="{{ logo_imcred }}" alt="">
+</header>
+{% for categoria in categorias_fixture %}
+<h2 class="categoria">{{ categoria.nombre|upper }}</h2>
+<section class="fechas">
+{% for fecha in categoria.fechas %}
+  <article class="fecha">
+    <h3>{{ fecha.nombre }}</h3>
+    {% for partido in fecha.partidos %}
+    <div class="partido">
+      <div class="equipo local">{% if partido.escudo_local %}<img src="{{ partido.escudo_local }}" alt="">{% endif %}<span class="nombre">{{ partido.local }}</span></div>
+      <div class="centro">{{ partido.centro }}</div>
+      <div class="equipo visitante"><span class="nombre">{{ partido.visitante }}</span>{% if partido.escudo_visitante %}<img src="{{ partido.escudo_visitante }}" alt="">{% endif %}</div>
+    </div>
+    {% endfor %}
+  </article>
+{% endfor %}
+</section>
+{% endfor %}
+<div class="pie">Cruces oficiales por jornada · Los partidos futuros se muestran sin día ni hora</div>
+</body>
+</html>

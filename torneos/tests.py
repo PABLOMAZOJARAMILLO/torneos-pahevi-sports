@@ -3848,7 +3848,27 @@ class DescargaProgramacionFiltrosTests(TestCase):
         self.assertContains(respuesta, "Fecha 1")
         self.assertContains(respuesta, "18/07/2026")
         self.assertContains(respuesta, f'value="{self.categoria.id}"')
+        self.assertContains(respuesta, "Descargar fixture para compartir (PNG)")
         self.assertContains(respuesta, "Descargar fixture completo (Excel)")
+
+    @patch("torneos.views.crear_imagen_desde_html")
+    def test_fixture_compartible_omite_fecha_hora_y_cancha_de_futuros(self, crear_imagen):
+        crear_imagen.return_value = HttpResponse(b"png", content_type="image/png")
+
+        respuesta = self.client.get(
+            "/descargar/fixture-compartible/",
+            {"categoria": self.categoria.id},
+        )
+
+        self.assertEqual(respuesta.status_code, 200)
+        html = crear_imagen.call_args.args[0]
+        self.assertIn("FECHA 1", html.upper())
+        self.assertIn("LOCAL", html.upper())
+        self.assertIn("VISITANTE", html.upper())
+        self.assertIn("VS", html)
+        self.assertNotIn("18/07/2026", html)
+        self.assertNotIn("4:00 PM", html)
+        self.assertNotIn("Teresa Sierra", html)
 
     def test_descarga_fixture_completo_incluye_todos_los_estados_y_columnas(self):
         self.partido.estado = "FINALIZADO"

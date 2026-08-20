@@ -45,6 +45,7 @@
 
     <p>
         <button class="btn" type="submit">Descargar programacion</button>
+        <button class="btn" type="submit" formaction="{% url 'descargar_fixture_compartible' %}">Descargar fixture para compartir (PNG)</button>
         <button class="btn secondary" type="submit" formaction="{% url 'descargar_fixture_completo' %}">Descargar fixture completo (Excel)</button>
     </p>
 </form>
@@ -54,5 +55,6 @@
     <p class="muted">Para descargar todo, deja los tres filtros en "Todas" y presiona descargar.</p>
     <p class="muted">Para una categoria, selecciona solo la categoria. Para una fecha o dia, selecciona solo ese filtro.</p>
     <p class="muted">El fixture completo incluye también los partidos jugados, finalizados, aplazados o pendientes de programar.</p>
+    <p class="muted">El PNG para compartir organiza los cruces por fecha del fixture y omite día, hora y cancha.</p>
 </div>
 {% endblock %}

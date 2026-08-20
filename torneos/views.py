@@ -4737,6 +4737,78 @@ def descargar_fixture_completo(request):
     return respuesta
 
 
+def construir_fixture_compartible(torneo, categoria_obj=None):
+    categorias = Categoria.objects.filter(torneo=torneo).order_by("nombre")
+    if categoria_obj:
+        categorias = categorias.filter(id=categoria_obj.id)
+
+    resultado = []
+    for categoria in categorias:
+        partidos = Partido.objects.filter(
+            categoria=categoria,
+            fase="GRUPOS",
+        ).exclude(numero_fecha="").select_related(
+            "equipo_local", "equipo_visitante",
+        ).order_by("grupo", "equipo_local__nombre", "equipo_visitante__nombre", "id")
+
+        por_fecha = defaultdict(list)
+        for partido in partidos:
+            cerrado = partido.estado in ESTADOS_PARTIDO_CERRADO
+            por_fecha[partido.numero_fecha].append({
+                "local": partido.equipo_local.nombre,
+                "visitante": partido.equipo_visitante.nombre,
+                "escudo_local": escudo_url(partido.equipo_local),
+                "escudo_visitante": escudo_url(partido.equipo_visitante),
+                "centro": f"{partido.goles_local} - {partido.goles_visitante}" if cerrado else "VS",
+                "cerrado": cerrado,
+            })
+
+        fechas = [
+            {"nombre": etiqueta_fecha(fecha), "partidos": por_fecha[fecha]}
+            for fecha in sorted(por_fecha, key=clave_orden_fecha_fixture)
+        ]
+        if fechas:
+            resultado.append({"nombre": categoria.nombre, "fechas": fechas})
+    return resultado
+
+
+@login_required
+@user_passes_test(puede_descargar_programacion)
+def descargar_fixture_compartible(request):
+    torneo = torneo_actual(request)
+    if not torneo:
+        return HttpResponse("Selecciona un torneo para descargar su fixture.", status=400)
+
+    categoria_id = (request.GET.get("categoria") or "").strip()
+    categoria_obj = None
+    if categoria_id:
+        categoria_obj = Categoria.objects.filter(id=categoria_id, torneo=torneo).first()
+        if not categoria_obj:
+            return HttpResponse("Categoría no encontrada.", status=404)
+
+    categorias_fixture = construir_fixture_compartible(torneo, categoria_obj)
+    if not categorias_fixture:
+        return respuesta_descarga_sin_partidos(request, "No hay partidos de fase 1 creados en el fixture seleccionado.")
+
+    filas_bloques = 0
+    for categoria in categorias_fixture:
+        fechas = categoria["fechas"]
+        for indice in range(0, len(fechas), 3):
+            filas_bloques += 140 + max(len(fecha["partidos"]) for fecha in fechas[indice:indice + 3]) * 92
+    alto = max(900, 260 + filas_bloques + len(categorias_fixture) * 90)
+    ancho = 1400
+    logos = logos_torneo(request, torneo)
+    html = render_to_string("descargas/fixture_compartible.html", {
+        "torneo": torneo,
+        "categorias_fixture": categorias_fixture,
+        "ancho": ancho,
+        **logos,
+    })
+    titulo = categoria_obj.nombre if categoria_obj else "TODAS LAS CATEGORIAS"
+    nombre = limpiar_nombre(f"FIXTURE_POR_FECHAS_{torneo.nombre}_{titulo}.png")
+    return crear_imagen_desde_html(html, nombre, ancho, alto, url_retorno_descarga(request))
+
+
 # ======================================================
 # EDITOR MÓVIL PROFESIONAL DE PARTIDOS
 # ======================================================
