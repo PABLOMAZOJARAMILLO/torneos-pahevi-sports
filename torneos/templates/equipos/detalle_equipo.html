@@ -1,4 +1,4 @@
-{% load texto_limpio %}
+{% load texto_limpio static %}
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -17,6 +17,8 @@
 
 {% if equipo.escudo %}
     <img src="{{ equipo.escudo.url }}" width="150">
+{% else %}
+    <img src="{% static 'torneos/img/escudo_default.svg' %}" width="150" alt="Equipo sin escudo">
 {% endif %}
 
 <h2>Jugadores</h2>

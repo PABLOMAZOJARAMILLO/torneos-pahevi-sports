@@ -20,9 +20,9 @@
     <h3>{{ fecha.nombre }}</h3>
     {% for partido in fecha.partidos %}
     <div class="partido">
-      <div class="equipo local">{% if partido.escudo_local %}<img src="{{ partido.escudo_local }}" alt="">{% else %}<span class="escudo-placeholder">&#128737;&#65039;</span>{% endif %}<span class="nombre">{{ partido.local }}</span></div>
+      <div class="equipo local"><img src="{{ partido.escudo_local }}" alt=""><span class="nombre">{{ partido.local }}</span></div>
       <div class="centro">{{ partido.centro }}</div>
-      <div class="equipo visitante"><span class="nombre">{{ partido.visitante }}</span>{% if partido.escudo_visitante %}<img src="{{ partido.escudo_visitante }}" alt="">{% else %}<span class="escudo-placeholder">&#128737;&#65039;</span>{% endif %}</div>
+      <div class="equipo visitante"><span class="nombre">{{ partido.visitante }}</span><img src="{{ partido.escudo_visitante }}" alt=""></div>
     </div>
     {% endfor %}
   </article>

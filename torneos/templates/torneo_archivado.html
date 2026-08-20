@@ -1,3 +1,4 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -127,6 +128,8 @@
                             <span class="puesto">🏆 Campeón</span>
                             {% if podio.campeon.escudo %}
                                 <img src="{{ podio.campeon.escudo.url }}" alt="{{ podio.campeon.nombre }}">
+                            {% else %}
+                                <img src="{% static 'torneos/img/escudo_default.svg' %}" alt="Equipo sin escudo">
                             {% endif %}
                             <span class="nombre">{{ podio.campeon.nombre }}</span>
                         </div>
@@ -134,6 +137,8 @@
                             <span class="puesto">🥈 Subcampeón</span>
                             {% if podio.subcampeon.escudo %}
                                 <img src="{{ podio.subcampeon.escudo.url }}" alt="{{ podio.subcampeon.nombre }}">
+                            {% else %}
+                                <img src="{% static 'torneos/img/escudo_default.svg' %}" alt="Equipo sin escudo">
                             {% endif %}
                             <span class="nombre">{{ podio.subcampeon.nombre }}</span>
                         </div>

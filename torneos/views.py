@@ -1608,7 +1608,13 @@ def escudo_estatico_url(nombre_archivo):
 
 
 def escudo_default_url():
-    return static("torneos/img/logo_imcred.png")
+    ruta = "torneos/img/escudo_default.svg"
+    try:
+        return static(ruta)
+    except ValueError:
+        # Permite usar el recurso antes de regenerar el manifiesto de
+        # archivos estáticos; collectstatic lo versionará en el despliegue.
+        return f"{settings.STATIC_URL.rstrip('/')}/{ruta}"
 
 
 def escudo_url(equipo):
@@ -4754,14 +4760,11 @@ def construir_fixture_compartible(torneo, categoria_obj=None):
         por_fecha = defaultdict(list)
         for partido in partidos:
             cerrado = partido.estado in ESTADOS_PARTIDO_CERRADO
-            escudo_local = escudo_url(partido.equipo_local)
-            escudo_visitante = escudo_url(partido.equipo_visitante)
-            escudo_predeterminado = escudo_default_url()
             por_fecha[partido.numero_fecha].append({
                 "local": partido.equipo_local.nombre,
                 "visitante": partido.equipo_visitante.nombre,
-                "escudo_local": "" if escudo_local == escudo_predeterminado else escudo_local,
-                "escudo_visitante": "" if escudo_visitante == escudo_predeterminado else escudo_visitante,
+                "escudo_local": escudo_url(partido.equipo_local),
+                "escudo_visitante": escudo_url(partido.equipo_visitante),
                 "centro": f"{partido.goles_local} - {partido.goles_visitante}" if cerrado else "VS",
                 "cerrado": cerrado,
             })

@@ -1,4 +1,5 @@
 {% extends "gestion/base.html" %}
+{% load static %}
 
 {% block title %}Equipos{% endblock %}
 {% block heading %}Equipos{% endblock %}
@@ -160,6 +161,8 @@
     <div style="display:flex;align-items:center;gap:12px;">
         {% if equipo.escudo %}
             <img class="avatar" src="{{ equipo.escudo.url }}" alt="" loading="lazy" decoding="async">
+        {% else %}
+            <img class="avatar" src="{% static 'torneos/img/escudo_default.svg' %}" alt="Equipo sin escudo" loading="lazy" decoding="async">
         {% endif %}
         <div>
             <div>{{ equipo.nombre }}</div>
