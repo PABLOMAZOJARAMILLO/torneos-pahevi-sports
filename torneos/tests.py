@@ -3897,6 +3897,31 @@ class DescargaProgramacionFiltrosTests(TestCase):
         self.assertNotIn("4:00 PM", html)
         self.assertNotIn("Teresa Sierra", html)
 
+    @patch("torneos.views.crear_imagen_desde_html")
+    def test_fixture_extenso_usa_cinco_fechas_por_fila(self, crear_imagen):
+        crear_imagen.return_value = HttpResponse(b"png", content_type="image/png")
+        for numero in range(2, 11):
+            Partido.objects.create(
+                categoria=self.categoria,
+                equipo_local=self.local,
+                equipo_visitante=self.visitante,
+                fecha=date(2026, 7, 18),
+                hora=time(0, 0),
+                numero_fecha=f"Fecha {numero}",
+                fase="GRUPOS",
+                cancha="Por definir",
+            )
+
+        respuesta = self.client.get(
+            "/descargar/fixture-compartible/",
+            {"categoria": self.categoria.id},
+        )
+
+        self.assertEqual(respuesta.status_code, 200)
+        html = crear_imagen.call_args.args[0]
+        self.assertIn("grid-template-columns:repeat(5", html)
+        self.assertEqual(crear_imagen.call_args.args[2], 2300)
+
     def test_descarga_fixture_completo_incluye_todos_los_estados_y_columnas(self):
         self.partido.estado = "FINALIZADO"
         self.partido.goles_local = 2

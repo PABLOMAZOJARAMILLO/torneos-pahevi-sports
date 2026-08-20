@@ -4793,18 +4793,21 @@ def descargar_fixture_compartible(request):
     if not categorias_fixture:
         return respuesta_descarga_sin_partidos(request, "No hay partidos de fase 1 creados en el fixture seleccionado.")
 
+    total_fechas_maximo = max(len(categoria["fechas"]) for categoria in categorias_fixture)
+    columnas = 5 if total_fechas_maximo >= 10 else (4 if total_fechas_maximo >= 7 else 3)
     filas_bloques = 0
     for categoria in categorias_fixture:
         fechas = categoria["fechas"]
-        for indice in range(0, len(fechas), 3):
-            filas_bloques += 140 + max(len(fecha["partidos"]) for fecha in fechas[indice:indice + 3]) * 92
+        for indice in range(0, len(fechas), columnas):
+            filas_bloques += 140 + max(len(fecha["partidos"]) for fecha in fechas[indice:indice + columnas]) * 92
     alto = max(900, 260 + filas_bloques + len(categorias_fixture) * 90)
-    ancho = 1400
+    ancho = 440 * columnas + 100
     logos = logos_torneo(request, torneo)
     html = render_to_string("descargas/fixture_compartible.html", {
         "torneo": torneo,
         "categorias_fixture": categorias_fixture,
         "ancho": ancho,
+        "columnas": columnas,
         **logos,
     })
     titulo = categoria_obj.nombre if categoria_obj else "TODAS LAS CATEGORIAS"
