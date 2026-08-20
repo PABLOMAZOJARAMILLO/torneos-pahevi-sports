@@ -3851,6 +3851,31 @@ class DescargaProgramacionFiltrosTests(TestCase):
         self.assertContains(respuesta, "Descargar fixture para compartir (PNG)")
         self.assertContains(respuesta, "Descargar fixture completo (Excel)")
 
+    def test_selector_incluye_cruces_aun_sin_hora_ni_cancha_definitivas(self):
+        categoria_pendiente = Categoria.objects.create(
+            nombre="Libre", edad_minima=18, edad_maxima=80, torneo=self.torneo,
+        )
+        local = Equipo.objects.create(nombre="Libre Local", categoria=categoria_pendiente)
+        visitante = Equipo.objects.create(nombre="Libre Visitante", categoria=categoria_pendiente)
+        Partido.objects.create(
+            categoria=categoria_pendiente,
+            equipo_local=local,
+            equipo_visitante=visitante,
+            numero_fecha="Fecha 10",
+            fase="GRUPOS",
+            fecha=date(2026, 8, 1),
+            hora=time(0, 0),
+            cancha="Por definir",
+            estado_programacion="SUGERIDO",
+        )
+
+        respuesta = self.client.get("/descargar/programacion/?volver=/")
+
+        self.assertContains(respuesta, f'value="{categoria_pendiente.id}"')
+        self.assertContains(respuesta, "Libre")
+        self.assertContains(respuesta, 'value="Fecha 10"')
+        self.assertContains(respuesta, 'value="2026-08-01"')
+
     @patch("torneos.views.crear_imagen_desde_html")
     def test_fixture_compartible_omite_fecha_hora_y_cancha_de_futuros(self, crear_imagen):
         crear_imagen.return_value = HttpResponse(b"png", content_type="image/png")

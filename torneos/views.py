@@ -4489,19 +4489,19 @@ def fechas_presentes_en_programacion(partidos_programacion):
 @user_passes_test(puede_descargar_programacion)
 def seleccionar_descarga_programacion(request):
     torneo = torneo_actual(request)
-    partidos = Partido.objects.filter(
-        estado="PROGRAMADO",
-        estado_programacion__in=["MANUAL", "OFICIAL"],
-        fecha__isnull=False,
-        hora__isnull=False,
-        cancha__isnull=False,
-    ).exclude(cancha="").exclude(cancha__iexact="Por definir").exclude(hora=time(0, 0))
+    # Los selectores describen el fixture creado, no solamente los encuentros
+    # que ya tienen programación oficial completa. Así pueden elegirse la
+    # categoría y la jornada antes de asignar hora o cancha.
+    partidos = Partido.objects.all()
     if torneo:
         partidos = partidos.filter(categoria__torneo=torneo)
 
     categorias = Categoria.objects.filter(partido__in=partidos).distinct().order_by("nombre")
-    fechas_fixture = partidos.exclude(numero_fecha="").values_list("numero_fecha", flat=True).distinct().order_by("numero_fecha")
-    dias = partidos.values_list("fecha", flat=True).distinct().order_by("fecha")
+    fechas_fixture = sorted(
+        partidos.exclude(numero_fecha="").values_list("numero_fecha", flat=True).distinct(),
+        key=clave_orden_fecha_fixture,
+    )
+    dias = partidos.exclude(fecha__isnull=True).values_list("fecha", flat=True).distinct().order_by("fecha")
 
     return render(request, "gestion/descargar_programacion.html", {
         "torneo_seleccionado": torneo,
