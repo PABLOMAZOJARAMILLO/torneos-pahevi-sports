@@ -4,7 +4,7 @@
     <div class="etiqueta">{{ etiqueta }}</div>
     <div class="enfrentamiento">
         <div class="equipo local">
-            {% if partido.escudo_local %}<img src="{{ partido.escudo_local }}">{% endif %}
+            {% if partido.escudo_local_default %}{% include "descargas/partials/escudo_default.html" %}{% elif partido.escudo_local %}<img src="{{ partido.escudo_local }}">{% endif %}
             <span>{% if partido.ganador_local %}<b class="estrella-clasificado">&#9733;</b>{% endif %}{{ partido.local }}</span>
         </div>
         <div class="vs">
@@ -12,7 +12,7 @@
             {% if partido.tiene_penales %}<small>{{ partido.penales_texto }}</small>{% endif %}
         </div>
         <div class="equipo visitante">
-            {% if partido.escudo_visitante %}<img src="{{ partido.escudo_visitante }}">{% endif %}
+            {% if partido.escudo_visitante_default %}{% include "descargas/partials/escudo_default.html" %}{% elif partido.escudo_visitante %}<img src="{{ partido.escudo_visitante }}">{% endif %}
             <span>{% if partido.ganador_visitante %}<b class="estrella-clasificado">&#9733;</b>{% endif %}{{ partido.visitante }}</span>
         </div>
     </div>

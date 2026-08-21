@@ -3926,10 +3926,11 @@ class DescargaProgramacionFiltrosTests(TestCase):
         self.assertEqual(respuesta.status_code, 200)
         html = crear_imagen.call_args.args[0]
         self.assertIn("FECHA 1", html.upper())
+        self.assertIn("grid-template-columns:repeat(3", html)
         self.assertIn("LOCAL", html.upper())
         self.assertIn("VISITANTE", html.upper())
         self.assertIn("VS", html)
-        self.assertIn("data:image/svg+xml;base64", html)
+        self.assertIn('class="escudo-default"', html)
         self.assertIn("GRUPO A", html)
         self.assertNotIn("logo_imcred", html)
         self.assertNotIn("18/07/2026", html)
@@ -3973,7 +3974,7 @@ class DescargaProgramacionFiltrosTests(TestCase):
 
         self.assertEqual(respuesta.status_code, 200)
         html = crear_imagen.call_args.args[0]
-        self.assertGreaterEqual(html.count("data:image/svg+xml;base64"), 2)
+        self.assertGreaterEqual(html.count('class="escudo-default"'), 2)
 
     @patch("torneos.views.crear_imagen_desde_html")
     def test_fixture_extenso_usa_cuatro_fechas_por_fila(self, crear_imagen):

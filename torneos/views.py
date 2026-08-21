@@ -1623,19 +1623,6 @@ def escudo_default_url():
         return f"{settings.STATIC_URL.rstrip('/')}/{ruta}"
 
 
-def escudo_default_descarga_url():
-    """Incrusta el escudo genérico para que html2canvas no dependa de red/CORS."""
-    ruta = finders.find("torneos/img/escudo_default.svg")
-    if ruta:
-        try:
-            with open(ruta, "rb") as archivo:
-                contenido = base64.b64encode(archivo.read()).decode("ascii")
-            return f"data:image/svg+xml;base64,{contenido}"
-        except OSError:
-            pass
-    return escudo_default_url()
-
-
 def escudo_url(equipo):
     if not equipo:
         return escudo_default_url()
@@ -1674,11 +1661,11 @@ def escudo_url(equipo):
     return escudo_default_url()
 
 
-def escudo_descarga_url(request, equipo):
+def escudo_descarga(request, equipo):
     url = escudo_url(equipo)
     if not equipo or url == escudo_default_url():
-        return escudo_default_descarga_url()
-    return url_absoluta(request, url)
+        return "", True
+    return url_absoluta(request, url), False
 
 def url_absoluta(request, url):
     if not url:
@@ -4332,6 +4319,8 @@ def construir_partidos_programacion(
     partidos_programacion = []
 
     for p in partidos:
+        escudo_local, escudo_local_default = escudo_descarga(request, p.equipo_local)
+        escudo_visitante, escudo_visitante_default = escudo_descarga(request, p.equipo_visitante)
         dia_semana = ""
 
         if p.fecha:
@@ -4409,8 +4398,10 @@ def construir_partidos_programacion(
             "cancha": p.cancha,
             "local": p.equipo_local.nombre if p.equipo_local else "POR DEFINIR",
             "visitante": p.equipo_visitante.nombre if p.equipo_visitante else "POR DEFINIR",
-            "escudo_local": escudo_descarga_url(request, p.equipo_local),
-            "escudo_visitante": escudo_descarga_url(request, p.equipo_visitante),
+            "escudo_local": escudo_local,
+            "escudo_visitante": escudo_visitante,
+            "escudo_local_default": escudo_local_default,
+            "escudo_visitante_default": escudo_visitante_default,
         })
 
     return partidos_programacion
@@ -4792,11 +4783,15 @@ def construir_fixture_compartible(request, torneo, categoria_obj=None):
         por_fecha = defaultdict(list)
         for partido in partidos:
             cerrado = partido.estado in ESTADOS_PARTIDO_CERRADO
+            escudo_local, escudo_local_default = escudo_descarga(request, partido.equipo_local)
+            escudo_visitante, escudo_visitante_default = escudo_descarga(request, partido.equipo_visitante)
             por_fecha[partido.numero_fecha].append({
                 "local": partido.equipo_local.nombre,
                 "visitante": partido.equipo_visitante.nombre,
-                "escudo_local": escudo_descarga_url(request, partido.equipo_local),
-                "escudo_visitante": escudo_descarga_url(request, partido.equipo_visitante),
+                "escudo_local": escudo_local,
+                "escudo_visitante": escudo_visitante,
+                "escudo_local_default": escudo_local_default,
+                "escudo_visitante_default": escudo_visitante_default,
                 "centro": f"{partido.goles_local} - {partido.goles_visitante}" if cerrado else "VS",
                 "cerrado": cerrado,
                 "grupo": partido.grupo or "ÚNICO",
