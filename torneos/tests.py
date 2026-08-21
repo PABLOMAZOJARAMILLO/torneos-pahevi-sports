@@ -4028,6 +4028,8 @@ class DescargaProgramacionFiltrosTests(TestCase):
         html = crear_imagen.call_args.args[0]
         self.assertIn("grid-template-columns:repeat(3", html)
         self.assertEqual(crear_imagen.call_args.args[2], 1080)
+        self.assertIn("body{padding:18px 10px 28px}", html)
+        self.assertIn("white-space:nowrap", html)
 
     def test_descarga_fixture_completo_incluye_todos_los_estados_y_columnas(self):
         self.partido.estado = "FINALIZADO"
