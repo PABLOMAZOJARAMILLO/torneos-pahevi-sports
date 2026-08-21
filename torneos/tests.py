@@ -3967,6 +3967,34 @@ class DescargaProgramacionFiltrosTests(TestCase):
         self.assertLess(html.index("GRUPO A"), html.index("GRUPO B"))
 
     @patch("torneos.views.crear_imagen_desde_html")
+    def test_fixture_compartible_muestra_equipo_que_descansa_en_cada_fecha(self, crear_imagen):
+        crear_imagen.return_value = HttpResponse(b"png", content_type="image/png")
+        equipo_descanso = Equipo.objects.create(nombre="Equipo Descanso", categoria=self.categoria)
+        Partido.objects.create(
+            categoria=self.categoria,
+            equipo_local=self.local,
+            equipo_visitante=equipo_descanso,
+            fecha=date(2026, 7, 25),
+            hora=time(0, 0),
+            estado="PROGRAMADO",
+            numero_fecha="Fecha 2",
+            cancha="Por definir",
+            grupo="A",
+            fase="GRUPOS",
+        )
+
+        respuesta = self.client.get(
+            "/descargar/fixture-compartible/",
+            {"categoria": self.categoria.id},
+        )
+
+        self.assertEqual(respuesta.status_code, 200)
+        html = crear_imagen.call_args.args[0]
+        html_mayuscula = html.upper()
+        bloque_fecha_1 = html_mayuscula[html_mayuscula.index("FECHA 1"):html_mayuscula.index("FECHA 2")]
+        self.assertIn("DESCANSA: EQUIPO DESCANSO", bloque_fecha_1)
+
+    @patch("torneos.views.crear_imagen_desde_html")
     def test_programacion_incrusta_escudo_default_si_el_equipo_no_tiene_escudo(self, crear_imagen):
         crear_imagen.return_value = HttpResponse(b"png", content_type="image/png")
 

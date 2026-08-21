@@ -4780,12 +4780,20 @@ def construir_fixture_compartible(request, torneo, categoria_obj=None):
             "equipo_local", "equipo_visitante",
         ).order_by("grupo", "equipo_local__nombre", "equipo_visitante__nombre", "id")
 
-        por_fecha = defaultdict(list)
+        por_fecha = defaultdict(lambda: defaultdict(list))
+        equipos_por_grupo = defaultdict(dict)
+        participantes_por_fecha_grupo = defaultdict(set)
         for partido in partidos:
             cerrado = partido.estado in ESTADOS_PARTIDO_CERRADO
             escudo_local, escudo_local_default = escudo_descarga(request, partido.equipo_local)
             escudo_visitante, escudo_visitante_default = escudo_descarga(request, partido.equipo_visitante)
-            por_fecha[partido.numero_fecha].append({
+            grupo = partido.grupo or "ÚNICO"
+            equipos_por_grupo[grupo][partido.equipo_local_id] = partido.equipo_local.nombre
+            equipos_por_grupo[grupo][partido.equipo_visitante_id] = partido.equipo_visitante.nombre
+            participantes_por_fecha_grupo[(partido.numero_fecha, grupo)].update(
+                (partido.equipo_local_id, partido.equipo_visitante_id)
+            )
+            por_fecha[partido.numero_fecha][grupo].append({
                 "local": partido.equipo_local.nombre,
                 "visitante": partido.equipo_visitante.nombre,
                 "escudo_local": escudo_local,
@@ -4794,13 +4802,24 @@ def construir_fixture_compartible(request, torneo, categoria_obj=None):
                 "escudo_visitante_default": escudo_visitante_default,
                 "centro": f"{partido.goles_local} - {partido.goles_visitante}" if cerrado else "VS",
                 "cerrado": cerrado,
-                "grupo": partido.grupo or "ÚNICO",
+                "grupo": grupo,
             })
 
-        fechas = [
-            {"nombre": etiqueta_fecha(fecha), "partidos": por_fecha[fecha]}
-            for fecha in sorted(por_fecha, key=clave_orden_fecha_fixture)
-        ]
+        fechas = []
+        for fecha in sorted(por_fecha, key=clave_orden_fecha_fixture):
+            grupos_fecha = []
+            for grupo, partidos_grupo in por_fecha[fecha].items():
+                participantes = participantes_por_fecha_grupo[(fecha, grupo)]
+                descansan = [
+                    nombre for equipo_id, nombre in equipos_por_grupo[grupo].items()
+                    if equipo_id not in participantes
+                ]
+                grupos_fecha.append({
+                    "nombre": grupo,
+                    "partidos": partidos_grupo,
+                    "descansan": sorted(descansan, key=str.casefold),
+                })
+            fechas.append({"nombre": etiqueta_fecha(fecha), "grupos": grupos_fecha})
         if fechas:
             resultado.append({"nombre": categoria.nombre, "fechas": fechas})
     return resultado
@@ -4831,8 +4850,10 @@ def descargar_fixture_compartible(request):
         fechas = categoria["fechas"]
         for indice in range(0, len(fechas), columnas):
             filas_bloques += 130 + max(
-                len(fecha["partidos"]) * 82
-                + len({partido["grupo"] for partido in fecha["partidos"]}) * 34
+                sum(
+                    len(grupo["partidos"]) * 82 + 34 + (40 if grupo["descansan"] else 0)
+                    for grupo in fecha["grupos"]
+                )
                 for fecha in fechas[indice:indice + columnas]
             )
     alto = max(900, 260 + filas_bloques + len(categorias_fixture) * 90)
