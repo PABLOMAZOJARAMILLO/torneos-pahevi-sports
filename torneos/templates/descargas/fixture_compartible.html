@@ -19,7 +19,7 @@
   <article class="fecha">
     <h3>{{ fecha.nombre }}</h3>
     {% for grupo in fecha.grupos %}
-    <div class="grupo-fecha">GRUPO {{ grupo.nombre|upper }}</div>
+    {% if categoria.mostrar_grupos %}<div class="grupo-fecha">GRUPO {{ grupo.nombre|upper }}</div>{% endif %}
     {% for partido in grupo.partidos %}
     <div class="partido">
       <div class="equipo local">{% if partido.escudo_local_default %}{% include "descargas/partials/escudo_default.html" %}{% else %}<img src="{{ partido.escudo_local }}" alt="">{% endif %}<span class="nombre">{{ partido.local }}</span></div>

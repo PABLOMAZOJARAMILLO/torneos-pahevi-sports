@@ -4531,12 +4531,24 @@ def seleccionar_descarga_programacion(request):
         key=clave_orden_fecha_fixture,
     )
     dias = partidos.exclude(fecha__isnull=True).values_list("fecha", flat=True).distinct().order_by("fecha")
+    grupos_por_categoria = {}
+    for categoria in categorias:
+        grupos = sorted({
+            str(grupo).strip().upper()
+            for grupo in partidos.filter(categoria=categoria, fase="GRUPOS")
+            .exclude(grupo__isnull=True).exclude(grupo="")
+            .values_list("grupo", flat=True)
+            if str(grupo).strip()
+        })
+        if len(grupos) > 1:
+            grupos_por_categoria[str(categoria.id)] = grupos
 
     return render(request, "gestion/descargar_programacion.html", {
         "torneo_seleccionado": torneo,
         "categorias": categorias,
         "fechas_fixture": fechas_fixture,
         "dias": dias,
+        "grupos_por_categoria": grupos_por_categoria,
         "volver_url": url_retorno_descarga(request),
     })
 
@@ -4681,6 +4693,7 @@ def descargar_fixture_completo(request):
 
     categoria_id = (request.GET.get("categoria") or "").strip()
     categoria_obj = None
+    grupo_filtro = (request.GET.get("grupo") or "").strip().upper()
     partidos = Partido.objects.filter(categoria__torneo=torneo).select_related(
         "categoria", "equipo_local", "equipo_visitante",
     )
@@ -4689,6 +4702,10 @@ def descargar_fixture_completo(request):
         if not categoria_obj:
             return HttpResponse("Categoría no encontrada.", status=404)
         partidos = partidos.filter(categoria=categoria_obj)
+        if grupo_filtro:
+            partidos = partidos.filter(grupo__iexact=grupo_filtro)
+    elif grupo_filtro:
+        return HttpResponse("Selecciona una categoría para descargar un grupo.", status=400)
 
     orden_fase = Case(
         When(fase="GRUPOS", then=Value(1)),
@@ -4757,6 +4774,8 @@ def descargar_fixture_completo(request):
     libro.save(salida)
     salida.seek(0)
     titulo = categoria_obj.nombre if categoria_obj else "TODAS LAS CATEGORIAS"
+    if grupo_filtro:
+        titulo = f"{titulo}_GRUPO_{grupo_filtro}"
     nombre = limpiar_nombre(f"FIXTURE_COMPLETO_{torneo.nombre}_{titulo}.xlsx")
     respuesta = HttpResponse(
         salida.getvalue(),
@@ -4766,17 +4785,26 @@ def descargar_fixture_completo(request):
     return respuesta
 
 
-def construir_fixture_compartible(request, torneo, categoria_obj=None):
+def construir_fixture_compartible(request, torneo, categoria_obj=None, grupo_filtro=""):
     categorias = Categoria.objects.filter(torneo=torneo).order_by("nombre")
     if categoria_obj:
         categorias = categorias.filter(id=categoria_obj.id)
 
     resultado = []
     for categoria in categorias:
-        partidos = Partido.objects.filter(
+        partidos_base = Partido.objects.filter(
             categoria=categoria,
             fase="GRUPOS",
-        ).exclude(numero_fecha="").select_related(
+        ).exclude(numero_fecha="")
+        grupos_categoria = sorted({
+            (str(grupo).strip().upper() or "ÚNICO")
+            for grupo in partidos_base.values_list("grupo", flat=True)
+        })
+        mostrar_grupos = len(grupos_categoria) > 1
+        partidos = partidos_base
+        if grupo_filtro:
+            partidos = partidos.filter(grupo__iexact=grupo_filtro)
+        partidos = partidos.select_related(
             "equipo_local", "equipo_visitante",
         ).order_by("grupo", "equipo_local__nombre", "equipo_visitante__nombre", "id")
 
@@ -4821,7 +4849,11 @@ def construir_fixture_compartible(request, torneo, categoria_obj=None):
                 })
             fechas.append({"nombre": etiqueta_fecha(fecha), "grupos": grupos_fecha})
         if fechas:
-            resultado.append({"nombre": categoria.nombre, "fechas": fechas})
+            resultado.append({
+                "nombre": categoria.nombre,
+                "fechas": fechas,
+                "mostrar_grupos": mostrar_grupos,
+            })
     return resultado
 
 
@@ -4833,13 +4865,16 @@ def descargar_fixture_compartible(request):
         return HttpResponse("Selecciona un torneo para descargar su fixture.", status=400)
 
     categoria_id = (request.GET.get("categoria") or "").strip()
+    grupo_filtro = (request.GET.get("grupo") or "").strip().upper()
     categoria_obj = None
     if categoria_id:
         categoria_obj = Categoria.objects.filter(id=categoria_id, torneo=torneo).first()
         if not categoria_obj:
             return HttpResponse("Categoría no encontrada.", status=404)
+    if grupo_filtro and not categoria_obj:
+        return HttpResponse("Selecciona una categoría para descargar un grupo.", status=400)
 
-    categorias_fixture = construir_fixture_compartible(request, torneo, categoria_obj)
+    categorias_fixture = construir_fixture_compartible(request, torneo, categoria_obj, grupo_filtro)
     if not categorias_fixture:
         return respuesta_descarga_sin_partidos(request, "No hay partidos de fase 1 creados en el fixture seleccionado.")
 
@@ -4869,6 +4904,8 @@ def descargar_fixture_compartible(request):
         **logos,
     })
     titulo = categoria_obj.nombre if categoria_obj else "TODAS LAS CATEGORIAS"
+    if grupo_filtro:
+        titulo = f"{titulo}_GRUPO_{grupo_filtro}"
     nombre = limpiar_nombre(f"FIXTURE_POR_FECHAS_{torneo.nombre}_{titulo}.png")
     return crear_imagen_desde_html(html, nombre, ancho, alto, url_retorno_descarga(request))
 

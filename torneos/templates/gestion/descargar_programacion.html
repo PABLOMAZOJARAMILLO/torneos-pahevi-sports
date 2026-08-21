@@ -27,6 +27,14 @@
         {% endfor %}
     </select>
 
+    <div id="grupo_fixture_bloque" hidden>
+        <label for="grupo">Grupo</label>
+        <select id="grupo" name="grupo">
+            <option value="">Todos los grupos</option>
+        </select>
+        <div class="muted">Puedes descargar únicamente el fixture del grupo seleccionado.</div>
+    </div>
+
     <label for="fecha_fixture">Fecha del fixture</label>
     <select id="fecha_fixture" name="fecha_fixture">
         <option value="">Todas las fechas del fixture</option>
@@ -49,6 +57,29 @@
         <button class="btn secondary" type="submit" formaction="{% url 'descargar_fixture_completo' %}">Descargar fixture completo (Excel)</button>
     </p>
 </form>
+{{ grupos_por_categoria|json_script:"grupos-por-categoria" }}
+<script>
+(function () {
+    const categoria = document.getElementById("categoria");
+    const bloque = document.getElementById("grupo_fixture_bloque");
+    const selector = document.getElementById("grupo");
+    const grupos = JSON.parse(document.getElementById("grupos-por-categoria").textContent || "{}");
+    function actualizarGrupos() {
+        const opciones = grupos[categoria.value] || [];
+        selector.innerHTML = '<option value="">Todos los grupos</option>';
+        opciones.forEach(function (grupo) {
+            const option = document.createElement("option");
+            option.value = grupo;
+            option.textContent = "Grupo " + grupo;
+            selector.appendChild(option);
+        });
+        bloque.hidden = opciones.length < 2;
+        if (bloque.hidden) selector.value = "";
+    }
+    categoria.addEventListener("change", actualizarGrupos);
+    actualizarGrupos();
+})();
+</script>
 
 <div class="card">
     <h2>Opciones rapidas</h2>

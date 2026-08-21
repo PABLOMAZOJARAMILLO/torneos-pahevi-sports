@@ -3931,7 +3931,7 @@ class DescargaProgramacionFiltrosTests(TestCase):
         self.assertIn("VISITANTE", html.upper())
         self.assertIn("VS", html)
         self.assertIn('class="escudo-default"', html)
-        self.assertIn("GRUPO A", html)
+        self.assertNotIn("GRUPO A", html)
         self.assertNotIn("logo_imcred", html)
         self.assertNotIn("18/07/2026", html)
         self.assertNotIn("4:00 PM", html)
@@ -3965,6 +3965,36 @@ class DescargaProgramacionFiltrosTests(TestCase):
         self.assertIn("GRUPO A", html)
         self.assertIn("GRUPO B", html)
         self.assertLess(html.index("GRUPO A"), html.index("GRUPO B"))
+
+    @patch("torneos.views.crear_imagen_desde_html")
+    def test_fixture_compartible_permite_descargar_un_solo_grupo(self, crear_imagen):
+        crear_imagen.return_value = HttpResponse(b"png", content_type="image/png")
+        local_b = Equipo.objects.create(nombre="Local B", categoria=self.categoria)
+        visitante_b = Equipo.objects.create(nombre="Visitante B", categoria=self.categoria)
+        Partido.objects.create(
+            categoria=self.categoria,
+            equipo_local=local_b,
+            equipo_visitante=visitante_b,
+            fecha=date(2026, 7, 18),
+            hora=time(0, 0),
+            estado="PROGRAMADO",
+            numero_fecha="Fecha 1",
+            cancha="Por definir",
+            grupo="B",
+            fase="GRUPOS",
+        )
+
+        respuesta = self.client.get(
+            "/descargar/fixture-compartible/",
+            {"categoria": self.categoria.id, "grupo": "B"},
+        )
+
+        self.assertEqual(respuesta.status_code, 200)
+        html = crear_imagen.call_args.args[0]
+        self.assertIn("GRUPO B", html)
+        self.assertIn("LOCAL B", html.upper())
+        self.assertNotIn(">LOCAL<", html.upper())
+        self.assertIn("GRUPO_B", crear_imagen.call_args.args[1])
 
     @patch("torneos.views.crear_imagen_desde_html")
     def test_fixture_compartible_muestra_equipo_que_descansa_en_cada_fecha(self, crear_imagen):
