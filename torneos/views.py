@@ -52,6 +52,12 @@ def formatear_hora_12(valor):
         return "Por definir"
     return valor.strftime("%I:%M %p").lstrip("0")
 
+
+def dia_semana_abreviado(valor):
+    if not valor:
+        return ""
+    return ("LUN", "MAR", "MIÉ", "JUE", "VIE", "SÁB", "DOM")[valor.weekday()]
+
 def puede_gestionar_organizadores(user):
     if not user.is_authenticated:
         return False
@@ -3110,7 +3116,13 @@ def construir_partidos_portada(torneo=None):
             "estado": partido.estado,
             "estado_display": partido.get_estado_display(),
             "fecha": partido.fecha,
-            "hora": formatear_hora_12(partido.hora),
+            "dia_abreviado": dia_semana_abreviado(partido.fecha),
+            "fecha_corta": partido.fecha.strftime("%d/%m/%Y"),
+            "hora": (
+                "Por definir"
+                if not partido.hora or partido.hora == time(0, 0)
+                else formatear_hora_12(partido.hora)
+            ),
             "hora_orden": partido.hora or time(0, 0),
             "cancha": partido.cancha or "Por definir",
             "local": partido.equipo_local.nombre,

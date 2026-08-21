@@ -4419,7 +4419,10 @@ class FixtureProgramacionBalanceadaTests(TestCase):
 
         self.assertEqual(partidos_portada[programado.id]["bloque"], "PROGRAMADOS")
         self.assertEqual(partidos_portada[programado.id]["hora"], "4:00 PM")
+        self.assertEqual(partidos_portada[programado.id]["fecha_corta"], programado.fecha.strftime("%d/%m/%Y"))
+        self.assertIn(partidos_portada[programado.id]["dia_abreviado"], {"LUN", "MAR", "MIÉ", "JUE", "VIE", "SÁB", "DOM"})
         self.assertEqual(partidos_portada[futuro.id]["bloque"], "FUTUROS")
+        self.assertEqual(partidos_portada[futuro.id]["hora"], "Por definir")
 
     def test_portada_incluye_marcador_de_penales(self):
         partido = Partido.objects.create(
