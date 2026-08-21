@@ -4,7 +4,7 @@
     <div class="partido-meta">
         <span class="categoria-pill">{{ partido.categoria }}</span>
         <span class="fase-pill">{% if partido.numero_fecha %}{{ partido.numero_fecha|etiqueta_fecha }}{% else %}{{ partido.fase }}{% endif %}</span>
-        {% if partido.grupo %}
+        {% if partido.grupo and partido.mostrar_grupo %}
             <span class="fase-pill">Grupo {{ partido.grupo }}</span>
         {% endif %}
         <span class="estado-chip {{ partido.estado|lower }}">

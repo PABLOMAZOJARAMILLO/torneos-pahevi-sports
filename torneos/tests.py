@@ -4485,6 +4485,52 @@ class FixtureProgramacionBalanceadaTests(TestCase):
         self.assertEqual(partidos_portada[futuro.id]["bloque"], "FUTUROS")
         self.assertEqual(partidos_portada[futuro.id]["hora"], "Por definir")
 
+    def test_panel_oculta_grupo_a_si_categoria_tiene_un_solo_grupo(self):
+        partido = Partido.objects.create(
+            categoria=self.categoria,
+            equipo_local=self.equipos[0],
+            equipo_visitante=self.equipos[1],
+            fecha=date.today() + timedelta(days=2),
+            hora=time(16, 0),
+            cancha="Principal",
+            estado="PROGRAMADO",
+            numero_fecha="1",
+            grupo="A",
+            fase="GRUPOS",
+        )
+
+        portada = {item["id"]: item for item in construir_partidos_portada(self.torneo)}[partido.id]
+        estructura = construir_estructura(self.torneo)[self.categoria.nombre]
+        tarjeta = render_to_string("partials/partido_portada_card.html", {"partido": portada})
+
+        self.assertFalse(portada["mostrar_grupo"])
+        self.assertFalse(estructura["mostrar_grupos"])
+        self.assertNotIn("Grupo A", tarjeta)
+
+    def test_panel_mantiene_grupos_si_categoria_tiene_dos_o_mas(self):
+        partido_a = Partido.objects.create(
+            categoria=self.categoria,
+            equipo_local=self.equipos[0],
+            equipo_visitante=self.equipos[1],
+            fecha=date.today() + timedelta(days=2), hora=time(16), cancha="Principal",
+            numero_fecha="1", grupo="A", fase="GRUPOS",
+        )
+        Partido.objects.create(
+            categoria=self.categoria,
+            equipo_local=self.equipos[2],
+            equipo_visitante=self.equipos[3],
+            fecha=date.today() + timedelta(days=2), hora=time(18), cancha="Principal",
+            numero_fecha="1", grupo="B", fase="GRUPOS",
+        )
+
+        portada = {item["id"]: item for item in construir_partidos_portada(self.torneo)}[partido_a.id]
+        estructura = construir_estructura(self.torneo)[self.categoria.nombre]
+        tarjeta = render_to_string("partials/partido_portada_card.html", {"partido": portada})
+
+        self.assertTrue(portada["mostrar_grupo"])
+        self.assertTrue(estructura["mostrar_grupos"])
+        self.assertIn("Grupo A", tarjeta)
+
     def test_portada_incluye_marcador_de_penales(self):
         partido = Partido.objects.create(
             categoria=self.categoria,

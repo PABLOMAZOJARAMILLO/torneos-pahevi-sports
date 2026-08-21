@@ -1711,6 +1711,7 @@ def logos_torneo(request, torneo=None):
 def estructura_base_categoria():
     return {
         "grupos": {},
+        "mostrar_grupos": False,
         "hay_partidos_en_vivo": False,
         "disciplina_equipos": [],
         "tabla_general_mata_mata": [],
@@ -2653,6 +2654,13 @@ def construir_estructura(torneo=None):
             datos_categoria["partidos_por_fecha"].items(),
             key=lambda item: clave_orden_fecha_fixture(item[0]),
         ))
+        grupos_fase_1 = {
+            item["grupo"]
+            for partidos_fecha in datos_categoria["partidos_por_fecha"].values()
+            for item in partidos_fecha
+            if item.get("grupo")
+        }
+        datos_categoria["mostrar_grupos"] = len(grupos_fase_1) > 1
     return estructura
 
 
@@ -3010,6 +3018,15 @@ def construir_partidos_portada(torneo=None):
     if torneo:
         partidos = partidos.filter(categoria__torneo=torneo)
 
+    grupos_por_categoria = defaultdict(set)
+    grupos_fase_1 = Partido.objects.filter(fase="GRUPOS")
+    if torneo:
+        grupos_fase_1 = grupos_fase_1.filter(categoria__torneo=torneo)
+    for categoria_id, grupo in grupos_fase_1.exclude(
+        grupo__isnull=True,
+    ).exclude(grupo="").values_list("categoria_id", "grupo"):
+        grupos_por_categoria[categoria_id].add(str(grupo).strip().upper())
+
     estados_visibles = [
         "PROGRAMADO",
         "EN_JUEGO",
@@ -3098,6 +3115,7 @@ def construir_partidos_portada(torneo=None):
             "categoria": categoria_nombre,
             "categoria_clase": categoria_clase,
             "grupo": partido.grupo or "",
+            "mostrar_grupo": len(grupos_por_categoria[partido.categoria_id]) > 1,
             "fase": fase,
             "numero_fecha": partido.numero_fecha or "",
             "estado": partido.estado,

@@ -5633,12 +5633,12 @@ body.solo-lectura .menu-principal{top:96px!important}
             {% for grupo, datos_grupo in datos_categoria.grupos.items %}
                 {% if grupo != "FINAL" %}
                 <div class="grupo">
-                    <h2>Grupo {{ grupo }}</h2>
+                    {% if datos_categoria.mostrar_grupos %}<h2>Grupo {{ grupo }}</h2>{% endif %}
 
                     {% if request.user.is_staff %}
                     <div class="descargas-tab">
                         <a class="boton" href="{% url 'descargar_tabla_grupo' categoria grupo %}">
-                            Descargar tabla Grupo {{ grupo }}
+                            Descargar tabla{% if datos_categoria.mostrar_grupos %} Grupo {{ grupo }}{% endif %}
                         </a>
                     </div>
                     {% endif %}
@@ -6047,7 +6047,7 @@ body.solo-lectura .menu-principal{top:96px!important}
                             </div>
 
                             <div class="partido-centro">
-                                <div class="grupo-card">{{ item.partido.categoria.nombre }} &middot; Grupo {{ item.grupo }}</div>
+                                <div class="grupo-card">{{ item.partido.categoria.nombre }}{% if datos_categoria.mostrar_grupos %} &middot; Grupo {{ item.grupo }}{% endif %}</div>
                                 <div class="estado-card">{% if item.partido.estado == "EN_JUEGO" %}&#128308; EN VIVO{% else %}{{ item.partido.get_estado_display }}{% endif %}</div>
                                 {% if item.partido.estado == "PROGRAMADO" %}
                                 <div class="marcador-card">
