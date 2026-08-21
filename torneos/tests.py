@@ -3929,11 +3929,51 @@ class DescargaProgramacionFiltrosTests(TestCase):
         self.assertIn("LOCAL", html.upper())
         self.assertIn("VISITANTE", html.upper())
         self.assertIn("VS", html)
-        self.assertIn("escudo_default", html)
+        self.assertIn("data:image/svg+xml;base64", html)
+        self.assertIn("GRUPO A", html)
         self.assertNotIn("logo_imcred", html)
         self.assertNotIn("18/07/2026", html)
         self.assertNotIn("4:00 PM", html)
         self.assertNotIn("Teresa Sierra", html)
+
+    @patch("torneos.views.crear_imagen_desde_html")
+    def test_fixture_compartible_separa_los_partidos_por_grupo(self, crear_imagen):
+        crear_imagen.return_value = HttpResponse(b"png", content_type="image/png")
+        local_b = Equipo.objects.create(nombre="Local B", categoria=self.categoria)
+        visitante_b = Equipo.objects.create(nombre="Visitante B", categoria=self.categoria)
+        Partido.objects.create(
+            categoria=self.categoria,
+            equipo_local=local_b,
+            equipo_visitante=visitante_b,
+            fecha=date(2026, 7, 18),
+            hora=time(0, 0),
+            estado="PROGRAMADO",
+            numero_fecha="Fecha 1",
+            cancha="Por definir",
+            grupo="B",
+            fase="GRUPOS",
+        )
+
+        respuesta = self.client.get(
+            "/descargar/fixture-compartible/",
+            {"categoria": self.categoria.id},
+        )
+
+        self.assertEqual(respuesta.status_code, 200)
+        html = crear_imagen.call_args.args[0]
+        self.assertIn("GRUPO A", html)
+        self.assertIn("GRUPO B", html)
+        self.assertLess(html.index("GRUPO A"), html.index("GRUPO B"))
+
+    @patch("torneos.views.crear_imagen_desde_html")
+    def test_programacion_incrusta_escudo_default_si_el_equipo_no_tiene_escudo(self, crear_imagen):
+        crear_imagen.return_value = HttpResponse(b"png", content_type="image/png")
+
+        respuesta = self.client.get(f"/descargar/programacion/{self.categoria.nombre}/")
+
+        self.assertEqual(respuesta.status_code, 200)
+        html = crear_imagen.call_args.args[0]
+        self.assertGreaterEqual(html.count("data:image/svg+xml;base64"), 2)
 
     @patch("torneos.views.crear_imagen_desde_html")
     def test_fixture_extenso_usa_cuatro_fechas_por_fila(self, crear_imagen):

@@ -1617,6 +1617,19 @@ def escudo_default_url():
         return f"{settings.STATIC_URL.rstrip('/')}/{ruta}"
 
 
+def escudo_default_descarga_url():
+    """Incrusta el escudo genérico para que html2canvas no dependa de red/CORS."""
+    ruta = finders.find("torneos/img/escudo_default.svg")
+    if ruta:
+        try:
+            with open(ruta, "rb") as archivo:
+                contenido = base64.b64encode(archivo.read()).decode("ascii")
+            return f"data:image/svg+xml;base64,{contenido}"
+        except OSError:
+            pass
+    return escudo_default_url()
+
+
 def escudo_url(equipo):
     if not equipo:
         return escudo_default_url()
@@ -1653,6 +1666,13 @@ def escudo_url(equipo):
             return escudo
 
     return escudo_default_url()
+
+
+def escudo_descarga_url(request, equipo):
+    url = escudo_url(equipo)
+    if not equipo or url == escudo_default_url():
+        return escudo_default_descarga_url()
+    return url_absoluta(request, url)
 
 def url_absoluta(request, url):
     if not url:
@@ -4377,8 +4397,8 @@ def construir_partidos_programacion(
             "cancha": p.cancha,
             "local": p.equipo_local.nombre if p.equipo_local else "POR DEFINIR",
             "visitante": p.equipo_visitante.nombre if p.equipo_visitante else "POR DEFINIR",
-            "escudo_local": url_absoluta(request, escudo_url(p.equipo_local)),
-            "escudo_visitante": url_absoluta(request, escudo_url(p.equipo_visitante)),
+            "escudo_local": escudo_descarga_url(request, p.equipo_local),
+            "escudo_visitante": escudo_descarga_url(request, p.equipo_visitante),
         })
 
     return partidos_programacion
@@ -4743,7 +4763,7 @@ def descargar_fixture_completo(request):
     return respuesta
 
 
-def construir_fixture_compartible(torneo, categoria_obj=None):
+def construir_fixture_compartible(request, torneo, categoria_obj=None):
     categorias = Categoria.objects.filter(torneo=torneo).order_by("nombre")
     if categoria_obj:
         categorias = categorias.filter(id=categoria_obj.id)
@@ -4763,10 +4783,11 @@ def construir_fixture_compartible(torneo, categoria_obj=None):
             por_fecha[partido.numero_fecha].append({
                 "local": partido.equipo_local.nombre,
                 "visitante": partido.equipo_visitante.nombre,
-                "escudo_local": escudo_url(partido.equipo_local),
-                "escudo_visitante": escudo_url(partido.equipo_visitante),
+                "escudo_local": escudo_descarga_url(request, partido.equipo_local),
+                "escudo_visitante": escudo_descarga_url(request, partido.equipo_visitante),
                 "centro": f"{partido.goles_local} - {partido.goles_visitante}" if cerrado else "VS",
                 "cerrado": cerrado,
+                "grupo": partido.grupo or "ÚNICO",
             })
 
         fechas = [
@@ -4792,7 +4813,7 @@ def descargar_fixture_compartible(request):
         if not categoria_obj:
             return HttpResponse("Categoría no encontrada.", status=404)
 
-    categorias_fixture = construir_fixture_compartible(torneo, categoria_obj)
+    categorias_fixture = construir_fixture_compartible(request, torneo, categoria_obj)
     if not categorias_fixture:
         return respuesta_descarga_sin_partidos(request, "No hay partidos de fase 1 creados en el fixture seleccionado.")
 
@@ -4802,7 +4823,11 @@ def descargar_fixture_compartible(request):
     for categoria in categorias_fixture:
         fechas = categoria["fechas"]
         for indice in range(0, len(fechas), columnas):
-            filas_bloques += 130 + max(len(fecha["partidos"]) for fecha in fechas[indice:indice + columnas]) * 82
+            filas_bloques += 130 + max(
+                len(fecha["partidos"]) * 82
+                + len({partido["grupo"] for partido in fecha["partidos"]}) * 34
+                for fecha in fechas[indice:indice + columnas]
+            )
     alto = max(900, 260 + filas_bloques + len(categorias_fixture) * 90)
     ancho = 440 * columnas + 100
     logos = logos_torneo(request, torneo)
