@@ -2365,24 +2365,15 @@ def construir_estructura(torneo=None):
             data["rojas_total"] += 1
 
     for categoria, datos_categoria in estructura.items():
-        columnas_ordenadas = []
-
-        for col in columnas_por_categoria[categoria]:
-            if col not in columnas_ordenadas:
-                columnas_ordenadas.append(col)
-
-        columnas_ordenadas = []
-
-        for col in columnas_por_categoria[categoria]:
-           if col not in columnas_ordenadas:
-                columnas_ordenadas.append(col)
-
         fases_finales = ["CUARTOS", "SEMIFINAL", "TERCER_PUESTO", "FINAL"]
-
-        columnas_ordenadas = [
-            col for col in columnas_ordenadas
+        columnas_fase_uno = {
+            col for col in columnas_por_categoria[categoria]
             if col not in fases_finales
-        ]
+        }
+        columnas_ordenadas = sorted(
+            columnas_fase_uno,
+            key=clave_orden_fecha_fixture,
+        )
 
         for fase_fija in fases_finales:
             columnas_ordenadas.append(fase_fija)

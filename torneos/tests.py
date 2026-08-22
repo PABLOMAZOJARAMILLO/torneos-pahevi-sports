@@ -3269,9 +3269,18 @@ class OrdenFechasFaseUnoTests(TestCase):
                 hora=time(16, 0),
             )
 
-        fechas = list(construir_estructura(torneo)["Unica"]["partidos_por_fecha"])
+        datos_categoria = construir_estructura(torneo)["Unica"]
+        fechas = list(datos_categoria["partidos_por_fecha"])
 
         self.assertEqual(fechas, ["Fecha 1", "Fecha 2", "Fecha 3", "Fecha 10", "Fecha 15"])
+        self.assertEqual(
+            datos_categoria["columnas_planilla"][:5],
+            ["Fecha 1", "Fecha 2", "Fecha 3", "Fecha 10", "Fecha 15"],
+        )
+        self.assertEqual(
+            [columna["etiqueta"] for columna in datos_categoria["columnas_planilla_display"][:5]],
+            ["F1", "F2", "F3", "F10", "F15"],
+        )
 
 
 class AdminTorneoPermisosTests(TestCase):
