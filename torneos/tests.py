@@ -3258,6 +3258,8 @@ class OrdenFechasFaseUnoTests(TestCase):
         )
         local = Equipo.objects.create(nombre="Local", categoria=categoria)
         visitante = Equipo.objects.create(nombre="Visitante", categoria=categoria)
+        local.administrador_app = "Administrador Local"
+        local.save(update_fields=["administrador_app"])
         for numero in ("Fecha 1", "Fecha 10", "Fecha 2", "Fecha 15", "Fecha 3"):
             Partido.objects.create(
                 categoria=categoria,
@@ -3281,6 +3283,8 @@ class OrdenFechasFaseUnoTests(TestCase):
             [columna["etiqueta"] for columna in datos_categoria["columnas_planilla_display"][:5]],
             ["F1", "F2", "F3", "F10", "F15"],
         )
+        equipo_local = next(equipo for equipo in datos_categoria["equipos"] if equipo["id"] == local.id)
+        self.assertEqual(equipo_local["administrador_app"], "Administrador Local")
 
 
 class AdminTorneoPermisosTests(TestCase):

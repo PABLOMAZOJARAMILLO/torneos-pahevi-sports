@@ -2637,6 +2637,7 @@ def construir_estructura(torneo=None):
                 "director_tecnico": equipo_obj.director_tecnico,
                 "asistente_tecnico": equipo_obj.asistente_tecnico,
                 "delegado": equipo_obj.delegado,
+                "administrador_app": equipo_obj.administrador_app,
             })
 
         datos_categoria["equipos"] = lista_equipos
