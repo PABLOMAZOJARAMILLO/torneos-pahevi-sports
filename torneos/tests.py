@@ -5547,8 +5547,8 @@ class DelegadoEquipoTests(TestCase):
             categoria=self.categoria,
             equipo_local=self.equipo,
             equipo_visitante=self.otro_equipo,
-            fecha=(ahora_local - timedelta(hours=1)).date(),
-            hora=(ahora_local - timedelta(hours=1)).time(),
+            fecha=(ahora_local - timedelta(minutes=5)).date(),
+            hora=(ahora_local - timedelta(minutes=5)).time(),
             estado="PROGRAMADO",
         )
         self.client.force_login(self.delegado)
@@ -5593,6 +5593,46 @@ class DelegadoEquipoTests(TestCase):
         self.assertNotContains(respuesta_lista, "Rival")
         self.assertContains(respuesta_lista, "No hay partidos con la ventana de alineaci")
         self.assertEqual(respuesta_directa.status_code, 403)
+
+    def test_delegado_no_ve_ni_abre_partido_con_programacion_sugerida(self):
+        ahora_local = timezone.localtime()
+        partido_sugerido = Partido.objects.create(
+            categoria=self.categoria,
+            equipo_local=self.equipo,
+            equipo_visitante=self.otro_equipo,
+            fecha=ahora_local.date(),
+            hora=ahora_local.time(),
+            estado="PROGRAMADO",
+            estado_programacion="SUGERIDA",
+        )
+        self.client.force_login(self.delegado)
+
+        respuesta_lista = self.client.get(f"/delegado/equipos/{self.equipo.id}/partidos/")
+        respuesta_directa = self.client.get(
+            f"/delegado/equipos/{self.equipo.id}/partidos/{partido_sugerido.id}/alineacion/"
+        )
+
+        self.assertNotContains(respuesta_lista, "Rival")
+        self.assertContains(respuesta_lista, "No hay partidos con la ventana de alineaci")
+        self.assertEqual(respuesta_directa.status_code, 403)
+
+    def test_delegado_no_ve_partido_programado_con_ventana_vencida(self):
+        ahora_local = timezone.localtime()
+        Partido.objects.create(
+            categoria=self.categoria,
+            equipo_local=self.equipo,
+            equipo_visitante=self.otro_equipo,
+            fecha=(ahora_local - timedelta(hours=1)).date(),
+            hora=(ahora_local - timedelta(hours=1)).time(),
+            estado="PROGRAMADO",
+            estado_programacion="OFICIAL",
+        )
+        self.client.force_login(self.delegado)
+
+        respuesta = self.client.get(f"/delegado/equipos/{self.equipo.id}/partidos/")
+
+        self.assertNotContains(respuesta, "Cargar alineacion")
+        self.assertContains(respuesta, "No hay partidos con la ventana de alineaci")
 
     def test_responsable_staff_tampoco_salta_ventana_de_partido_futuro(self):
         self.delegado.is_staff = True

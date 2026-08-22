@@ -296,6 +296,9 @@ def ventana_alineacion_delegado(partido, equipo=None, ahora=None):
     if equipo and EntregaAlineacionPartido.objects.filter(partido=partido, equipo=equipo).exists():
         return False, "La alineación definitiva ya fue enviada."
 
+    if partido.estado_programacion not in {"MANUAL", "OFICIAL"}:
+        return False, "El partido todavía no tiene programación oficial."
+
     inicio = inicio_programado_partido(partido)
     if not inicio:
         return False, "Sin fecha u hora programada."
@@ -304,7 +307,10 @@ def ventana_alineacion_delegado(partido, equipo=None, ahora=None):
         return False, f"Disponible desde {apertura.strftime('%d/%m/%Y %I:%M %p')}."
 
     if partido.estado == "PROGRAMADO":
-        return True, "Disponible desde una hora antes y hasta 15 minutos después del inicio real."
+        cierre = inicio + timedelta(minutes=15)
+        if ahora <= cierre:
+            return True, "Disponible desde una hora antes y hasta 15 minutos después del inicio programado."
+        return False, "La ventana de alineación de este partido ya finalizó."
     if partido.estado == "EN_JUEGO":
         inicio_real = partido.inicio_en_vivo or inicio
         cierre = inicio_real + timedelta(minutes=15)
@@ -345,7 +351,8 @@ def partidos_alineacion_para_equipo(equipo):
     ).filter(
         Q(equipo_local=equipo) | Q(equipo_visitante=equipo)
     ).filter(
-        estado__in=["PROGRAMADO", "EN_JUEGO"]
+        estado__in=["PROGRAMADO", "EN_JUEGO"],
+        estado_programacion__in=["MANUAL", "OFICIAL"],
     ).order_by("fecha", "hora", "id")
 
     entregados = set(
