@@ -1,6 +1,7 @@
 from datetime import date
 from io import BytesIO
 from pathlib import Path
+import re
 
 from PIL import Image, ImageDraw, ImageFont
 from django.utils.text import slugify
@@ -77,6 +78,21 @@ def _clean(value, default=""):
     if value is None:
         return default
     return str(value).strip() or default
+
+
+def _nombre_jugador_planilla(jugador):
+    """Devuelve el nombre con una sola marca (F) cuando corresponde."""
+    if not jugador:
+        return ""
+
+    nombre = _clean(getattr(jugador, "nombres", ""))
+    patron_foraneo = r"(?:\s*\(\s*F\s*\))+\s*$"
+    tenia_marca_foraneo = bool(re.search(patron_foraneo, nombre, flags=re.IGNORECASE))
+    nombre = re.sub(patron_foraneo, "", nombre, flags=re.IGNORECASE).strip().title()
+
+    if getattr(jugador, "es_foraneo", False) or tenia_marca_foraneo:
+        nombre = f"{nombre} (F)"
+    return nombre
 
 
 def _fecha(value):
@@ -380,9 +396,7 @@ def _draw_player_side(img, draw, start_col, team_title, jugadores, referencia, e
             draw.rectangle(_box(col1, row, col2, row), outline=BORDER, width=1)
 
         jugador = jugadores[index] if index < len(jugadores) else None
-        nombre = _clean(getattr(jugador, "nombres", "")).title() if jugador else ""
-        if jugador and getattr(jugador, "es_foraneo", False):
-            nombre = f"{nombre} (F)"
+        nombre = _nombre_jugador_planilla(jugador)
         _text(draw, _box(start_col, row, start_col, row), str(index + 1), font=FONT_TINY)
         _text(draw, _box(name_start, row, name_end, row), nombre, font=FONT_SMALL, align="left")
         if jugador and jugador.id in no_disponibles:

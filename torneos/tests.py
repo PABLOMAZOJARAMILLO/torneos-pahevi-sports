@@ -21,7 +21,7 @@ from .forms import EquipoDelegadoForm, EquipoForm, JugadorForm, PartidoForm, Par
 from .models import AlineacionPartido, EntregaAlineacionPartido, AdminOrganizador, AdminTorneo, Categoria, CobroPenal, Documento, Equipo, Gol, IncidenciaReglaEdad, Jugador, Organizador, Partido, ReglaEdadCategoria, RegistroActividad, VisitaPublicaDiaria, SolicitudValidacion, SustitucionPartido, Tarjeta, Torneo, ruta_escudo_equipo
 from .middleware import AuditoriaModificacionesMiddleware
 from .media_cleanup import eliminar_imagenes_sin_referencia, nombres_imagenes_instancias
-from .planillas_pdf import _dorsal, _edad, _header_image_sources, _jugadores, _team_shield_source, _draw_team_watermark, _titulo_planilla
+from .planillas_pdf import _dorsal, _edad, _header_image_sources, _jugadores, _team_shield_source, _draw_team_watermark, _titulo_planilla, _nombre_jugador_planilla
 from .storage_backends import CloudinaryMediaStorage
 from .views import buscar_planilleros_excel, construir_estructura, construir_estadisticas_foraneos, construir_partidos_portada, construir_partidos_programacion, enriquecer_registros_actividad_legacy, fechas_presentes_en_programacion, foraneos_no_habilitados_fase_final, _clave_orden_evento_resumen, _equipo_turno_tanda, _minuto_evento_en_vivo, _sincronizar_no_disponibles_por_tarjetas, etiqueta_columna_planilla, etiqueta_edad_jugador, jugadores_actuales_en_cancha, nombre_corto_jugador, nombre_resumen_jugador, puede_descargar_programacion, podios_torneo, reglas_edad_para_frontend, texto_edad_jugador, tabla_general_mata_mata_ida_vuelta, url_imagen_cloudinary, validar_reglas_edad_titulares
 
@@ -1928,6 +1928,16 @@ class PlanillasPDFTests(TestCase):
         self.assertEqual(_dorsal("0"), "")
         self.assertEqual(_dorsal(None), "")
         self.assertEqual(_dorsal(17), "17")
+
+    def test_nombre_foraneo_no_duplica_marca_existente(self):
+        jugador = SimpleNamespace(nombres="JUAN PEREZ (F) (F)", es_foraneo=True)
+
+        self.assertEqual(_nombre_jugador_planilla(jugador), "Juan Perez (F)")
+
+    def test_nombre_foraneo_agrega_una_sola_marca(self):
+        jugador = SimpleNamespace(nombres="JUAN PEREZ", es_foraneo=True)
+
+        self.assertEqual(_nombre_jugador_planilla(jugador), "Juan Perez (F)")
 
     def test_marca_de_agua_no_falla_sin_escudo(self):
         base = Image.new("RGB", (100, 100), "white")
