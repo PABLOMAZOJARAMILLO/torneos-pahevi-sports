@@ -4613,6 +4613,35 @@ class FixtureProgramacionBalanceadaTests(TestCase):
         "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
         "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
     })
+    def test_panel_ordena_resultados_del_mas_antiguo_al_mas_reciente(self):
+        antiguo = Partido.objects.create(
+            categoria=self.categoria,
+            equipo_local=self.equipos[0],
+            equipo_visitante=self.equipos[1],
+            fecha=date.today(), hora=time(17, 0), cancha="Principal",
+            estado="FINALIZADO", numero_fecha="1", grupo="A",
+        )
+        reciente = Partido.objects.create(
+            categoria=self.categoria,
+            equipo_local=self.equipos[2],
+            equipo_visitante=self.equipos[3],
+            fecha=date.today(), hora=time(19, 0), cancha="Principal",
+            estado="FINALIZADO", numero_fecha="1", grupo="A",
+        )
+        self.client.force_login(self.admin)
+        session = self.client.session
+        session["torneo_id"] = self.torneo.id
+        session.save()
+
+        respuesta = self.client.get("/")
+
+        ids_ordenados = [partido["id"] for partido in respuesta.context["partidos_resultados"]]
+        self.assertLess(ids_ordenados.index(antiguo.id), ids_ordenados.index(reciente.id))
+
+    @override_settings(STORAGES={
+        "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+        "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
+    })
     def test_panel_del_torneo_finalizado_muestra_primero_el_ultimo_partido_de_la_final(self):
         primera_fase = Partido.objects.create(
             categoria=self.categoria,
