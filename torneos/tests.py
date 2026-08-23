@@ -1439,8 +1439,28 @@ class IncidenciasReglasEdadEnJuegoTests(TestCase):
         respuesta = self.client.get(f"/partido/{self.partido.id}/cronometro/segundo-tiempo/")
 
         self.assertEqual(respuesta.status_code, 302)
+        self.partido.refresh_from_db()
+        self.assertEqual(self.partido.segundos_acumulados, 45 * 60)
+        self.assertEqual(_minuto_evento_en_vivo(self.partido), 45)
         incidencia = IncidenciaReglaEdad.objects.get(partido=self.partido, equipo=self.equipo)
         self.assertEqual(incidencia.periodo_inicio, "ST")
+
+    def test_pulsar_segundo_tiempo_nuevamente_no_reinicia_el_reloj(self):
+        inicio_original = timezone.now() - timedelta(minutes=3)
+        self.partido.periodo_en_vivo = "ST"
+        self.partido.cronometro_pausado = False
+        self.partido.segundos_acumulados = 45 * 60
+        self.partido.inicio_en_vivo = inicio_original
+        self.partido.save(update_fields=[
+            "periodo_en_vivo", "cronometro_pausado", "segundos_acumulados", "inicio_en_vivo",
+        ])
+
+        respuesta = self.client.get(f"/partido/{self.partido.id}/cronometro/segundo-tiempo/")
+
+        self.assertEqual(respuesta.status_code, 302)
+        self.partido.refresh_from_db()
+        self.assertEqual(self.partido.inicio_en_vivo, inicio_original)
+        self.assertGreaterEqual(_minuto_evento_en_vivo(self.partido), 48)
 
     def test_no_permite_sustitucion_entre_dos_jugadores_del_banco(self):
         respuesta = self.registrar_cambio(self.joven_dos, self.mayor_dos)

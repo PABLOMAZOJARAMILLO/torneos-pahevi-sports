@@ -10065,11 +10065,33 @@ def cronometro_segundo_tiempo(request, partido_id):
     partido = get_object_or_404(Partido, id=partido_id)
     if not puede_diligenciar_partido(request.user, partido):
         return denegar_partido_no_autorizado()
+
+    # Pulsar nuevamente el botón 2T no debe reemplazar el instante desde el
+    # que ya viene corriendo el segundo tiempo.
+    if (
+        partido.periodo_en_vivo == "ST"
+        and partido.estado == "EN_JUEGO"
+        and partido.inicio_en_vivo
+        and not partido.cronometro_pausado
+    ):
+        return redirect("editor_partido_movil", partido_id=partido.id)
+
+    # Si se llega directamente desde un reloj activo, conserva primero lo
+    # transcurrido. El segundo tiempo siempre continúa desde 45:00 como mínimo.
+    if partido.inicio_en_vivo and not partido.cronometro_pausado:
+        _pausar_cronometro(partido)
+    partido.segundos_acumulados = max(partido.segundos_acumulados or 0, 45 * 60)
     partido.estado = "EN_JUEGO"
     partido.periodo_en_vivo = "ST"
     partido.cronometro_pausado = False
     partido.inicio_en_vivo = timezone.now()
-    partido.save()
+    partido.save(update_fields=[
+        "segundos_acumulados",
+        "estado",
+        "periodo_en_vivo",
+        "cronometro_pausado",
+        "inicio_en_vivo",
+    ])
     actualizar_incidencia_regla_edad(partido, partido.equipo_local, request=request, permitir_crear=True)
     actualizar_incidencia_regla_edad(partido, partido.equipo_visitante, request=request, permitir_crear=True)
     return redirect("editor_partido_movil", partido_id=partido.id)
