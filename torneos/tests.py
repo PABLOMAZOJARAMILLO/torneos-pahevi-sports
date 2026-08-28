@@ -1308,6 +1308,39 @@ class ResumenPartidoOrdenTests(TestCase):
 
 
 class CronometroEventoTests(TestCase):
+    def test_reanudar_suspendido_conserva_tiempo_periodo_y_marcador(self):
+        torneo = Torneo.objects.create(nombre="Reprogramado", fecha_inicio=date(2026, 1, 1))
+        categoria = Categoria.objects.create(nombre="Senior", edad_minima=18, edad_maxima=60, torneo=torneo)
+        local = Equipo.objects.create(nombre="Local", categoria=categoria)
+        visitante = Equipo.objects.create(nombre="Visitante", categoria=categoria)
+        partido = Partido.objects.create(
+            categoria=categoria,
+            equipo_local=local,
+            equipo_visitante=visitante,
+            fecha=date(2026, 8, 30),
+            hora=time(16, 0),
+            cancha="Teresa Sierra",
+            estado="SUSPENDIDO",
+            periodo_en_vivo="ST",
+            segundos_acumulados=(68 * 60) + 17,
+            cronometro_pausado=True,
+            goles_local=2,
+            goles_visitante=1,
+        )
+        admin = User.objects.create_superuser("admin-reanudar", password="test")
+        self.client.force_login(admin)
+
+        respuesta = self.client.get(f"/partido/{partido.id}/cronometro/reanudar/")
+
+        self.assertEqual(respuesta.status_code, 302)
+        partido.refresh_from_db()
+        self.assertEqual(partido.estado, "EN_JUEGO")
+        self.assertEqual(partido.periodo_en_vivo, "ST")
+        self.assertEqual(partido.segundos_acumulados, (68 * 60) + 17)
+        self.assertEqual((partido.goles_local, partido.goles_visitante), (2, 1))
+        self.assertFalse(partido.cronometro_pausado)
+        self.assertIsNotNone(partido.inicio_en_vivo)
+
     def test_minuto_evento_coincide_con_minuto_visible_del_cronometro(self):
         partido = SimpleNamespace(
             estado="EN_JUEGO",
@@ -4164,6 +4197,29 @@ class DescargaProgramacionFiltrosTests(TestCase):
         self.assertEqual(len(partidos), 1)
         self.assertEqual(partidos[0]["local"], "Local")
         self.assertEqual(partidos[0]["hora_texto"], "4:00 PM")
+
+    @patch("torneos.views.crear_imagen_desde_html")
+    def test_programacion_incluye_suspendido_reprogramado_sin_cambiar_su_estado(self, crear_imagen):
+        crear_imagen.return_value = HttpResponse(b"png", content_type="image/png")
+        self.partido.estado = "SUSPENDIDO"
+        self.partido.save(update_fields=["estado"])
+
+        respuesta = self.client.get(f"/descargar/programacion/{self.categoria.nombre}/")
+
+        self.assertEqual(respuesta.status_code, 200)
+        html = crear_imagen.call_args.args[0]
+        self.assertIn("REPROGRAMADO", html)
+        self.assertNotIn(">SUSPENDIDO<", html)
+        self.partido.refresh_from_db()
+        self.assertEqual(self.partido.estado, "SUSPENDIDO")
+
+    def test_programacion_normal_sigue_incluyendo_partido_programado(self):
+        request = self.client.get("/descargar/programacion/").wsgi_request
+
+        partidos = construir_partidos_programacion(request, self.categoria)
+
+        self.assertEqual(len(partidos), 1)
+        self.assertFalse(partidos[0]["reprogramado"])
 
     def test_descarga_por_dia_conserva_numero_de_fecha_en_el_titulo(self):
         partidos = [

@@ -906,7 +906,7 @@
         <a class="btn" href="{% url 'cronometro_entretiempo' partido.id %}">⏸ Entretiempo</a>
         <a class="btn" href="{% url 'cronometro_segundo_tiempo' partido.id %}">▶ 2T</a>
         <a class="btn" href="{% url 'cronometro_pausar' partido.id %}">⏸ Pausar</a>
-        <a class="btn" href="{% url 'cronometro_reanudar' partido.id %}">▶ Reanudar</a>
+        <a class="btn" href="{% url 'cronometro_reanudar' partido.id %}">▶ {% if partido.estado == "SUSPENDIDO" %}Continuar desde el tiempo guardado{% else %}Reanudar{% endif %}</a>
         <a class="btn" href="{% url 'cronometro_suspender' partido.id %}">⚠ Suspender</a>
         {% if es_fase_eliminatoria %}
             {% if modo_penales %}

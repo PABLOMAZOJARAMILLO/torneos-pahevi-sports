@@ -301,6 +301,14 @@ body {
     text-align: center;
     letter-spacing: .3px;
 }
+.estado-reprogramado {
+    margin: 0 auto 8px;
+    color: #facc15;
+    font-size: 20px;
+    font-weight: 900;
+    text-align: center;
+    letter-spacing: 1px;
+}
 .contenedor.compacta .avance-eliminatoria {
     margin-top: 4px;
     padding: 4px 8px;
@@ -457,6 +465,7 @@ body {
 
             {% for p in bloque.list %}
             <div class="partido-estado">
+            {% if p.reprogramado %}<div class="estado-reprogramado">REPROGRAMADO</div>{% endif %}
             <div class="meta-partido">
                 {% if mostrar_categoria %}{{ p.categoria }} - {% endif %}
                 {% if p.numero_fecha %}{{ p.numero_fecha|etiqueta_fecha|upper }} - {% endif %}
@@ -506,6 +515,8 @@ body {
 
         {% for p in partidos %}
         <div class="partido">
+
+            {% if p.reprogramado %}<div class="estado-reprogramado">REPROGRAMADO</div>{% endif %}
 
             <div class="detalle-superior">
                 {{ p.dia_semana }} {{ p.fecha }} · {{ p.hora_texto }} · CANCHA {{ p.cancha }}

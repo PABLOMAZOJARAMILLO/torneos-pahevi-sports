@@ -4319,7 +4319,9 @@ def construir_partidos_programacion(
         partidos = partidos.filter(categoria__torneo=torneo)
 
     if not incluir_resultados:
-        partidos = partidos.filter(estado="PROGRAMADO")
+        # Un partido suspendido que ya tiene una nueva programacion oficial
+        # debe volver a publicarse sin perder su estado ni sus incidencias.
+        partidos = partidos.filter(estado__in=["PROGRAMADO", "SUSPENDIDO"])
 
     if categoria_obj:
         partidos = partidos.filter(categoria=categoria_obj)
@@ -4403,6 +4405,7 @@ def construir_partidos_programacion(
             "fase": fase,
             "destino_eliminatoria": destino_eliminatoria,
             "estado": p.estado,
+            "reprogramado": p.estado == "SUSPENDIDO",
             "finalizado": p.estado == "FINALIZADO",
             "marcador_texto": f"{p.goles_local} - {p.goles_visitante}" if p.estado == "FINALIZADO" else "VS",
             "tiene_penales": tiene_penales,
@@ -10114,7 +10117,9 @@ def cronometro_reanudar(request, partido_id):
     partido.estado = "EN_JUEGO"
     partido.cronometro_pausado = False
     partido.inicio_en_vivo = timezone.now()
-    partido.save()
+    # No tocar el periodo, el tiempo acumulado, el marcador ni las
+    # incidencias guardadas durante la suspension.
+    partido.save(update_fields=["estado", "cronometro_pausado", "inicio_en_vivo"])
     return redirect("editor_partido_movil", partido_id=partido.id)
 
 
