@@ -35,6 +35,44 @@ class ContabilidadIndependienteTests(TestCase):
         tarjeta.delete()
         self.assertFalse(CobroTarjeta.objects.exists())
 
+    def test_doble_amarilla_se_cobra_unicamente_como_roja(self):
+        self.client.post(
+            f"/partido/{self.partido.id}/agregar-tarjeta-movil/",
+            {"jugador": self.jugador.id, "equipo": self.equipo.id, "tipo": "AMARILLA", "minuto": 20},
+        )
+        self.client.post(
+            f"/partido/{self.partido.id}/agregar-tarjeta-movil/",
+            {"jugador": self.jugador.id, "equipo": self.equipo.id, "tipo": "AMARILLA", "minuto": 35},
+        )
+
+        tarjetas = Tarjeta.objects.filter(partido=self.partido, jugador=self.jugador)
+        self.assertFalse(tarjetas.filter(tipo="AMARILLA").exists())
+        self.assertEqual(tarjetas.filter(tipo="ROJA").count(), 1)
+        cobros = CobroTarjeta.objects.filter(cuenta__equipo=self.equipo)
+        self.assertEqual(cobros.count(), 1)
+        self.assertEqual(cobros.get().tipo, "ROJA")
+        self.assertEqual(cobros.get().valor, Decimal("8000"))
+
+    def test_amarillas_en_partidos_distintos_se_acumulan_por_separado(self):
+        segundo_partido = Partido.objects.create(
+            categoria=self.categoria,
+            equipo_local=self.equipo,
+            equipo_visitante=self.rival,
+            fecha=date(2026, 1, 9),
+            hora=time(16),
+            estado="FINALIZADO",
+        )
+        for partido in (self.partido, segundo_partido):
+            self.client.post(
+                f"/partido/{partido.id}/agregar-tarjeta-movil/",
+                {"jugador": self.jugador.id, "equipo": self.equipo.id, "tipo": "AMARILLA", "minuto": 20},
+            )
+
+        tarjetas = Tarjeta.objects.filter(jugador=self.jugador)
+        self.assertEqual(tarjetas.filter(tipo="AMARILLA").count(), 2)
+        self.assertFalse(tarjetas.filter(tipo="ROJA").exists())
+        self.assertEqual(CobroTarjeta.objects.filter(tipo="AMARILLA").count(), 2)
+
     def test_pago_tarjetas_genera_un_solo_ingreso_detallado(self):
         Tarjeta.objects.create(partido=self.partido, jugador=self.jugador, equipo=self.equipo, tipo="AMARILLA")
         Tarjeta.objects.create(partido=self.partido, jugador=self.jugador, equipo=self.equipo, tipo="ROJA")

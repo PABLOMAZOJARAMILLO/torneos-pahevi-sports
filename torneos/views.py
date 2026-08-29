@@ -2482,7 +2482,9 @@ def construir_estructura(torneo=None):
             if data["rojas_total"] >= 3:
                 observaciones.append("SANCIÓN: RESTO DEL TORNEO POR 3 ROJAS")
             elif data["rojas_total"] == 2:
-                observaciones.append("ALERTA: A 1 ROJA DE SANCIÓN POR RESTO DEL TORNEO")
+                observaciones.append("SUSPENSIÓN POR TARJETA ROJA / ALERTA: A 1 ROJA DE SANCIÓN POR RESTO DEL TORNEO")
+            elif data["rojas_total"] == 1:
+                observaciones.append("SUSPENSIÓN POR TARJETA ROJA")
 
             if observaciones:
                 alertas.append({
@@ -5585,15 +5587,40 @@ def agregar_tarjeta_movil(request, partido_id):
         equipo = get_object_or_404(Equipo, id=equipo_id)
 
         if _validar_jugador_equipo(jugador, equipo, partido):
-            Tarjeta.objects.create(
+            amarillas_mismo_partido = Tarjeta.objects.filter(
                 partido=partido,
                 jugador=jugador,
                 equipo=equipo,
-                tipo=tipo,
-                minuto=minuto_evento,
+                tipo="AMARILLA",
             )
+            es_segunda_amarilla = tipo == "AMARILLA" and amarillas_mismo_partido.exists()
+
+            if es_segunda_amarilla:
+                # La expulsión por doble amarilla se representa únicamente con
+                # una roja. Al eliminar las amarillas también desaparecen sus
+                # cobros contables relacionados por la relación CASCADE.
+                amarillas_mismo_partido.delete()
+                Tarjeta.objects.get_or_create(
+                    partido=partido,
+                    jugador=jugador,
+                    equipo=equipo,
+                    tipo="ROJA",
+                    defaults={"minuto": minuto_evento},
+                )
+                messages.warning(
+                    request,
+                    "Segunda amarilla: se registró la tarjeta roja y el jugador queda suspendido.",
+                )
+            else:
+                Tarjeta.objects.create(
+                    partido=partido,
+                    jugador=jugador,
+                    equipo=equipo,
+                    tipo=tipo,
+                    minuto=minuto_evento,
+                )
+                messages.success(request, 'Tarjeta agregada correctamente.')
             _marcar_estadisticas_pendientes(partido, request.user)
-            messages.success(request, 'Tarjeta agregada correctamente.')
         else:
             messages.error(request, 'El jugador no pertenece al equipo seleccionado.')
 
