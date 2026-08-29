@@ -9169,7 +9169,7 @@ def gestion_partidos(request):
         categorias = categorias.filter(torneo=torneo)
 
     partidos = ordenar_partidos_gestion(
-        Partido.objects.select_related("categoria", "equipo_local", "equipo_visitante")
+        Partido.objects.select_related("categoria", "equipo_local", "equipo_visitante").prefetch_related("planilleros")
     )
     if torneo:
         partidos = partidos.filter(categoria__torneo=torneo)
@@ -9202,7 +9202,37 @@ def gestion_partidos(request):
         "puede_programar": puede_programar,
         "puede_validar": puede_validar,
         "puede_descargar_planillas": puede_descargar_planillas,
+        "planilleros_disponibles": User.objects.filter(is_active=True, is_staff=False).order_by("first_name", "last_name", "username"),
     })
+
+
+@login_required
+@user_passes_test(es_editor_torneo)
+@require_POST
+def gestion_partidos_asignar_planillero(request):
+    torneo = torneo_actual(request)
+    if not puede_gestionar_torneo(request, torneo, "programar"):
+        return denegar_permiso_torneo()
+    partido_ids = request.POST.getlist("partidos")
+    planillero_id = request.POST.get("planillero")
+    if not partido_ids or not planillero_id:
+        messages.error(request, "Selecciona un planillero y al menos un partido.")
+        return redirect("gestion_partidos")
+    planillero = get_object_or_404(User, id=planillero_id, is_active=True, is_staff=False)
+    partidos = Partido.objects.select_related("categoria", "equipo_local", "equipo_visitante").filter(id__in=partido_ids)
+    if torneo:
+        partidos = partidos.filter(categoria__torneo=torneo)
+    asignados = 0
+    for partido in partidos:
+        if not partido.planilleros.filter(id=planillero.id).exists():
+            partido.planilleros.add(planillero)
+            asignados += 1
+            registrar_actividad(request, "ASIGNAR_PLANILLERO", partido, descripcion=f"Asignó a {planillero.get_full_name() or planillero.username} como planillero de {partido}.")
+    messages.success(request, f"Planillero asignado a {asignados} partido(s).")
+    siguiente = (request.POST.get("next") or "").strip()
+    if siguiente and url_has_allowed_host_and_scheme(siguiente, allowed_hosts={request.get_host()}, require_https=request.is_secure()):
+        return redirect(siguiente)
+    return redirect("gestion_partidos")
 
 
 @login_required

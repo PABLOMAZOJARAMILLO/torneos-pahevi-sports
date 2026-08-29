@@ -6441,3 +6441,81 @@ class JugadorCedulaPorEquipoTests(TransactionTestCase):
                 cedula="12345",
                 fecha_nacimiento=date(1975, 1, 1),
             )
+
+
+class AsignacionMultiplePlanilleroTests(TestCase):
+    def setUp(self):
+        self.admin = User.objects.create_superuser(
+            username="admin-multiple", password="clave-segura", email="admin@example.com"
+        )
+        self.planillero = User.objects.create_user(
+            username="planillero-multiple", password="clave-segura",
+            first_name="Ana", last_name="Planillera",
+        )
+        self.planillero_previo = User.objects.create_user(
+            username="planillero-previo", password="clave-segura"
+        )
+        self.torneo = Torneo.objects.create(nombre="Torneo activo", fecha_inicio=date(2026, 1, 1))
+        self.categoria = Categoria.objects.create(
+            nombre="Única", torneo=self.torneo, edad_minima=18, edad_maxima=80
+        )
+        local = Equipo.objects.create(nombre="Local", categoria=self.categoria)
+        visitante = Equipo.objects.create(nombre="Visitante", categoria=self.categoria)
+        self.partido_uno = Partido.objects.create(
+            categoria=self.categoria, equipo_local=local, equipo_visitante=visitante,
+            fecha=date(2026, 1, 10), hora=time(16),
+        )
+        self.partido_dos = Partido.objects.create(
+            categoria=self.categoria, equipo_local=visitante, equipo_visitante=local,
+            fecha=date(2026, 1, 17), hora=time(16),
+        )
+        self.partido_uno.planilleros.add(self.planillero_previo)
+
+        otro_torneo = Torneo.objects.create(nombre="Otro torneo", fecha_inicio=date(2026, 2, 1))
+        otra_categoria = Categoria.objects.create(
+            nombre="Otra", torneo=otro_torneo, edad_minima=18, edad_maxima=80
+        )
+        otro_local = Equipo.objects.create(nombre="Otro local", categoria=otra_categoria)
+        otro_visitante = Equipo.objects.create(nombre="Otro visitante", categoria=otra_categoria)
+        self.partido_otro_torneo = Partido.objects.create(
+            categoria=otra_categoria, equipo_local=otro_local, equipo_visitante=otro_visitante,
+            fecha=date(2026, 2, 10), hora=time(16),
+        )
+
+        self.client.force_login(self.admin)
+        sesion = self.client.session
+        sesion["torneo_id"] = self.torneo.id
+        sesion.save()
+
+    def test_muestra_control_de_asignacion_multiple(self):
+        respuesta = self.client.get("/gestion/partidos/")
+
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertContains(respuesta, "Asignar planillero a varios partidos")
+        self.assertContains(respuesta, self.planillero.username)
+        self.assertContains(
+            respuesta,
+            'type="checkbox" name="partidos"',
+            count=2,
+        )
+
+    def test_asigna_varios_partidos_sin_borrar_asignaciones_previas(self):
+        respuesta = self.client.post(
+            "/gestion/partidos/asignar-planillero/",
+            {
+                "planillero": self.planillero.id,
+                "partidos": [
+                    self.partido_uno.id,
+                    self.partido_dos.id,
+                    self.partido_otro_torneo.id,
+                ],
+            },
+        )
+
+        self.assertEqual(respuesta.status_code, 302)
+        self.assertTrue(self.partido_uno.planilleros.filter(id=self.planillero.id).exists())
+        self.assertTrue(self.partido_dos.planilleros.filter(id=self.planillero.id).exists())
+        self.assertTrue(self.partido_uno.planilleros.filter(id=self.planillero_previo.id).exists())
+        self.assertFalse(
+            self.partido_otro_torneo.planilleros.filter(id=self.planillero.id).exists()
+        )

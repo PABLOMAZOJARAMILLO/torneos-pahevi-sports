@@ -272,6 +272,7 @@ urlpatterns = [
     path('gestion/jugadores/<int:jugador_id>/eliminar/', views.gestion_jugador_eliminar, name='gestion_jugador_eliminar'),
     path('gestion/partidos/', views.gestion_partidos, name='gestion_partidos'),
     path('gestion/partidos/importar/', views.gestion_importar_partidos, name='gestion_importar_partidos'),
+    path('gestion/partidos/asignar-planillero/', views.gestion_partidos_asignar_planillero, name='gestion_partidos_asignar_planillero'),
     path('gestion/partidos/nuevo/', views.gestion_partido_nuevo, name='gestion_partido_nuevo'),
     path('gestion/partidos/<int:partido_id>/editar/', views.gestion_partido_editar, name='gestion_partido_editar'),
     path('gestion/partidos/<int:partido_id>/eliminar/', views.gestion_partido_eliminar, name='gestion_partido_eliminar'),

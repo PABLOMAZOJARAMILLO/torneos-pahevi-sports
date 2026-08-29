@@ -20,6 +20,10 @@
         text-align: center;
     }
     .label-mobile { display: none; }
+    .selector-partido { width: 28px; min-width: 28px; }
+    .selector-partido input { width: 20px; height: 20px; margin: 0; }
+    .asignacion-multiple { margin: 14px 0; }
+    .asignacion-multiple select { margin-bottom: 8px; }
     @media (max-width: 640px) {
         .partidos-actions {
             grid-template-columns: 1fr 1fr;
@@ -82,8 +86,26 @@
     </p>
 </form>
 
+{% if puede_programar %}
+<form id="asignar-planillero" class="card asignacion-multiple" method="post" action="{% url 'gestion_partidos_asignar_planillero' %}">
+    {% csrf_token %}
+    <input type="hidden" name="next" value="{{ request.get_full_path }}">
+    <h2>Asignar planillero a varios partidos</h2>
+    <label for="planillero-multiple">Planillero</label>
+    <select id="planillero-multiple" name="planillero" required>
+        <option value="">Selecciona un planillero</option>
+        {% for planillero in planilleros_disponibles %}
+        <option value="{{ planillero.id }}">{{ planillero.get_full_name|default:planillero.username }} ({{ planillero.username }})</option>
+        {% endfor %}
+    </select>
+    <button class="btn secondary" type="button" id="seleccionar-todos-partidos">Seleccionar todos los visibles</button>
+    <button class="btn" type="submit">Asignar a seleccionados</button>
+</form>
+{% endif %}
+
 {% for partido in partidos %}
 <div class="row">
+    {% if puede_programar %}<div class="selector-partido"><input type="checkbox" name="partidos" value="{{ partido.id }}" form="asignar-planillero" aria-label="Seleccionar partido"></div>{% endif %}
     <div>
         <div>{{ partido.equipo_local.nombre }} vs {{ partido.equipo_visitante.nombre }}</div>
         <div class="muted">
@@ -95,6 +117,7 @@
         <div class="muted">
             Programacion: {{ partido.get_estado_programacion_display }}
         </div>
+        <div class="muted">Planillero(s): {% for planillero in partido.planilleros.all %}{{ planillero.get_full_name|default:planillero.username }}{% if not forloop.last %}, {% endif %}{% empty %}Sin asignar{% endfor %}</div>
         <div class="muted">
             Estadisticas:
             {% if partido.estadisticas_validadas %}
@@ -151,5 +174,14 @@ document.querySelectorAll(".descarga-apk").forEach(function(enlace) {
         }
     });
 });
+const seleccionarTodos = document.getElementById("seleccionar-todos-partidos");
+if (seleccionarTodos) {
+    seleccionarTodos.addEventListener("click", function() {
+        const casillas = document.querySelectorAll('input[name="partidos"][form="asignar-planillero"]');
+        const marcar = Array.from(casillas).some(function(casilla) { return !casilla.checked; });
+        casillas.forEach(function(casilla) { casilla.checked = marcar; });
+        seleccionarTodos.textContent = marcar ? "Quitar selección" : "Seleccionar todos los visibles";
+    });
+}
 </script>
 {% endblock %}
