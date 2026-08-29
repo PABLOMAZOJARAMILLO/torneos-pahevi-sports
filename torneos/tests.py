@@ -4494,6 +4494,43 @@ class FixtureProgramacionBalanceadaTests(TestCase):
             })
         return datos
 
+    def test_tablas_distinguen_roja_doble_amarilla_y_roja_directa(self):
+        partido = Partido.objects.create(
+            categoria=self.categoria,
+            equipo_local=self.equipos[0],
+            equipo_visitante=self.equipos[1],
+            fecha=date(2026, 6, 6),
+            hora=time(16),
+            estado="FINALIZADO",
+            estadisticas_validadas=True,
+            numero_fecha="1",
+            grupo="A",
+        )
+        jugador_doble = Jugador.objects.create(
+            equipo=self.equipos[0], nombres="Doble Amarilla", cedula="DA-1", fecha_nacimiento=date(1990, 1, 1),
+        )
+        jugador_directa = Jugador.objects.create(
+            equipo=self.equipos[1], nombres="Roja Directa", cedula="RD-1", fecha_nacimiento=date(1991, 1, 1),
+        )
+        Tarjeta.objects.create(
+            partido=partido, jugador=jugador_doble, equipo=self.equipos[0],
+            tipo="ROJA", origen_roja="DOBLE_AMARILLA",
+        )
+        Tarjeta.objects.create(
+            partido=partido, jugador=jugador_directa, equipo=self.equipos[1],
+            tipo="ROJA", origen_roja="DIRECTA",
+        )
+
+        datos = construir_estructura(self.torneo)[self.categoria.nombre]
+        tarjetas = {fila["jugador"]: fila for fila in datos["tarjetas_planilla"]}
+        alertas = {fila["jugador"]: fila for fila in datos["alertas_tarjetas"]}
+
+        self.assertIn("R2A", tarjetas["Doble Amarilla"]["celdas"])
+        self.assertIn("RD", tarjetas["Roja Directa"]["celdas"])
+        self.assertEqual(tarjetas["Doble Amarilla"]["total_a"], 0)
+        self.assertIn("SUSPENSIÓN 1 FECHA", alertas["Doble Amarilla"]["observacion"])
+        self.assertIn("SUSPENSIÓN 2 FECHAS", alertas["Roja Directa"]["observacion"])
+
     def test_fixture_sin_programacion_mantiene_comportamiento_actual(self):
         self.client.force_login(self.admin)
 

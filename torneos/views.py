@@ -2266,6 +2266,10 @@ def construir_estructura(torneo=None):
         tarjetas_qs = tarjetas_qs.filter(partido__categoria__torneo=torneo)
     tarjetas_qs = tarjetas_qs.filter(partido__estadisticas_validadas=True)
 
+    expulsiones_doble_amarilla = set(tarjetas_qs.filter(
+        tipo="ROJA", origen_roja="DOBLE_AMARILLA"
+    ).values_list("partido_id", "jugador_id", "equipo_id"))
+
     for tarjeta in tarjetas_qs:
         if tarjeta.partido.estado not in ESTADOS_PARTIDO_CERRADO:
             continue
@@ -2273,6 +2277,9 @@ def construir_estructura(torneo=None):
         categoria = tarjeta.partido.categoria.nombre
         columna = nombre_columna_partido(tarjeta.partido)
         jugador = tarjeta.jugador.nombres
+        clave_tarjeta = (tarjeta.partido_id, tarjeta.jugador_id, tarjeta.equipo_id)
+        if tarjeta.tipo == "AMARILLA" and clave_tarjeta in expulsiones_doble_amarilla:
+            continue
 
         data = tarjetas_temp[categoria][jugador]
         data["jugador"] = jugador
@@ -2287,7 +2294,8 @@ def construir_estructura(torneo=None):
 
         elif tarjeta.tipo == "ROJA":
             data["total_r"] += 1
-            data["valores"][columna] = (actual + " R").strip()
+            etiqueta_roja = "R2A" if tarjeta.origen_roja == "DOBLE_AMARILLA" else "RD"
+            data["valores"][columna] = (actual + f" {etiqueta_roja}").strip()
 
         data["total"] += 1
 
@@ -2337,6 +2345,8 @@ def construir_estructura(torneo=None):
         "amarillas_grupos": 0,
         "amarillas_finales": 0,
         "rojas_total": 0,
+        "rojas_doble_amarilla": 0,
+        "rojas_directas": 0,
     }))
 
     alertas_tarjetas_qs = Tarjeta.objects.select_related(
@@ -2351,6 +2361,9 @@ def construir_estructura(torneo=None):
 
     for tarjeta in alertas_tarjetas_qs:
         if tarjeta.partido.estado not in ESTADOS_PARTIDO_CERRADO:
+            continue
+        clave_tarjeta = (tarjeta.partido_id, tarjeta.jugador_id, tarjeta.equipo_id)
+        if tarjeta.tipo == "AMARILLA" and clave_tarjeta in expulsiones_doble_amarilla:
             continue
 
         categoria = tarjeta.partido.categoria.nombre
@@ -2370,6 +2383,10 @@ def construir_estructura(torneo=None):
 
         elif tarjeta.tipo == "ROJA":
             data["rojas_total"] += 1
+            if tarjeta.origen_roja == "DOBLE_AMARILLA":
+                data["rojas_doble_amarilla"] += 1
+            else:
+                data["rojas_directas"] += 1
 
     for categoria, datos_categoria in estructura.items():
         fases_finales = ["CUARTOS", "SEMIFINAL", "TERCER_PUESTO", "FINAL"]
@@ -2479,12 +2496,12 @@ def construir_estructura(torneo=None):
             elif data["amarillas_finales"] == 2:
                 observaciones.append("ALERTA: A 1 AMARILLA DE SUSPENSIÓN EN FASE FINAL")
 
+            if data["rojas_doble_amarilla"]:
+                observaciones.append("SUSPENSIÓN 1 FECHA POR ROJA POR DOBLE AMARILLA")
+            if data["rojas_directas"]:
+                observaciones.append("SUSPENSIÓN 2 FECHAS POR ROJA DIRECTA")
             if data["rojas_total"] >= 3:
                 observaciones.append("SANCIÓN: RESTO DEL TORNEO POR 3 ROJAS")
-            elif data["rojas_total"] == 2:
-                observaciones.append("SUSPENSIÓN POR TARJETA ROJA / ALERTA: A 1 ROJA DE SANCIÓN POR RESTO DEL TORNEO")
-            elif data["rojas_total"] == 1:
-                observaciones.append("SUSPENSIÓN POR TARJETA ROJA")
 
             if observaciones:
                 alertas.append({
@@ -2494,6 +2511,8 @@ def construir_estructura(torneo=None):
                     "amarillas_grupos": data["amarillas_grupos"],
                     "amarillas_finales": data["amarillas_finales"],
                     "rojas_total": data["rojas_total"],
+                    "rojas_doble_amarilla": data["rojas_doble_amarilla"],
+                    "rojas_directas": data["rojas_directas"],
                     "observacion": " / ".join(observaciones),
                 })
 
@@ -5593,9 +5612,11 @@ def agregar_tarjeta_movil(request, partido_id):
                 equipo=equipo,
                 tipo="AMARILLA",
             )
-            es_segunda_amarilla = tipo == "AMARILLA" and amarillas_mismo_partido.exists()
+            es_expulsion_por_doble_amarilla = (
+                tipo in {"AMARILLA", "ROJA"} and amarillas_mismo_partido.exists()
+            )
 
-            if es_segunda_amarilla:
+            if es_expulsion_por_doble_amarilla:
                 # La expulsión por doble amarilla se representa únicamente con
                 # una roja. Al eliminar las amarillas también desaparecen sus
                 # cobros contables relacionados por la relación CASCADE.
@@ -5605,7 +5626,7 @@ def agregar_tarjeta_movil(request, partido_id):
                     jugador=jugador,
                     equipo=equipo,
                     tipo="ROJA",
-                    defaults={"minuto": minuto_evento},
+                    defaults={"minuto": minuto_evento, "origen_roja": "DOBLE_AMARILLA"},
                 )
                 messages.warning(
                     request,
@@ -5617,6 +5638,7 @@ def agregar_tarjeta_movil(request, partido_id):
                     jugador=jugador,
                     equipo=equipo,
                     tipo=tipo,
+                    origen_roja="DIRECTA" if tipo == "ROJA" else "",
                     minuto=minuto_evento,
                 )
                 messages.success(request, 'Tarjeta agregada correctamente.')

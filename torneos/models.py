@@ -602,10 +602,12 @@ class CobroPenal(models.Model):
 
 class Tarjeta(models.Model):
     TIPOS = [('AMARILLA', 'Amarilla'), ('ROJA', 'Roja')]
+    ORIGENES_ROJA = [('DIRECTA', 'Roja directa'), ('DOBLE_AMARILLA', 'Roja por doble amarilla')]
     partido = models.ForeignKey(Partido, on_delete=models.CASCADE, related_name='tarjetas')
     jugador = models.ForeignKey(Jugador, on_delete=models.CASCADE, related_name='tarjetas_recibidas')
     equipo = models.ForeignKey(Equipo, on_delete=models.CASCADE)
     tipo = models.CharField(max_length=20, choices=TIPOS)
+    origen_roja = models.CharField(max_length=20, choices=ORIGENES_ROJA, default='DIRECTA', blank=True)
     minuto = models.PositiveIntegerField(blank=True, null=True, verbose_name='Minuto')
     creado_en = models.DateTimeField(auto_now_add=True, blank=True, null=True, verbose_name='Creado en')
 

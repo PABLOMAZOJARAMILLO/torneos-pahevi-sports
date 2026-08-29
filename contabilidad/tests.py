@@ -48,6 +48,7 @@ class ContabilidadIndependienteTests(TestCase):
         tarjetas = Tarjeta.objects.filter(partido=self.partido, jugador=self.jugador)
         self.assertFalse(tarjetas.filter(tipo="AMARILLA").exists())
         self.assertEqual(tarjetas.filter(tipo="ROJA").count(), 1)
+        self.assertEqual(tarjetas.get(tipo="ROJA").origen_roja, "DOBLE_AMARILLA")
         cobros = CobroTarjeta.objects.filter(cuenta__equipo=self.equipo)
         self.assertEqual(cobros.count(), 1)
         self.assertEqual(cobros.get().tipo, "ROJA")
@@ -72,6 +73,19 @@ class ContabilidadIndependienteTests(TestCase):
         self.assertEqual(tarjetas.filter(tipo="AMARILLA").count(), 2)
         self.assertFalse(tarjetas.filter(tipo="ROJA").exists())
         self.assertEqual(CobroTarjeta.objects.filter(tipo="AMARILLA").count(), 2)
+
+    def test_amarilla_y_roja_en_mismo_partido_es_doble_amarilla(self):
+        for tipo in ("AMARILLA", "ROJA"):
+            self.client.post(
+                f"/partido/{self.partido.id}/agregar-tarjeta-movil/",
+                {"jugador": self.jugador.id, "equipo": self.equipo.id, "tipo": tipo, "minuto": 30},
+            )
+
+        tarjetas = Tarjeta.objects.filter(partido=self.partido, jugador=self.jugador)
+        self.assertEqual(tarjetas.count(), 1)
+        self.assertEqual(tarjetas.get().tipo, "ROJA")
+        self.assertEqual(tarjetas.get().origen_roja, "DOBLE_AMARILLA")
+        self.assertEqual(CobroTarjeta.objects.get().valor, Decimal("8000"))
 
     def test_pago_tarjetas_genera_un_solo_ingreso_detallado(self):
         Tarjeta.objects.create(partido=self.partido, jugador=self.jugador, equipo=self.equipo, tipo="AMARILLA")

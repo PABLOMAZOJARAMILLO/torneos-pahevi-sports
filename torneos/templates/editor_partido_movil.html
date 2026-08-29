@@ -1204,7 +1204,7 @@
                 <div class="lista-item">
                     <div>
                         <div class="item-title">{{ tarjeta.jugador.nombres|nombre_corto }}</div>
-                        <div class="item-sub">{{ tarjeta.equipo.nombre }} · {{ tarjeta.tipo }}{% if tarjeta.minuto is not None %} · {{ tarjeta.minuto }}'{% endif %}</div>
+                        <div class="item-sub">{{ tarjeta.equipo.nombre }} · {{ tarjeta.tipo }}{% if tarjeta.tipo == "ROJA" %} ({{ tarjeta.get_origen_roja_display }}){% endif %}{% if tarjeta.minuto is not None %} · {{ tarjeta.minuto }}'{% endif %}</div>
                     </div>
                     <form method="POST" onsubmit="guardarContextoPanelEditor()" action="{% url 'eliminar_tarjeta_movil' tarjeta.id %}">{% csrf_token %}<button class="btn-danger" type="submit">Eliminar</button></form>
                 </div>
