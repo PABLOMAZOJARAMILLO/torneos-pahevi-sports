@@ -5044,8 +5044,9 @@ def _jugadores_sancionados_por_tarjetas(partido):
             equipo=equipo,
         ).select_related("partido", "jugador", "equipo")
 
-        tarjetas_por_jugador_partido = defaultdict(lambda: {"A": 0, "R": 0})
+        tarjetas_por_jugador_partido = defaultdict(lambda: {"A": 0, "R": 0, "origenes_roja": []})
         amarillas_grupos_por_jugador = defaultdict(set)
+        indice_partido = {partido_previo.id: indice for indice, partido_previo in enumerate(partidos_previos)}
 
         for tarjeta in tarjetas_previas:
             resumen = tarjetas_por_jugador_partido[(tarjeta.jugador_id, tarjeta.partido_id)]
@@ -5055,6 +5056,7 @@ def _jugadores_sancionados_por_tarjetas(partido):
                     amarillas_grupos_por_jugador[tarjeta.jugador_id].add(tarjeta.partido_id)
             elif tarjeta.tipo == "ROJA":
                 resumen["R"] += 1
+                resumen["origenes_roja"].append(tarjeta.origen_roja or "DIRECTA")
 
         jugadores_con_tarjeta = {
             jugador_id
@@ -5062,12 +5064,29 @@ def _jugadores_sancionados_por_tarjetas(partido):
         }
 
         for jugador_id in jugadores_con_tarjeta:
-            tarjetas_ultimo = tarjetas_por_jugador_partido.get((jugador_id, ultimo_partido.id), {"A": 0, "R": 0})
+            tarjetas_ultimo = tarjetas_por_jugador_partido.get(
+                (jugador_id, ultimo_partido.id), {"A": 0, "R": 0, "origenes_roja": []}
+            )
             motivo = ""
+            partido_origen = ultimo_partido
 
-            if tarjetas_ultimo["R"] > 0:
-                motivo = "roja directa"
-            elif tarjetas_ultimo["A"] >= 2:
+            rojas_jugador = [
+                (partido_id, resumen)
+                for (jugador_tarjeta_id, partido_id), resumen in tarjetas_por_jugador_partido.items()
+                if jugador_tarjeta_id == jugador_id and resumen["R"]
+            ]
+            rojas_jugador.sort(key=lambda item: indice_partido[item[0]], reverse=True)
+
+            for partido_roja_id, resumen_roja in rojas_jugador:
+                origen = resumen_roja["origenes_roja"][-1]
+                fechas_sancion = 1 if origen == "DOBLE_AMARILLA" else 2
+                partidos_cumplidos = len(partidos_previos) - indice_partido[partido_roja_id] - 1
+                if partidos_cumplidos < fechas_sancion:
+                    motivo = "doble amarilla" if origen == "DOBLE_AMARILLA" else "roja directa"
+                    partido_origen = partidos_previos[indice_partido[partido_roja_id]]
+                    break
+
+            if not motivo and tarjetas_ultimo["A"] >= 2:
                 motivo = "doble amarilla"
             elif (ultimo_partido.fase or "GRUPOS") == "GRUPOS" and tarjetas_ultimo["A"] > 0:
                 amarillas_hasta_ultimo = len(amarillas_grupos_por_jugador[jugador_id])
@@ -5079,7 +5098,7 @@ def _jugadores_sancionados_por_tarjetas(partido):
                 sancionados[jugador_id] = {
                     "equipo_id": equipo.id,
                     "motivo": motivo,
-                    "partido_origen": ultimo_partido,
+                    "partido_origen": partido_origen,
                 }
 
     return sancionados

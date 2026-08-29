@@ -1265,18 +1265,39 @@ class SancionesTarjetasTests(TestCase):
 
         self.assert_no_disponible_en(siguiente)
 
+    def test_roja_directa_bloquea_dos_partidos_y_se_habilita_en_el_tercero(self):
+        partido_origen = self.crear_partido(1)
+        Tarjeta.objects.create(
+            partido=partido_origen, jugador=self.jugador, equipo=self.equipo,
+            tipo="ROJA", origen_roja="DIRECTA",
+        )
+        primero = self.crear_partido(8, estado="PROGRAMADO")
+        self.assert_no_disponible_en(primero)
+        primero.estado = "FINALIZADO"
+        primero.save(update_fields=["estado"])
+
+        segundo = self.crear_partido(15, estado="PROGRAMADO")
+        self.assert_no_disponible_en(segundo)
+        segundo.estado = "FINALIZADO"
+        segundo.save(update_fields=["estado"])
+
+        tercero = self.crear_partido(22, estado="PROGRAMADO")
+        self.assertEqual(_sincronizar_no_disponibles_por_tarjetas(tercero), {})
+
     def test_doble_amarilla_deja_no_disponible_en_siguiente_partido(self):
         partido_origen = self.crear_partido(1)
-        for _ in range(2):
-            Tarjeta.objects.create(
-                partido=partido_origen,
-                jugador=self.jugador,
-                equipo=self.equipo,
-                tipo="AMARILLA",
-            )
+        Tarjeta.objects.create(
+            partido=partido_origen, jugador=self.jugador, equipo=self.equipo,
+            tipo="ROJA", origen_roja="DOBLE_AMARILLA",
+        )
         siguiente = self.crear_partido(8, estado="PROGRAMADO")
 
         self.assert_no_disponible_en(siguiente)
+
+        siguiente.estado = "FINALIZADO"
+        siguiente.save(update_fields=["estado"])
+        posterior = self.crear_partido(15, estado="PROGRAMADO")
+        self.assertEqual(_sincronizar_no_disponibles_por_tarjetas(posterior), {})
 
     def test_tres_amarillas_en_partidos_distintos_de_fase_uno_sancionan(self):
         for dia in [1, 8, 15]:
