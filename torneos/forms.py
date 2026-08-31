@@ -1,9 +1,11 @@
+import os
+
 from django import forms
 from django.contrib.auth.models import User
 from django.db.models import Q
 from django.forms import inlineformset_factory
 
-from .models import Torneo, Organizador, Documento, Categoria, Equipo, Jugador, Partido, ReglaEdadCategoria, AdminTorneo, AdminOrganizador
+from .models import Torneo, Organizador, Documento, Categoria, Equipo, Jugador, Partido, ReglaEdadCategoria, ReemplazoJugador, AdminTorneo, AdminOrganizador
 
 
 class OrganizadorForm(forms.ModelForm):
@@ -347,10 +349,54 @@ class CategoriaForm(forms.ModelForm):
             "edad_maxima",
             "controlar_foraneos",
             "porcentaje_minimo_foraneos",
+            "controlar_reemplazos_jugadores",
         ]
         widgets = {
             "descripcion": forms.Textarea(attrs={"rows": 3}),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["controlar_reemplazos_jugadores"].help_text = (
+            "Antes de la fecha 3 solo permite reemplazar jugadores que no hayan pisado cancha. "
+            "Desde la fecha 3 bloquea toda la plantilla y exige fuerza mayor soportada durante la primera fase."
+        )
+
+
+class ReemplazoJugadorForm(forms.Form):
+    nombres = forms.CharField(max_length=150, label="Nombre completo del jugador nuevo")
+    cedula = forms.CharField(max_length=30, label="Cédula")
+    fecha_nacimiento = forms.DateField(
+        label="Fecha de nacimiento", widget=forms.DateInput(attrs={"type": "date"})
+    )
+    dorsal = forms.IntegerField(required=False, min_value=0, label="Número")
+    telefono = forms.CharField(max_length=30, required=False, label="Teléfono")
+    es_foraneo = forms.BooleanField(required=False, label="Foráneo")
+    foto = forms.ImageField(required=False, label="Foto")
+    motivo = forms.ChoiceField(required=False, choices=[("", "Selecciona el motivo")] + ReemplazoJugador.MOTIVOS)
+    justificacion = forms.CharField(required=False, widget=forms.Textarea(attrs={"rows": 3}))
+    soporte = forms.FileField(required=False, help_text="Adjunta foto o PDF que soporte la fuerza mayor.")
+
+    def __init__(self, *args, fuerza_mayor=False, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fuerza_mayor = fuerza_mayor
+
+    def clean(self):
+        cleaned = super().clean()
+        if self.fuerza_mayor:
+            for campo, mensaje in (
+                ("motivo", "Selecciona el motivo de fuerza mayor."),
+                ("justificacion", "Describe la situación de fuerza mayor."),
+                ("soporte", "Adjunta una foto o PDF como soporte."),
+            ):
+                if not cleaned.get(campo):
+                    self.add_error(campo, mensaje)
+        soporte = cleaned.get("soporte")
+        if soporte:
+            extension = os.path.splitext(soporte.name or "")[1].lower()
+            if extension not in {".jpg", ".jpeg", ".png", ".webp", ".pdf"}:
+                self.add_error("soporte", "El soporte debe ser una imagen o un PDF.")
+        return cleaned
 
 
 class ReglaEdadCategoriaForm(forms.ModelForm):

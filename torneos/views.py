@@ -39,8 +39,8 @@ from django.views.decorators.http import require_POST
 from openpyxl import Workbook, load_workbook
 from openpyxl.styles import Alignment, Font, PatternFill
 
-from .forms import TorneoForm, OrganizadorForm, CategoriaForm, ReglaEdadCategoriaFormSet, DocumentoForm, PlanillaJuegoUploadForm, EquipoForm, EquipoDelegadoForm, EquipoFotosCuerpoTecnicoDelegadoForm, EquipoReinscripcionForm, JugadorForm, JugadorDelegadoForm, JugadorFotoDelegadoForm, PartidoForm, PartidoProgramacionForm, AdminTorneoForm, AdminOrganizadorForm, CrearAdminOrganizadorForm
-from .models import Torneo, Organizador, Categoria, Documento, Equipo, Partido, Gol, CobroPenal, Tarjeta, Jugador, AlineacionPartido, EntregaAlineacionPartido, SustitucionPartido, IncidenciaReglaEdad, ReglaEdadCategoria, AdminTorneo, AdminOrganizador, RegistroActividad, VisitaPublicaDiaria, SolicitudValidacion, limpiar_ruta_cloudinary, normalizar_nombre_persona
+from .forms import TorneoForm, OrganizadorForm, CategoriaForm, ReglaEdadCategoriaFormSet, ReemplazoJugadorForm, DocumentoForm, PlanillaJuegoUploadForm, EquipoForm, EquipoDelegadoForm, EquipoFotosCuerpoTecnicoDelegadoForm, EquipoReinscripcionForm, JugadorForm, JugadorDelegadoForm, JugadorFotoDelegadoForm, PartidoForm, PartidoProgramacionForm, AdminTorneoForm, AdminOrganizadorForm, CrearAdminOrganizadorForm
+from .models import Torneo, Organizador, Categoria, Documento, Equipo, Partido, Gol, CobroPenal, Tarjeta, Jugador, ReemplazoJugador, AlineacionPartido, EntregaAlineacionPartido, SustitucionPartido, IncidenciaReglaEdad, ReglaEdadCategoria, AdminTorneo, AdminOrganizador, RegistroActividad, VisitaPublicaDiaria, SolicitudValidacion, limpiar_ruta_cloudinary, normalizar_nombre_persona
 from .media_cleanup import nombres_imagenes_instancias, programar_limpieza_imagenes
 from .planillas_pdf import generar_planilla_juego_pdf, nombre_archivo_planilla
 from .templatetags.texto_limpio import etiqueta_fecha
@@ -6368,6 +6368,9 @@ def delegado_jugador_nuevo(request, equipo_id):
     )
 
     if request.method == "POST" and form.is_valid():
+        if equipo.categoria.controlar_reemplazos_jugadores and tercera_fecha_iniciada(equipo):
+            messages.error(request, "El equipo ya inició su fecha 3. Solo se admiten ingresos mediante reemplazo por fuerza mayor.")
+            return redirect("delegado_equipo_editar", equipo_id=equipo.id)
         jugador = form.save(commit=False)
         jugador.equipo = equipo
         jugador.nombres = jugador.nombres.upper()
@@ -6414,7 +6417,17 @@ def delegado_jugador_editar(request, jugador_id):
         permitir_foto=puede_cargar_fotos_jugadores_delegado(request.user, jugador.equipo),
     )
 
+    identidad_original = (jugador.nombres, jugador.cedula, jugador.fecha_nacimiento)
     if request.method == "POST" and form.is_valid():
+        identidad_nueva = (
+            normalizar_nombre_persona(form.cleaned_data.get("nombres")),
+            form.cleaned_data.get("cedula"),
+            form.cleaned_data.get("fecha_nacimiento"),
+        )
+        politica = politica_reemplazo_jugador(jugador)
+        if politica["controlada"] and not politica["permitido_normal"] and identidad_nueva != identidad_original:
+            messages.error(request, "La identidad está bloqueada. Un administrador debe usar Reemplazar.")
+            return redirect("delegado_equipo_editar", equipo_id=jugador.equipo_id)
         jugador = form.save(commit=False)
         jugador.nombres = jugador.nombres.upper()
         jugador.save()
@@ -6455,6 +6468,15 @@ def delegado_jugador_eliminar(request, jugador_id):
     equipo_id = jugador.equipo_id
     if not puede_editar_equipo_delegado(request.user, jugador.equipo):
         return HttpResponseForbidden("No tienes permiso para eliminar este jugador.")
+
+    politica = politica_reemplazo_jugador(jugador)
+    if politica["controlada"] and not politica["permitido_normal"]:
+        messages.error(
+            request,
+            "Este jugador no puede eliminarse: ya pisó cancha o el equipo inició su fecha 3. "
+            "Un administrador debe tramitar el reemplazo por fuerza mayor.",
+        )
+        return redirect("delegado_equipo_editar", equipo_id=jugador.equipo_id)
 
     nombre = jugador.nombres
     equipo = jugador.equipo
@@ -8793,6 +8815,13 @@ def gestion_equipo_jugadores_guardar(request, equipo_id):
             errores.append(f"{jugador.nombres}: nombre, cedula y fecha son obligatorios.")
             continue
 
+        identidad_nueva = (normalizar_nombre_persona(nombres), cedula, str(fecha_nacimiento))
+        identidad_actual = (jugador.nombres, jugador.cedula, jugador.fecha_nacimiento.isoformat())
+        politica = politica_reemplazo_jugador(jugador)
+        if politica["controlada"] and not politica["permitido_normal"] and identidad_nueva != identidad_actual:
+            errores.append(f"{jugador.nombres}: identidad bloqueada; usa Reemplazar.")
+            continue
+
         jugador.dorsal = request.POST.get(prefijo + "dorsal") or None
         jugador.nombres = normalizar_nombre_persona(nombres)
         jugador.cedula = cedula
@@ -8812,6 +8841,8 @@ def gestion_equipo_jugadores_guardar(request, equipo_id):
     if nuevo_nombre or nuevo_cedula or nuevo_fecha:
         if not nuevo_nombre or not nuevo_cedula or not nuevo_fecha:
             errores.append("Para agregar jugador nuevo debes llenar nombre, cedula y fecha de nacimiento.")
+        elif equipo.categoria.controlar_reemplazos_jugadores and tercera_fecha_iniciada(equipo):
+            errores.append("El equipo ya inició su fecha 3. Solo se agregan jugadores mediante reemplazo por fuerza mayor.")
         else:
             nuevo = Jugador(
                 equipo=equipo,
@@ -8863,6 +8894,57 @@ def gestion_equipo_eliminar(request, equipo_id):
     return redirect("gestion_equipos")
 
 
+ESTADOS_PARTIDO_JUGADO = {"EN_JUEGO", "FINALIZADO", "SUSPENDIDO"}
+
+
+def numero_fecha_fixture(partido):
+    coincidencia = re.search(r"\d+", str(partido.numero_fecha or ""))
+    return int(coincidencia.group()) if coincidencia else None
+
+
+def jugador_ya_piso_cancha(jugador):
+    partidos_jugados = Q(partido__estado__in=ESTADOS_PARTIDO_JUGADO)
+    return (
+        AlineacionPartido.objects.filter(partidos_jugados, jugador=jugador, rol="TITULAR").exists()
+        or SustitucionPartido.objects.filter(jugador_entra=jugador).exists()
+        or Gol.objects.filter(jugador=jugador).exists()
+        or Tarjeta.objects.filter(jugador=jugador).exists()
+    )
+
+
+def tercera_fecha_iniciada(equipo):
+    partidos = Partido.objects.filter(
+        categoria=equipo.categoria,
+        fase="GRUPOS",
+    ).filter(Q(equipo_local=equipo) | Q(equipo_visitante=equipo))
+    return any(
+        numero_fecha_fixture(partido) == 3
+        and (partido.estado in ESTADOS_PARTIDO_JUGADO or partido.inicio_en_vivo)
+        for partido in partidos.only("numero_fecha", "estado", "inicio_en_vivo")
+    )
+
+
+def fase_final_iniciada(categoria):
+    return Partido.objects.filter(categoria=categoria).exclude(fase="GRUPOS").filter(
+        Q(estado__in=ESTADOS_PARTIDO_JUGADO) | Q(inicio_en_vivo__isnull=False)
+    ).exists()
+
+
+def politica_reemplazo_jugador(jugador):
+    categoria = jugador.equipo.categoria
+    if not categoria.controlar_reemplazos_jugadores:
+        return {"controlada": False, "permitido_normal": True, "requiere_fuerza_mayor": False, "bloqueado": False}
+    if fase_final_iniciada(categoria):
+        return {"controlada": True, "permitido_normal": False, "requiere_fuerza_mayor": False, "bloqueado": True}
+    requiere_fuerza = tercera_fecha_iniciada(jugador.equipo) or jugador_ya_piso_cancha(jugador)
+    return {
+        "controlada": True,
+        "permitido_normal": not requiere_fuerza,
+        "requiere_fuerza_mayor": requiere_fuerza,
+        "bloqueado": False,
+    }
+
+
 @login_required
 @user_passes_test(es_editor_torneo)
 def gestion_jugadores(request):
@@ -8877,10 +8959,14 @@ def gestion_jugadores(request):
         "dorsal",
         "nombres",
     )
+    reemplazos = ReemplazoJugador.objects.select_related(
+        "equipo", "categoria", "jugador_saliente", "jugador_entrante", "autorizado_por"
+    )
     if torneo:
         categorias = categorias.filter(torneo=torneo)
         equipos = equipos.filter(categoria__torneo=torneo)
         jugadores = jugadores.filter(equipo__categoria__torneo=torneo)
+        reemplazos = reemplazos.filter(categoria__torneo=torneo)
     q = request.GET.get("q", "").strip()
     categoria_id = request.GET.get("categoria", "").strip()
     equipo_id = request.GET.get("equipo", "").strip()
@@ -8890,9 +8976,11 @@ def gestion_jugadores(request):
 
     if categoria_id:
         jugadores = jugadores.filter(equipo__categoria_id=categoria_id)
+        reemplazos = reemplazos.filter(categoria_id=categoria_id)
 
     if equipo_id:
         jugadores = jugadores.filter(equipo_id=equipo_id)
+        reemplazos = reemplazos.filter(equipo_id=equipo_id)
 
     return render(request, "gestion/jugadores.html", {
         "jugadores": jugadores,
@@ -8902,6 +8990,84 @@ def gestion_jugadores(request):
         "categoria_id": categoria_id,
         "equipo_id": equipo_id,
         "filtros_url": request.get_full_path(),
+        "reemplazos": reemplazos[:50],
+    })
+
+
+@login_required
+@user_passes_test(es_editor_torneo)
+def gestion_jugador_reemplazar(request, jugador_id):
+    torneo = torneo_actual(request)
+    if not puede_gestionar_torneo(request, torneo, "editar"):
+        return denegar_permiso_torneo()
+    jugadores = Jugador.objects.select_related("equipo", "equipo__categoria")
+    if torneo:
+        jugadores = jugadores.filter(equipo__categoria__torneo=torneo)
+    jugador = get_object_or_404(jugadores, id=jugador_id, estado="ACTIVO")
+    politica = politica_reemplazo_jugador(jugador)
+    volver_url = url_retorno_gestion(request, "gestion_jugadores")
+
+    if not politica["controlada"]:
+        messages.error(request, "Activa primero el control de reemplazos en la categoría.")
+        return redirect(volver_url)
+    if politica["bloqueado"]:
+        messages.error(request, "La primera fase ya terminó. No se permiten reemplazos en fases finales.")
+        return redirect(volver_url)
+
+    form = ReemplazoJugadorForm(
+        request.POST or None,
+        request.FILES or None,
+        fuerza_mayor=politica["requiere_fuerza_mayor"],
+    )
+    if request.method == "POST" and form.is_valid():
+        with transaction.atomic():
+            nuevo = Jugador(
+                equipo=jugador.equipo,
+                nombres=form.cleaned_data["nombres"],
+                cedula=form.cleaned_data["cedula"],
+                fecha_nacimiento=form.cleaned_data["fecha_nacimiento"],
+                dorsal=form.cleaned_data.get("dorsal"),
+                telefono=form.cleaned_data.get("telefono"),
+                es_foraneo=form.cleaned_data.get("es_foraneo", False),
+                foto=form.cleaned_data.get("foto"),
+            )
+            try:
+                nuevo.full_clean()
+            except Exception as exc:
+                form.add_error(None, str(exc))
+            else:
+                nuevo.save()
+                jugador.estado = "RETIRADO"
+                jugador.save(update_fields=["estado"])
+                reemplazo = ReemplazoJugador.objects.create(
+                    categoria=jugador.equipo.categoria,
+                    equipo=jugador.equipo,
+                    jugador_saliente=jugador,
+                    jugador_entrante=nuevo,
+                    es_fuerza_mayor=politica["requiere_fuerza_mayor"],
+                    motivo=form.cleaned_data.get("motivo") or "",
+                    justificacion=form.cleaned_data.get("justificacion") or "",
+                    soporte=form.cleaned_data.get("soporte"),
+                    autorizado_por=request.user,
+                )
+                registrar_actividad(
+                    request,
+                    "REEMPLAZAR_JUGADOR",
+                    nuevo,
+                    descripcion=(
+                        f"Reemplazó a {jugador.nombres} por {nuevo.nombres} en {jugador.equipo.nombre}. "
+                        + ("Fuerza mayor soportada." if reemplazo.es_fuerza_mayor else "Antes de la fecha 3, sin participación previa.")
+                    ),
+                    datos={"saliente_id": jugador.id, "entrante_id": nuevo.id, "fuerza_mayor": reemplazo.es_fuerza_mayor},
+                )
+                messages.success(request, f"Reemplazo registrado: {jugador.nombres} por {nuevo.nombres}.")
+                return redirect(volver_url)
+
+    return render(request, "gestion/reemplazar_jugador.html", {
+        "jugador": jugador,
+        "form": form,
+        "requiere_fuerza_mayor": politica["requiere_fuerza_mayor"],
+        "volver_href": volver_url,
     })
 
 
@@ -8915,6 +9081,14 @@ def gestion_jugador_nuevo(request):
     volver_url = url_retorno_gestion(request, "gestion_jugadores")
 
     if request.method == "POST" and form.is_valid():
+        equipo_destino = form.cleaned_data.get("equipo")
+        if equipo_destino and equipo_destino.categoria.controlar_reemplazos_jugadores and tercera_fecha_iniciada(equipo_destino):
+            form.add_error("equipo", "Este equipo ya inició su fecha 3. Usa Reemplazar por fuerza mayor.")
+            return render(request, "gestion/formulario.html", {
+                "titulo": "Nuevo jugador", "form": form, "volver_url": "gestion_jugadores",
+                "volver_href": volver_url, "cloudinary_images": listar_imagenes_cloudinary(),
+                "cloudinary_label": "Seleccionar foto existente de Cloudinary",
+            })
         jugador = form.save(commit=False)
         aplicar_imagen_cloudinary(
             jugador,
@@ -8951,7 +9125,24 @@ def gestion_jugador_editar(request, jugador_id):
     volver_url = url_retorno_gestion(request, "gestion_jugadores")
     form = JugadorForm(request.POST or None, request.FILES or None, instance=jugador, torneo=torneo)
 
+    identidad_original = (jugador.equipo_id, jugador.nombres, jugador.cedula, jugador.fecha_nacimiento)
     if request.method == "POST" and form.is_valid():
+        equipo_nuevo = form.cleaned_data.get("equipo")
+        identidad_nueva = (
+            equipo_nuevo.id if equipo_nuevo else None,
+            normalizar_nombre_persona(form.cleaned_data.get("nombres")),
+            form.cleaned_data.get("cedula"),
+            form.cleaned_data.get("fecha_nacimiento"),
+        )
+        politica = politica_reemplazo_jugador(jugador)
+        if politica["controlada"] and not politica["permitido_normal"] and identidad_nueva != identidad_original:
+            form.add_error(None, "La identidad del jugador está bloqueada. Usa la opción Reemplazar.")
+            return render(request, "gestion/formulario.html", {
+                "titulo": f"Editar jugador: {jugador.nombres}", "form": form,
+                "volver_url": "gestion_jugadores", "volver_href": volver_url,
+                "cloudinary_images": listar_imagenes_cloudinary(),
+                "cloudinary_label": "Seleccionar foto existente de Cloudinary",
+            })
         jugador = form.save(commit=False)
         aplicar_imagen_cloudinary(
             jugador,
@@ -8987,6 +9178,13 @@ def gestion_jugador_eliminar(request, jugador_id):
         jugadores = jugadores.filter(equipo__categoria__torneo=torneo)
     jugador = get_object_or_404(jugadores, id=jugador_id)
     volver_url = url_retorno_gestion(request, "gestion_jugadores")
+    politica = politica_reemplazo_jugador(jugador)
+    if politica["controlada"] and not politica["permitido_normal"]:
+        messages.error(
+            request,
+            "No se puede eliminar este jugador. Usa Reemplazar para tramitar la fuerza mayor y conservar su historial.",
+        )
+        return redirect(volver_url)
     nombre = jugador.nombres
     registrar_actividad(request, "ELIMINAR", jugador, descripcion=f"Elimino jugador {nombre}.")
     imagenes = nombres_imagenes_instancias([jugador])
@@ -9124,9 +9322,25 @@ def gestion_importar_planilla(request):
                     actualizados += 1
 
             if cedulas_importadas:
-                eliminados, _ = Jugador.objects.filter(equipo=equipo).exclude(
-                    cedula__in=cedulas_importadas
-                ).delete()
+                candidatos_eliminar = list(
+                    Jugador.objects.select_related("equipo", "equipo__categoria").filter(
+                        equipo=equipo, estado="ACTIVO"
+                    ).exclude(cedula__in=cedulas_importadas)
+                )
+                bloqueados_planilla = []
+                for candidato in candidatos_eliminar:
+                    politica = politica_reemplazo_jugador(candidato)
+                    if politica["controlada"] and not politica["permitido_normal"]:
+                        bloqueados_planilla.append(candidato.nombres)
+                        continue
+                    cantidad, _ = Jugador.objects.filter(id=candidato.id).delete()
+                    eliminados += cantidad
+                if bloqueados_planilla:
+                    errores.append(
+                        "No se retiraron por planilla porque están bloqueados: "
+                        + ", ".join(bloqueados_planilla)
+                        + ". Usa la opción Reemplazar y adjunta el soporte si corresponde."
+                    )
 
             messages.success(
                 request,

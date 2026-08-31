@@ -23,7 +23,7 @@ from .middleware import AuditoriaModificacionesMiddleware
 from .media_cleanup import eliminar_imagenes_sin_referencia, nombres_imagenes_instancias
 from .planillas_pdf import _dorsal, _edad, _header_image_sources, _jugadores, _team_shield_source, _draw_team_watermark, _titulo_planilla, _nombre_jugador_planilla
 from .storage_backends import CloudinaryMediaStorage
-from .views import buscar_planilleros_excel, construir_estructura, construir_estadisticas_foraneos, construir_partidos_portada, construir_partidos_programacion, enriquecer_registros_actividad_legacy, fechas_presentes_en_programacion, foraneos_no_habilitados_fase_final, _clave_orden_evento_resumen, _equipo_turno_tanda, _minuto_evento_en_vivo, _sincronizar_no_disponibles_por_tarjetas, etiqueta_columna_planilla, etiqueta_edad_jugador, jugadores_actuales_en_cancha, nombre_corto_jugador, nombre_resumen_jugador, puede_descargar_programacion, podios_torneo, reglas_edad_para_frontend, texto_edad_jugador, tabla_general_mata_mata_ida_vuelta, url_imagen_cloudinary, validar_reglas_edad_titulares
+from .views import buscar_planilleros_excel, construir_estructura, construir_estadisticas_foraneos, construir_partidos_portada, construir_partidos_programacion, enriquecer_registros_actividad_legacy, fechas_presentes_en_programacion, foraneos_no_habilitados_fase_final, _clave_orden_evento_resumen, _equipo_turno_tanda, _minuto_evento_en_vivo, _sincronizar_no_disponibles_por_tarjetas, etiqueta_columna_planilla, etiqueta_edad_jugador, jugadores_actuales_en_cancha, nombre_corto_jugador, nombre_resumen_jugador, puede_descargar_programacion, podios_torneo, politica_reemplazo_jugador, reglas_edad_para_frontend, tercera_fecha_iniciada, texto_edad_jugador, tabla_general_mata_mata_ida_vuelta, url_imagen_cloudinary, validar_reglas_edad_titulares
 
 
 class VisibilidadPublicaTorneoTests(TestCase):
@@ -6519,3 +6519,75 @@ class AsignacionMultiplePlanilleroTests(TestCase):
         self.assertFalse(
             self.partido_otro_torneo.planilleros.filter(id=self.planillero.id).exists()
         )
+
+
+class ControlReemplazosJugadoresTests(TestCase):
+    def setUp(self):
+        self.admin = User.objects.create_superuser("admin-reemplazos", "admin@example.com", "clave-segura")
+        self.torneo = Torneo.objects.create(nombre="Torneo reemplazos", fecha_inicio=date(2026, 1, 1))
+        self.categoria = Categoria.objects.create(
+            nombre="Única", torneo=self.torneo, edad_minima=18, edad_maxima=80,
+            controlar_reemplazos_jugadores=True,
+        )
+        self.equipo_a = Equipo.objects.create(nombre="Equipo A", categoria=self.categoria)
+        self.equipo_b = Equipo.objects.create(nombre="Equipo B", categoria=self.categoria)
+        self.equipo_c = Equipo.objects.create(nombre="Equipo C", categoria=self.categoria)
+        self.jugador = Jugador.objects.create(
+            equipo=self.equipo_a, nombres="Jugador Saliente", cedula="1001",
+            fecha_nacimiento=date(1990, 1, 1),
+        )
+        self.client.force_login(self.admin)
+        sesion = self.client.session
+        sesion["torneo_id"] = self.torneo.id
+        sesion.save()
+
+    def datos_nuevo(self, cedula="2001"):
+        return {
+            "nombres": "Jugador Nuevo", "cedula": cedula,
+            "fecha_nacimiento": "1992-02-02", "dorsal": "9",
+        }
+
+    def test_bloqueo_de_fecha_tres_es_individual_por_equipo(self):
+        Partido.objects.create(
+            categoria=self.categoria, equipo_local=self.equipo_a, equipo_visitante=self.equipo_b,
+            numero_fecha="Fecha 3", fase="GRUPOS", fecha=date(2026, 1, 20), hora=time(16), estado="FINALIZADO",
+        )
+
+        self.assertTrue(tercera_fecha_iniciada(self.equipo_a))
+        self.assertTrue(tercera_fecha_iniciada(self.equipo_b))
+        self.assertFalse(tercera_fecha_iniciada(self.equipo_c))
+
+    def test_antes_de_fecha_tres_reemplaza_jugador_que_no_piso_cancha(self):
+        respuesta = self.client.post(
+            f"/gestion/jugadores/{self.jugador.id}/reemplazar/", self.datos_nuevo()
+        )
+
+        self.assertEqual(respuesta.status_code, 302)
+        self.jugador.refresh_from_db()
+        self.assertEqual(self.jugador.estado, "RETIRADO")
+        self.assertTrue(Jugador.objects.filter(equipo=self.equipo_a, cedula="2001", estado="ACTIVO").exists())
+
+    def test_jugador_que_piso_cancha_exige_fuerza_mayor_y_soporte(self):
+        partido = Partido.objects.create(
+            categoria=self.categoria, equipo_local=self.equipo_a, equipo_visitante=self.equipo_b,
+            numero_fecha="Fecha 1", fase="GRUPOS", fecha=date(2026, 1, 5), hora=time(16), estado="FINALIZADO",
+        )
+        AlineacionPartido.objects.create(partido=partido, equipo=self.equipo_a, jugador=self.jugador, rol="TITULAR")
+        self.assertTrue(politica_reemplazo_jugador(self.jugador)["requiere_fuerza_mayor"])
+
+        respuesta = self.client.post(
+            f"/gestion/jugadores/{self.jugador.id}/reemplazar/", self.datos_nuevo()
+        )
+        self.assertEqual(respuesta.status_code, 200)
+        self.jugador.refresh_from_db()
+        self.assertEqual(self.jugador.estado, "ACTIVO")
+
+        datos = self.datos_nuevo()
+        datos.update({
+            "motivo": "LESION", "justificacion": "Lesión certificada por el médico.",
+            "soporte": SimpleUploadedFile("soporte.pdf", b"%PDF-1.4 soporte", content_type="application/pdf"),
+        })
+        respuesta = self.client.post(f"/gestion/jugadores/{self.jugador.id}/reemplazar/", datos)
+        self.assertEqual(respuesta.status_code, 302)
+        self.jugador.refresh_from_db()
+        self.assertEqual(self.jugador.estado, "RETIRADO")

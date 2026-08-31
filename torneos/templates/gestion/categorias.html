@@ -24,6 +24,9 @@
             Edad: {{ categoria.edad_minima }} - {{ categoria.edad_maxima }}
             {% if categoria.descripcion %} · {{ categoria.descripcion }}{% endif %}
         </div>
+        {% if categoria.controlar_reemplazos_jugadores %}
+        <div class="muted">Plantillas protegidas desde la tercera fecha de cada equipo.</div>
+        {% endif %}
         <div class="muted">
             Reglas:
             {% for regla in categoria.reglas_edad.all %}

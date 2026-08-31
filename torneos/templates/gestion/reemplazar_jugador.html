@@ -1,0 +1,31 @@
+{% extends "gestion/base.html" %}
+
+{% block title %}Reemplazar jugador{% endblock %}
+{% block heading %}Reemplazar jugador{% endblock %}
+
+{% block content %}
+<p><a class="btn secondary" href="{{ volver_href }}">Volver</a></p>
+<div class="card">
+    <h2 style="margin-top:0;color:#00ff66;">Jugador saliente</h2>
+    <div>{{ jugador.nombres }}</div>
+    <div class="muted">{{ jugador.equipo.nombre }} · {{ jugador.equipo.categoria.nombre }}</div>
+</div>
+{% if requiere_fuerza_mayor %}
+<div class="message">Este reemplazo requiere fuerza mayor. Indica el motivo y adjunta una foto o PDF como soporte.</div>
+{% else %}
+<div class="message">Reemplazo permitido antes de la tercera fecha porque el jugador no ha pisado cancha.</div>
+{% endif %}
+<form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    {{ form.non_field_errors }}
+    {% for field in form %}
+        {% if requiere_fuerza_mayor or field.name != "motivo" and field.name != "justificacion" and field.name != "soporte" %}
+        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+        {{ field }}
+        {% if field.help_text %}<div class="muted">{{ field.help_text }}</div>{% endif %}
+        {% for error in field.errors %}<div class="message">{{ error }}</div>{% endfor %}
+        {% endif %}
+    {% endfor %}
+    <p><button class="btn" type="submit">Confirmar reemplazo</button></p>
+</form>
+{% endblock %}

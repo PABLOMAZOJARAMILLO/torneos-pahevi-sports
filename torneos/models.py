@@ -305,6 +305,10 @@ class Categoria(models.Model):
     torneo = models.ForeignKey(Torneo, on_delete=models.CASCADE, related_name='categorias', blank=True, null=True)
     controlar_foraneos = models.BooleanField(default=False, verbose_name='Controlar foráneos')
     porcentaje_minimo_foraneos = models.PositiveIntegerField(default=50, verbose_name='Porcentaje mínimo fase 1 foráneos')
+    controlar_reemplazos_jugadores = models.BooleanField(
+        default=False,
+        verbose_name="Bloquear reemplazos de jugadores desde la tercera fecha",
+    )
 
     class Meta:
         verbose_name = 'Categoría'
@@ -473,6 +477,31 @@ class Jugador(models.Model):
 
     def __str__(self):
         return self.nombres
+
+
+class ReemplazoJugador(models.Model):
+    MOTIVOS = [
+        ("LESION", "Lesión"),
+        ("ENFERMEDAD", "Enfermedad"),
+        ("FALLECIMIENTO", "Fallecimiento"),
+        ("OTRO", "Otra fuerza mayor"),
+    ]
+
+    categoria = models.ForeignKey(Categoria, on_delete=models.PROTECT, related_name="reemplazos_jugadores")
+    equipo = models.ForeignKey(Equipo, on_delete=models.PROTECT, related_name="reemplazos_jugadores")
+    jugador_saliente = models.ForeignKey(Jugador, on_delete=models.PROTECT, related_name="reemplazos_como_saliente")
+    jugador_entrante = models.ForeignKey(Jugador, on_delete=models.PROTECT, related_name="reemplazos_como_entrante")
+    es_fuerza_mayor = models.BooleanField(default=False)
+    motivo = models.CharField(max_length=20, choices=MOTIVOS, blank=True)
+    justificacion = models.TextField(blank=True)
+    soporte = models.FileField(upload_to="reemplazos_jugadores/%Y/%m/", blank=True, null=True)
+    autorizado_por = models.ForeignKey(User, on_delete=models.PROTECT, related_name="reemplazos_jugadores_autorizados")
+    creado_en = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-creado_en"]
+        verbose_name = "Reemplazo de jugador"
+        verbose_name_plural = "Reemplazos de jugadores"
 
 
 class Partido(models.Model):

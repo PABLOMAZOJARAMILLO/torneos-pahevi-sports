@@ -269,6 +269,7 @@ urlpatterns = [
     path('gestion/jugadores/importar-planilla/', views.gestion_importar_planilla, name='gestion_importar_planilla'),
     path('gestion/jugadores/nuevo/', views.gestion_jugador_nuevo, name='gestion_jugador_nuevo'),
     path('gestion/jugadores/<int:jugador_id>/editar/', views.gestion_jugador_editar, name='gestion_jugador_editar'),
+    path('gestion/jugadores/<int:jugador_id>/reemplazar/', views.gestion_jugador_reemplazar, name='gestion_jugador_reemplazar'),
     path('gestion/jugadores/<int:jugador_id>/eliminar/', views.gestion_jugador_eliminar, name='gestion_jugador_eliminar'),
     path('gestion/partidos/', views.gestion_partidos, name='gestion_partidos'),
     path('gestion/partidos/importar/', views.gestion_importar_partidos, name='gestion_importar_partidos'),
