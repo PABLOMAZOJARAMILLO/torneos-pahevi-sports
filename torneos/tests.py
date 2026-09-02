@@ -23,7 +23,7 @@ from .middleware import AuditoriaModificacionesMiddleware
 from .media_cleanup import eliminar_imagenes_sin_referencia, nombres_imagenes_instancias
 from .planillas_pdf import _dorsal, _edad, _header_image_sources, _jugadores, _team_shield_source, _draw_team_watermark, _titulo_planilla, _nombre_jugador_planilla
 from .storage_backends import CloudinaryMediaStorage
-from .views import buscar_planilleros_excel, construir_estructura, construir_estadisticas_foraneos, construir_partidos_portada, construir_partidos_programacion, enriquecer_registros_actividad_legacy, fechas_presentes_en_programacion, foraneos_no_habilitados_fase_final, _clave_orden_evento_resumen, _equipo_turno_tanda, _minuto_evento_en_vivo, _sincronizar_no_disponibles_por_tarjetas, etiqueta_columna_planilla, etiqueta_edad_jugador, jugadores_actuales_en_cancha, nombre_corto_jugador, nombre_resumen_jugador, puede_descargar_programacion, podios_torneo, politica_reemplazo_jugador, reglas_edad_para_frontend, tercera_fecha_iniciada, texto_edad_jugador, tabla_general_mata_mata_ida_vuelta, url_imagen_cloudinary, validar_reglas_edad_titulares
+from .views import DocumentoStorageError, buscar_planilleros_excel, construir_estructura, construir_estadisticas_foraneos, construir_partidos_portada, construir_partidos_programacion, enriquecer_registros_actividad_legacy, fechas_presentes_en_programacion, foraneos_no_habilitados_fase_final, _clave_orden_evento_resumen, _equipo_turno_tanda, _minuto_evento_en_vivo, _sincronizar_no_disponibles_por_tarjetas, etiqueta_columna_planilla, etiqueta_edad_jugador, jugadores_actuales_en_cancha, nombre_corto_jugador, nombre_resumen_jugador, puede_descargar_programacion, podios_torneo, politica_reemplazo_jugador, reglas_edad_para_frontend, subir_documento_torneo, tercera_fecha_iniciada, texto_edad_jugador, tabla_general_mata_mata_ida_vuelta, url_imagen_cloudinary, validar_reglas_edad_titulares
 
 
 class VisibilidadPublicaTorneoTests(TestCase):
@@ -897,6 +897,45 @@ class DocumentosTorneoTests(TestCase):
 
         self.assertContains(response, "Nuevo documento")
         self.assertNotContains(response, "Planilla de juego")
+
+    @patch("torneos.views.subir_documento_torneo", side_effect=DocumentoStorageError("Almacenamiento no disponible."))
+    def test_error_de_almacenamiento_no_genera_pantalla_500(self, _subir):
+        self.client.force_login(self.usuario)
+        self.seleccionar_torneo()
+        cantidad_inicial = Documento.objects.count()
+
+        response = self.client.post("/gestion/documentos/nuevo/", {
+            "torneo": self.torneo.id,
+            "tipo": "REGLAMENTO",
+            "titulo": "Documento sin cargar",
+            "descripcion": "Prueba",
+            "activo": "on",
+            "archivo_subido": SimpleUploadedFile("reglamento.pdf", b"%PDF-1.4", content_type="application/pdf"),
+        })
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Almacenamiento no disponible")
+        self.assertEqual(Documento.objects.count(), cantidad_inicial)
+
+
+class AlmacenamientoDocumentosTests(TestCase):
+    @patch("torneos.views.subir_documento_cloudinary", return_value="https://cloudinary.example/documento.pdf")
+    @patch("torneos.views.subir_documento_supabase", side_effect=RuntimeError("PutObject rechazado"))
+    def test_usa_cloudinary_si_supabase_rechaza_putobject(self, _supabase, cloudinary):
+        archivo = SimpleUploadedFile("documento.pdf", b"%PDF-1.4", content_type="application/pdf")
+
+        url = subir_documento_torneo(archivo, "REGLAMENTO")
+
+        self.assertEqual(url, "https://cloudinary.example/documento.pdf")
+        cloudinary.assert_called_once()
+
+    @patch("torneos.views.subir_documento_cloudinary", side_effect=RuntimeError("Cloudinary rechazado"))
+    @patch("torneos.views.subir_documento_supabase", side_effect=RuntimeError("PutObject rechazado"))
+    def test_informa_error_seguro_si_ambos_almacenamientos_fallan(self, _supabase, _cloudinary):
+        archivo = SimpleUploadedFile("documento.pdf", b"%PDF-1.4", content_type="application/pdf")
+
+        with self.assertRaises(DocumentoStorageError):
+            subir_documento_torneo(archivo, "REGLAMENTO")
 
 
 class PlanillasJuegoUploadTests(TestCase):

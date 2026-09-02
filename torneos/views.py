@@ -2,6 +2,7 @@ from collections import defaultdict
 import base64
 import csv
 import hashlib
+import logging
 from io import BytesIO
 from types import SimpleNamespace
 from datetime import date, datetime, time, timedelta
@@ -45,6 +46,13 @@ from .media_cleanup import nombres_imagenes_instancias, programar_limpieza_image
 from .planillas_pdf import generar_planilla_juego_pdf, nombre_archivo_planilla
 from .templatetags.texto_limpio import etiqueta_fecha
 from django.utils import timezone
+
+
+logger = logging.getLogger(__name__)
+
+
+class DocumentoStorageError(Exception):
+    """Error seguro para mostrar cuando ningún almacenamiento acepta el archivo."""
 
 
 def formatear_hora_12(valor):
@@ -1362,11 +1370,25 @@ def subir_documento_cloudinary(archivo, tipo):
     import cloudinary
     import cloudinary.uploader
 
-    cloudinary_url = getattr(settings, "CLOUDINARY_URL", "").strip()
+    cloudinary_url = (
+        os.getenv("CLOUDINARY_URL", "").strip()
+        or getattr(settings, "CLOUDINARY_URL", "").strip()
+    )
     if cloudinary_url:
         os.environ["CLOUDINARY_URL"] = cloudinary_url
-
-    cloudinary.config(secure=True)
+        cloudinary.config(secure=True)
+    else:
+        cloud_name = os.getenv("CLOUDINARY_CLOUD_NAME", "").strip() or getattr(settings, "CLOUDINARY_CLOUD_NAME", "")
+        api_key = os.getenv("CLOUDINARY_API_KEY", "").strip() or getattr(settings, "CLOUDINARY_API_KEY", "")
+        api_secret = os.getenv("CLOUDINARY_API_SECRET", "").strip() or getattr(settings, "CLOUDINARY_API_SECRET", "")
+        if not all([cloud_name, api_key, api_secret]):
+            raise DocumentoStorageError("Cloudinary no está configurado.")
+        cloudinary.config(
+            cloud_name=cloud_name,
+            api_key=api_key,
+            api_secret=api_secret,
+            secure=True,
+        )
 
     archivo.seek(0)
     resultado = cloudinary.uploader.upload(
@@ -1378,11 +1400,24 @@ def subir_documento_cloudinary(archivo, tipo):
 
 
 def subir_documento_torneo(archivo, tipo):
-    url_supabase = subir_documento_supabase(archivo, tipo)
-    if url_supabase:
-        return url_supabase
+    errores = []
+    try:
+        url_supabase = subir_documento_supabase(archivo, tipo)
+        if url_supabase:
+            return url_supabase
+    except Exception as exc:
+        errores.append(exc)
+        logger.warning("Supabase rechazó la carga del documento; se intentará Cloudinary.", exc_info=True)
 
-    return subir_documento_cloudinary(archivo, tipo)
+    try:
+        archivo.seek(0)
+        return subir_documento_cloudinary(archivo, tipo)
+    except Exception as exc:
+        errores.append(exc)
+        logger.error("No fue posible cargar el documento en Supabase ni Cloudinary.", exc_info=True)
+        raise DocumentoStorageError(
+            "No fue posible guardar el archivo en el almacenamiento. Intenta nuevamente o revisa las credenciales de Supabase/Cloudinary."
+        ) from errores[-1]
 
 
 def eliminar_documento_almacenamiento(archivo_url):
@@ -7532,14 +7567,19 @@ def gestion_documento_nuevo(request):
         documento = form.save(commit=False)
         if not documento.torneo:
             documento.torneo = torneo
-        documento.archivo = subir_documento_torneo(
-            form.cleaned_data["archivo_subido"],
-            documento.tipo,
-        )
-        documento.save()
-        registrar_actividad(request, "CREAR", documento, descripcion=f"Creo documento {documento.titulo}.")
-        messages.success(request, "Documento creado correctamente.")
-        return redirect("gestion_documentos")
+        try:
+            documento.archivo = subir_documento_torneo(
+                form.cleaned_data["archivo_subido"],
+                documento.tipo,
+            )
+        except DocumentoStorageError as exc:
+            form.add_error("archivo_subido", str(exc))
+            messages.error(request, "El documento no se guardó. Verifica el almacenamiento e intenta nuevamente.")
+        else:
+            documento.save()
+            registrar_actividad(request, "CREAR", documento, descripcion=f"Creo documento {documento.titulo}.")
+            messages.success(request, "Documento creado correctamente.")
+            return redirect("gestion_documentos")
 
     return render(request, "gestion/formulario.html", {
         "titulo": "Nuevo documento",
@@ -7567,12 +7607,17 @@ def gestion_documento_editar(request, documento_id):
         archivo_subido = form.cleaned_data.get("archivo_subido")
 
         if archivo_subido:
-            documento.archivo = subir_documento_torneo(archivo_subido, documento.tipo)
+            try:
+                documento.archivo = subir_documento_torneo(archivo_subido, documento.tipo)
+            except DocumentoStorageError as exc:
+                form.add_error("archivo_subido", str(exc))
+                messages.error(request, "El documento no se modificó porque el archivo no pudo cargarse.")
 
-        documento.save()
-        registrar_actividad(request, "EDITAR", documento, descripcion=f"Actualizo documento {documento.titulo}.")
-        messages.success(request, "Documento actualizado correctamente.")
-        return redirect("gestion_documentos")
+        if not form.errors:
+            documento.save()
+            registrar_actividad(request, "EDITAR", documento, descripcion=f"Actualizo documento {documento.titulo}.")
+            messages.success(request, "Documento actualizado correctamente.")
+            return redirect("gestion_documentos")
 
     return render(request, "gestion/formulario.html", {
         "titulo": f"Editar documento: {documento.titulo}",
