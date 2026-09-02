@@ -1226,7 +1226,7 @@
 
             <div class="alineacion-alerta" data-alineacion-alerta></div>
 
-            <form class="alineacion-equipo-panel" data-alineacion-panel="local" method="POST" novalidate onsubmit="guardarContextoPanelEditor()" action="{% url 'guardar_alineacion_masiva_movil' partido.id %}">
+            <form class="alineacion-equipo-panel" data-alineacion-panel="local" method="POST" novalidate onsubmit="limpiarBorradorAlineacionLocal(this); guardarContextoPanelEditor()" action="{% url 'guardar_alineacion_masiva_movil' partido.id %}">
                 {% csrf_token %}
                 <input type="hidden" name="equipo" value="{{ partido.equipo_local.id }}">
                 <div class="alineacion-resumen">
@@ -1264,11 +1264,11 @@
                     <button type="button" class="active" data-alineacion-equipo="local">{{ partido.equipo_local.nombre }}</button>
                     <button type="button" data-alineacion-equipo="visitante">{{ partido.equipo_visitante.nombre }}</button>
                 </div>
-                <details class="validacion-documentos" data-validacion-documentos>
+                <details class="validacion-documentos" data-validacion-documentos open>
                     <summary>Cedulas de titulares</summary>
                     <p class="validacion-documentos-vacia" data-validacion-vacia>Selecciona titulares para validar documentos.</p>
                     {% for j in jugadores_local %}
-                    <div class="documento-titular-row" data-documento-titular-row="{{ j.id }}" hidden>
+                    <div class="documento-titular-row" data-documento-titular-row="{{ j.id }}" {% if j.rol_alineacion != "TITULAR" %}hidden{% endif %}>
                         <div>
                             <div class="documento-titular-nombre">
                                 {% if j.dorsal %}<span>#{{ j.dorsal }}</span>{% endif %}
@@ -1316,7 +1316,7 @@
                 <button class="btn" type="submit">Guardar {{ partido.equipo_local.nombre }}</button>
             </form>
 
-            <form class="alineacion-equipo-panel" data-alineacion-panel="visitante" method="POST" novalidate onsubmit="guardarContextoPanelEditor()" action="{% url 'guardar_alineacion_masiva_movil' partido.id %}" hidden>
+            <form class="alineacion-equipo-panel" data-alineacion-panel="visitante" method="POST" novalidate onsubmit="limpiarBorradorAlineacionLocal(this); guardarContextoPanelEditor()" action="{% url 'guardar_alineacion_masiva_movil' partido.id %}" hidden>
                 {% csrf_token %}
                 <input type="hidden" name="equipo" value="{{ partido.equipo_visitante.id }}">
                 <div class="alineacion-resumen">
@@ -1354,11 +1354,11 @@
                     <button type="button" data-alineacion-equipo="local">{{ partido.equipo_local.nombre }}</button>
                     <button type="button" class="active" data-alineacion-equipo="visitante">{{ partido.equipo_visitante.nombre }}</button>
                 </div>
-                <details class="validacion-documentos" data-validacion-documentos>
+                <details class="validacion-documentos" data-validacion-documentos open>
                     <summary>Cedulas de titulares</summary>
                     <p class="validacion-documentos-vacia" data-validacion-vacia>Selecciona titulares para validar documentos.</p>
                     {% for j in jugadores_visitante %}
-                    <div class="documento-titular-row" data-documento-titular-row="{{ j.id }}" hidden>
+                    <div class="documento-titular-row" data-documento-titular-row="{{ j.id }}" {% if j.rol_alineacion != "TITULAR" %}hidden{% endif %}>
                         <div>
                             <div class="documento-titular-nombre">
                                 {% if j.dorsal %}<span>#{{ j.dorsal }}</span>{% endif %}
@@ -2038,9 +2038,19 @@ function guardarBorradorAlineacionLocal(panel) {
     panel.querySelectorAll('input[name], select[name], textarea[name]').forEach(function(campo) {
         if (campo.name === 'csrfmiddlewaretoken' || campo.name === 'volver' || campo.type === 'file') return;
         if ((campo.type === 'radio' || campo.type === 'checkbox') && !campo.checked) return;
-        valores[campo.name] = campo.value;
+        if (campo.type === 'checkbox') {
+            if (!Array.isArray(valores[campo.name])) valores[campo.name] = [];
+            valores[campo.name].push(campo.value);
+        } else {
+            valores[campo.name] = campo.value;
+        }
     });
     localStorage.setItem(clave, JSON.stringify({ guardadoEn: Date.now(), valores: valores }));
+}
+
+function limpiarBorradorAlineacionLocal(panel) {
+    const clave = claveBorradorAlineacion(panel);
+    if (clave) localStorage.removeItem(clave);
 }
 
 function restaurarBorradorAlineacionLocal(panel) {
@@ -2053,14 +2063,24 @@ function restaurarBorradorAlineacionLocal(panel) {
         localStorage.removeItem(clave);
     }
     if (!borrador || !borrador.valores) return;
+    const antiguedad = Date.now() - Number(borrador.guardadoEn || 0);
+    if (!borrador.guardadoEn || antiguedad > 12 * 60 * 60 * 1000) {
+        localStorage.removeItem(clave);
+        return;
+    }
     Object.keys(borrador.valores).forEach(function(nombre) {
-        const valor = String(borrador.valores[nombre]);
+        const valorGuardado = borrador.valores[nombre];
+        const valoresGuardados = Array.isArray(valorGuardado)
+            ? valorGuardado.map(String)
+            : [String(valorGuardado)];
         const campos = panel.querySelectorAll('[name="' + CSS.escape(nombre) + '"]');
         campos.forEach(function(campo) {
-            if (campo.type === 'radio' || campo.type === 'checkbox') {
-                campo.checked = campo.value === valor;
+            if (campo.type === 'checkbox') {
+                campo.checked = valoresGuardados.includes(campo.value);
+            } else if (campo.type === 'radio') {
+                campo.checked = campo.value === valoresGuardados[0];
             } else {
-                campo.value = valor;
+                campo.value = valoresGuardados[0];
             }
         });
     });

@@ -3300,6 +3300,31 @@ class PlanilleroPartidoTests(TestCase):
         self.assertEqual(solicitud.estado, "PENDIENTE")
         self.assertIn(segundo.id, solicitud.datos["documentos_faltantes"])
 
+    @override_settings(STORAGES={
+        "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+        "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
+    })
+    def test_cedula_de_titular_guardado_es_visible_sin_depender_de_javascript(self):
+        AlineacionPartido.objects.create(
+            partido=self.partido,
+            equipo=self.local,
+            jugador=self.jugador,
+            rol="TITULAR",
+            posicion_cancha="DC",
+        )
+
+        for usuario in (self.planillero, self.admin):
+            with self.subTest(usuario=usuario.username):
+                self.client.force_login(usuario)
+                respuesta = self.client.get(f"/partido/{self.partido.id}/editor-movil/")
+
+                self.assertEqual(respuesta.status_code, 200)
+                self.assertContains(
+                    respuesta,
+                    f'data-documento-titular-row="{self.jugador.id}" >',
+                )
+                self.assertContains(respuesta, "Cedula recibida")
+
     def test_planillero_no_puede_marcar_wo(self):
         self.client.force_login(self.planillero)
 
