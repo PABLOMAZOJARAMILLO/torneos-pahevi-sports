@@ -7539,19 +7539,28 @@ def gestion_documentos(request):
     torneo = torneo_actual(request)
     if usuario_solo_descarga_planillas(request.user, torneo):
         return denegar_permiso_torneo()
-    documentos = Documento.objects.order_by("tipo", "-creado_en", "titulo")
+    documentos = Documento.objects.select_related("categoria").order_by("tipo", "categoria__nombre", "-creado_en", "titulo")
+    categorias = Categoria.objects.none()
     if torneo:
         documentos = documentos.filter(torneo=torneo)
+        categorias = Categoria.objects.filter(torneo=torneo).order_by("nombre")
     else:
         documentos = documentos.none()
     tipo = request.GET.get("tipo", "").strip()
+    categoria_id = request.GET.get("categoria", "").strip()
 
     if tipo:
         documentos = documentos.filter(tipo=tipo)
+    if categoria_id == "general":
+        documentos = documentos.filter(categoria__isnull=True)
+    elif categoria_id.isdigit():
+        documentos = documentos.filter(categoria_id=categoria_id)
 
     return render(request, "gestion/documentos.html", {
         "documentos": documentos,
         "tipo": tipo,
+        "categoria_id": categoria_id,
+        "categorias": categorias,
         "tipos": Documento.TIPOS,
     })
 

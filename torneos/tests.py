@@ -874,6 +874,41 @@ class DocumentosTorneoTests(TestCase):
         self.assertNotContains(response, "Reglamento Copa Antigua")
         self.assertNotContains(response, "Reglamento Sin Torneo")
 
+    def test_formulario_documento_permite_categoria_o_documento_general(self):
+        categoria = Categoria.objects.create(
+            torneo=self.torneo, nombre="Senior Master", edad_minima=40, edad_maxima=80,
+        )
+        Categoria.objects.create(
+            torneo=self.otro_torneo, nombre="Categoría ajena", edad_minima=18, edad_maxima=80,
+        )
+        self.client.force_login(self.usuario)
+        self.seleccionar_torneo()
+
+        response = self.client.get("/gestion/documentos/nuevo/")
+
+        self.assertContains(response, "Documento general del torneo (sin categoría)")
+        self.assertContains(response, categoria.nombre)
+        self.assertNotContains(response, "Categoría ajena")
+
+    def test_gestion_documentos_filtra_por_categoria_y_generales(self):
+        categoria = Categoria.objects.create(
+            torneo=self.torneo, nombre="Senior Master", edad_minima=40, edad_maxima=80,
+        )
+        Documento.objects.create(
+            torneo=self.torneo, categoria=categoria, tipo="COMUNICADO",
+            titulo="Comunicado Senior", archivo="https://example.com/senior.pdf", activo=True,
+        )
+        self.client.force_login(self.usuario)
+        self.seleccionar_torneo()
+
+        por_categoria = self.client.get("/gestion/documentos/", {"categoria": categoria.id})
+        generales = self.client.get("/gestion/documentos/", {"categoria": "general"})
+
+        self.assertContains(por_categoria, "Comunicado Senior")
+        self.assertNotContains(por_categoria, "Reglamento Veranero")
+        self.assertContains(generales, "Reglamento Veranero")
+        self.assertNotContains(generales, "Comunicado Senior")
+
     def test_no_permite_abrir_documento_de_otro_torneo_por_url_directa(self):
         self.seleccionar_torneo()
 

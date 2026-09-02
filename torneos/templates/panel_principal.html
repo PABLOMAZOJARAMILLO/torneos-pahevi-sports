@@ -5432,6 +5432,7 @@ body.solo-lectura .menu-principal{top:96px!important}
                 <a class="documento-card" href="{% if documento.id %}{% url 'documento_publico' documento.id %}{% else %}{{ documento.archivo }}{% endif %}" target="_blank" rel="noopener">
                     <div>
                         <strong>{{ documento.titulo }}</strong>
+                        <span>{% if documento.categoria %}Categoría: {{ documento.categoria.nombre }}{% else %}General del torneo{% endif %}</span>
                         {% if documento.descripcion %}<span>{{ documento.descripcion }}</span>{% endif %}
                     </div>
                     <em>Ver</em>
@@ -5449,6 +5450,7 @@ body.solo-lectura .menu-principal{top:96px!important}
                 <a class="documento-card" href="{% if documento.id %}{% url 'documento_publico' documento.id %}{% else %}{{ documento.archivo }}{% endif %}" target="_blank" rel="noopener">
                     <div>
                         <strong>{{ documento.titulo }}</strong>
+                        <span>{% if documento.categoria %}Categoría: {{ documento.categoria.nombre }}{% else %}General del torneo{% endif %}</span>
                         {% if documento.descripcion %}<span>{{ documento.descripcion }}</span>{% endif %}
                     </div>
                     <em>Ver</em>
@@ -5466,6 +5468,7 @@ body.solo-lectura .menu-principal{top:96px!important}
                 <a class="documento-card" href="{% if documento.id %}{% url 'documento_publico' documento.id %}{% else %}{{ documento.archivo }}{% endif %}" target="_blank" rel="noopener">
                     <div>
                         <strong>{{ documento.titulo }}</strong>
+                        <span>{% if documento.categoria %}Categoría: {{ documento.categoria.nombre }}{% else %}General del torneo{% endif %}</span>
                         {% if documento.descripcion %}<span>{{ documento.descripcion }}</span>{% endif %}
                     </div>
                     <em>Ver</em>
@@ -5483,6 +5486,7 @@ body.solo-lectura .menu-principal{top:96px!important}
                 <a class="documento-card" href="{% if documento.id %}{% url 'documento_publico' documento.id %}{% else %}{{ documento.archivo }}{% endif %}" target="_blank" rel="noopener">
                     <div>
                         <strong>{{ documento.titulo }}</strong>
+                        <span>{% if documento.categoria %}Categoría: {{ documento.categoria.nombre }}{% else %}General del torneo{% endif %}</span>
                         {% if documento.descripcion %}<span>{{ documento.descripcion }}</span>{% endif %}
                     </div>
                     <em>Ver</em>
@@ -5535,6 +5539,7 @@ body.solo-lectura .menu-principal{top:96px!important}
                 <a class="documento-card" href="{% url 'documento_publico' documento.id %}" target="_blank" rel="noopener">
                     <div>
                         <strong>{{ documento.titulo }}</strong>
+                        <span>{% if documento.categoria %}Categoría: {{ documento.categoria.nombre }}{% else %}General del torneo{% endif %}</span>
                         {% if documento.descripcion %}<span>{{ documento.descripcion }}</span>{% endif %}
                     </div>
                     <em>Ver</em>

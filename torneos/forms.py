@@ -135,6 +135,7 @@ class DocumentoForm(forms.ModelForm):
         model = Documento
         fields = [
             "torneo",
+            "categoria",
             "tipo",
             "titulo",
             "descripcion",
@@ -156,8 +157,25 @@ class DocumentoForm(forms.ModelForm):
         if torneo:
             self.fields["torneo"].queryset = Torneo.objects.filter(id=torneo.id)
             self.fields["torneo"].initial = torneo
+            self.fields["categoria"].queryset = Categoria.objects.filter(torneo=torneo).order_by("nombre")
+        else:
+            self.fields["categoria"].queryset = Categoria.objects.none()
+        self.fields["categoria"].required = False
+        self.fields["categoria"].empty_label = "Documento general del torneo (sin categoría)"
+        self.fields["categoria"].help_text = (
+            "Selecciona una categoría si el documento aplica solo a ella. "
+            "Déjalo vacío si aplica a todo el torneo."
+        )
         if not self.instance.pk:
             self.fields["archivo_subido"].required = True
+
+    def clean(self):
+        cleaned_data = super().clean()
+        torneo = cleaned_data.get("torneo")
+        categoria = cleaned_data.get("categoria")
+        if torneo and categoria and categoria.torneo_id != torneo.id:
+            self.add_error("categoria", "La categoría seleccionada no pertenece a este torneo.")
+        return cleaned_data
 
 
 class MultipleFileInput(forms.ClearableFileInput):
