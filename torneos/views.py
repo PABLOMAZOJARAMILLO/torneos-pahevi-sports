@@ -1342,9 +1342,13 @@ def subir_documento_supabase(archivo, tipo):
     if not all([bucket, endpoint_url, access_key, secret_key, public_base]):
         return ""
 
-    nombre_archivo = limpiar_ruta_cloudinary(os.path.splitext(archivo.name)[0])
+    # Supabase S3 puede rechazar claves con caracteres no ASCII (por ejemplo Ñ).
+    # El título y el archivo original no cambian; solo normalizamos la ruta interna.
+    nombre_archivo = slugify(os.path.splitext(archivo.name)[0], allow_unicode=False).replace("-", "_").upper()
+    nombre_archivo = nombre_archivo or "DOCUMENTO"
+    carpeta_tipo = slugify(tipo, allow_unicode=False).replace("-", "_").upper() or "OTRO"
     extension = os.path.splitext(archivo.name)[1].lower() or ".pdf"
-    llave = f"documentos/{limpiar_ruta_cloudinary(tipo)}/{uuid.uuid4().hex}_{nombre_archivo}{extension}"
+    llave = f"documentos/{carpeta_tipo}/{uuid.uuid4().hex}_{nombre_archivo}{extension}"
 
     cliente = boto3.client(
         "s3",

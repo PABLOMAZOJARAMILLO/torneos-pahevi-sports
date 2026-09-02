@@ -23,7 +23,7 @@ from .middleware import AuditoriaModificacionesMiddleware
 from .media_cleanup import eliminar_imagenes_sin_referencia, nombres_imagenes_instancias
 from .planillas_pdf import _dorsal, _edad, _header_image_sources, _jugadores, _team_shield_source, _draw_team_watermark, _titulo_planilla, _nombre_jugador_planilla
 from .storage_backends import CloudinaryMediaStorage
-from .views import DocumentoStorageError, buscar_planilleros_excel, construir_estructura, construir_estadisticas_foraneos, construir_partidos_portada, construir_partidos_programacion, enriquecer_registros_actividad_legacy, fechas_presentes_en_programacion, foraneos_no_habilitados_fase_final, _clave_orden_evento_resumen, _equipo_turno_tanda, _minuto_evento_en_vivo, _sincronizar_no_disponibles_por_tarjetas, etiqueta_columna_planilla, etiqueta_edad_jugador, jugadores_actuales_en_cancha, nombre_corto_jugador, nombre_resumen_jugador, puede_descargar_programacion, podios_torneo, politica_reemplazo_jugador, reglas_edad_para_frontend, subir_documento_torneo, tercera_fecha_iniciada, texto_edad_jugador, tabla_general_mata_mata_ida_vuelta, url_imagen_cloudinary, validar_reglas_edad_titulares
+from .views import DocumentoStorageError, buscar_planilleros_excel, construir_estructura, construir_estadisticas_foraneos, construir_partidos_portada, construir_partidos_programacion, enriquecer_registros_actividad_legacy, fechas_presentes_en_programacion, foraneos_no_habilitados_fase_final, _clave_orden_evento_resumen, _equipo_turno_tanda, _minuto_evento_en_vivo, _sincronizar_no_disponibles_por_tarjetas, etiqueta_columna_planilla, etiqueta_edad_jugador, jugadores_actuales_en_cancha, nombre_corto_jugador, nombre_resumen_jugador, puede_descargar_programacion, podios_torneo, politica_reemplazo_jugador, reglas_edad_para_frontend, subir_documento_supabase, subir_documento_torneo, tercera_fecha_iniciada, texto_edad_jugador, tabla_general_mata_mata_ida_vuelta, url_imagen_cloudinary, validar_reglas_edad_titulares
 
 
 class VisibilidadPublicaTorneoTests(TestCase):
@@ -919,6 +919,30 @@ class DocumentosTorneoTests(TestCase):
 
 
 class AlmacenamientoDocumentosTests(TestCase):
+    @patch.dict(os.environ, {
+        "SUPABASE_STORAGE_BUCKET": "torneos-media",
+        "SUPABASE_S3_ENDPOINT_URL": "https://example.supabase.co/storage/v1/s3",
+        "SUPABASE_S3_ACCESS_KEY_ID": "access",
+        "SUPABASE_S3_SECRET_ACCESS_KEY": "secret",
+        "SUPABASE_S3_REGION_NAME": "us-east-1",
+        "SUPABASE_PUBLIC_MEDIA_URL": "https://example.supabase.co/storage/v1/object/public/torneos-media",
+    })
+    @patch("boto3.client")
+    def test_normaliza_nombre_con_enie_en_clave_supabase(self, cliente_boto):
+        archivo = SimpleUploadedFile(
+            "COMUNICADO 002 TORNEO FIN DE AÑO 2026.pdf",
+            b"%PDF-1.4",
+            content_type="application/pdf",
+        )
+
+        url = subir_documento_supabase(archivo, "COMUNICADO")
+
+        llave = cliente_boto.return_value.upload_fileobj.call_args.args[2]
+        self.assertTrue(llave.isascii())
+        self.assertIn("ANO_2026.pdf", llave)
+        self.assertNotIn("Ñ", llave)
+        self.assertIn(llave, url)
+
     @patch("torneos.views.subir_documento_cloudinary", return_value="https://cloudinary.example/documento.pdf")
     @patch("torneos.views.subir_documento_supabase", side_effect=RuntimeError("PutObject rechazado"))
     def test_usa_cloudinary_si_supabase_rechaza_putobject(self, _supabase, cloudinary):
