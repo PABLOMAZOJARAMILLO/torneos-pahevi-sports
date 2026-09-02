@@ -54,6 +54,12 @@ class VisibilidadPublicaTorneoTests(TestCase):
         self.assertContains(respuesta, "Copa pública")
         self.assertNotContains(respuesta, "Copa privada")
 
+    def test_portal_publico_abre_con_el_almacenamiento_estatico_de_produccion(self):
+        respuesta = self.client.get("/?portal=1")
+
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertContains(respuesta, '<link rel="manifest" href="/static/manifest.')
+
     def test_enlace_directo_de_partido_oculto_no_es_publico(self):
         self.assertEqual(self.client.get(f"/partido/{self.partido_oculto.id}/live/").status_code, 404)
         self.assertEqual(self.client.get(f"/partido/{self.partido_oculto.id}/live/revision/").status_code, 404)
