@@ -3421,6 +3421,41 @@ class PlanilleroPartidoTests(TestCase):
         self.assertEqual(fila_local["pj"], 1)
         self.assertEqual(estructura["Senior"]["goleadores_planilla"][0]["total"], 2)
 
+    def test_autogol_aparece_como_ag_y_no_suma_al_total_del_goleador(self):
+        self.partido.estado = "FINALIZADO"
+        self.partido.estadisticas_validadas = True
+        self.partido.save(update_fields=["estado", "estadisticas_validadas"])
+        Gol.objects.create(
+            partido=self.partido,
+            equipo=self.local,
+            jugador=self.jugador,
+            cantidad=1,
+            es_autogol=True,
+        )
+
+        goleadores = construir_estructura(self.torneo)["Senior"]["goleadores_planilla"]
+
+        self.assertEqual(len(goleadores), 1)
+        self.assertEqual(goleadores[0]["celdas"][0], "AG")
+        self.assertEqual(goleadores[0]["total"], 0)
+
+    def test_gol_normal_y_autogol_en_la_misma_fecha_solo_suman_el_gol_normal(self):
+        self.partido.estado = "FINALIZADO"
+        self.partido.estadisticas_validadas = True
+        self.partido.save(update_fields=["estado", "estadisticas_validadas"])
+        Gol.objects.create(
+            partido=self.partido, equipo=self.local, jugador=self.jugador, cantidad=2,
+        )
+        Gol.objects.create(
+            partido=self.partido, equipo=self.local, jugador=self.jugador,
+            cantidad=1, es_autogol=True,
+        )
+
+        goleador = construir_estructura(self.torneo)["Senior"]["goleadores_planilla"][0]
+
+        self.assertEqual(goleador["celdas"][0], "2 AG")
+        self.assertEqual(goleador["total"], 2)
+
 
 class OrdenFechasFaseUnoTests(TestCase):
     def test_fechas_fase_uno_se_ordenan_numericamente(self):

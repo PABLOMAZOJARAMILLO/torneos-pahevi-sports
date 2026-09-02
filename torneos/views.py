@@ -2253,6 +2253,7 @@ def construir_estructura(torneo=None):
         "equipo": "",
         "escudo": "",
         "valores": defaultdict(int),
+        "autogoles": set(),
         "total": 0,
     }))
 
@@ -2279,8 +2280,11 @@ def construir_estructura(torneo=None):
         data["jugador"] = jugador
         data["equipo"] = gol.equipo.nombre
         data["escudo"] = escudo_url(gol.equipo)
-        data["valores"][columna] += cantidad
-        data["total"] += cantidad
+        if gol.es_autogol:
+            data["autogoles"].add(columna)
+        else:
+            data["valores"][columna] += cantidad
+            data["total"] += cantidad
 
         if columna not in columnas_por_categoria[categoria]:
             columnas_por_categoria[categoria].append(columna)
@@ -2462,7 +2466,15 @@ def construir_estructura(torneo=None):
             }
 
             for col in columnas_ordenadas:
-                fila["celdas"].append(jugador["valores"].get(col, ""))
+                goles = jugador["valores"].get(col, 0)
+                tiene_autogol = col in jugador["autogoles"]
+                if goles and tiene_autogol:
+                    valor = f"{goles} AG"
+                elif tiene_autogol:
+                    valor = "AG"
+                else:
+                    valor = goles or ""
+                fila["celdas"].append(valor)
 
             goleadores.append(fila)
 
