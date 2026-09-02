@@ -420,6 +420,7 @@
         const formationSelect = form.querySelector('[data-formacion-select]');
         const field = form.querySelector('[data-cancha-delegado]');
         const formationStorageKey = 'formacion-alineacion-{{ partido.id }}-{{ equipo.id }}';
+        const offlineDraftKey = 'pahevi-alineacion-offline-{{ partido.id }}-{{ equipo.id }}';
         let saveTimer = null;
         let saving = false;
         let finalSending = false;
@@ -490,10 +491,43 @@
             return (parts.slice(0, 3).join(' ') || 'Seleccionar').toUpperCase();
         }
 
+        function guardarBorradorLocal() {
+            const data = new FormData(form);
+            data.set('accion', 'guardar_borrador');
+            localStorage.setItem(offlineDraftKey, JSON.stringify({
+                guardadoEn: Date.now(),
+                valores: Array.from(data.entries()).map(([nombre, valor]) => [nombre, String(valor)])
+            }));
+        }
+
+        function restaurarBorradorLocal() {
+            let borrador = null;
+            try { borrador = JSON.parse(localStorage.getItem(offlineDraftKey) || 'null'); } catch (error) {}
+            if (!borrador || !Array.isArray(borrador.valores)) return false;
+            if (!borrador.guardadoEn || Date.now() - borrador.guardadoEn > 12 * 60 * 60 * 1000) {
+                localStorage.removeItem(offlineDraftKey);
+                return false;
+            }
+            const valores = new Map();
+            borrador.valores.forEach(([nombre, valor]) => {
+                if (!valores.has(nombre)) valores.set(nombre, []);
+                valores.get(nombre).push(valor);
+            });
+            Array.from(form.elements).forEach((campo) => {
+                if (!campo.name || campo.name === 'csrfmiddlewaretoken' || !valores.has(campo.name)) return;
+                const guardados = valores.get(campo.name);
+                if (campo.type === 'radio' || campo.type === 'checkbox') campo.checked = guardados.includes(campo.value);
+                else campo.value = guardados[guardados.length - 1];
+            });
+            if (saveStatus) saveStatus.textContent = 'Borrador recuperado de este celular.';
+            return true;
+        }
+
         async function saveDraft(useKeepalive) {
             if (saving || finalSending) return;
             saving = true;
             if (saveStatus) saveStatus.textContent = 'Guardando borrador...';
+            guardarBorradorLocal();
             const data = new FormData(form);
             data.set('accion', 'guardar_borrador');
             try {
@@ -504,9 +538,10 @@
                     keepalive: Boolean(useKeepalive),
                 });
                 if (!response.ok) throw new Error('No se pudo guardar');
+                localStorage.removeItem(offlineDraftKey);
                 if (saveStatus) saveStatus.textContent = 'Borrador guardado automáticamente.';
             } catch (error) {
-                if (saveStatus) saveStatus.textContent = 'No se pudo autoguardar. Usa “Guardar borrador”.';
+                if (saveStatus) saveStatus.textContent = 'Sin señal: borrador guardado en este celular.';
             } finally {
                 saving = false;
             }
@@ -515,6 +550,7 @@
         function scheduleSave() {
             if (finalSending) return;
             window.clearTimeout(saveTimer);
+            guardarBorradorLocal();
             if (saveStatus) saveStatus.textContent = 'Cambios pendientes de guardar...';
             saveTimer = window.setTimeout(function () { saveDraft(false); }, 1800);
         }
@@ -729,6 +765,20 @@
             });
         }
 
+        form.addEventListener('submit', function (event) {
+            if (navigator.onLine) return;
+            event.preventDefault();
+            finalSending = false;
+            window.clearTimeout(saveTimer);
+            guardarBorradorLocal();
+            if (saveStatus) saveStatus.textContent = 'Sin señal: borrador guardado en este celular.';
+            window.alert('No hay señal. La alineación quedó guardada como borrador en este celular. Cuando vuelva internet, revisa y pulsa nuevamente “Enviar alineación definitiva”.');
+        });
+
+        window.addEventListener('online', function () {
+            if (localStorage.getItem(offlineDraftKey)) saveDraft(false);
+        });
+
         document.addEventListener('visibilitychange', function () {
             if (document.visibilityState === 'hidden' && !finalSending) {
                 window.clearTimeout(saveTimer);
@@ -736,6 +786,7 @@
             }
         });
 
+        restaurarBorradorLocal();
         syncOptions();
     })();
 </script>

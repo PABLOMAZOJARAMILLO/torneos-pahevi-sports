@@ -189,6 +189,13 @@
             .row { align-items: flex-start; flex-direction: column; }
             .row .btn { width: 100%; }
         }
+        .estado-conexion {
+            position: fixed; left: 50%; bottom: 14px; z-index: 9999;
+            transform: translateX(-50%); padding: 9px 14px; border-radius: 999px;
+            background: #b91c1c; color: #fff; font-size: 12px; font-weight: 900;
+            box-shadow: 0 6px 18px rgba(0,0,0,.3);
+        }
+        .estado-conexion[hidden] { display: none; }
     </style>
 </head>
 <body>
@@ -225,5 +232,23 @@
 
     {% block content %}{% endblock %}
 </main>
+<div class="estado-conexion" data-estado-conexion hidden>Sin conexión · los cambios se guardan en este celular</div>
+<script>
+(function () {
+    const aviso = document.querySelector('[data-estado-conexion]');
+    function actualizarConexion() {
+        if (aviso) aviso.hidden = navigator.onLine;
+        document.documentElement.dataset.conexion = navigator.onLine ? 'online' : 'offline';
+    }
+    window.addEventListener('online', actualizarConexion);
+    window.addEventListener('offline', actualizarConexion);
+    actualizarConexion();
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function () {
+            navigator.serviceWorker.register('/sw.js').catch(function () {});
+        });
+    }
+})();
+</script>
 </body>
 </html>

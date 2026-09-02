@@ -69,6 +69,16 @@ class VisibilidadPublicaTorneoTests(TestCase):
         self.assertEqual(respuesta.json()["name"], "TORNEOS PAHEVI SPORTS")
         self.assertEqual(respuesta.json()["short_name"], "PAHEVI")
 
+    def test_service_worker_conserva_paginas_visitadas_para_uso_offline(self):
+        respuesta = self.client.get("/sw.js")
+
+        self.assertEqual(respuesta.status_code, 200)
+        contenido = respuesta.content.decode("utf-8")
+        self.assertIn("pahevi-offline-v1", contenido)
+        self.assertIn("request.mode === 'navigate'", contenido)
+        self.assertIn("caches.match(request)", contenido)
+        self.assertIn("Sin conexión", contenido)
+
     def test_enlace_directo_de_partido_oculto_no_es_publico(self):
         self.assertEqual(self.client.get(f"/partido/{self.partido_oculto.id}/live/").status_code, 404)
         self.assertEqual(self.client.get(f"/partido/{self.partido_oculto.id}/live/revision/").status_code, 404)
