@@ -58,7 +58,16 @@ class VisibilidadPublicaTorneoTests(TestCase):
         respuesta = self.client.get("/?portal=1")
 
         self.assertEqual(respuesta.status_code, 200)
-        self.assertContains(respuesta, '<link rel="manifest" href="/static/manifest.')
+        self.assertContains(respuesta, '<link rel="manifest" href="/manifest.webmanifest?v=pahevi-2026">')
+
+    def test_manifiesto_instalable_usa_identidad_pahevi_y_no_cache(self):
+        respuesta = self.client.get("/manifest.webmanifest")
+
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertEqual(respuesta["Content-Type"], "application/manifest+json")
+        self.assertIn("no-store", respuesta["Cache-Control"])
+        self.assertEqual(respuesta.json()["name"], "TORNEOS PAHEVI SPORTS")
+        self.assertEqual(respuesta.json()["short_name"], "PAHEVI")
 
     def test_enlace_directo_de_partido_oculto_no_es_publico(self):
         self.assertEqual(self.client.get(f"/partido/{self.partido_oculto.id}/live/").status_code, 404)

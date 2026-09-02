@@ -975,6 +975,29 @@ def service_worker(request):
     return response
 
 
+def manifest_webapp(request):
+    """Entrega siempre la identidad vigente de la aplicación instalable."""
+    response = JsonResponse({
+        "name": "TORNEOS PAHEVI SPORTS",
+        "short_name": "PAHEVI",
+        "id": "/",
+        "start_url": "/",
+        "scope": "/",
+        "display": "standalone",
+        "display_override": ["standalone", "minimal-ui"],
+        "background_color": "#07111f",
+        "theme_color": "#07111f",
+        "orientation": "portrait",
+        "icons": [
+            {"src": "/static/torneos/img/icono-192.png", "sizes": "192x192", "type": "image/png"},
+            {"src": "/static/torneos/img/icono-512.png", "sizes": "512x512", "type": "image/png"},
+        ],
+    })
+    response["Content-Type"] = "application/manifest+json"
+    response["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    return response
+
+
 def torneo_actual(request, auto_seleccionar=True):
     torneos = torneos_para_usuario(request)
     torneo_id = request.GET.get("torneo") or request.session.get("torneo_id")
