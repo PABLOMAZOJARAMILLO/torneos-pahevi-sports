@@ -85,6 +85,36 @@
         color: #bbf7d0;
         font-size: 13px;
     }
+    .miembro-cuerpo {
+        margin: 18px 0;
+        padding: 16px;
+        border: 2px solid rgba(0, 255, 102, 0.38);
+        border-radius: 16px;
+        background: linear-gradient(145deg, rgba(16, 36, 55, 0.98), rgba(8, 22, 39, 0.98));
+        box-shadow: 0 9px 22px rgba(0, 0, 0, 0.24);
+    }
+    .miembro-cuerpo__titulo {
+        display: flex;
+        align-items: center;
+        gap: 11px;
+        margin: 0 0 12px;
+        padding-bottom: 11px;
+        border-bottom: 1px solid rgba(187, 247, 208, 0.25);
+        color: #ffffff;
+        font-size: 19px;
+    }
+    .miembro-cuerpo__sigla {
+        display: inline-flex;
+        width: 42px;
+        height: 42px;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        background: #00e565;
+        color: #04150c;
+        font-size: 14px;
+        font-weight: 1000;
+    }
     @media (max-width: 640px) {
         .escudo-preview-card { align-items: flex-start; }
         .escudo-preview {
@@ -113,6 +143,16 @@
 <form method="post" enctype="multipart/form-data">
     {% csrf_token %}
     {% for field in form %}
+        {% if field.name == "director_tecnico" %}
+            <section class="miembro-cuerpo" data-miembro-cuerpo="DT">
+                <h2 class="miembro-cuerpo__titulo"><span class="miembro-cuerpo__sigla">DT</span> Director técnico</h2>
+        {% elif field.name == "asistente_tecnico" %}
+            <section class="miembro-cuerpo" data-miembro-cuerpo="AT">
+                <h2 class="miembro-cuerpo__titulo"><span class="miembro-cuerpo__sigla">AT</span> Asistente técnico</h2>
+        {% elif field.name == "auxiliar_campo" %}
+            <section class="miembro-cuerpo" data-miembro-cuerpo="AC">
+                <h2 class="miembro-cuerpo__titulo"><span class="miembro-cuerpo__sigla">AC</span> Auxiliar de campo</h2>
+        {% endif %}
         <label for="{{ field.id_for_label }}">{{ field.label }}</label>
         {{ field }}
         {% if field.help_text %}
@@ -121,6 +161,9 @@
         {% for error in field.errors %}
             <div class="message">{{ error }}</div>
         {% endfor %}
+        {% if field.name == "foto_director_tecnico" or field.name == "foto_asistente_tecnico" or field.name == "telefono_ac" %}
+            </section>
+        {% endif %}
     {% endfor %}
 
     {% if cloudinary_images %}

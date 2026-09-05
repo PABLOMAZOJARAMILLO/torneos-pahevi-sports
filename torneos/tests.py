@@ -5429,6 +5429,22 @@ class ImportacionJugadoresPlanillaTests(TestCase):
         archivo.seek(0)
         return archivo
 
+    def test_formulario_equipo_separa_visualmente_dt_at_y_ac(self):
+        self.client.force_login(self.admin)
+        session = self.client.session
+        session["torneo_id"] = self.torneo.id
+        session.save()
+
+        respuesta = self.client.get(f"/gestion/equipos/{self.equipo.id}/editar/")
+
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertContains(respuesta, 'data-miembro-cuerpo="DT"')
+        self.assertContains(respuesta, 'data-miembro-cuerpo="AT"')
+        self.assertContains(respuesta, 'data-miembro-cuerpo="AC"')
+        self.assertContains(respuesta, "Director técnico")
+        self.assertContains(respuesta, "Asistente técnico")
+        self.assertContains(respuesta, "Auxiliar de campo")
+
     def test_importar_planilla_elimina_jugadores_que_no_vienen_en_excel(self):
         Jugador.objects.create(
             equipo=self.equipo,

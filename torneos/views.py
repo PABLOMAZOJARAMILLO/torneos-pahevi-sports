@@ -6201,6 +6201,7 @@ def delegado_equipo_editar(request, equipo_id):
         "escudo_actual": escudo_url(equipo),
         "cloudinary_images": listar_imagenes_cloudinary(),
         "cloudinary_label": "Seleccionar escudo existente de Cloudinary",
+        "agrupar_cuerpo_tecnico": True,
     })
 
 
@@ -8793,6 +8794,7 @@ def gestion_equipo_nuevo(request):
         "volver_url": "gestion_equipos",
         "cloudinary_images": listar_imagenes_cloudinary(),
         "cloudinary_label": "Seleccionar escudo existente de Cloudinary",
+        "agrupar_cuerpo_tecnico": True,
     })
 
 
@@ -8829,6 +8831,7 @@ def gestion_equipo_editar(request, equipo_id):
         "volver_url": "gestion_equipos",
         "cloudinary_images": listar_imagenes_cloudinary(),
         "cloudinary_label": "Seleccionar escudo existente de Cloudinary",
+        "agrupar_cuerpo_tecnico": True,
     })
 
 
