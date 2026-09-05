@@ -90,6 +90,23 @@
             border-radius: 16px;
             font-size: 10px;
         }
+        .reloj-visible-editor {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 9px;
+            width: fit-content;
+            margin: 7px auto 1px;
+            padding: 6px 12px;
+            border-radius: 999px;
+            background: #071b36;
+            color: #fff;
+            font-weight: 900;
+            box-shadow: 0 4px 12px rgba(0,0,0,.22);
+        }
+        .reloj-visible-editor .periodo { color: #00ff66; font-size: 11px; }
+        .reloj-visible-editor .tiempo { min-width: 66px; font-size: 19px; letter-spacing: 1px; }
+        .reloj-visible-editor .estado { color: #cbd5e1; font-size: 9px; }
         .tabs {
             display: flex;
             gap: 6px;
@@ -882,6 +899,15 @@
                 <div class="equipo-editor">{{ partido.equipo_visitante.nombre }}</div>
             </div>
             <div class="estado-chip">{{ partido.estado }}</div>
+            <div class="reloj-visible-editor"
+                 data-reloj-editor
+                 data-segundos="{{ segundos_vivos|default:0 }}"
+                 data-activo="{% if incidencia_reloj_activo %}1{% else %}0{% endif %}"
+                 data-periodo="{{ partido.periodo_en_vivo|default:'' }}">
+                <span class="periodo" data-reloj-periodo>Sin iniciar</span>
+                <strong class="tiempo" data-reloj-tiempo>00:00</strong>
+                <span class="estado" data-reloj-estado>Pausado</span>
+            </div>
         </div>
 
         {% if not partido.estadisticas_validadas %}
@@ -2091,6 +2117,29 @@ document.querySelectorAll('input, select, textarea').forEach(function(campo) {
 });
 
 document.addEventListener('DOMContentLoaded', function() {
+    const relojEditor = document.querySelector('[data-reloj-editor]');
+    if (relojEditor) {
+        const segundosIniciales = Math.max(0, Number(relojEditor.dataset.segundos || 0));
+        const activo = relojEditor.dataset.activo === '1';
+        const iniciadoEnCliente = Date.now();
+        const periodo = relojEditor.dataset.periodo || '';
+        const etiquetas = {PT: '1T', ET: 'ENTRETIEMPO', ST: '2T', PEN: 'PENALES', FIN: 'FINALIZADO'};
+        const textoTiempo = relojEditor.querySelector('[data-reloj-tiempo]');
+        const textoPeriodo = relojEditor.querySelector('[data-reloj-periodo]');
+        const textoEstado = relojEditor.querySelector('[data-reloj-estado]');
+        const refrescarRelojEditor = function() {
+            const transcurridos = activo ? Math.floor((Date.now() - iniciadoEnCliente) / 1000) : 0;
+            const total = segundosIniciales + transcurridos;
+            const minutos = Math.floor(total / 60);
+            const segundos = total % 60;
+            textoTiempo.textContent = String(minutos).padStart(2, '0') + ':' + String(segundos).padStart(2, '0');
+            textoPeriodo.textContent = etiquetas[periodo] || 'SIN INICIAR';
+            textoEstado.textContent = activo ? 'EN CURSO' : (periodo === 'FIN' ? 'CERRADO' : 'PAUSADO');
+        };
+        refrescarRelojEditor();
+        if (activo) window.setInterval(refrescarRelojEditor, 1000);
+    }
+
     document.querySelectorAll('[data-incidencia-abierta]').forEach(function(fila) {
         const inicio = Number(fila.dataset.inicioSegundos || 0);
         const actuales = Number(fila.dataset.segundosActuales || 0);

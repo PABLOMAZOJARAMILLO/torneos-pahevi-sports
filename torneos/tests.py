@@ -2538,8 +2538,32 @@ class PlanilleroPartidoTests(TestCase):
 
         respuesta = self.client.get(f"/partido/{self.partido.id}/editor-movil/")
 
-        self.assertContains(respuesta, '<details class="card cronometro-card">')
+        self.assertContains(respuesta, '<details class="card cronometro-card"')
         self.assertContains(respuesta, "<summary>Cronometro en vivo</summary>")
+
+    @override_settings(STORAGES={
+        "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+        "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
+    })
+    def test_editor_movil_muestra_tiempo_y_periodo_siempre_visibles(self):
+        self.partido.estado = "EN_JUEGO"
+        self.partido.periodo_en_vivo = "ST"
+        self.partido.segundos_acumulados = (63 * 60) + 17
+        self.partido.cronometro_pausado = True
+        self.partido.inicio_en_vivo = None
+        self.partido.save(update_fields=[
+            "estado", "periodo_en_vivo", "segundos_acumulados",
+            "cronometro_pausado", "inicio_en_vivo",
+        ])
+        self.client.force_login(self.planillero)
+
+        respuesta = self.client.get(f"/partido/{self.partido.id}/editor-movil/")
+
+        self.assertContains(respuesta, "data-reloj-editor")
+        self.assertContains(respuesta, 'data-segundos="3797"')
+        self.assertContains(respuesta, 'data-periodo="ST"')
+        self.assertContains(respuesta, "data-reloj-tiempo")
+        self.assertContains(respuesta, "refrescarRelojEditor")
 
     @override_settings(STORAGES={
         "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
