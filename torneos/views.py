@@ -1015,8 +1015,39 @@ def torneo_actual(request, auto_seleccionar=True):
     return torneo
 
 
-def listar_imagenes_cloudinary(max_results=80):
+def ids_imagenes_del_torneo(torneo):
+    if not torneo:
+        return set()
+
+    ids = set()
+
+    def agregar(valor):
+        nombre = str(getattr(valor, "name", valor) or "").strip()
+        if nombre:
+            ids.add(nombre)
+
+    for campo in ("logo_portada", "logo_izquierdo", "imagen_central", "logo_derecho"):
+        agregar(getattr(torneo, campo, None))
+    if torneo.organizador_id:
+        agregar(torneo.organizador.logo)
+        agregar(torneo.organizador.portada)
+
+    equipos = Equipo.objects.filter(categoria__torneo=torneo)
+    for equipo in equipos:
+        for campo in ("escudo", "foto_delegado", "foto_administrador_app", "foto_director_tecnico", "foto_asistente_tecnico"):
+            agregar(getattr(equipo, campo, None))
+    for foto in Jugador.objects.filter(equipo__categoria__torneo=torneo).values_list("foto", flat=True):
+        agregar(foto)
+
+    return ids
+
+
+def listar_imagenes_cloudinary(max_results=80, torneo=None, incluir_global=False):
     imagenes = []
+    ids_permitidos = ids_imagenes_del_torneo(torneo) if torneo and not incluir_global else None
+    prefijo_torneo = ""
+    if torneo and not incluir_global:
+        prefijo_torneo = f"torneos/{limpiar_ruta_cloudinary(torneo.nombre)}/"
 
     if getattr(settings, "USE_CLOUDINARY_STORAGE", False):
         try:
@@ -1040,6 +1071,8 @@ def listar_imagenes_cloudinary(max_results=80):
                     continue
                 if public_id.startswith("documentos/"):
                     continue
+                if ids_permitidos is not None and public_id not in ids_permitidos and not public_id.startswith(prefijo_torneo):
+                    continue
 
                 url = url_imagen_cloudinary(public_id, ancho=320)
                 if not url:
@@ -1058,10 +1091,10 @@ def listar_imagenes_cloudinary(max_results=80):
     if imagenes:
         return imagenes
 
-    return listar_imagenes_usadas()
+    return listar_imagenes_usadas(torneo=None if incluir_global else torneo)
 
 
-def listar_imagenes_usadas():
+def listar_imagenes_usadas(torneo=None):
     imagenes = []
     vistos = set()
 
@@ -1078,13 +1111,36 @@ def listar_imagenes_usadas():
             "nombre": nombre.rsplit("/", 1)[-1],
         })
 
-    for equipo in Equipo.objects.exclude(escudo="").exclude(escudo__isnull=True).order_by("nombre"):
+    if torneo:
+        for campo in ("logo_portada", "logo_izquierdo", "imagen_central", "logo_derecho"):
+            archivo = getattr(torneo, campo, None)
+            if archivo:
+                try:
+                    agregar(archivo.name, archivo.url)
+                except Exception:
+                    continue
+        if torneo.organizador_id:
+            for campo in ("logo", "portada"):
+                archivo = getattr(torneo.organizador, campo, None)
+                if archivo:
+                    try:
+                        agregar(archivo.name, archivo.url)
+                    except Exception:
+                        continue
+
+    equipos = Equipo.objects.exclude(escudo="").exclude(escudo__isnull=True).order_by("nombre")
+    jugadores = Jugador.objects.exclude(foto="").exclude(foto__isnull=True).order_by("nombres")
+    if torneo:
+        equipos = equipos.filter(categoria__torneo=torneo)
+        jugadores = jugadores.filter(equipo__categoria__torneo=torneo)
+
+    for equipo in equipos:
         try:
             agregar(equipo.escudo.name, equipo.escudo.url)
         except Exception:
             continue
 
-    for jugador in Jugador.objects.exclude(foto="").exclude(foto__isnull=True).order_by("nombres"):
+    for jugador in jugadores:
         try:
             agregar(jugador.foto.name, jugador.foto.url)
         except Exception:
@@ -1125,7 +1181,7 @@ def gestion_biblioteca_cloudinary(request):
     torneo = torneo_actual(request)
     if not puede_gestionar_torneo(request, torneo, "editar"):
         return denegar_permiso_torneo()
-    imagenes = listar_imagenes_cloudinary(500)
+    imagenes = listar_imagenes_cloudinary(500, incluir_global=True)
     q = request.GET.get("q", "").strip()
     equipos = Equipo.objects.select_related("categoria").order_by("categoria__nombre", "nombre")
     jugadores = Jugador.objects.select_related("equipo", "equipo__categoria").order_by("equipo__nombre", "nombres")
@@ -4434,8 +4490,8 @@ def construir_partidos_programacion(
         "equipo_visitante"
     ).order_by(
         "fecha",
-        "cancha",
         "hora",
+        "cancha",
         "categoria__nombre",
         "grupo",
         "fase"
@@ -6199,7 +6255,7 @@ def delegado_equipo_editar(request, equipo_id):
         "form": form,
         "jugadores": jugadores,
         "escudo_actual": escudo_url(equipo),
-        "cloudinary_images": listar_imagenes_cloudinary(),
+        "cloudinary_images": listar_imagenes_cloudinary(torneo=equipo.categoria.torneo),
         "cloudinary_label": "Seleccionar escudo existente de Cloudinary",
         "agrupar_cuerpo_tecnico": True,
     })
@@ -7744,22 +7800,20 @@ def _planillas_juego_para_usuario(user, torneo=None):
 
 
 def ordenar_partidos_gestion(partidos):
-    hoy = timezone.localdate()
     return partidos.annotate(
         _prioridad_gestion=Case(
             When(estado="EN_JUEGO", then=Value(0)),
-            When(estado__in=["PROGRAMADO", "APLAZADO", "SUSPENDIDO"], fecha__gte=hoy, then=Value(1)),
-            When(estado__in=["PROGRAMADO", "APLAZADO", "SUSPENDIDO"], then=Value(2)),
-            default=Value(3),
+            When(estado__in=["PROGRAMADO", "APLAZADO", "SUSPENDIDO"], then=Value(1)),
+            default=Value(2),
             output_field=IntegerField(),
         ),
         _fecha_futura=Case(
-            When(estado__in=["PROGRAMADO", "APLAZADO", "SUSPENDIDO"], fecha__gte=hoy, then=F("fecha")),
+            When(estado__in=["PROGRAMADO", "APLAZADO", "SUSPENDIDO"], then=F("fecha")),
             default=Value(None),
             output_field=DateField(),
         ),
         _hora_futura=Case(
-            When(estado__in=["PROGRAMADO", "APLAZADO", "SUSPENDIDO"], fecha__gte=hoy, then=F("hora")),
+            When(estado__in=["PROGRAMADO", "APLAZADO", "SUSPENDIDO"], then=F("hora")),
             default=Value(None),
             output_field=TimeField(),
         ),
@@ -8792,7 +8846,7 @@ def gestion_equipo_nuevo(request):
         "titulo": "Nuevo equipo",
         "form": form,
         "volver_url": "gestion_equipos",
-        "cloudinary_images": listar_imagenes_cloudinary(),
+        "cloudinary_images": listar_imagenes_cloudinary(torneo=torneo),
         "cloudinary_label": "Seleccionar escudo existente de Cloudinary",
         "agrupar_cuerpo_tecnico": True,
     })
@@ -8829,7 +8883,7 @@ def gestion_equipo_editar(request, equipo_id):
         "jugadores": jugadores,
         "estados_jugador": Jugador.ESTADOS,
         "volver_url": "gestion_equipos",
-        "cloudinary_images": listar_imagenes_cloudinary(),
+        "cloudinary_images": listar_imagenes_cloudinary(torneo=torneo_equipo),
         "cloudinary_label": "Seleccionar escudo existente de Cloudinary",
         "agrupar_cuerpo_tecnico": True,
     })
@@ -9227,7 +9281,7 @@ def gestion_jugador_nuevo(request):
             form.add_error("equipo", "Este equipo ya inició su fecha 3. Usa Reemplazar por fuerza mayor.")
             return render(request, "gestion/formulario.html", {
                 "titulo": "Nuevo jugador", "form": form, "volver_url": "gestion_jugadores",
-                "volver_href": volver_url, "cloudinary_images": listar_imagenes_cloudinary(),
+                "volver_href": volver_url, "cloudinary_images": listar_imagenes_cloudinary(torneo=torneo),
                 "cloudinary_label": "Seleccionar foto existente de Cloudinary",
             })
         jugador = form.save(commit=False)
@@ -9248,7 +9302,7 @@ def gestion_jugador_nuevo(request):
         "form": form,
         "volver_url": "gestion_jugadores",
         "volver_href": volver_url,
-        "cloudinary_images": listar_imagenes_cloudinary(),
+        "cloudinary_images": listar_imagenes_cloudinary(torneo=torneo),
         "cloudinary_label": "Seleccionar foto existente de Cloudinary",
     })
 
@@ -9281,7 +9335,7 @@ def gestion_jugador_editar(request, jugador_id):
             return render(request, "gestion/formulario.html", {
                 "titulo": f"Editar jugador: {jugador.nombres}", "form": form,
                 "volver_url": "gestion_jugadores", "volver_href": volver_url,
-                "cloudinary_images": listar_imagenes_cloudinary(),
+                "cloudinary_images": listar_imagenes_cloudinary(torneo=torneo),
                 "cloudinary_label": "Seleccionar foto existente de Cloudinary",
             })
         jugador = form.save(commit=False)
@@ -9302,7 +9356,7 @@ def gestion_jugador_editar(request, jugador_id):
         "form": form,
         "volver_url": "gestion_jugadores",
         "volver_href": volver_url,
-        "cloudinary_images": listar_imagenes_cloudinary(),
+        "cloudinary_images": listar_imagenes_cloudinary(torneo=torneo),
         "cloudinary_label": "Seleccionar foto existente de Cloudinary",
     })
 

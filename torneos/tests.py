@@ -23,7 +23,7 @@ from .middleware import AuditoriaModificacionesMiddleware
 from .media_cleanup import eliminar_imagenes_sin_referencia, nombres_imagenes_instancias
 from .planillas_pdf import _dorsal, _edad, _header_image_sources, _jugadores, _team_shield_source, _draw_team_watermark, _titulo_planilla, _nombre_jugador_planilla
 from .storage_backends import CloudinaryMediaStorage
-from .views import DocumentoStorageError, buscar_planilleros_excel, construir_estructura, construir_estadisticas_foraneos, construir_partidos_portada, construir_partidos_programacion, enriquecer_registros_actividad_legacy, fechas_presentes_en_programacion, foraneos_no_habilitados_fase_final, _clave_orden_evento_resumen, _equipo_turno_tanda, _minuto_evento_en_vivo, _sincronizar_no_disponibles_por_tarjetas, etiqueta_columna_planilla, etiqueta_edad_jugador, jugadores_actuales_en_cancha, nombre_corto_jugador, nombre_resumen_jugador, puede_descargar_programacion, podios_torneo, politica_reemplazo_jugador, reglas_edad_para_frontend, subir_documento_supabase, subir_documento_torneo, tercera_fecha_iniciada, texto_edad_jugador, tabla_general_mata_mata_ida_vuelta, url_imagen_cloudinary, validar_reglas_edad_titulares
+from .views import DocumentoStorageError, buscar_planilleros_excel, construir_estructura, construir_estadisticas_foraneos, construir_partidos_portada, construir_partidos_programacion, enriquecer_registros_actividad_legacy, fechas_presentes_en_programacion, foraneos_no_habilitados_fase_final, _clave_orden_evento_resumen, _equipo_turno_tanda, _minuto_evento_en_vivo, _sincronizar_no_disponibles_por_tarjetas, etiqueta_columna_planilla, etiqueta_edad_jugador, jugadores_actuales_en_cancha, listar_imagenes_usadas, nombre_corto_jugador, nombre_resumen_jugador, puede_descargar_programacion, podios_torneo, politica_reemplazo_jugador, reglas_edad_para_frontend, subir_documento_supabase, subir_documento_torneo, tercera_fecha_iniciada, texto_edad_jugador, tabla_general_mata_mata_ida_vuelta, url_imagen_cloudinary, validar_reglas_edad_titulares
 
 
 class VisibilidadPublicaTorneoTests(TestCase):
@@ -1278,6 +1278,30 @@ class PlanillasJuegoUploadTests(TestCase):
         self.assertTrue(all(partido.numero_fecha == "Fecha 1" for partido in partidos_filtrados))
         self.assertEqual(respuesta.context["fecha_fixture"], "Fecha 1")
         self.assertContains(respuesta, '<option value="Fecha 1" selected>Fecha 1</option>')
+
+    def test_gestion_partidos_ordena_programados_por_fecha_ascendente(self):
+        antiguo = Partido.objects.create(
+            categoria=self.categoria, equipo_local=self.equipo_local,
+            equipo_visitante=self.equipo_visitante,
+            fecha=date.today() - timedelta(days=10), hora=time(13, 30),
+            estado="PROGRAMADO", numero_fecha="Fecha 13",
+        )
+        futuro = Partido.objects.create(
+            categoria=self.categoria, equipo_local=self.equipo_local,
+            equipo_visitante=self.equipo_visitante,
+            fecha=date.today() + timedelta(days=4), hora=time(13, 30),
+            estado="PROGRAMADO", numero_fecha="Fecha 14",
+        )
+        administrador = User.objects.create_superuser("admin-orden-ascendente", "ascendente@example.com", "clave")
+        self.client.force_login(administrador)
+        session = self.client.session
+        session["torneo_id"] = self.torneo.id
+        session.save()
+
+        respuesta = self.client.get("/gestion/partidos/")
+        ids = [partido.id for partido in respuesta.context["partidos"]]
+
+        self.assertLess(ids.index(antiguo.id), ids.index(futuro.id))
 
     def test_gestion_partidos_considera_suspendido_reprogramado_como_proximo(self):
         suspendido = Partido.objects.create(
@@ -4389,6 +4413,27 @@ class DescargaProgramacionFiltrosTests(TestCase):
         self.assertEqual(respuesta.status_code, 200)
         html = crear_imagen.call_args.args[0]
         self.assertGreaterEqual(html.count('class="escudo-default"'), 2)
+        self.assertIn("escudo_default", html)
+
+    def test_programacion_ordena_por_hora_antes_que_por_cancha(self):
+        equipo_temprano = Equipo.objects.create(nombre="Equipo Temprano", categoria=self.categoria)
+        rival_temprano = Equipo.objects.create(nombre="Rival Temprano", categoria=self.categoria)
+        Partido.objects.create(
+            categoria=self.categoria,
+            equipo_local=equipo_temprano,
+            equipo_visitante=rival_temprano,
+            fecha=self.partido.fecha,
+            hora=time(9, 30),
+            estado="PROGRAMADO",
+            estado_programacion="OFICIAL",
+            numero_fecha="Fecha 1",
+            cancha="Puerto Libertador",
+        )
+
+        partidos = construir_partidos_programacion(self.client.get("/").wsgi_request, self.categoria)
+
+        self.assertEqual(partidos[0]["local"], "Equipo Temprano")
+        self.assertEqual(partidos[0]["hora_texto"], "9:30 AM")
 
     @patch("torneos.views.crear_imagen_desde_html")
     def test_programacion_categoria_omite_grupo_si_solo_existe_uno(self, crear_imagen):
@@ -5448,6 +5493,20 @@ class ImportacionJugadoresPlanillaTests(TestCase):
         self.assertContains(respuesta, "Auxiliar de campo")
         self.assertContains(respuesta, "Delegado")
         self.assertContains(respuesta, "Administrador de la app")
+
+    def test_biblioteca_del_formulario_solo_incluye_imagenes_del_torneo_actual(self):
+        self.equipo.escudo = "equipos/torneo-actual.png"
+        self.equipo.save(update_fields=["escudo"])
+        otro_torneo = Torneo.objects.create(nombre="Otro torneo", fecha_inicio=date(2027, 1, 1))
+        otra_categoria = Categoria.objects.create(
+            nombre="Otra categoría", torneo=otro_torneo, edad_minima=18, edad_maxima=80
+        )
+        Equipo.objects.create(nombre="Equipo externo", categoria=otra_categoria, escudo="equipos/otro-torneo.png")
+
+        ids = {imagen["public_id"] for imagen in listar_imagenes_usadas(self.torneo)}
+
+        self.assertIn("equipos/torneo-actual.png", ids)
+        self.assertNotIn("equipos/otro-torneo.png", ids)
 
     def test_importar_planilla_elimina_jugadores_que_no_vienen_en_excel(self):
         Jugador.objects.create(
