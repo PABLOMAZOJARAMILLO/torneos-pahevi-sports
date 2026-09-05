@@ -4367,6 +4367,30 @@ class DescargaProgramacionFiltrosTests(TestCase):
         self.assertGreaterEqual(html.count('class="escudo-default"'), 2)
 
     @patch("torneos.views.crear_imagen_desde_html")
+    def test_programacion_categoria_omite_grupo_si_solo_existe_uno(self, crear_imagen):
+        crear_imagen.return_value = HttpResponse(b"png", content_type="image/png")
+        respuesta = self.client.get(f"/descargar/programacion/{self.categoria.nombre}/")
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertNotIn("GRUPO A", crear_imagen.call_args.args[0].upper())
+
+    @patch("torneos.views.crear_imagen_desde_html")
+    def test_programacion_categoria_muestra_grupos_si_existen_dos(self, crear_imagen):
+        crear_imagen.return_value = HttpResponse(b"png", content_type="image/png")
+        local_b = Equipo.objects.create(nombre="Senior Local B", categoria=self.categoria)
+        visitante_b = Equipo.objects.create(nombre="Senior Visitante B", categoria=self.categoria)
+        Partido.objects.create(
+            categoria=self.categoria, equipo_local=local_b, equipo_visitante=visitante_b,
+            fecha=date(2026, 7, 18), hora=time(18), estado="PROGRAMADO",
+            estado_programacion="OFICIAL", numero_fecha="Fecha 1",
+            cancha="Teresa Sierra", grupo="B", fase="GRUPOS",
+        )
+        respuesta = self.client.get(f"/descargar/programacion/{self.categoria.nombre}/")
+        self.assertEqual(respuesta.status_code, 200)
+        html = crear_imagen.call_args.args[0].upper()
+        self.assertIn("GRUPO A", html)
+        self.assertIn("GRUPO B", html)
+
+    @patch("torneos.views.crear_imagen_desde_html")
     def test_fixture_extenso_usa_tres_fechas_por_fila_y_ancho_movil(self, crear_imagen):
         crear_imagen.return_value = HttpResponse(b"png", content_type="image/png")
         for numero in range(2, 11):

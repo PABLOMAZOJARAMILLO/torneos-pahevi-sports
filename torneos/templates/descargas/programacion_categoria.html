@@ -469,7 +469,7 @@ body {
             <div class="meta-partido">
                 {% if mostrar_categoria %}{{ p.categoria }} - {% endif %}
                 {% if p.numero_fecha %}{{ p.numero_fecha|etiqueta_fecha|upper }} - {% endif %}
-                GRUPO {{ p.grupo }}{% if p.fase and p.fase != "GRUPOS" %} - {{ p.fase }}{% endif %}
+                {% if p.fase and p.fase != "GRUPOS" %}{{ p.fase }}{% elif p.mostrar_grupo %}GRUPO {{ p.grupo }}{% endif %}
             </div>
             <div class="fila-programacion">
                 <div class="hora-partido" style="background: {{ p.color_categoria }}; color: {{ p.color_texto_categoria }};">
@@ -525,7 +525,7 @@ body {
             <div class="grupo">
                 {% if mostrar_categoria %}{{ p.categoria }} - {% endif %}
                 {% if p.numero_fecha %}{{ p.numero_fecha|upper }} &middot; {% endif %}
-                GRUPO {{ p.grupo }}{% if p.fase and p.fase != "GRUPOS" %} - {{ p.fase }}{% endif %}
+                {% if p.fase and p.fase != "GRUPOS" %}{{ p.fase }}{% elif p.mostrar_grupo %}GRUPO {{ p.grupo }}{% endif %}
             </div>
 
             <div class="fila-partido">

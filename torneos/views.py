@@ -4430,6 +4430,16 @@ def construir_partidos_programacion(
     if dia:
         partidos = partidos.filter(fecha=dia)
 
+    categoria_ids = list(partidos.values_list("categoria_id", flat=True).distinct())
+    grupos_por_categoria = defaultdict(set)
+    for categoria_id, grupo in Partido.objects.filter(
+        categoria_id__in=categoria_ids,
+        fase="GRUPOS",
+    ).exclude(grupo__isnull=True).exclude(grupo="").values_list("categoria_id", "grupo"):
+        grupo_normalizado = str(grupo).strip().upper()
+        if grupo_normalizado:
+            grupos_por_categoria[categoria_id].add(grupo_normalizado)
+
     partidos_programacion = []
 
     for p in partidos:
@@ -4497,6 +4507,7 @@ def construir_partidos_programacion(
             "hora_texto": hora_12,
             "numero_fecha": p.numero_fecha or "",
             "grupo": p.grupo,
+            "mostrar_grupo": fase == "GRUPOS" and len(grupos_por_categoria[p.categoria_id]) > 1,
             "fase": fase,
             "destino_eliminatoria": destino_eliminatoria,
             "estado": p.estado,
