@@ -103,6 +103,30 @@ def obtener_hoja_planilla(workbook):
     return workbook.active
 
 
+def estructura_planilla_inscripcion(ws):
+    fila_cuerpo_tecnico = None
+    for fila in range(8, ws.max_row + 1):
+        valores = [limpiar_texto(ws.cell(fila, columna).value).upper() for columna in range(1, 10)]
+        if any("CUERPO TECNICO" in valor or "CUERPO TÉCNICO" in valor for valor in valores):
+            fila_cuerpo_tecnico = fila
+            break
+    if not fila_cuerpo_tecnico:
+        return 37, {
+            "DT": {"nombre": limpiar_texto(ws["C39"].value), "cedula": "", "telefono": limpiar_cedula(ws["G39"].value)},
+            "AT": {"nombre": limpiar_texto(ws["C40"].value), "cedula": "", "telefono": limpiar_cedula(ws["G40"].value)},
+        }
+    integrantes = {}
+    for fila in range(fila_cuerpo_tecnico + 1, min(ws.max_row, fila_cuerpo_tecnico + 8) + 1):
+        cargo = limpiar_texto(ws.cell(fila, 2).value).upper().replace(".", "")
+        if cargo in {"DT", "AT", "AC"}:
+            integrantes[cargo] = {
+                "nombre": limpiar_texto(ws.cell(fila, 3).value),
+                "cedula": limpiar_cedula(ws.cell(fila, 6).value),
+                "telefono": limpiar_cedula(ws.cell(fila, 9).value),
+            }
+    return fila_cuerpo_tecnico - 1, integrantes
+
+
 def importar_planilla_inscripcion(request):
     if request.method == 'POST':
         archivo = request.FILES.get('archivo_excel')
@@ -116,10 +140,13 @@ def importar_planilla_inscripcion(request):
             equipo_nombre = limpiar_texto(ws['I3'].value)
             delegado = limpiar_texto(ws['D4'].value)
             telefono_delegado = limpiar_cedula(ws['I4'].value)
-            director_tecnico = limpiar_texto(ws['C39'].value)
-            telefono_dt = limpiar_cedula(ws['G39'].value)
-            asistente_tecnico = limpiar_texto(ws['C40'].value)
-            telefono_at = limpiar_cedula(ws['G40'].value)
+            ultima_fila_jugadores, integrantes = estructura_planilla_inscripcion(ws)
+            dt = integrantes.get('DT', {})
+            at = integrantes.get('AT', {})
+            ac = integrantes.get('AC', {})
+            director_tecnico, cedula_dt, telefono_dt = dt.get('nombre', ''), dt.get('cedula', ''), dt.get('telefono', '')
+            asistente_tecnico, cedula_at, telefono_at = at.get('nombre', ''), at.get('cedula', ''), at.get('telefono', '')
+            auxiliar_campo, cedula_ac, telefono_ac = ac.get('nombre', ''), ac.get('cedula', ''), ac.get('telefono', '')
             if not categoria_nombre:
                 messages.error(request, 'No se encontró la categoría en la celda D3.')
                 return redirect('/admin/importar-planilla-inscripcion/')
@@ -136,14 +163,19 @@ def importar_planilla_inscripcion(request):
             equipo.delegado = delegado.upper() if delegado else equipo.delegado
             equipo.telefono = telefono_delegado or equipo.telefono
             equipo.director_tecnico = director_tecnico.upper() if director_tecnico else equipo.director_tecnico
+            equipo.cedula_dt = cedula_dt or equipo.cedula_dt
             equipo.telefono_dt = telefono_dt or equipo.telefono_dt
             equipo.asistente_tecnico = asistente_tecnico.upper() if asistente_tecnico else equipo.asistente_tecnico
+            equipo.cedula_at = cedula_at or equipo.cedula_at
             equipo.telefono_at = telefono_at or equipo.telefono_at
+            equipo.auxiliar_campo = auxiliar_campo.upper() if auxiliar_campo else equipo.auxiliar_campo
+            equipo.cedula_ac = cedula_ac or equipo.cedula_ac
+            equipo.telefono_ac = telefono_ac or equipo.telefono_ac
             equipo.activo = True
             equipo.save()
             creados = actualizados = omitidos = 0
             errores = []
-            for fila in range(8, 38):
+            for fila in range(8, ultima_fila_jugadores + 1):
                 nombre = limpiar_texto(ws[f'C{fila}'].value)
                 dorsal = limpiar_entero(ws[f'D{fila}'].value)
                 dia = ws[f'E{fila}'].value
@@ -267,7 +299,7 @@ class EquipoResource(resources.ModelResource):
     class Meta:
         model = Equipo
         import_id_fields = ('nombre', 'categoria')
-        fields = ('id', 'nombre', 'categoria', 'responsable', 'acceso_delegado_hasta', 'delegado_puede_editar_equipo', 'delegado_puede_cargar_fotos_jugadores', 'delegado', 'telefono', 'director_tecnico', 'telefono_dt', 'asistente_tecnico', 'telefono_at', 'activo')
+        fields = ('id', 'nombre', 'categoria', 'responsable', 'acceso_delegado_hasta', 'delegado_puede_editar_equipo', 'delegado_puede_cargar_fotos_jugadores', 'delegado', 'telefono', 'director_tecnico', 'cedula_dt', 'telefono_dt', 'asistente_tecnico', 'cedula_at', 'telefono_at', 'auxiliar_campo', 'cedula_ac', 'telefono_ac', 'activo')
         skip_unchanged = True
         report_skipped = True
 
@@ -348,9 +380,9 @@ class JugadorInline(admin.TabularInline):
 @admin.register(Equipo)
 class EquipoAdmin(ImportExportModelAdmin):
     resource_class = EquipoResource
-    list_display = ('nombre', 'categoria', 'responsable', 'acceso_delegado_hasta', 'delegado_puede_editar_equipo', 'delegado_puede_cargar_fotos_jugadores', 'delegado', 'telefono', 'director_tecnico', 'telefono_dt', 'asistente_tecnico', 'telefono_at', 'activo')
+    list_display = ('nombre', 'categoria', 'responsable', 'acceso_delegado_hasta', 'delegado_puede_editar_equipo', 'delegado_puede_cargar_fotos_jugadores', 'delegado', 'telefono', 'director_tecnico', 'cedula_dt', 'telefono_dt', 'asistente_tecnico', 'cedula_at', 'telefono_at', 'auxiliar_campo', 'cedula_ac', 'telefono_ac', 'activo')
     list_filter = ('categoria__torneo', 'categoria', 'activo')
-    search_fields = ('nombre', 'responsable__username', 'delegado', 'telefono', 'director_tecnico', 'telefono_dt', 'asistente_tecnico', 'telefono_at')
+    search_fields = ('nombre', 'responsable__username', 'delegado', 'telefono', 'director_tecnico', 'cedula_dt', 'telefono_dt', 'asistente_tecnico', 'cedula_at', 'telefono_at', 'auxiliar_campo', 'cedula_ac', 'telefono_ac')
     inlines = [JugadorInline]
 
 

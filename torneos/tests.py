@@ -5507,6 +5507,49 @@ class ImportacionJugadoresPlanillaTests(TestCase):
         self.assertEqual(self.equipo.administrador_app, "ADMINISTRADOR APP NUEVO")
         self.assertEqual(self.equipo.telefono_administrador_app, "302-333-4455")
 
+    def test_importa_formato_san_jorge_con_mas_de_30_jugadores_y_cedulas_del_cuerpo_tecnico(self):
+        workbook = Workbook()
+        hoja = workbook.active
+        hoja["D3"] = self.categoria.nombre
+        hoja["I3"] = self.equipo.nombre
+        for indice in range(31):
+            fila = 8 + indice
+            hoja[f"C{fila}"] = f"Jugador San Jorge {indice + 1}"
+            hoja[f"D{fila}"] = indice + 1
+            hoja[f"E{fila}"] = 1
+            hoja[f"F{fila}"] = 1
+            hoja[f"G{fila}"] = 1980
+            hoja[f"H{fila}"] = f"9000{indice + 1}"
+        hoja["B41"] = "CUERPO TÉCNICO"
+        hoja["B42"], hoja["C42"], hoja["F42"], hoja["I42"] = "DT", "Director San Jorge", "78303170", "3148787374"
+        hoja["B43"], hoja["C43"], hoja["F43"], hoja["I43"] = "AT", "Asistente San Jorge", "78305898", "3148014772"
+        hoja["B44"], hoja["C44"], hoja["F44"], hoja["I44"] = "AC", "Auxiliar San Jorge", "8203204", "3152794845"
+        archivo = BytesIO()
+        workbook.save(archivo)
+        archivo.seek(0)
+
+        self.client.force_login(self.admin)
+        session = self.client.session
+        session["torneo_id"] = self.torneo.id
+        session.save()
+        respuesta = self.client.post(
+            "/gestion/jugadores/importar-planilla/",
+            {"archivo_excel": SimpleUploadedFile("san-jorge.xlsx", archivo.read(), content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")},
+        )
+
+        self.assertEqual(respuesta.status_code, 302)
+        self.assertEqual(Jugador.objects.filter(equipo=self.equipo).count(), 31)
+        self.assertTrue(Jugador.objects.filter(equipo=self.equipo, cedula="900031").exists())
+        self.equipo.refresh_from_db()
+        self.assertEqual(self.equipo.director_tecnico, "DIRECTOR SAN JORGE")
+        self.assertEqual(self.equipo.cedula_dt, "78303170")
+        self.assertEqual(self.equipo.telefono_dt, "3148787374")
+        self.assertEqual(self.equipo.asistente_tecnico, "ASISTENTE SAN JORGE")
+        self.assertEqual(self.equipo.cedula_at, "78305898")
+        self.assertEqual(self.equipo.auxiliar_campo, "AUXILIAR SAN JORGE")
+        self.assertEqual(self.equipo.cedula_ac, "8203204")
+        self.assertEqual(self.equipo.telefono_ac, "3152794845")
+
 
 class PartidoFormTests(TestCase):
     def setUp(self):

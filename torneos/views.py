@@ -1561,6 +1561,38 @@ def obtener_hoja_planilla_excel(workbook):
     return workbook.active
 
 
+def estructura_planilla_inscripcion(hoja):
+    """Detecta el final de jugadores y lee DT/AT/AC en formatos nuevos o antiguos."""
+    fila_cuerpo_tecnico = None
+    for fila in range(8, hoja.max_row + 1):
+        valores = [limpiar_texto_excel(hoja.cell(fila, columna).value).upper() for columna in range(1, 10)]
+        if any("CUERPO TECNICO" in valor or "CUERPO TÉCNICO" in valor for valor in valores):
+            fila_cuerpo_tecnico = fila
+            break
+
+    integrantes = {}
+    if fila_cuerpo_tecnico:
+        for fila in range(fila_cuerpo_tecnico + 1, min(hoja.max_row, fila_cuerpo_tecnico + 8) + 1):
+            cargo = limpiar_texto_excel(hoja.cell(fila, 2).value).upper().replace(".", "")
+            if cargo not in {"DT", "AT", "AC"}:
+                continue
+            integrantes[cargo] = {
+                "nombre": limpiar_texto_excel(hoja.cell(fila, 3).value),
+                "cedula": limpiar_cedula_excel(hoja.cell(fila, 6).value),
+                "telefono": limpiar_cedula_excel(hoja.cell(fila, 9).value),
+            }
+        ultima_fila_jugadores = fila_cuerpo_tecnico - 1
+    else:
+        # Compatibilidad con la planilla anterior de 30 jugadores.
+        ultima_fila_jugadores = 37
+        integrantes = {
+            "DT": {"nombre": limpiar_texto_excel(hoja["C39"].value), "cedula": "", "telefono": limpiar_cedula_excel(hoja["H39"].value)},
+            "AT": {"nombre": limpiar_texto_excel(hoja["C40"].value), "cedula": "", "telefono": limpiar_cedula_excel(hoja["H40"].value)},
+        }
+
+    return ultima_fila_jugadores, integrantes, bool(fila_cuerpo_tecnico)
+
+
 def normalizar_encabezado_excel(valor):
     valor = limpiar_nombre(limpiar_texto_excel(valor)).lower()
     return valor.replace("_", "")
@@ -2806,12 +2838,14 @@ def foto_jugador_url(jugador):
 def cuerpo_tecnico_live(equipo):
     personas = []
     personas_por_nombre = {}
-    integrantes = (
+    integrantes = [
         ("Director técnico", equipo.director_tecnico, equipo.foto_director_tecnico),
         ("Asistente técnico", equipo.asistente_tecnico, equipo.foto_asistente_tecnico),
         ("Delegado", equipo.delegado, equipo.foto_delegado),
         ("Admin App", equipo.administrador_app, equipo.foto_administrador_app),
-    )
+    ]
+    if equipo.auxiliar_campo:
+        integrantes.insert(2, ("Auxiliar de campo", equipo.auxiliar_campo, None))
 
     for indice, (cargo, nombre, foto) in enumerate(integrantes):
         nombre = str(nombre or "").strip()
@@ -2829,7 +2863,7 @@ def cuerpo_tecnico_live(equipo):
             cargos=[cargo],
             cargo=cargo,
             foto=foto,
-            iniciales={"Director técnico": "DT", "Asistente técnico": "AT", "Delegado": "DE", "Admin App": "APP"}[cargo],
+            iniciales={"Director técnico": "DT", "Asistente técnico": "AT", "Auxiliar de campo": "AC", "Delegado": "DE", "Admin App": "APP"}[cargo],
         )
         personas_por_nombre[clave] = persona
         personas.append(persona)
@@ -9320,12 +9354,21 @@ def gestion_importar_planilla(request):
             equipo_nombre = limpiar_texto_excel(hoja["I3"].value)
             delegado = limpiar_texto_excel(hoja["D4"].value)
             telefono_delegado = limpiar_cedula_excel(hoja["I4"].value)
-            director_tecnico = limpiar_texto_excel(hoja["C39"].value)
-            telefono_dt = limpiar_cedula_excel(hoja["H39"].value)
-            asistente_tecnico = limpiar_texto_excel(hoja["C40"].value)
-            telefono_at = limpiar_cedula_excel(hoja["H40"].value)
-            administrador_app = limpiar_texto_excel(hoja["C41"].value)
-            telefono_administrador_app = limpiar_cedula_excel(hoja["H41"].value)
+            ultima_fila_jugadores, integrantes, formato_con_cuerpo_tecnico = estructura_planilla_inscripcion(hoja)
+            dt = integrantes.get("DT", {})
+            at = integrantes.get("AT", {})
+            ac = integrantes.get("AC", {})
+            director_tecnico = dt.get("nombre", "")
+            cedula_dt = dt.get("cedula", "")
+            telefono_dt = dt.get("telefono", "")
+            asistente_tecnico = at.get("nombre", "")
+            cedula_at = at.get("cedula", "")
+            telefono_at = at.get("telefono", "")
+            auxiliar_campo = ac.get("nombre", "")
+            cedula_ac = ac.get("cedula", "")
+            telefono_ac = ac.get("telefono", "")
+            administrador_app = "" if formato_con_cuerpo_tecnico else limpiar_texto_excel(hoja["C41"].value)
+            telefono_administrador_app = "" if formato_con_cuerpo_tecnico else limpiar_cedula_excel(hoja["H41"].value)
 
             if not categoria_nombre:
                 messages.error(request, "No se encontró la categoría en la celda D3.")
@@ -9353,9 +9396,14 @@ def gestion_importar_planilla(request):
             equipo.delegado = delegado.upper() if delegado else equipo.delegado
             equipo.telefono = telefono_delegado or equipo.telefono
             equipo.director_tecnico = director_tecnico.upper() if director_tecnico else equipo.director_tecnico
+            equipo.cedula_dt = cedula_dt or equipo.cedula_dt
             equipo.telefono_dt = telefono_dt or equipo.telefono_dt
             equipo.asistente_tecnico = asistente_tecnico.upper() if asistente_tecnico else equipo.asistente_tecnico
+            equipo.cedula_at = cedula_at or equipo.cedula_at
             equipo.telefono_at = telefono_at or equipo.telefono_at
+            equipo.auxiliar_campo = auxiliar_campo.upper() if auxiliar_campo else equipo.auxiliar_campo
+            equipo.cedula_ac = cedula_ac or equipo.cedula_ac
+            equipo.telefono_ac = telefono_ac or equipo.telefono_ac
             equipo.administrador_app = administrador_app.upper() if administrador_app else equipo.administrador_app
             equipo.telefono_administrador_app = telefono_administrador_app or equipo.telefono_administrador_app
             equipo.activo = True
@@ -9368,7 +9416,7 @@ def gestion_importar_planilla(request):
             errores = []
             cedulas_importadas = set()
 
-            for fila in range(8, 38):
+            for fila in range(8, ultima_fila_jugadores + 1):
                 nombre = limpiar_texto_excel(hoja[f"C{fila}"].value)
                 dorsal = limpiar_entero_excel(hoja[f"D{fila}"].value)
                 dia = hoja[f"E{fila}"].value
