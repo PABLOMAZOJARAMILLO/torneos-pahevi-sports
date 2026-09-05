@@ -80,6 +80,14 @@
         {% endfor %}
     </select>
 
+    <label for="fecha_fixture">Fecha del fixture</label>
+    <select id="fecha_fixture" name="fecha_fixture">
+        <option value="">Todas las fechas</option>
+        {% for fecha in fechas_fixture %}
+            <option value="{{ fecha }}" {% if fecha_fixture == fecha %}selected{% endif %}>{{ fecha|etiqueta_fecha }}</option>
+        {% endfor %}
+    </select>
+
     <p>
         <button class="btn" type="submit">Filtrar</button>
         <a class="btn secondary" href="{% url 'gestion_partidos' %}">Limpiar</a>

@@ -7702,18 +7702,18 @@ def ordenar_partidos_gestion(partidos):
     return partidos.annotate(
         _prioridad_gestion=Case(
             When(estado="EN_JUEGO", then=Value(0)),
-            When(estado="PROGRAMADO", fecha__gte=hoy, then=Value(1)),
-            When(estado="PROGRAMADO", then=Value(2)),
+            When(estado__in=["PROGRAMADO", "APLAZADO", "SUSPENDIDO"], fecha__gte=hoy, then=Value(1)),
+            When(estado__in=["PROGRAMADO", "APLAZADO", "SUSPENDIDO"], then=Value(2)),
             default=Value(3),
             output_field=IntegerField(),
         ),
         _fecha_futura=Case(
-            When(estado="PROGRAMADO", fecha__gte=hoy, then=F("fecha")),
+            When(estado__in=["PROGRAMADO", "APLAZADO", "SUSPENDIDO"], fecha__gte=hoy, then=F("fecha")),
             default=Value(None),
             output_field=DateField(),
         ),
         _hora_futura=Case(
-            When(estado="PROGRAMADO", fecha__gte=hoy, then=F("hora")),
+            When(estado__in=["PROGRAMADO", "APLAZADO", "SUSPENDIDO"], fecha__gte=hoy, then=F("hora")),
             default=Value(None),
             output_field=TimeField(),
         ),
@@ -9481,9 +9481,21 @@ def gestion_partidos(request):
     if torneo:
         partidos = partidos.filter(categoria__torneo=torneo)
 
+    fechas_fixture = sorted(
+        {
+            valor.strip()
+            for valor in partidos.exclude(numero_fecha__isnull=True)
+            .exclude(numero_fecha="")
+            .values_list("numero_fecha", flat=True)
+            if valor and valor.strip()
+        },
+        key=clave_orden_fecha_fixture,
+    )
+
     q = request.GET.get("q", "").strip()
     categoria_id = request.GET.get("categoria", "").strip()
     estado = request.GET.get("estado", "").strip()
+    fecha_fixture = request.GET.get("fecha_fixture", "").strip()
 
     if q:
         partidos = partidos.filter(
@@ -9498,6 +9510,9 @@ def gestion_partidos(request):
     if estado:
         partidos = partidos.filter(estado=estado)
 
+    if fecha_fixture:
+        partidos = partidos.filter(numero_fecha=fecha_fixture)
+
     return render(request, "gestion/partidos.html", {
         "partidos": partidos,
         "categorias": categorias,
@@ -9505,6 +9520,8 @@ def gestion_partidos(request):
         "q": q,
         "categoria_id": categoria_id,
         "estado": estado,
+        "fecha_fixture": fecha_fixture,
+        "fechas_fixture": fechas_fixture,
         "puede_editar": puede_editar,
         "puede_programar": puede_programar,
         "puede_validar": puede_validar,

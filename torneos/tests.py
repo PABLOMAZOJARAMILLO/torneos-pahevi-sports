@@ -1251,6 +1251,58 @@ class PlanillasJuegoUploadTests(TestCase):
         self.assertEqual(listado_partidos.context["partidos"][0], proximo)
         self.assertEqual(listado_partidos.context["partidos"][1], posterior)
 
+    def test_gestion_partidos_filtra_por_fecha_del_fixture(self):
+        fecha_uno = Partido.objects.create(
+            categoria=self.categoria, equipo_local=self.equipo_local,
+            equipo_visitante=self.equipo_visitante,
+            fecha=date.today() + timedelta(days=1), hora=time(10),
+            estado="PROGRAMADO", numero_fecha="Fecha 1",
+        )
+        Partido.objects.create(
+            categoria=self.categoria, equipo_local=self.equipo_local,
+            equipo_visitante=self.equipo_visitante,
+            fecha=date.today() + timedelta(days=2), hora=time(10),
+            estado="PROGRAMADO", numero_fecha="Fecha 2",
+        )
+        administrador = User.objects.create_superuser("admin-filtro-fecha", "filtro@example.com", "clave")
+        self.client.force_login(administrador)
+        session = self.client.session
+        session["torneo_id"] = self.torneo.id
+        session.save()
+
+        respuesta = self.client.get("/gestion/partidos/?fecha_fixture=Fecha+1")
+
+        partidos_filtrados = list(respuesta.context["partidos"])
+        self.assertIn(fecha_uno, partidos_filtrados)
+        self.assertTrue(partidos_filtrados)
+        self.assertTrue(all(partido.numero_fecha == "Fecha 1" for partido in partidos_filtrados))
+        self.assertEqual(respuesta.context["fecha_fixture"], "Fecha 1")
+        self.assertContains(respuesta, '<option value="Fecha 1" selected>Fecha 1</option>')
+
+    def test_gestion_partidos_considera_suspendido_reprogramado_como_proximo(self):
+        suspendido = Partido.objects.create(
+            categoria=self.categoria, equipo_local=self.equipo_local,
+            equipo_visitante=self.equipo_visitante,
+            fecha=date.today() + timedelta(days=1), hora=time(9),
+            estado="SUSPENDIDO", numero_fecha="Fecha 2",
+        )
+        posterior = Partido.objects.create(
+            categoria=self.categoria, equipo_local=self.equipo_local,
+            equipo_visitante=self.equipo_visitante,
+            fecha=date.today() + timedelta(days=2), hora=time(9),
+            estado="PROGRAMADO", numero_fecha="Fecha 3",
+        )
+        administrador = User.objects.create_superuser("admin-orden-suspendido", "suspendido@example.com", "clave")
+        self.client.force_login(administrador)
+        session = self.client.session
+        session["torneo_id"] = self.torneo.id
+        session.save()
+
+        respuesta = self.client.get("/gestion/partidos/")
+
+        partidos = list(respuesta.context["partidos"])
+        self.assertLess(partidos.index(suspendido), partidos.index(posterior))
+
     def test_planillero_no_puede_eliminar_planilla_cargada(self):
         documento = self.crear_documento_planilla()
         self.client.force_login(self.planillero)
