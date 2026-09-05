@@ -80,6 +80,31 @@ function volverAutomaticamente() {
 
 window.onload = function() {
     const elementos = Array.from(document.querySelectorAll(".zona-descarga"));
+    const escudoPredeterminado = "/static/torneos/img/escudo_default.svg";
+
+    function prepararEscudosPredeterminados(elemento) {
+        elemento.querySelectorAll(".equipo img, .equipo-estado img").forEach(function(img) {
+            function usarPredeterminado() {
+                if (img.dataset.fallbackAplicado === "1") return;
+                img.dataset.fallbackAplicado = "1";
+                img.src = escudoPredeterminado;
+            }
+            img.addEventListener("error", usarPredeterminado, { once: true });
+            if (img.complete && !img.naturalWidth) usarPredeterminado();
+        });
+    }
+
+    function esperarImagenes(elemento) {
+        prepararEscudosPredeterminados(elemento);
+        const imagenes = Array.from(elemento.querySelectorAll("img"));
+        return Promise.all(imagenes.map(function(img) {
+            if (img.complete && img.naturalWidth) return Promise.resolve();
+            return new Promise(function(resolve) {
+                img.addEventListener("load", resolve, { once: true });
+                img.addEventListener("error", resolve, { once: true });
+            });
+        }));
+    }
 
     function guardarCanvas(canvas, nombreArchivo) {
         const dataUrl = canvas.toDataURL("image/png");
@@ -107,6 +132,8 @@ window.onload = function() {
             const elemento = elementos[indice];
             document.querySelector(".mensaje").innerText =
                 "Generando imagen " + (indice + 1) + " de " + elementos.length + "...";
+            await esperarImagenes(elemento);
+            if (document.fonts && document.fonts.ready) await document.fonts.ready;
             const canvas = await html2canvas(elemento, {
                 scale: 2,
                 useCORS: true,

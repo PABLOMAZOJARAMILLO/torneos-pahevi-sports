@@ -4522,9 +4522,16 @@ def construir_partidos_programacion(
 
     categoria_ids = list(partidos.values_list("categoria_id", flat=True).distinct())
     grupos_por_categoria = defaultdict(set)
+    # La etiqueta de grupo depende solo de la programación vigente. Un grupo
+    # histórico, sugerido o ya finalizado no debe hacer aparecer "Grupo A" en
+    # una categoría cuya programación actual tiene un único grupo.
     for categoria_id, grupo in Partido.objects.filter(
         categoria_id__in=categoria_ids,
         fase="GRUPOS",
+        estado__in=["PROGRAMADO", "SUSPENDIDO"],
+        estado_programacion__in=["MANUAL", "OFICIAL"],
+        fecha__isnull=False,
+        hora__isnull=False,
     ).exclude(grupo__isnull=True).exclude(grupo="").values_list("categoria_id", "grupo"):
         grupo_normalizado = str(grupo).strip().upper()
         if grupo_normalizado:

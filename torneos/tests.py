@@ -4415,6 +4415,13 @@ class DescargaProgramacionFiltrosTests(TestCase):
         self.assertGreaterEqual(html.count('class="escudo-default"'), 2)
         self.assertIn("escudo_default", html)
 
+    def test_generador_espera_los_escudos_y_reemplaza_imagenes_rotas(self):
+        respuesta = self.client.get(f"/descargar/programacion/{self.categoria.nombre}/")
+
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertContains(respuesta, "esperarImagenes")
+        self.assertContains(respuesta, "/static/torneos/img/escudo_default.svg")
+
     def test_programacion_ordena_por_hora_antes_que_por_cancha(self):
         equipo_temprano = Equipo.objects.create(nombre="Equipo Temprano", categoria=self.categoria)
         rival_temprano = Equipo.objects.create(nombre="Rival Temprano", categoria=self.categoria)
@@ -4439,6 +4446,23 @@ class DescargaProgramacionFiltrosTests(TestCase):
     def test_programacion_categoria_omite_grupo_si_solo_existe_uno(self, crear_imagen):
         crear_imagen.return_value = HttpResponse(b"png", content_type="image/png")
         respuesta = self.client.get(f"/descargar/programacion/{self.categoria.nombre}/")
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertNotIn("GRUPO A", crear_imagen.call_args.args[0].upper())
+
+    @patch("torneos.views.crear_imagen_desde_html")
+    def test_programacion_ignora_grupos_de_partidos_que_ya_no_estan_programados(self, crear_imagen):
+        crear_imagen.return_value = HttpResponse(b"png", content_type="image/png")
+        local_b = Equipo.objects.create(nombre="Histórico Local B", categoria=self.categoria)
+        visitante_b = Equipo.objects.create(nombre="Histórico Visitante B", categoria=self.categoria)
+        Partido.objects.create(
+            categoria=self.categoria, equipo_local=local_b, equipo_visitante=visitante_b,
+            fecha=date(2026, 7, 10), hora=time(18), estado="FINALIZADO",
+            estado_programacion="OFICIAL", numero_fecha="Fecha anterior",
+            cancha="Cancha histórica", grupo="B", fase="GRUPOS",
+        )
+
+        respuesta = self.client.get(f"/descargar/programacion/{self.categoria.nombre}/")
+
         self.assertEqual(respuesta.status_code, 200)
         self.assertNotIn("GRUPO A", crear_imagen.call_args.args[0].upper())
 
