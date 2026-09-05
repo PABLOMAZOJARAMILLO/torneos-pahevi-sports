@@ -121,7 +121,13 @@
         <input type="hidden" name="volver" value="{{ volver_href }}">
     {% endif %}
     {% for field in form %}
-        {% if agrupar_cuerpo_tecnico and field.name == "director_tecnico" %}
+        {% if agrupar_cuerpo_tecnico and field.name == "delegado" %}
+            <section class="miembro-cuerpo" data-miembro-cuerpo="DE">
+                <h2 class="miembro-cuerpo__titulo"><span class="miembro-cuerpo__sigla">DE</span> Delegado</h2>
+        {% elif agrupar_cuerpo_tecnico and field.name == "administrador_app" %}
+            <section class="miembro-cuerpo" data-miembro-cuerpo="APP">
+                <h2 class="miembro-cuerpo__titulo"><span class="miembro-cuerpo__sigla">APP</span> Administrador de la app</h2>
+        {% elif agrupar_cuerpo_tecnico and field.name == "director_tecnico" %}
             <section class="miembro-cuerpo" data-miembro-cuerpo="DT">
                 <h2 class="miembro-cuerpo__titulo"><span class="miembro-cuerpo__sigla">DT</span> Director técnico</h2>
         {% elif agrupar_cuerpo_tecnico and field.name == "asistente_tecnico" %}
@@ -139,7 +145,11 @@
         {% for error in field.errors %}
             <div class="message">{{ error }}</div>
         {% endfor %}
-        {% if agrupar_cuerpo_tecnico and field.name == "foto_director_tecnico" %}
+        {% if agrupar_cuerpo_tecnico and field.name == "foto_delegado" %}
+            </section>
+        {% elif agrupar_cuerpo_tecnico and field.name == "foto_administrador_app" %}
+            </section>
+        {% elif agrupar_cuerpo_tecnico and field.name == "foto_director_tecnico" %}
             </section>
         {% elif agrupar_cuerpo_tecnico and field.name == "foto_asistente_tecnico" %}
             </section>

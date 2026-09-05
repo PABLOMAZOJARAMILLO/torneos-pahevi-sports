@@ -143,7 +143,13 @@
 <form method="post" enctype="multipart/form-data">
     {% csrf_token %}
     {% for field in form %}
-        {% if field.name == "director_tecnico" %}
+        {% if field.name == "delegado" %}
+            <section class="miembro-cuerpo" data-miembro-cuerpo="DE">
+                <h2 class="miembro-cuerpo__titulo"><span class="miembro-cuerpo__sigla">DE</span> Delegado</h2>
+        {% elif field.name == "administrador_app" %}
+            <section class="miembro-cuerpo" data-miembro-cuerpo="APP">
+                <h2 class="miembro-cuerpo__titulo"><span class="miembro-cuerpo__sigla">APP</span> Administrador de la app</h2>
+        {% elif field.name == "director_tecnico" %}
             <section class="miembro-cuerpo" data-miembro-cuerpo="DT">
                 <h2 class="miembro-cuerpo__titulo"><span class="miembro-cuerpo__sigla">DT</span> Director técnico</h2>
         {% elif field.name == "asistente_tecnico" %}
@@ -161,7 +167,7 @@
         {% for error in field.errors %}
             <div class="message">{{ error }}</div>
         {% endfor %}
-        {% if field.name == "foto_director_tecnico" or field.name == "foto_asistente_tecnico" or field.name == "telefono_ac" %}
+        {% if field.name == "foto_delegado" or field.name == "foto_administrador_app" or field.name == "foto_director_tecnico" or field.name == "foto_asistente_tecnico" or field.name == "telefono_ac" %}
             </section>
         {% endif %}
     {% endfor %}

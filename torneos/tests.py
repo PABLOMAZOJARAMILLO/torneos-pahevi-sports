@@ -5441,9 +5441,13 @@ class ImportacionJugadoresPlanillaTests(TestCase):
         self.assertContains(respuesta, 'data-miembro-cuerpo="DT"')
         self.assertContains(respuesta, 'data-miembro-cuerpo="AT"')
         self.assertContains(respuesta, 'data-miembro-cuerpo="AC"')
+        self.assertContains(respuesta, 'data-miembro-cuerpo="DE"')
+        self.assertContains(respuesta, 'data-miembro-cuerpo="APP"')
         self.assertContains(respuesta, "Director técnico")
         self.assertContains(respuesta, "Asistente técnico")
         self.assertContains(respuesta, "Auxiliar de campo")
+        self.assertContains(respuesta, "Delegado")
+        self.assertContains(respuesta, "Administrador de la app")
 
     def test_importar_planilla_elimina_jugadores_que_no_vienen_en_excel(self):
         Jugador.objects.create(
