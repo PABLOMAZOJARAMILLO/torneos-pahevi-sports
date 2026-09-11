@@ -5832,10 +5832,17 @@ def agregar_tarjeta_movil(request, partido_id):
             )
 
             if es_expulsion_por_doble_amarilla:
-                # La expulsión por doble amarilla se representa únicamente con
-                # una roja. Al eliminar las amarillas también desaparecen sus
-                # cobros contables relacionados por la relación CASCADE.
-                amarillas_mismo_partido.delete()
+                # Se conserva el historial completo: la segunda amarilla es un
+                # evento propio y la roja adicional identifica la expulsión.
+                if tipo == "AMARILLA":
+                    Tarjeta.objects.create(
+                        partido=partido,
+                        jugador=jugador,
+                        equipo=equipo,
+                        tipo="AMARILLA",
+                        origen_roja="",
+                        minuto=minuto_evento,
+                    )
                 Tarjeta.objects.get_or_create(
                     partido=partido,
                     jugador=jugador,
@@ -5845,7 +5852,7 @@ def agregar_tarjeta_movil(request, partido_id):
                 )
                 messages.warning(
                     request,
-                    "Segunda amarilla: se registró la tarjeta roja y el jugador queda suspendido.",
+                    "Doble amarilla: se conservaron las dos amarillas y se registró además la roja.",
                 )
             else:
                 Tarjeta.objects.create(

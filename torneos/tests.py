@@ -3165,6 +3165,40 @@ class PlanilleroPartidoTests(TestCase):
         )
         self.assertEqual(Tarjeta.objects.get(partido=self.partido).minuto, 42)
 
+    @override_settings(STORAGES={
+        "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+        "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
+    })
+    def test_doble_amarilla_conserva_las_dos_amarillas_y_agrega_roja(self):
+        self.client.force_login(self.planillero)
+        AlineacionPartido.objects.create(
+            partido=self.partido,
+            equipo=self.local,
+            jugador=self.jugador,
+            rol="TITULAR",
+        )
+        url = f"/partido/{self.partido.id}/agregar-tarjeta-movil/"
+        datos = {"equipo": self.local.id, "jugador": self.jugador.id, "tipo": "AMARILLA"}
+
+        self.client.post(url, datos)
+        self.client.post(url, datos)
+
+        tarjetas = Tarjeta.objects.filter(partido=self.partido, jugador=self.jugador)
+        self.assertEqual(tarjetas.filter(tipo="AMARILLA").count(), 2)
+        self.assertEqual(
+            tarjetas.filter(tipo="ROJA", origen_roja="DOBLE_AMARILLA").count(),
+            1,
+        )
+
+        respuesta = self.client.get(f"/partido/{self.partido.id}/live/")
+        eventos = {
+            evento.tipo: evento.cantidad
+            for evento in respuesta.context["alineaciones_local"][0].eventos
+        }
+        self.assertEqual(eventos["amarilla"], 2)
+        self.assertEqual(eventos["roja"], 1)
+        self.assertEqual(len(respuesta.context["tarjetas"]), 3)
+
     def test_evento_rechaza_minuto_manual_negativo(self):
         self.client.force_login(self.planillero)
         self.client.post(
