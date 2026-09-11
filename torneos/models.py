@@ -553,6 +553,13 @@ class Partido(models.Model):
     estadisticas_validadas_por = models.ForeignKey(User, on_delete=models.SET_NULL, blank=True, null=True, related_name='partidos_estadisticas_validadas', verbose_name='Estadísticas validadas por')
     inicio_en_vivo = models.DateTimeField(blank=True, null=True, verbose_name="Inicio real en vivo")
     observaciones = models.TextField(blank=True, null=True)
+    enlace_transmision = models.URLField(
+        max_length=500,
+        blank=True,
+        default="",
+        verbose_name="Enlace de transmisión",
+        help_text="Enlace externo de YouTube, Facebook u otra plataforma.",
+    )
     numero_fecha = models.CharField(max_length=50, blank=True, null=True, verbose_name='Fecha del fixture')
     grupo = models.CharField(max_length=20, blank=True, null=True, verbose_name='Grupo')
     cancha = models.CharField(max_length=100, blank=True, null=True, verbose_name='Cancha')

@@ -2752,7 +2752,34 @@ class PlanilleroPartidoTests(TestCase):
 
         self.assertEqual(respuesta.status_code, 200)
         self.assertContains(respuesta, "Resultado del partido")
+        self.assertContains(respuesta, 'name="enlace_transmision"')
         self.assertNotContains(respuesta, 'name="cancha"')
+
+    @override_settings(STORAGES={
+        "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+        "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
+    })
+    def test_planillero_guarda_link_y_live_lo_abre_externamente(self):
+        self.client.force_login(self.planillero)
+
+        respuesta = self.client.post(
+            f"/partido/{self.partido.id}/guardar-info-movil/",
+            {
+                "estado": "EN_JUEGO",
+                "goles_local": "0",
+                "goles_visitante": "0",
+                "enlace_transmision": "youtube.com/watch?v=pahevi",
+            },
+        )
+
+        self.assertEqual(respuesta.status_code, 302)
+        self.partido.refresh_from_db()
+        self.assertEqual(self.partido.enlace_transmision, "https://youtube.com/watch?v=pahevi")
+
+        live = self.client.get(f"/partido/{self.partido.id}/live/")
+        self.assertContains(live, "Ver transmisión en vivo")
+        self.assertContains(live, 'target="_blank"')
+        self.assertContains(live, 'rel="noopener noreferrer external"')
 
     @override_settings(STORAGES={
         "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},

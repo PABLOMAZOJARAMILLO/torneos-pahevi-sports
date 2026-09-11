@@ -179,6 +179,23 @@ button.live-icon {
     color: rgba(255,255,255,.78);
     line-height: 1.35;
 }
+.enlace-transmision {
+    display: flex;
+    justify-content: center;
+    margin: -7px 0 11px;
+}
+.enlace-transmision a {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 8px 14px;
+    border-radius: 999px;
+    background: #ef4444;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 1000;
+    box-shadow: 0 7px 18px rgba(239, 68, 68, .28);
+}
 .score-main {
     font-size: 42px;
     font-weight: 1000;
@@ -1315,6 +1332,14 @@ button.live-icon {
             <span>{% if ganador_visitante %}<b class="live-winner-star">&#9733;</b>{% endif %}{{ partido.equipo_visitante.nombre }}</span>
         </div>
     </section>
+
+    {% if partido.enlace_transmision %}
+    <div class="enlace-transmision">
+        <a href="{{ partido.enlace_transmision }}" target="_blank" rel="noopener noreferrer external">
+            {% if partido.estado == "EN_JUEGO" %}&#128308; Ver transmisión en vivo{% else %}&#9654; Ver transmisión / repetición{% endif %}
+        </a>
+    </div>
+    {% endif %}
 
     {% if partido.ajuste_puntos_local or partido.ajuste_puntos_visitante %}
     <aside class="decision-comite" aria-label="Decisión administrativa">

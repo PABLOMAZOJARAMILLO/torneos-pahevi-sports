@@ -1088,6 +1088,10 @@
                 </select>
                 {% endif %}
 
+                <label>Link de transmisión</label>
+                <input type="text" name="enlace_transmision" value="{{ partido.enlace_transmision|default:'' }}" inputmode="url" autocomplete="url" placeholder="Pega aquí el enlace de YouTube, Facebook, etc.">
+                <p class="nota">La transmisión se abrirá fuera de Pahevi Sports para no consumir datos del servidor.</p>
+
                 <button class="btn" type="submit">💾 Guardar resultado</button>
             </div>
         </div>

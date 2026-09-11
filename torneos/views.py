@@ -5716,6 +5716,15 @@ def guardar_info_partido_movil(request, partido_id):
     if not puede_diligenciar_partido(request.user, partido):
         return denegar_partido_no_autorizado()
 
+    enlace_transmision = (request.POST.get('enlace_transmision') or '').strip()
+    if enlace_transmision and not re.match(r'^https?://', enlace_transmision, flags=re.IGNORECASE):
+        enlace_transmision = f"https://{enlace_transmision}"
+    if enlace_transmision:
+        enlace_partes = urlparse(enlace_transmision)
+        if enlace_partes.scheme.lower() not in {'http', 'https'} or not enlace_partes.netloc:
+            messages.error(request, 'Pega un enlace válido de YouTube, Facebook u otra plataforma.')
+            return redirect(_url_editor_partido(request, partido, "resultado"))
+
     minimo_goles = None if es_editor_torneo(request.user) else 0
     partido.goles_local = entero_post(request, 'goles_local', 0, minimo_goles)
     partido.goles_visitante = entero_post(request, 'goles_visitante', 0, minimo_goles)
@@ -5734,6 +5743,7 @@ def guardar_info_partido_movil(request, partido_id):
     partido.goles_local_penales = entero_post(request, 'goles_local_penales', 0, 0)
     partido.goles_visitante_penales = entero_post(request, 'goles_visitante_penales', 0, 0)
     partido.observaciones = request.POST.get('observaciones') or ''
+    partido.enlace_transmision = enlace_transmision
 
     if es_editor_torneo(request.user):
         partido.fecha = request.POST.get('fecha') or partido.fecha
