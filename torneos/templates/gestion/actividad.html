@@ -16,8 +16,10 @@
     <p class="muted">Estimación de dispositivos únicos por torneo y día. Visible solo para superusuarios.</p>
     <div class="grid">
         <div class="card"><h2>{{ visitas_publicas.hoy }}</h2><p class="muted">Hoy</p></div>
+        <div class="card"><h2>{{ visitas_publicas.ayer }}</h2><p class="muted">Ayer</p></div>
         <div class="card"><h2>{{ visitas_publicas.siete_dias }}</h2><p class="muted">Últimos 7 días</p></div>
         <div class="card"><h2>{{ visitas_publicas.treinta_dias }}</h2><p class="muted">Últimos 30 días</p></div>
+        <div class="card"><h2>{{ visitas_publicas.total_acumulado }}</h2><p class="muted">Total acumulado</p></div>
         {% for canal in visitas_publicas.canales %}
         <div class="card"><h2>{{ canal.total }}</h2><p class="muted">{{ canal.nombre }} · 30 días</p></div>
         {% endfor %}

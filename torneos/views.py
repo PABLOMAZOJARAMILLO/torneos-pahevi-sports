@@ -7115,10 +7115,15 @@ def gestion_actividad(request):
             .values("canal")
             .annotate(total=Count("id"))
         }
+        totales = visitas_qs.aggregate(
+            hoy=Count("id", filter=Q(fecha=hoy)),
+            ayer=Count("id", filter=Q(fecha=hoy - timedelta(days=1))),
+            siete_dias=Count("id", filter=Q(fecha__gte=hoy - timedelta(days=6))),
+            treinta_dias=Count("id", filter=Q(fecha__gte=hoy - timedelta(days=29))),
+            total_acumulado=Count("id"),
+        )
         visitas_publicas = {
-            "hoy": visitas_qs.filter(fecha=hoy).count(),
-            "siete_dias": visitas_qs.filter(fecha__gte=hoy - timedelta(days=6)).count(),
-            "treinta_dias": visitas_qs.filter(fecha__gte=hoy - timedelta(days=29)).count(),
+            **totales,
             "canales": [
                 {"nombre": "Aplicación", "total": canales.get("APK", 0)},
                 {"nombre": "Navegador móvil", "total": canales.get("MOVIL", 0)},
@@ -9685,8 +9690,16 @@ def gestion_partidos(request):
     )
 
 
-def construir_reporte_jugadores_cancha(torneo, categoria_id="", equipo_id=""):
+def construir_reporte_jugadores_cancha(torneo, categoria_id="", equipo_id="", incluir_sin_participar=False):
     """Agrupa la evidencia de participación real de cada jugador por partido."""
+    jugadores_qs = Jugador.objects.select_related("equipo", "equipo__categoria")
+    if torneo:
+        jugadores_qs = jugadores_qs.filter(equipo__categoria__torneo=torneo)
+    if categoria_id:
+        jugadores_qs = jugadores_qs.filter(equipo__categoria_id=categoria_id)
+    if equipo_id:
+        jugadores_qs = jugadores_qs.filter(equipo_id=equipo_id)
+
     partidos = Partido.objects.filter(estado__in=ESTADOS_PARTIDO_JUGADO)
     if torneo:
         partidos = partidos.filter(categoria__torneo=torneo)
@@ -9696,7 +9709,7 @@ def construir_reporte_jugadores_cancha(torneo, categoria_id="", equipo_id=""):
         partidos = partidos.filter(Q(equipo_local_id=equipo_id) | Q(equipo_visitante_id=equipo_id))
     partidos = partidos.select_related("categoria", "equipo_local", "equipo_visitante")
     partidos_por_id = {partido.id: partido for partido in partidos}
-    if not partidos_por_id:
+    if not partidos_por_id and not incluir_sin_participar:
         return []
 
     participaciones = defaultdict(lambda: defaultdict(set))
@@ -9717,15 +9730,12 @@ def construir_reporte_jugadores_cancha(torneo, categoria_id="", equipo_id=""):
             if evento.jugador_id:
                 participaciones[evento.jugador_id][evento.partido_id].add(etiqueta)
 
-    jugadores = {
-        jugador.id: jugador
-        for jugador in Jugador.objects.filter(id__in=participaciones).select_related("equipo", "equipo__categoria")
-    }
+    if not incluir_sin_participar:
+        jugadores_qs = jugadores_qs.filter(id__in=participaciones)
+    jugadores = {jugador.id: jugador for jugador in jugadores_qs}
     filas = []
-    for jugador_id, partidos_jugador in participaciones.items():
-        jugador = jugadores.get(jugador_id)
-        if not jugador or (equipo_id and str(jugador.equipo_id) != str(equipo_id)):
-            continue
+    for jugador_id, jugador in jugadores.items():
+        partidos_jugador = participaciones.get(jugador_id, {})
         detalles = []
         for partido_id, evidencias in partidos_jugador.items():
             partido = partidos_por_id[partido_id]
@@ -9748,8 +9758,9 @@ def construir_reporte_jugadores_cancha(torneo, categoria_id="", equipo_id=""):
             "equipo": jugador.equipo,
             "partidos": detalles,
             "total_partidos": len(detalles),
-            "primera_participacion": detalles[0]["fecha"],
-            "ultima_participacion": detalles[-1]["fecha"],
+            "piso_cancha": bool(detalles),
+            "primera_participacion": detalles[0]["fecha"] if detalles else None,
+            "ultima_participacion": detalles[-1]["fecha"] if detalles else None,
         })
     return sorted(
         filas,
@@ -9789,11 +9800,13 @@ def descargar_jugadores_cancha(request):
     torneo = torneo_actual(request)
     categoria_id = request.GET.get("categoria", "").strip()
     equipo_id = request.GET.get("equipo", "").strip()
-    filas = construir_reporte_jugadores_cancha(torneo, categoria_id, equipo_id)
+    filas = construir_reporte_jugadores_cancha(
+        torneo, categoria_id, equipo_id, incluir_sin_participar=True
+    )
     libro = Workbook()
     hoja = libro.active
-    hoja.title = "Pisaron cancha"
-    hoja.append(["Categoría", "Equipo", "Dorsal", "Jugador", "Cédula", "Partidos", "Primera participación", "Última participación", "Detalle"])
+    hoja.title = "Participación cancha"
+    hoja.append(["Categoría", "Equipo", "Dorsal", "Jugador", "Cédula", "Pisó cancha", "Partidos", "Primera participación", "Última participación", "Detalle"])
     for celda in hoja[1]:
         celda.font = Font(bold=True, color="FFFFFF")
         celda.fill = PatternFill("solid", fgColor="0B7A3E")
@@ -9808,12 +9821,13 @@ def descargar_jugadores_cancha(request):
             fila["jugador"].dorsal or "",
             fila["jugador"].nombres,
             fila["jugador"].cedula,
+            "SÍ" if fila["piso_cancha"] else "NO",
             fila["total_partidos"],
-            fila["primera_participacion"].strftime("%d/%m/%Y"),
-            fila["ultima_participacion"].strftime("%d/%m/%Y"),
+            fila["primera_participacion"].strftime("%d/%m/%Y") if fila["primera_participacion"] else "",
+            fila["ultima_participacion"].strftime("%d/%m/%Y") if fila["ultima_participacion"] else "",
             detalle,
         ])
-    for columna, ancho in {"A": 22, "B": 26, "C": 10, "D": 34, "E": 18, "F": 12, "G": 20, "H": 20, "I": 70}.items():
+    for columna, ancho in {"A": 22, "B": 26, "C": 10, "D": 34, "E": 18, "F": 14, "G": 12, "H": 20, "I": 20, "J": 70}.items():
         hoja.column_dimensions[columna].width = ancho
     salida = BytesIO()
     libro.save(salida)
@@ -9822,7 +9836,7 @@ def descargar_jugadores_cancha(request):
         salida.getvalue(),
         content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     )
-    respuesta["Content-Disposition"] = 'attachment; filename="JUGADORES_QUE_PISARON_CANCHA.xlsx"'
+    respuesta["Content-Disposition"] = 'attachment; filename="PARTICIPACION_JUGADORES_EN_CANCHA.xlsx"'
     return respuesta
 
     q = request.GET.get("q", "").strip()

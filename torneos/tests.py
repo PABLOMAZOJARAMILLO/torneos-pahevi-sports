@@ -655,11 +655,24 @@ class AuditoriaUsuariosTests(TestCase):
         self.assertEqual(VisitaPublicaDiaria.objects.count(), 1)
 
     def test_metricas_publicas_solo_son_visibles_para_superusuario(self):
+        hoy = timezone.localdate()
         VisitaPublicaDiaria.objects.create(
-            fecha=date.today(),
+            fecha=hoy,
             torneo=self.torneo,
             visitante_hash="hash-anonimo",
             canal="APK",
+        )
+        VisitaPublicaDiaria.objects.create(
+            fecha=hoy - timedelta(days=1),
+            torneo=self.torneo,
+            visitante_hash="hash-ayer",
+            canal="MOVIL",
+        )
+        VisitaPublicaDiaria.objects.create(
+            fecha=hoy - timedelta(days=45),
+            torneo=self.torneo,
+            visitante_hash="hash-antiguo",
+            canal="ESCRITORIO",
         )
         self.client.force_login(self.admin)
         session = self.client.session
@@ -685,6 +698,13 @@ class AuditoriaUsuariosTests(TestCase):
 
         self.assertContains(respuesta_superusuario, "Visitas públicas anónimas")
         self.assertContains(respuesta_superusuario, "Visible solo para superusuarios")
+        self.assertEqual(respuesta_superusuario.context["visitas_publicas"]["hoy"], 1)
+        self.assertEqual(respuesta_superusuario.context["visitas_publicas"]["ayer"], 1)
+        self.assertEqual(respuesta_superusuario.context["visitas_publicas"]["siete_dias"], 2)
+        self.assertEqual(respuesta_superusuario.context["visitas_publicas"]["treinta_dias"], 2)
+        self.assertEqual(respuesta_superusuario.context["visitas_publicas"]["total_acumulado"], 3)
+        self.assertContains(respuesta_superusuario, "Ayer")
+        self.assertContains(respuesta_superusuario, "Total acumulado")
 
     def test_admin_de_comite_no_ve_enlace_de_auditoria(self):
         self.client.force_login(self.admin)
@@ -2763,7 +2783,7 @@ class ReporteJugadoresCanchaTests(TestCase):
         self.assertContains(respuesta, "Ingresó")
         self.assertNotContains(respuesta, self.sin_participar.nombres)
 
-    def test_descarga_excel_respeta_el_reporte(self):
+    def test_descarga_excel_incluye_quienes_pisaron_y_quienes_no(self):
         respuesta = self.client.get(
             "/gestion/jugadores/pisaron-cancha/descargar/",
             {"equipo": self.equipo.id},
@@ -2775,7 +2795,14 @@ class ReporteJugadoresCanchaTests(TestCase):
         valores = [celda.value for celda in libro.active["D"]]
         self.assertIn(self.titular.nombres, valores)
         self.assertIn(self.suplente.nombres, valores)
-        self.assertNotIn(self.sin_participar.nombres, valores)
+        self.assertIn(self.sin_participar.nombres, valores)
+        estados_por_jugador = {
+            fila[3].value: fila[5].value
+            for fila in libro.active.iter_rows(min_row=2)
+        }
+        self.assertEqual(estados_por_jugador[self.titular.nombres], "SÍ")
+        self.assertEqual(estados_por_jugador[self.suplente.nombres], "SÍ")
+        self.assertEqual(estados_por_jugador[self.sin_participar.nombres], "NO")
 
 
 class PlanilleroPartidoTests(TestCase):
