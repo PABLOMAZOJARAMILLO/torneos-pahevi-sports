@@ -34,6 +34,11 @@
         <h2>Jugadores</h2>
         <p class="muted">{{ total_jugadores }} registrados</p>
     </a>
+
+    <a class="card" href="{% url 'gestion_jugadores_cancha' %}">
+        <h2>Jugadores que pisaron cancha</h2>
+        <p class="muted">Verificar participaciones por equipo y descargar reporte</p>
+    </a>
     {% endif %}
 
     {% if puede_programar or puede_validar or puede_descargar_planillas %}

@@ -2706,6 +2706,78 @@ class GestionJugadoresConservaFiltrosTests(TestCase):
         self.assertRedirects(respuesta, self.filtros, fetch_redirect_response=False)
 
 
+class ReporteJugadoresCanchaTests(TestCase):
+    def setUp(self):
+        self.torneo = Torneo.objects.create(nombre="Copa participaciones", fecha_inicio=date(2026, 1, 1))
+        self.categoria = Categoria.objects.create(
+            nombre="Senior", torneo=self.torneo, edad_minima=18, edad_maxima=80,
+        )
+        self.equipo = Equipo.objects.create(nombre="Equipo reporte", categoria=self.categoria)
+        self.rival = Equipo.objects.create(nombre="Rival reporte", categoria=self.categoria)
+        self.titular = Jugador.objects.create(
+            equipo=self.equipo, nombres="Titular Verificado", cedula="RV1",
+            fecha_nacimiento=date(1990, 1, 1), dorsal=5,
+        )
+        self.suplente = Jugador.objects.create(
+            equipo=self.equipo, nombres="Suplente Que Ingreso", cedula="RV2",
+            fecha_nacimiento=date(1991, 1, 1), dorsal=12,
+        )
+        self.sin_participar = Jugador.objects.create(
+            equipo=self.equipo, nombres="Suplente Sin Ingresar", cedula="RV3",
+            fecha_nacimiento=date(1992, 1, 1), dorsal=18,
+        )
+        self.partido = Partido.objects.create(
+            categoria=self.categoria, equipo_local=self.equipo, equipo_visitante=self.rival,
+            fecha=date(2026, 6, 1), hora=time(16, 0), estado="FINALIZADO", numero_fecha="1",
+        )
+        AlineacionPartido.objects.create(
+            partido=self.partido, equipo=self.equipo, jugador=self.titular, rol="TITULAR",
+        )
+        AlineacionPartido.objects.create(
+            partido=self.partido, equipo=self.equipo, jugador=self.suplente, rol="SUPLENTE",
+        )
+        AlineacionPartido.objects.create(
+            partido=self.partido, equipo=self.equipo, jugador=self.sin_participar, rol="SUPLENTE",
+        )
+        SustitucionPartido.objects.create(
+            partido=self.partido, equipo=self.equipo,
+            jugador_sale=self.titular, jugador_entra=self.suplente, minuto=30,
+        )
+        self.admin = User.objects.create_user("admin-reporte-cancha", password="test", is_staff=True)
+        AdminTorneo.objects.create(usuario=self.admin, torneo=self.torneo)
+        self.client.force_login(self.admin)
+        session = self.client.session
+        session["torneo_id"] = self.torneo.id
+        session.save()
+
+    def test_reporte_muestra_titular_e_ingresado_pero_no_suplente_sin_ingresar(self):
+        respuesta = self.client.get(
+            "/gestion/jugadores/pisaron-cancha/",
+            {"categoria": self.categoria.id, "equipo": self.equipo.id},
+        )
+
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertContains(respuesta, self.titular.nombres)
+        self.assertContains(respuesta, self.suplente.nombres)
+        self.assertContains(respuesta, "Titular")
+        self.assertContains(respuesta, "Ingresó")
+        self.assertNotContains(respuesta, self.sin_participar.nombres)
+
+    def test_descarga_excel_respeta_el_reporte(self):
+        respuesta = self.client.get(
+            "/gestion/jugadores/pisaron-cancha/descargar/",
+            {"equipo": self.equipo.id},
+        )
+
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertIn("spreadsheetml", respuesta["Content-Type"])
+        libro = load_workbook(BytesIO(respuesta.content))
+        valores = [celda.value for celda in libro.active["D"]]
+        self.assertIn(self.titular.nombres, valores)
+        self.assertIn(self.suplente.nombres, valores)
+        self.assertNotIn(self.sin_participar.nombres, valores)
+
+
 class PlanilleroPartidoTests(TestCase):
     def setUp(self):
         self.torneo = Torneo.objects.create(

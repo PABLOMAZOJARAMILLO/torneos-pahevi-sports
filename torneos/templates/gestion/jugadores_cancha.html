@@ -1,0 +1,60 @@
+{% extends "gestion/base.html" %}
+
+{% block title %}Jugadores que pisaron cancha{% endblock %}
+{% block heading %}Jugadores que pisaron cancha{% endblock %}
+
+{% block content %}
+<p><a class="btn secondary" href="{% url 'gestion_panel' %}">Volver</a></p>
+
+<form method="get">
+    <div class="grid">
+        <div>
+            <label>Categoría</label>
+            <select name="categoria">
+                <option value="">Todas</option>
+                {% for categoria in categorias %}<option value="{{ categoria.id }}" {% if categoria_id == categoria.id|stringformat:"s" %}selected{% endif %}>{{ categoria.nombre }}</option>{% endfor %}
+            </select>
+        </div>
+        <div>
+            <label>Equipo</label>
+            <select name="equipo">
+                <option value="">Todos</option>
+                {% for equipo in equipos %}<option value="{{ equipo.id }}" {% if equipo_id == equipo.id|stringformat:"s" %}selected{% endif %}>{{ equipo.categoria.nombre }} · {{ equipo.nombre }}</option>{% endfor %}
+            </select>
+        </div>
+    </div>
+    <button class="btn" type="submit">Consultar</button>
+    <a class="btn secondary" href="{% url 'gestion_jugadores_cancha' %}">Limpiar</a>
+    <button class="btn secondary" type="submit" formaction="{% url 'descargar_jugadores_cancha' %}">Descargar Excel</button>
+</form>
+
+<style>
+.reporte-tabla { overflow-x:auto; margin-top:16px; }
+.reporte-tabla table { width:100%; border-collapse:collapse; min-width:760px; }
+.reporte-tabla th, .reporte-tabla td { padding:10px; border-bottom:1px solid #334155; text-align:left; }
+.reporte-tabla th { color:#00ff66; background:#081426; }
+.reporte-tabla td.numero { text-align:center; }
+.partidos-detalle { margin:0; padding-left:18px; color:#cbd5e1; font-size:12px; }
+.partidos-detalle li + li { margin-top:4px; }
+</style>
+
+<div class="reporte-tabla">
+    <table>
+        <thead><tr><th>Categoría</th><th>Equipo</th><th>Jugador</th><th>Dorsal</th><th>Partidos</th><th>Participaciones verificadas</th></tr></thead>
+        <tbody>
+        {% for fila in filas %}
+            <tr>
+                <td>{{ fila.categoria.nombre }}</td>
+                <td>{{ fila.equipo.nombre }}</td>
+                <td>{{ fila.jugador.nombres }}<div class="muted">CC {{ fila.jugador.cedula }}</div></td>
+                <td class="numero">{{ fila.jugador.dorsal|default:"-" }}</td>
+                <td class="numero"><strong>{{ fila.total_partidos }}</strong></td>
+                <td><ul class="partidos-detalle">{% for item in fila.partidos %}<li>{{ item.fecha_fixture }} · {{ item.fecha|date:"d/m/Y" }} vs {{ item.rival }} — {{ item.evidencia }}</li>{% endfor %}</ul></td>
+            </tr>
+        {% empty %}
+            <tr><td colspan="6">No se encontraron jugadores con participación registrada.</td></tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
