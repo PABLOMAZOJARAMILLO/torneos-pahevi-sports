@@ -9689,6 +9689,56 @@ def gestion_partidos(request):
         key=clave_orden_fecha_fixture,
     )
 
+    q = request.GET.get("q", "").strip()
+    categoria_id = request.GET.get("categoria", "").strip()
+    estado = request.GET.get("estado", "").strip()
+    fecha_fixture = request.GET.get("fecha_fixture", "").strip()
+
+    if q:
+        partidos = partidos.filter(
+            Q(equipo_local__nombre__icontains=q) |
+            Q(equipo_visitante__nombre__icontains=q) |
+            Q(cancha__icontains=q)
+        )
+    if categoria_id:
+        partidos = partidos.filter(categoria_id=categoria_id)
+    if estado:
+        partidos = partidos.filter(estado=estado)
+    if fecha_fixture:
+        partidos = partidos.filter(numero_fecha=fecha_fixture)
+
+    partidos = list(partidos)
+    partidos.sort(key=clave_orden_partido_gestion)
+
+    categoria_ids = {partido.categoria_id for partido in partidos}
+    grupos_por_categoria = defaultdict(set)
+    for cat_id, grupo in Partido.objects.filter(
+        categoria_id__in=categoria_ids,
+    ).exclude(
+        grupo__isnull=True,
+    ).exclude(
+        grupo="",
+    ).values_list("categoria_id", "grupo"):
+        grupos_por_categoria[cat_id].add(grupo.strip().upper())
+    for partido in partidos:
+        partido.mostrar_grupo_gestion = len(grupos_por_categoria[partido.categoria_id]) > 1
+
+    return render(request, "gestion/partidos.html", {
+        "partidos": partidos,
+        "categorias": categorias,
+        "estados": Partido.ESTADOS,
+        "q": q,
+        "categoria_id": categoria_id,
+        "estado": estado,
+        "fecha_fixture": fecha_fixture,
+        "fechas_fixture": fechas_fixture,
+        "puede_editar": puede_editar,
+        "puede_programar": puede_programar,
+        "puede_validar": puede_validar,
+        "puede_descargar_planillas": puede_descargar_planillas,
+        "planilleros_disponibles": User.objects.filter(is_active=True, is_staff=False).order_by("first_name", "last_name", "username"),
+    })
+
 
 def construir_reporte_jugadores_cancha(torneo, categoria_id="", equipo_id="", incluir_sin_participar=False):
     """Agrupa la evidencia de participación real de cada jugador por partido."""
@@ -9838,63 +9888,6 @@ def descargar_jugadores_cancha(request):
     )
     respuesta["Content-Disposition"] = 'attachment; filename="PARTICIPACION_JUGADORES_EN_CANCHA.xlsx"'
     return respuesta
-
-    q = request.GET.get("q", "").strip()
-    categoria_id = request.GET.get("categoria", "").strip()
-    estado = request.GET.get("estado", "").strip()
-    fecha_fixture = request.GET.get("fecha_fixture", "").strip()
-
-    if q:
-        partidos = partidos.filter(
-            Q(equipo_local__nombre__icontains=q) |
-            Q(equipo_visitante__nombre__icontains=q) |
-            Q(cancha__icontains=q)
-        )
-
-    if categoria_id:
-        partidos = partidos.filter(categoria_id=categoria_id)
-
-    if estado:
-        partidos = partidos.filter(estado=estado)
-
-    if fecha_fixture:
-        partidos = partidos.filter(numero_fecha=fecha_fixture)
-
-    # En gestión la jornada del fixture es el criterio principal. Muchos
-    # partidos importados conservan la misma fecha/hora provisional; ordenar
-    # solo por esos campos hacía que el desempate por id mostrara Fecha 15
-    # antes que Fecha 1.
-    partidos = list(partidos)
-    partidos.sort(key=clave_orden_partido_gestion)
-
-    categoria_ids = {partido.categoria_id for partido in partidos}
-    grupos_por_categoria = defaultdict(set)
-    for cat_id, grupo in Partido.objects.filter(
-        categoria_id__in=categoria_ids,
-    ).exclude(
-        grupo__isnull=True,
-    ).exclude(
-        grupo="",
-    ).values_list("categoria_id", "grupo"):
-        grupos_por_categoria[cat_id].add(grupo.strip().upper())
-    for partido in partidos:
-        partido.mostrar_grupo_gestion = len(grupos_por_categoria[partido.categoria_id]) > 1
-
-    return render(request, "gestion/partidos.html", {
-        "partidos": partidos,
-        "categorias": categorias,
-        "estados": Partido.ESTADOS,
-        "q": q,
-        "categoria_id": categoria_id,
-        "estado": estado,
-        "fecha_fixture": fecha_fixture,
-        "fechas_fixture": fechas_fixture,
-        "puede_editar": puede_editar,
-        "puede_programar": puede_programar,
-        "puede_validar": puede_validar,
-        "puede_descargar_planillas": puede_descargar_planillas,
-        "planilleros_disponibles": User.objects.filter(is_active=True, is_staff=False).order_by("first_name", "last_name", "username"),
-    })
 
 
 @login_required
