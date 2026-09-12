@@ -9882,11 +9882,29 @@ def descargar_jugadores_cancha(request):
     salida = BytesIO()
     libro.save(salida)
     salida.seek(0)
+    contenido = salida.getvalue()
+    nombre_archivo = "PARTICIPACION_JUGADORES_EN_CANCHA.xlsx"
+    content_type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    if request.GET.get("app") == "1":
+        parametros_archivo = request.GET.copy()
+        parametros_archivo.pop("app", None)
+        parametros_archivo.pop("volver", None)
+        archivo_url = request.build_absolute_uri(reverse("descargar_jugadores_cancha"))
+        if parametros_archivo:
+            archivo_url = f"{archivo_url}?{parametros_archivo.urlencode()}"
+        return respuesta_archivo_descarga_app(
+            request,
+            contenido,
+            nombre_archivo,
+            content_type,
+            request.GET.get("volver") or reverse("gestion_jugadores_cancha"),
+            archivo_url,
+        )
     respuesta = HttpResponse(
-        salida.getvalue(),
-        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        contenido,
+        content_type=content_type,
     )
-    respuesta["Content-Disposition"] = 'attachment; filename="PARTICIPACION_JUGADORES_EN_CANCHA.xlsx"'
+    respuesta["Content-Disposition"] = f'attachment; filename="{nombre_archivo}"'
     return respuesta
 
 

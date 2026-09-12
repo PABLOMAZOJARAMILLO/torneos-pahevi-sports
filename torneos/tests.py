@@ -2818,6 +2818,29 @@ class ReporteJugadoresCanchaTests(TestCase):
         self.assertEqual(estados_por_jugador[self.suplente.nombres], "SÍ")
         self.assertEqual(estados_por_jugador[self.sin_participar.nombres], "NO")
 
+    def test_descarga_excel_desde_app_usa_descargador_android(self):
+        respuesta = self.client.get(
+            "/gestion/jugadores/pisaron-cancha/descargar/",
+            {
+                "equipo": self.equipo.id,
+                "app": "1",
+                "volver": "/gestion/jugadores/pisaron-cancha/",
+            },
+        )
+
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertTemplateUsed(respuesta, "descargas/archivo_descarga.html")
+        self.assertEqual(
+            respuesta.context["content_type"],
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+        self.assertEqual(
+            respuesta.context["nombre_archivo"],
+            "PARTICIPACION_JUGADORES_EN_CANCHA.xlsx",
+        )
+        self.assertNotIn("app=1", respuesta.context["archivo_url"])
+        self.assertIn(f"equipo={self.equipo.id}", respuesta.context["archivo_url"])
+
 
 class PlanilleroPartidoTests(TestCase):
     def setUp(self):
