@@ -234,27 +234,45 @@ def _cell(draw, col1, row1, col2=None, row2=None, text="", fill=WHITE, font=FONT
 
 
 def _image_from_source(source):
+    """Carga una imagen completa sin permitir que el almacenamiento rompa el PDF."""
     if not source:
         return None
 
     if isinstance(source, Path):
-        if not source.exists():
+        try:
+            if not source.exists():
+                return None
+            with Image.open(source) as image:
+                image.load()
+                return image.copy()
+        except Exception:
             return None
-        return Image.open(source)
 
     try:
         if hasattr(source, "open"):
             source.open("rb")
-            return Image.open(source)
+            with Image.open(source) as image:
+                image.load()
+                return image.copy()
     except Exception:
         pass
+    finally:
+        try:
+            source.close()
+        except Exception:
+            pass
 
-    url = getattr(source, "url", None) or str(source)
+    try:
+        url = getattr(source, "url", None) or str(source)
+    except Exception:
+        return None
     if url.startswith(("http://", "https://")):
         try:
             response = requests.get(url, timeout=8)
             response.raise_for_status()
-            return Image.open(BytesIO(response.content))
+            with Image.open(BytesIO(response.content)) as image:
+                image.load()
+                return image.copy()
         except Exception:
             return None
 

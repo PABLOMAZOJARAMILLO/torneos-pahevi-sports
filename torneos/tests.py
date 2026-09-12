@@ -21,7 +21,7 @@ from .forms import EquipoDelegadoForm, EquipoForm, JugadorForm, PartidoForm, Par
 from .models import AlineacionPartido, EntregaAlineacionPartido, AdminOrganizador, AdminTorneo, Categoria, CobroPenal, Documento, Equipo, Gol, IncidenciaReglaEdad, Jugador, Organizador, Partido, ReglaEdadCategoria, RegistroActividad, VisitaPublicaDiaria, SolicitudValidacion, SustitucionPartido, Tarjeta, Torneo, ruta_escudo_equipo
 from .middleware import AuditoriaModificacionesMiddleware
 from .media_cleanup import eliminar_imagenes_sin_referencia, nombres_imagenes_instancias
-from .planillas_pdf import _dorsal, _edad, _header_image_sources, _jugadores, _team_shield_source, _draw_team_watermark, _titulo_planilla, _nombre_jugador_planilla
+from .planillas_pdf import _dorsal, _edad, _header_image_sources, _image_from_source, _jugadores, _team_shield_source, _draw_team_watermark, _titulo_planilla, _nombre_jugador_planilla
 from .storage_backends import CloudinaryMediaStorage
 from .views import DocumentoStorageError, buscar_planilleros_excel, construir_estructura, construir_estadisticas_foraneos, construir_partidos_portada, construir_partidos_programacion, enriquecer_registros_actividad_legacy, fechas_presentes_en_programacion, foraneos_no_habilitados_fase_final, _clave_orden_evento_resumen, _equipo_turno_tanda, _minuto_evento_en_vivo, _sincronizar_no_disponibles_por_tarjetas, etiqueta_columna_planilla, etiqueta_edad_jugador, jugadores_actuales_en_cancha, listar_imagenes_usadas, nombre_corto_jugador, nombre_resumen_jugador, puede_descargar_programacion, podios_torneo, politica_reemplazo_jugador, reglas_edad_para_frontend, subir_documento_supabase, subir_documento_torneo, tercera_fecha_iniciada, texto_edad_jugador, tabla_general_mata_mata_ida_vuelta, url_imagen_cloudinary, validar_reglas_edad_titulares
 
@@ -2380,6 +2380,20 @@ class GestionCategoriaReglasTests(TestCase):
 
 
 class PlanillasPDFTests(TestCase):
+    def test_imagen_inaccesible_del_almacenamiento_no_rompe_planilla(self):
+        class ImagenInaccesible:
+            def open(self, *_args, **_kwargs):
+                raise RuntimeError("almacenamiento no disponible")
+
+            @property
+            def url(self):
+                raise RuntimeError("url no disponible")
+
+            def close(self):
+                pass
+
+        self.assertIsNone(_image_from_source(ImagenInaccesible()))
+
     def test_titulo_planilla_usa_nombre_y_descripcion_del_torneo(self):
         torneo = Torneo.objects.create(
             nombre="Torneo Amistoso Mata Mata.",
