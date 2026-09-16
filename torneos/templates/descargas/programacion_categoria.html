@@ -409,6 +409,10 @@ body {
 
 .equipo-estado .nombre-equipo {
     text-align: center;
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
+    white-space: nowrap;
 }
 
 .vs-estado {
@@ -482,13 +486,13 @@ body {
                     {% elif p.escudo_local %}
                         <img src="{{ p.escudo_local }}">
                     {% endif %}
-                    <div class="nombre-equipo">{{ p.local }}</div>
+                    <div class="nombre-equipo" data-ajustar-nombre title="{{ p.local }}">{{ p.local }}</div>
                 </div>
 
                 <div class="vs-estado" style="background: {{ p.color_categoria }}; color: {{ p.color_texto_categoria }};">{{ p.marcador_texto }}</div>
 
                 <div class="equipo-estado visitante">
-                    <div class="nombre-equipo">{{ p.visitante }}</div>
+                    <div class="nombre-equipo" data-ajustar-nombre title="{{ p.visitante }}">{{ p.visitante }}</div>
                     {% if p.escudo_visitante_default %}
                         {% include "descargas/partials/escudo_default.html" %}
                     {% elif p.escudo_visitante %}
@@ -536,7 +540,7 @@ body {
                     {% elif p.escudo_local %}
                         <img src="{{ p.escudo_local }}">
                     {% endif %}
-                    <div>{{ p.local }}</div>
+                    <div data-ajustar-nombre title="{{ p.local }}">{{ p.local }}</div>
                 </div>
 
                 <div class="vs">{{ p.marcador_texto }}</div>
@@ -547,7 +551,7 @@ body {
                     {% elif p.escudo_visitante %}
                         <img src="{{ p.escudo_visitante }}">
                     {% endif %}
-                    <div>{{ p.visitante }}</div>
+                    <div data-ajustar-nombre title="{{ p.visitante }}">{{ p.visitante }}</div>
                 </div>
 
             </div>

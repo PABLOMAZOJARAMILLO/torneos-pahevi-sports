@@ -106,6 +106,26 @@ window.onload = function() {
         }));
     }
 
+    function ajustarNombresEquipos(elemento) {
+        elemento.querySelectorAll("[data-ajustar-nombre]").forEach(function(nombre) {
+            const estilo = window.getComputedStyle(nombre);
+            const fuenteInicial = parseFloat(estilo.fontSize) || 13;
+            const fuenteMinima = nombre.closest(".fecha") ? 8 : 13;
+            let fuente = fuenteInicial;
+            nombre.style.whiteSpace = "nowrap";
+            nombre.style.lineHeight = "1";
+            while (fuente > fuenteMinima && nombre.scrollWidth > nombre.clientWidth + 1) {
+                fuente -= 0.5;
+                nombre.style.fontSize = fuente + "px";
+            }
+            if (nombre.scrollWidth > nombre.clientWidth + 1) {
+                nombre.style.whiteSpace = "normal";
+                nombre.style.overflowWrap = "anywhere";
+                nombre.style.lineHeight = "1.02";
+            }
+        });
+    }
+
     function guardarCanvas(canvas, nombreArchivo) {
         const dataUrl = canvas.toDataURL("image/png");
         if (window.AndroidDownloader) {
@@ -134,6 +154,7 @@ window.onload = function() {
                 "Generando imagen " + (indice + 1) + " de " + elementos.length + "...";
             await esperarImagenes(elemento);
             if (document.fonts && document.fonts.ready) await document.fonts.ready;
+            ajustarNombresEquipos(elemento);
             const canvas = await html2canvas(elemento, {
                 scale: 2,
                 useCORS: true,

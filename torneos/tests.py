@@ -4750,6 +4750,7 @@ class DescargaProgramacionFiltrosTests(TestCase):
         self.assertIn("VISITANTE", html.upper())
         self.assertIn("VS", html)
         self.assertIn('class="escudo-default"', html)
+        self.assertIn("data-ajustar-nombre", html)
         self.assertNotIn("GRUPO A", html)
         self.assertNotIn("logo_imcred", html)
         self.assertNotIn("18/07/2026", html)
@@ -4860,6 +4861,7 @@ class DescargaProgramacionFiltrosTests(TestCase):
         self.assertEqual(respuesta.status_code, 200)
         self.assertContains(respuesta, "esperarImagenes")
         self.assertContains(respuesta, "/static/torneos/img/escudo_default.svg")
+        self.assertContains(respuesta, "ajustarNombresEquipos")
 
     def test_programacion_ordena_por_hora_antes_que_por_cancha(self):
         equipo_temprano = Equipo.objects.create(nombre="Equipo Temprano", categoria=self.categoria)
