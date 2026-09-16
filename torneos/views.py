@@ -1858,7 +1858,15 @@ def url_campo_imagen(campo):
     if not campo:
         return ""
     try:
-        return campo.url
+        url = campo.url
+        nombre = str(getattr(campo, "name", "") or "")
+        # Las imágenes antiguas del torneo se guardaban con un public_id fijo.
+        # Este parámetro rompe una vez el caché persistente del navegador/CDN;
+        # las cargas nuevas ya incluyen la huella del contenido en el nombre.
+        if nombre and not re.search(r"_[0-9a-f]{12}$", nombre, flags=re.IGNORECASE):
+            separador = "&" if "?" in url else "?"
+            return f"{url}{separador}v=20260916"
+        return url
     except Exception:
         return ""
 

@@ -23,7 +23,7 @@ from .middleware import AuditoriaModificacionesMiddleware
 from .media_cleanup import eliminar_imagenes_sin_referencia, nombres_imagenes_instancias
 from .planillas_pdf import _dorsal, _edad, _header_image_sources, _image_from_source, _jugadores, _team_shield_source, _draw_team_watermark, _titulo_planilla, _nombre_jugador_planilla
 from .storage_backends import CloudinaryMediaStorage
-from .views import DocumentoStorageError, buscar_planilleros_excel, construir_estructura, construir_estadisticas_foraneos, construir_partidos_portada, construir_partidos_programacion, enriquecer_registros_actividad_legacy, fechas_presentes_en_programacion, foraneos_no_habilitados_fase_final, _clave_orden_evento_resumen, _equipo_turno_tanda, _minuto_evento_en_vivo, _public_id_versionado_imagen_torneo, _sincronizar_no_disponibles_por_tarjetas, etiqueta_columna_planilla, etiqueta_edad_jugador, jugadores_actuales_en_cancha, listar_imagenes_usadas, nombre_corto_jugador, nombre_resumen_jugador, puede_descargar_programacion, podios_torneo, politica_reemplazo_jugador, reglas_edad_para_frontend, subir_documento_supabase, subir_documento_torneo, tercera_fecha_iniciada, texto_edad_jugador, tabla_general_mata_mata_ida_vuelta, url_imagen_cloudinary, validar_reglas_edad_titulares
+from .views import DocumentoStorageError, buscar_planilleros_excel, construir_estructura, construir_estadisticas_foraneos, construir_partidos_portada, construir_partidos_programacion, enriquecer_registros_actividad_legacy, fechas_presentes_en_programacion, foraneos_no_habilitados_fase_final, _clave_orden_evento_resumen, _equipo_turno_tanda, _minuto_evento_en_vivo, _public_id_versionado_imagen_torneo, _sincronizar_no_disponibles_por_tarjetas, etiqueta_columna_planilla, etiqueta_edad_jugador, jugadores_actuales_en_cancha, listar_imagenes_usadas, nombre_corto_jugador, nombre_resumen_jugador, puede_descargar_programacion, podios_torneo, politica_reemplazo_jugador, reglas_edad_para_frontend, subir_documento_supabase, subir_documento_torneo, tercera_fecha_iniciada, texto_edad_jugador, tabla_general_mata_mata_ida_vuelta, url_campo_imagen, url_imagen_cloudinary, validar_reglas_edad_titulares
 
 
 class VisibilidadPublicaTorneoTests(TestCase):
@@ -152,6 +152,25 @@ class EquipoCuerpoTecnicoFormTests(TestCase):
 
 
 class CloudinaryStorageTests(TestCase):
+    def test_url_antigua_del_torneo_rompe_cache_persistente(self):
+        campo = SimpleNamespace(
+            name="torneos/COPA_SAN_JORGE_2026/imagen_central",
+            url="https://res.cloudinary.com/demo/image/upload/imagen_central",
+        )
+
+        self.assertEqual(
+            url_campo_imagen(campo),
+            "https://res.cloudinary.com/demo/image/upload/imagen_central?v=20260916",
+        )
+
+    def test_url_versionada_por_contenido_no_necesita_parametro(self):
+        campo = SimpleNamespace(
+            name="torneos/COPA_SAN_JORGE_2026/imagen_central_123456789abc",
+            url="https://res.cloudinary.com/demo/image/upload/imagen_central_123456789abc",
+        )
+
+        self.assertEqual(url_campo_imagen(campo), campo.url)
+
     def test_imagen_central_nueva_genera_id_distinto_por_contenido(self):
         primera = _public_id_versionado_imagen_torneo(
             SimpleUploadedFile("central.png", b"imagen anterior", content_type="image/png"),
