@@ -1253,6 +1253,13 @@ def aplicar_imagen_cloudinary(instancia, campo, public_id, archivo_subido):
         setattr(instancia, campo, public_id)
 
 
+def _public_id_versionado_imagen_torneo(archivo, campo):
+    contenido = archivo.read()
+    version_contenido = hashlib.sha256(contenido).hexdigest()[:12]
+    archivo.seek(0)
+    return f"{campo}_{version_contenido}"
+
+
 def subir_imagen_torneo_cloudinary(archivo, torneo, campo):
     if not archivo:
         return ""
@@ -1269,12 +1276,14 @@ def subir_imagen_torneo_cloudinary(archivo, torneo, campo):
     cloudinary.config(secure=True)
 
     torneo_nombre = limpiar_ruta_cloudinary(getattr(torneo, "nombre", "SIN_TORNEO"))
-    archivo.seek(0)
+    public_id_versionado = _public_id_versionado_imagen_torneo(archivo, campo)
     resultado = cloudinary.uploader.upload(
         archivo,
         resource_type="image",
         folder=f"torneos/{torneo_nombre}",
-        public_id=campo,
+        # Una URL distinta por contenido evita que el navegador o el CDN
+        # conserven la imagen anterior al reemplazar logos del torneo.
+        public_id=public_id_versionado,
         overwrite=True,
         invalidate=True,
     )
