@@ -117,7 +117,9 @@ td {
     <div class="titulo">
         <img src="{{ logo_torneo }}" class="logo-central">
         <h1>{{ categoria }}</h1>
+        {% if mostrar_grupo %}
         <div class="sub">Grupo {{ grupo }}</div>
+        {% endif %}
     </div>
 
     <img src="{{ logo_imcred }}" class="logo">

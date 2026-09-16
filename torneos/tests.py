@@ -2006,6 +2006,33 @@ class IncidenciasReglasEdadEnJuegoTests(TestCase):
 
 
 class TablaPosicionesWoTests(TestCase):
+    def test_descarga_sin_grupos_oculta_etiqueta_sin_grupo(self):
+        html = render_to_string(
+            "descargas/tabla_grupo.html",
+            {
+                "categoria": "Senior Master",
+                "grupo": "SIN GRUPO",
+                "mostrar_grupo": False,
+                "datos_grupo": {"tabla": []},
+            },
+        )
+
+        self.assertNotIn("Grupo SIN GRUPO", html)
+        self.assertNotIn('<div class="sub">', html)
+
+    def test_descarga_con_grupos_conserva_nombre_del_grupo(self):
+        html = render_to_string(
+            "descargas/tabla_grupo.html",
+            {
+                "categoria": "Interbarrios",
+                "grupo": "A",
+                "mostrar_grupo": True,
+                "datos_grupo": {"tabla": []},
+            },
+        )
+
+        self.assertIn("Grupo A", html)
+
     def test_partido_wo_suma_en_tabla(self):
         torneo = Torneo.objects.create(
             nombre="Veranero",

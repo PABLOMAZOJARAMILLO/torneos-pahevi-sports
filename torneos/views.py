@@ -3752,17 +3752,22 @@ def descargar_tabla_grupo(request, categoria, grupo):
         return HttpResponse("Grupo no encontrado")
 
     logos = logos_torneo(request, torneo)
+    mostrar_grupo = bool(datos_categoria.get("mostrar_grupos"))
 
     html = render_to_string("descargas/tabla_grupo.html", {
         "categoria": categoria,
         "grupo": grupo,
+        "mostrar_grupo": mostrar_grupo,
         "datos_grupo": datos_grupo,
         "logo_alcaldia": logos["logo_alcaldia"],
         "logo_torneo": logos["logo_torneo"],
         "logo_imcred": logos["logo_imcred"],
     })
 
-    nombre = limpiar_nombre(f"TABLA_{categoria}_{grupo}.png")
+    partes_nombre = ["TABLA", categoria]
+    if mostrar_grupo:
+        partes_nombre.append(grupo)
+    nombre = limpiar_nombre("_".join(partes_nombre) + ".png")
     return crear_imagen_desde_html(html, nombre, 1600, 1200, url_retorno_descarga(request))
 
 
@@ -3787,6 +3792,7 @@ def descargar_tabla_general_mata_mata(request, categoria):
     html = render_to_string("descargas/tabla_grupo.html", {
         "categoria": categoria,
         "grupo": "General mata-mata",
+        "mostrar_grupo": True,
         "datos_grupo": {
             "tabla": tabla_general,
             "tiene_ajuste_administrativo": datos_categoria.get("tabla_general_tiene_ajuste_administrativo", False),
