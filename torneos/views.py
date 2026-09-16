@@ -9553,6 +9553,10 @@ def gestion_importar_planilla(request):
             eliminados = 0
             errores = []
             cedulas_importadas = set()
+            bloquear_altas_por_fecha_tres = (
+                categoria.controlar_reemplazos_jugadores
+                and tercera_fecha_iniciada(equipo)
+            )
 
             for fila in range(8, ultima_fila_jugadores + 1):
                 nombre = limpiar_texto_excel(hoja[f"C{fila}"].value)
@@ -9580,6 +9584,18 @@ def gestion_importar_planilla(request):
                 if not fecha_nacimiento:
                     omitidos += 1
                     errores.append(f"Fila {fila}: fecha de nacimiento inválida para {nombre}.")
+                    continue
+
+                jugador_existente_equipo = Jugador.objects.filter(
+                    equipo=equipo,
+                    cedula=cedula,
+                ).exists()
+                if bloquear_altas_por_fecha_tres and not jugador_existente_equipo:
+                    omitidos += 1
+                    errores.append(
+                        f"Fila {fila}: {nombre} no fue agregado porque {equipo.nombre} ya inició su fecha 3. "
+                        "Los nuevos ingresos deben tramitarse mediante reemplazo por fuerza mayor."
+                    )
                     continue
 
                 jugador_misma_categoria = Jugador.objects.filter(

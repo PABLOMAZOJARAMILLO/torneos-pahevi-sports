@@ -6008,6 +6008,59 @@ class ImportacionJugadoresPlanillaTests(TestCase):
         )
         self.assertFalse(Jugador.objects.filter(equipo=self.equipo, cedula="99999").exists())
 
+    def test_importar_planilla_no_agrega_cedula_nueva_despues_de_fecha_tres(self):
+        self.categoria.controlar_reemplazos_jugadores = True
+        self.categoria.save(update_fields=["controlar_reemplazos_jugadores"])
+        rival = Equipo.objects.create(nombre="RIVAL FECHA TRES", categoria=self.categoria)
+        Partido.objects.create(
+            categoria=self.categoria,
+            equipo_local=self.equipo,
+            equipo_visitante=rival,
+            numero_fecha="Fecha 3",
+            fase="GRUPOS",
+            fecha=date(2026, 2, 1),
+            hora=time(16),
+            estado="FINALIZADO",
+        )
+        existente = Jugador.objects.create(
+            equipo=self.equipo,
+            nombres="Jugador Ya Inscrito",
+            cedula="77777",
+            fecha_nacimiento=date(1982, 2, 2),
+            dorsal=7,
+        )
+        workbook = Workbook()
+        hoja = workbook.active
+        hoja["D3"] = self.categoria.nombre
+        hoja["I3"] = self.equipo.nombre
+        hoja["C8"], hoja["D8"], hoja["E8"], hoja["F8"], hoja["G8"], hoja["H8"] = (
+            "Jugador Ya Inscrito", 17, 2, 2, 1982, "77777"
+        )
+        hoja["C9"], hoja["D9"], hoja["E9"], hoja["F9"], hoja["G9"], hoja["H9"] = (
+            "Jugador Prohibido", 20, 3, 3, 1983, "88888"
+        )
+        archivo = BytesIO()
+        workbook.save(archivo)
+        archivo.seek(0)
+
+        self.client.force_login(self.admin)
+        session = self.client.session
+        session["torneo_id"] = self.torneo.id
+        session.save()
+        respuesta = self.client.post(
+            "/gestion/jugadores/importar-planilla/",
+            {"archivo_excel": SimpleUploadedFile(
+                "bloqueada.xlsx",
+                archivo.read(),
+                content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            )},
+        )
+
+        self.assertEqual(respuesta.status_code, 302)
+        existente.refresh_from_db()
+        self.assertEqual(existente.dorsal, 17)
+        self.assertFalse(Jugador.objects.filter(equipo=self.equipo, cedula="88888").exists())
+
     def test_importa_administrador_app_y_telefonos_del_cuerpo_tecnico(self):
         workbook = Workbook()
         hoja = workbook.active
