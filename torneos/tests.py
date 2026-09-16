@@ -4751,6 +4751,8 @@ class DescargaProgramacionFiltrosTests(TestCase):
         self.assertIn("VS", html)
         self.assertIn('class="escudo-default"', html)
         self.assertIn("data-ajustar-nombre", html)
+        self.assertIn("grid-template-columns:minmax(0,1fr) 46px minmax(0,1fr)", html)
+        self.assertIn("white-space:nowrap", html)
         self.assertNotIn("GRUPO A", html)
         self.assertNotIn("logo_imcred", html)
         self.assertNotIn("18/07/2026", html)
