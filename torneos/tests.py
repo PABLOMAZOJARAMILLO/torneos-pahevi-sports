@@ -4854,6 +4854,8 @@ class DescargaProgramacionFiltrosTests(TestCase):
         html = crear_imagen.call_args.args[0]
         self.assertGreaterEqual(html.count('class="escudo-default"'), 2)
         self.assertIn("escudo_default", html)
+        self.assertIn(self.torneo.nombre, html)
+        self.assertIn('class="torneo-nombre"', html)
 
     def test_generador_espera_los_escudos_y_reemplaza_imagenes_rotas(self):
         respuesta = self.client.get(f"/descargar/programacion/{self.categoria.nombre}/")

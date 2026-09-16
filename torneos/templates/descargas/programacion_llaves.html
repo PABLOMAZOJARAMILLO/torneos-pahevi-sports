@@ -34,6 +34,13 @@ body {
 }
 .cabecera .derecha { justify-self: end; }
 .titulo { text-align: center; text-transform: uppercase; }
+.titulo .torneo-nombre {
+    margin: 0 0 5px;
+    color: #8bf5bb;
+    font-size: 15px;
+    font-weight: 900;
+    letter-spacing: 1px;
+}
 .titulo h1 {
     margin: 0;
     font-size: 30px;
@@ -223,6 +230,7 @@ body {
     <header class="cabecera">
         {% if logo_alcaldia %}<img src="{{ logo_alcaldia }}">{% endif %}
         <div class="titulo">
+            {% if torneo_nombre %}<div class="torneo-nombre">{{ torneo_nombre }}</div>{% endif %}
             <h1>{{ categoria }}</h1>
             <h2>Cuadro de fases finales</h2>
         </div>

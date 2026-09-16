@@ -4857,6 +4857,7 @@ def descargar_programacion_categoria(request, categoria):
 
         alto_llaves = 1750 if llaves["tercero"] else 1550
         html = render_to_string("descargas/programacion_llaves.html", {
+            "torneo_nombre": torneo.nombre if torneo else "",
             "categoria": categoria_obj.nombre,
             "llaves": llaves,
             "alto": alto_llaves,
@@ -4865,6 +4866,7 @@ def descargar_programacion_categoria(request, categoria):
         medidas = {"ancho": 900, "alto": alto_llaves}
     else:
         html = render_to_string("descargas/programacion_categoria.html", {
+            "torneo_nombre": torneo.nombre if torneo else "",
             "categoria": titulo_descarga_programacion(categoria_obj, numero_fecha, dia),
             "partidos": partidos_programacion,
             "ancho": medidas["ancho"],
@@ -4902,6 +4904,7 @@ def descargar_programacion_general(request):
     titulo_programacion = titulo_descarga_programacion(categoria_obj, numero_fecha, dia)
 
     html = render_to_string("descargas/programacion_categoria.html", {
+        "torneo_nombre": torneo.nombre if torneo else "",
         "categoria": titulo_programacion,
         "mostrar_categoria": not categoria_obj,
         "partidos": partidos_programacion,

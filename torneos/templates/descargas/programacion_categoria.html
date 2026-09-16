@@ -58,6 +58,15 @@ body {
     padding: 28px 10px 22px;
 }
 
+.titulo .torneo-nombre {
+    margin: 0 0 10px;
+    font-size: 40px;
+    line-height: 1.05;
+    color: #ffffff;
+    font-weight: 900;
+    text-transform: uppercase;
+}
+
 .titulo h1 {
     margin: 0;
     font-size: 54px;
@@ -227,7 +236,12 @@ body {
 }
 
 .contenedor.compacta .titulo {
-    padding: 22px 10px 20px;
+    padding: 13px 10px 15px;
+}
+
+.contenedor.compacta .titulo .torneo-nombre {
+    margin-bottom: 6px;
+    font-size: 31px;
 }
 
 .contenedor.compacta .titulo h1 {
@@ -455,6 +469,7 @@ body {
     </div>
 
     <div class="titulo">
+        {% if torneo_nombre %}<div class="torneo-nombre">{{ torneo_nombre }}</div>{% endif %}
         <h1>{{ categoria }}</h1>
         <h2>PROGRAMACIÓN DE PARTIDOS</h2>
     </div>
