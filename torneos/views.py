@@ -5133,10 +5133,11 @@ def descargar_fixture_compartible(request):
     if not categorias_fixture:
         return respuesta_descarga_sin_partidos(request, "No hay partidos de fase 1 creados en el fixture seleccionado.")
 
-    # El fixture se comparte principalmente por celular. Tres fechas por fila
-    # mantienen nombres y escudos legibles; las jornadas adicionales crecen
-    # hacia abajo en lugar de reducir toda la imagen.
-    columnas = 3
+    # Con ocho fechas o menos se aprovecha mejor el ancho usando dos tarjetas
+    # por fila. Los fixtures más largos conservan tres columnas para no crecer
+    # excesivamente hacia abajo.
+    total_fechas_maximo = max(len(categoria["fechas"]) for categoria in categorias_fixture)
+    columnas = 2 if total_fechas_maximo <= 8 else 3
     filas_bloques = 0
     for categoria in categorias_fixture:
         fechas = categoria["fechas"]

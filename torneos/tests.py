@@ -4786,7 +4786,7 @@ class DescargaProgramacionFiltrosTests(TestCase):
         self.assertEqual(respuesta.status_code, 200)
         html = crear_imagen.call_args.args[0]
         self.assertIn("FECHA 1", html.upper())
-        self.assertIn("grid-template-columns:repeat(3", html)
+        self.assertIn("grid-template-columns:repeat(2", html)
         self.assertIn("LOCAL", html.upper())
         self.assertIn("VISITANTE", html.upper())
         self.assertIn("VS", html)
@@ -4799,6 +4799,32 @@ class DescargaProgramacionFiltrosTests(TestCase):
         self.assertNotIn("18/07/2026", html)
         self.assertNotIn("4:00 PM", html)
         self.assertNotIn("Teresa Sierra", html)
+
+    @patch("torneos.views.crear_imagen_desde_html")
+    def test_fixture_de_nueve_fechas_conserva_tres_columnas(self, crear_imagen):
+        crear_imagen.return_value = HttpResponse(b"png", content_type="image/png")
+        for numero_fecha in range(2, 10):
+            Partido.objects.create(
+                categoria=self.categoria,
+                equipo_local=self.local,
+                equipo_visitante=self.visitante,
+                fecha=date(2026, 7, 17) + timedelta(days=numero_fecha),
+                hora=time(0, 0),
+                estado="PROGRAMADO",
+                numero_fecha=f"Fecha {numero_fecha}",
+                cancha="Por definir",
+                grupo="A",
+                fase="GRUPOS",
+            )
+
+        respuesta = self.client.get(
+            "/descargar/fixture-compartible/",
+            {"categoria": self.categoria.id},
+        )
+
+        self.assertEqual(respuesta.status_code, 200)
+        html = crear_imagen.call_args.args[0]
+        self.assertIn("grid-template-columns:repeat(3", html)
 
     @patch("torneos.views.crear_imagen_desde_html")
     def test_fixture_compartible_separa_los_partidos_por_grupo(self, crear_imagen):
