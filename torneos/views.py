@@ -9584,6 +9584,20 @@ def gestion_importar_planilla(request):
                 categoria.controlar_reemplazos_jugadores
                 and tercera_fecha_iniciada(equipo)
             )
+            cedulas_en_planilla = {
+                limpiar_cedula_excel(hoja[f"H{fila}"].value)
+                for fila in range(8, ultima_fila_jugadores + 1)
+                if limpiar_cedula_excel(hoja[f"H{fila}"].value)
+            }
+            jugadores_protegidos_omitidos = []
+            if categoria.controlar_reemplazos_jugadores:
+                jugadores_protegidos_omitidos = [
+                    jugador
+                    for jugador in Jugador.objects.filter(equipo=equipo, estado="ACTIVO").exclude(
+                        cedula__in=cedulas_en_planilla
+                    )
+                    if jugador_ya_piso_cancha(jugador)
+                ]
 
             for fila in range(8, ultima_fila_jugadores + 1):
                 nombre = limpiar_texto_excel(hoja[f"C{fila}"].value)
@@ -9616,13 +9630,41 @@ def gestion_importar_planilla(request):
                 jugador_existente_equipo = Jugador.objects.filter(
                     equipo=equipo,
                     cedula=cedula,
-                ).exists()
-                if bloquear_altas_por_fecha_tres and not jugador_existente_equipo:
+                ).first()
+                if (
+                    not jugador_existente_equipo
+                    and (bloquear_altas_por_fecha_tres or jugadores_protegidos_omitidos)
+                ):
                     omitidos += 1
-                    errores.append(
-                        f"Fila {fila}: {nombre} no fue agregado porque {equipo.nombre} ya inició su fecha 3. "
-                        "Los nuevos ingresos deben tramitarse mediante reemplazo por fuerza mayor."
+                    if jugadores_protegidos_omitidos:
+                        errores.append(
+                            f"Fila {fila}: {nombre} no fue agregado. La planilla omite jugadores que ya pisaron cancha "
+                            f"({', '.join(j.nombres for j in jugadores_protegidos_omitidos)}); no pueden reemplazarse desde Excel."
+                        )
+                    else:
+                        errores.append(
+                            f"Fila {fila}: {nombre} no fue agregado porque {equipo.nombre} ya inició su fecha 3. "
+                            "Los nuevos ingresos deben tramitarse mediante reemplazo por fuerza mayor."
+                        )
+                    continue
+
+                if jugador_existente_equipo and jugador_ya_piso_cancha(jugador_existente_equipo):
+                    identidad_actual = (
+                        normalizar_nombre_persona(jugador_existente_equipo.nombres),
+                        jugador_existente_equipo.fecha_nacimiento,
                     )
+                    identidad_importada = (normalizar_nombre_persona(nombre), fecha_nacimiento)
+                    cedulas_importadas.add(cedula)
+                    if identidad_importada != identidad_actual:
+                        omitidos += 1
+                        errores.append(
+                            f"Fila {fila}: no se modificó la identidad de {jugador_existente_equipo.nombres} "
+                            "porque ya pisó cancha."
+                        )
+                        continue
+                    jugador_existente_equipo.dorsal = dorsal
+                    jugador_existente_equipo.save(update_fields=["dorsal"])
+                    actualizados += 1
                     continue
 
                 jugador_misma_categoria = Jugador.objects.filter(
