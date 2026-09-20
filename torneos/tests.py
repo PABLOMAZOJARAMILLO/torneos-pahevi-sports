@@ -6466,6 +6466,83 @@ class ImportacionJugadoresPlanillaTests(TestCase):
         self.assertFalse(Jugador.objects.filter(equipo=self.equipo, cedula="LIMITE32").exists())
         self.assertContains(respuesta, "Este formato permite máximo 30 jugadores activos")
 
+    def test_retirados_sin_reemplazo_siguen_ocupando_cupo_de_inscripcion(self):
+        rival = Equipo.objects.create(nombre="Rival cupos históricos", categoria=self.categoria)
+        partido = Partido.objects.create(
+            categoria=self.categoria,
+            equipo_local=self.equipo,
+            equipo_visitante=rival,
+            numero_fecha="Fecha 1",
+            fase="GRUPOS",
+            fecha=date(2026, 1, 10),
+            hora=time(16),
+            estado="FINALIZADO",
+        )
+        jugadores_planilla = []
+        for indice in range(30):
+            estado = "RETIRADO" if indice < 2 else "ACTIVO"
+            jugador = Jugador.objects.create(
+                equipo=self.equipo,
+                nombres=f"Jugador Histórico {indice + 1}",
+                cedula=f"HIST{indice + 1}",
+                fecha_nacimiento=date(1980, 1, 1),
+                estado=estado,
+            )
+            jugadores_planilla.append(jugador)
+            if estado == "RETIRADO":
+                AlineacionPartido.objects.create(
+                    partido=partido,
+                    equipo=self.equipo,
+                    jugador=jugador,
+                    rol="TITULAR",
+                )
+
+        workbook = Workbook()
+        hoja = workbook.active
+        hoja["D3"] = self.categoria.nombre
+        hoja["I3"] = self.equipo.nombre
+        filas = [
+            (jugador.nombres, jugador.cedula)
+            for jugador in jugadores_planilla
+        ] + [
+            ("Jugador Nuevo 31", "NUEVO31"),
+            ("Jugador Nuevo 32", "NUEVO32"),
+        ]
+        for indice, (nombre, cedula) in enumerate(filas):
+            fila = 8 + indice
+            hoja[f"C{fila}"] = nombre
+            hoja[f"D{fila}"] = indice + 1
+            hoja[f"E{fila}"] = 1
+            hoja[f"F{fila}"] = 1
+            hoja[f"G{fila}"] = 1980
+            hoja[f"H{fila}"] = cedula
+        hoja["B41"] = "CUERPO TÉCNICO"
+        archivo = BytesIO()
+        workbook.save(archivo)
+        archivo.seek(0)
+        self.client.force_login(self.admin)
+        session = self.client.session
+        session["torneo_id"] = self.torneo.id
+        session.save()
+
+        respuesta = self.client.post(
+            "/gestion/jugadores/importar-planilla/",
+            {"archivo_excel": SimpleUploadedFile(
+                "cupos-historicos.xlsx",
+                archivo.read(),
+                content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            )},
+            follow=True,
+        )
+
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertEqual(Jugador.objects.filter(equipo=self.equipo, estado="ACTIVO").count(), 28)
+        self.assertEqual(Jugador.objects.filter(equipo=self.equipo, estado="RETIRADO").count(), 2)
+        self.assertFalse(Jugador.objects.filter(equipo=self.equipo, cedula="NUEVO31").exists())
+        self.assertFalse(Jugador.objects.filter(equipo=self.equipo, cedula="NUEVO32").exists())
+        self.assertContains(respuesta, "Jugador Nuevo 31 no fue inscrito por falta de cupo")
+        self.assertContains(respuesta, "Jugador Nuevo 32 no fue inscrito por falta de cupo")
+
 
 class PartidoFormTests(TestCase):
     def setUp(self):

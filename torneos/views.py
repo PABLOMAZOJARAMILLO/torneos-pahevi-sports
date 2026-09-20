@@ -9613,8 +9613,14 @@ def gestion_importar_planilla(request):
                     bloqueados_planilla.append(candidato)
                 else:
                     eliminables_planilla.append(candidato)
-            activos_proyectados = Jugador.objects.filter(equipo=equipo, estado="ACTIVO").count() - len(eliminables_planilla)
-            cupos_disponibles = max(0, limite_jugadores - activos_proyectados) if limite_jugadores is not None else None
+            salientes_reemplazados = ReemplazoJugador.objects.filter(
+                equipo=equipo,
+            ).values_list("jugador_saliente_id", flat=True)
+            cupos_ocupados = Jugador.objects.filter(equipo=equipo).exclude(
+                id__in=salientes_reemplazados,
+            ).count()
+            cupos_proyectados = cupos_ocupados - len(eliminables_planilla)
+            cupos_disponibles = max(0, limite_jugadores - cupos_proyectados) if limite_jugadores is not None else None
 
             for fila in range(8, ultima_fila_jugadores + 1):
                 nombre = limpiar_texto_excel(hoja[f"C{fila}"].value)
