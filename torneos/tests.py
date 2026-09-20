@@ -6153,7 +6153,7 @@ class ImportacionJugadoresPlanillaTests(TestCase):
         self.assertEqual(existente.dorsal, 17)
         self.assertFalse(Jugador.objects.filter(equipo=self.equipo, cedula="88888").exists())
 
-    def test_importar_planilla_no_reemplaza_jugador_que_ya_piso_cancha(self):
+    def test_importar_planilla_agrega_nuevo_sin_retirar_jugador_que_piso_cancha(self):
         self.categoria.controlar_reemplazos_jugadores = True
         self.categoria.save(update_fields=["controlar_reemplazos_jugadores"])
         protegido = Jugador.objects.create(
@@ -6177,22 +6177,22 @@ class ImportacionJugadoresPlanillaTests(TestCase):
         respuesta = self.client.post(
             "/gestion/jugadores/importar-planilla/",
             {"archivo_excel": SimpleUploadedFile(
-                "reemplazo.xlsx", archivo.read(),
+                "alta.xlsx", archivo.read(),
                 content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             )},
         )
         self.assertEqual(respuesta.status_code, 302)
         self.assertTrue(Jugador.objects.filter(id=protegido.id, estado="ACTIVO").exists())
-        self.assertFalse(Jugador.objects.filter(equipo=self.equipo, cedula="12345").exists())
+        self.assertTrue(Jugador.objects.filter(equipo=self.equipo, cedula="12345").exists())
 
-    def test_importar_planilla_no_cambia_identidad_de_jugador_que_piso_cancha(self):
+    def test_importar_planilla_corrige_nombre_de_jugador_que_piso_cancha(self):
         self.categoria.controlar_reemplazos_jugadores = True
         self.categoria.save(update_fields=["controlar_reemplazos_jugadores"])
         protegido = Jugador.objects.create(
-            equipo=self.equipo, nombres="Jugador Original", cedula="12345",
+            equipo=self.equipo, nombres="Jugador Con Nombre Errado", cedula="12345",
             fecha_nacimiento=date(1980, 1, 1), dorsal=7,
         )
-        rival = Equipo.objects.create(nombre="Rival Identidad", categoria=self.categoria)
+        rival = Equipo.objects.create(nombre="Rival Nombre", categoria=self.categoria)
         partido = Partido.objects.create(
             categoria=self.categoria, equipo_local=self.equipo, equipo_visitante=rival,
             numero_fecha="Fecha 1", fase="GRUPOS", fecha=date(2026, 1, 10),
@@ -6209,14 +6209,48 @@ class ImportacionJugadoresPlanillaTests(TestCase):
         respuesta = self.client.post(
             "/gestion/jugadores/importar-planilla/",
             {"archivo_excel": SimpleUploadedFile(
-                "identidad.xlsx", archivo.read(),
+                "corregir-nombre.xlsx", archivo.read(),
+                content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            )},
+        )
+        self.assertEqual(respuesta.status_code, 302)
+        protegido.refresh_from_db()
+        self.assertEqual(protegido.nombres, "Jugador Nuevo De Prueba")
+        self.assertEqual(protegido.fecha_nacimiento, date(1980, 1, 1))
+        self.assertEqual(protegido.dorsal, 10)
+
+    def test_importar_planilla_no_cambia_fecha_de_jugador_que_piso_cancha(self):
+        self.categoria.controlar_reemplazos_jugadores = True
+        self.categoria.save(update_fields=["controlar_reemplazos_jugadores"])
+        protegido = Jugador.objects.create(
+            equipo=self.equipo, nombres="Jugador Original", cedula="12345",
+            fecha_nacimiento=date(1979, 1, 1), dorsal=7,
+        )
+        rival = Equipo.objects.create(nombre="Rival Fecha", categoria=self.categoria)
+        partido = Partido.objects.create(
+            categoria=self.categoria, equipo_local=self.equipo, equipo_visitante=rival,
+            numero_fecha="Fecha 1", fase="GRUPOS", fecha=date(2026, 1, 10),
+            hora=time(16), estado="FINALIZADO",
+        )
+        AlineacionPartido.objects.create(
+            partido=partido, equipo=self.equipo, jugador=protegido, rol="TITULAR"
+        )
+        self.client.force_login(self.admin)
+        session = self.client.session
+        session["torneo_id"] = self.torneo.id
+        session.save()
+        archivo = self._archivo_planilla()
+        respuesta = self.client.post(
+            "/gestion/jugadores/importar-planilla/",
+            {"archivo_excel": SimpleUploadedFile(
+                "fecha-distinta.xlsx", archivo.read(),
                 content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             )},
         )
         self.assertEqual(respuesta.status_code, 302)
         protegido.refresh_from_db()
         self.assertEqual(protegido.nombres, "Jugador Original")
-        self.assertEqual(protegido.fecha_nacimiento, date(1980, 1, 1))
+        self.assertEqual(protegido.fecha_nacimiento, date(1979, 1, 1))
         self.assertEqual(protegido.dorsal, 7)
 
     def test_importa_administrador_app_y_telefonos_del_cuerpo_tecnico(self):
