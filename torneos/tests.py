@@ -6381,6 +6381,8 @@ class ImportacionJugadoresPlanillaTests(TestCase):
         self.assertContains(respuesta, "Jugador Que Ya Jugo no se retiró porque ya pisó cancha")
 
     def test_importa_formato_san_jorge_con_mas_de_30_jugadores_y_cedulas_del_cuerpo_tecnico(self):
+        self.torneo.nombre = "Copa San Jorge 2026"
+        self.torneo.save(update_fields=["nombre"])
         workbook = Workbook()
         hoja = workbook.active
         hoja["D3"] = self.categoria.nombre
@@ -6422,6 +6424,47 @@ class ImportacionJugadoresPlanillaTests(TestCase):
         self.assertEqual(self.equipo.auxiliar_campo, "AUXILIAR SAN JORGE")
         self.assertEqual(self.equipo.cedula_ac, "8203204")
         self.assertEqual(self.equipo.telefono_ac, "3152794845")
+
+    def test_formato_con_cuerpo_tecnico_fuera_de_san_jorge_respeta_limite_de_30(self):
+        workbook = Workbook()
+        hoja = workbook.active
+        hoja["D3"] = self.categoria.nombre
+        hoja["I3"] = self.equipo.nombre
+        for indice in range(32):
+            fila = 8 + indice
+            hoja[f"C{fila}"] = f"Jugador Limite {indice + 1}"
+            hoja[f"D{fila}"] = indice + 1
+            hoja[f"E{fila}"] = 1
+            hoja[f"F{fila}"] = 1
+            hoja[f"G{fila}"] = 1980
+            hoja[f"H{fila}"] = f"LIMITE{indice + 1}"
+        hoja["B41"] = "CUERPO TÉCNICO"
+        hoja["B42"], hoja["C42"], hoja["F42"], hoja["I42"] = (
+            "DT", "Director", "100", "3000000000"
+        )
+        archivo = BytesIO()
+        workbook.save(archivo)
+        archivo.seek(0)
+        self.client.force_login(self.admin)
+        session = self.client.session
+        session["torneo_id"] = self.torneo.id
+        session.save()
+
+        respuesta = self.client.post(
+            "/gestion/jugadores/importar-planilla/",
+            {"archivo_excel": SimpleUploadedFile(
+                "formato-nuevo-con-limite.xlsx",
+                archivo.read(),
+                content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            )},
+            follow=True,
+        )
+
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertEqual(Jugador.objects.filter(equipo=self.equipo, estado="ACTIVO").count(), 30)
+        self.assertFalse(Jugador.objects.filter(equipo=self.equipo, cedula="LIMITE31").exists())
+        self.assertFalse(Jugador.objects.filter(equipo=self.equipo, cedula="LIMITE32").exists())
+        self.assertContains(respuesta, "Este formato permite máximo 30 jugadores activos")
 
 
 class PartidoFormTests(TestCase):

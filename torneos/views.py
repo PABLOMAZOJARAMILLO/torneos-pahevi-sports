@@ -9590,7 +9590,11 @@ def gestion_importar_planilla(request):
                 categoria.controlar_reemplazos_jugadores
                 and tercera_fecha_iniciada(equipo)
             )
-            limite_jugadores = None if formato_con_cuerpo_tecnico else 30
+            es_copa_san_jorge = bool(
+                categoria.torneo_id
+                and "COPA SAN JORGE" in limpiar_texto_excel(categoria.torneo.nombre).upper()
+            )
+            limite_jugadores = None if (formato_con_cuerpo_tecnico and es_copa_san_jorge) else 30
             cedulas_en_planilla = {
                 limpiar_cedula_excel(hoja[f"H{fila}"].value)
                 for fila in range(8, ultima_fila_jugadores + 1)
