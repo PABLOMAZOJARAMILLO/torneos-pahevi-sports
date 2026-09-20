@@ -9584,6 +9584,27 @@ def gestion_importar_planilla(request):
                 categoria.controlar_reemplazos_jugadores
                 and tercera_fecha_iniciada(equipo)
             )
+            limite_jugadores = None if formato_con_cuerpo_tecnico else 30
+            cedulas_en_planilla = {
+                limpiar_cedula_excel(hoja[f"H{fila}"].value)
+                for fila in range(8, ultima_fila_jugadores + 1)
+                if limpiar_cedula_excel(hoja[f"H{fila}"].value)
+            }
+            candidatos_eliminar = list(
+                Jugador.objects.select_related("equipo", "equipo__categoria").filter(
+                    equipo=equipo, estado="ACTIVO"
+                ).exclude(cedula__in=cedulas_en_planilla)
+            )
+            bloqueados_planilla = []
+            eliminables_planilla = []
+            for candidato in candidatos_eliminar:
+                politica = politica_reemplazo_jugador(candidato)
+                if politica["controlada"] and not politica["permitido_normal"]:
+                    bloqueados_planilla.append(candidato)
+                else:
+                    eliminables_planilla.append(candidato)
+            activos_proyectados = Jugador.objects.filter(equipo=equipo, estado="ACTIVO").count() - len(eliminables_planilla)
+            cupos_disponibles = max(0, limite_jugadores - activos_proyectados) if limite_jugadores is not None else None
 
             for fila in range(8, ultima_fila_jugadores + 1):
                 nombre = limpiar_texto_excel(hoja[f"C{fila}"].value)
@@ -9652,6 +9673,15 @@ def gestion_importar_planilla(request):
                     )
                     continue
 
+                requiere_cupo = not jugador_existente_equipo or jugador_existente_equipo.estado != "ACTIVO"
+                if requiere_cupo and cupos_disponibles is not None and cupos_disponibles <= 0:
+                    omitidos += 1
+                    errores.append(
+                        f"Fila {fila}: {nombre} no fue inscrito por falta de cupo. "
+                        f"Este formato permite máximo {limite_jugadores} jugadores activos."
+                    )
+                    continue
+
                 _, creado = Jugador.objects.update_or_create(
                     equipo=equipo,
                     cedula=cedula,
@@ -9668,26 +9698,21 @@ def gestion_importar_planilla(request):
                     creados += 1
                 else:
                     actualizados += 1
+                if requiere_cupo and cupos_disponibles is not None:
+                    cupos_disponibles -= 1
 
             if cedulas_importadas:
-                candidatos_eliminar = list(
-                    Jugador.objects.select_related("equipo", "equipo__categoria").filter(
-                        equipo=equipo, estado="ACTIVO"
-                    ).exclude(cedula__in=cedulas_importadas)
-                )
-                bloqueados_planilla = []
-                for candidato in candidatos_eliminar:
-                    politica = politica_reemplazo_jugador(candidato)
-                    if politica["controlada"] and not politica["permitido_normal"]:
-                        bloqueados_planilla.append(candidato.nombres)
-                        continue
+                for candidato in eliminables_planilla:
                     cantidad, _ = Jugador.objects.filter(id=candidato.id).delete()
                     eliminados += cantidad
-                if bloqueados_planilla:
+                for candidato in bloqueados_planilla:
+                    if jugador_ya_piso_cancha(candidato):
+                        motivo_bloqueo = "ya pisó cancha"
+                    else:
+                        motivo_bloqueo = "la plantilla quedó protegida después de la tercera fecha"
                     errores.append(
-                        "No se retiraron por planilla porque están bloqueados: "
-                        + ", ".join(bloqueados_planilla)
-                        + ". Usa la opción Reemplazar y adjunta el soporte si corresponde."
+                        f"{candidato.nombres} no se retiró porque {motivo_bloqueo}. "
+                        "Permanece ocupando un cupo."
                     )
 
             messages.success(
@@ -9702,11 +9727,11 @@ def gestion_importar_planilla(request):
                 datos={"creados": creados, "actualizados": actualizados, "eliminados": eliminados, "omitidos": omitidos},
             )
 
-            for error in errores[:12]:
+            for error in errores[:50]:
                 messages.warning(request, error)
 
-            if len(errores) > 12:
-                messages.warning(request, f"Hay {len(errores) - 12} advertencias adicionales.")
+            if len(errores) > 50:
+                messages.warning(request, f"Hay {len(errores) - 50} advertencias adicionales.")
 
             return redirect("gestion_jugadores")
 
@@ -10283,11 +10308,11 @@ def gestion_importar_partidos(request):
                 },
             )
 
-            for error in errores[:12]:
+            for error in errores[:50]:
                 messages.warning(request, error)
 
-            if len(errores) > 12:
-                messages.warning(request, f"Hay {len(errores) - 12} advertencias adicionales.")
+            if len(errores) > 50:
+                messages.warning(request, f"Hay {len(errores) - 50} advertencias adicionales.")
 
             return redirect("gestion_partidos")
 

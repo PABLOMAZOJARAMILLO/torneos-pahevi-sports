@@ -6298,6 +6298,58 @@ class ImportacionJugadoresPlanillaTests(TestCase):
         self.assertEqual(self.equipo.administrador_app, "ADMINISTRADOR APP NUEVO")
         self.assertEqual(self.equipo.telefono_administrador_app, "302-333-4455")
 
+    def test_formato_anterior_limita_a_30_y_explica_cupo_y_jugador_protegido(self):
+        self.categoria.controlar_reemplazos_jugadores = True
+        self.categoria.save(update_fields=["controlar_reemplazos_jugadores"])
+        protegido = Jugador.objects.create(
+            equipo=self.equipo, nombres="Jugador Que Ya Jugo", cedula="PROTEGIDO",
+            fecha_nacimiento=date(1980, 1, 1),
+        )
+        rival = Equipo.objects.create(nombre="Rival Cupos", categoria=self.categoria)
+        partido = Partido.objects.create(
+            categoria=self.categoria, equipo_local=self.equipo, equipo_visitante=rival,
+            numero_fecha="Fecha 1", fase="GRUPOS", fecha=date(2026, 1, 10),
+            hora=time(16), estado="FINALIZADO",
+        )
+        AlineacionPartido.objects.create(
+            partido=partido, equipo=self.equipo, jugador=protegido, rol="TITULAR"
+        )
+        workbook = Workbook()
+        hoja = workbook.active
+        hoja["D3"] = self.categoria.nombre
+        hoja["I3"] = self.equipo.nombre
+        for indice in range(30):
+            fila = 8 + indice
+            hoja[f"C{fila}"] = f"Jugador Cupo {indice + 1}"
+            hoja[f"D{fila}"] = indice + 1
+            hoja[f"E{fila}"] = 1
+            hoja[f"F{fila}"] = 1
+            hoja[f"G{fila}"] = 1980
+            hoja[f"H{fila}"] = f"CUPO{indice + 1}"
+        archivo = BytesIO()
+        workbook.save(archivo)
+        archivo.seek(0)
+        self.client.force_login(self.admin)
+        session = self.client.session
+        session["torneo_id"] = self.torneo.id
+        session.save()
+
+        respuesta = self.client.post(
+            "/gestion/jugadores/importar-planilla/",
+            {"archivo_excel": SimpleUploadedFile(
+                "limite-30.xlsx", archivo.read(),
+                content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            )},
+            follow=True,
+        )
+
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertEqual(Jugador.objects.filter(equipo=self.equipo, estado="ACTIVO").count(), 30)
+        self.assertTrue(Jugador.objects.filter(id=protegido.id, estado="ACTIVO").exists())
+        self.assertFalse(Jugador.objects.filter(equipo=self.equipo, cedula="CUPO30").exists())
+        self.assertContains(respuesta, "Jugador Cupo 30 no fue inscrito por falta de cupo")
+        self.assertContains(respuesta, "Jugador Que Ya Jugo no se retiró porque ya pisó cancha")
+
     def test_importa_formato_san_jorge_con_mas_de_30_jugadores_y_cedulas_del_cuerpo_tecnico(self):
         workbook = Workbook()
         hoja = workbook.active
