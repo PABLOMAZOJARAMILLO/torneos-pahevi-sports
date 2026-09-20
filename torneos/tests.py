@@ -2798,8 +2798,7 @@ class GestionJugadoresConservaFiltrosTests(TestCase):
         )
 
         self.assertRedirects(respuesta, self.filtros, fetch_redirect_response=False)
-        self.jugador.refresh_from_db()
-        self.assertEqual(self.jugador.estado, "RETIRADO")
+        self.assertFalse(Jugador.objects.filter(id=self.jugador.id).exists())
 
 
 class ReporteJugadoresCanchaTests(TestCase):

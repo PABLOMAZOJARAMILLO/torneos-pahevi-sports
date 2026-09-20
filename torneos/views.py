@@ -9488,15 +9488,17 @@ def gestion_jugador_eliminar(request, jugador_id):
         )
         return redirect(volver_url)
     nombre = jugador.nombres
-    jugador.estado = "RETIRADO"
-    jugador.save(update_fields=["estado"])
-    registrar_actividad(
-        request,
-        "RETIRAR_JUGADOR",
-        jugador,
-        descripcion=f"Retiró al jugador {nombre} sin borrar su historial.",
-    )
-    messages.success(request, f"Jugador retirado: {nombre}.")
+    if jugador_ya_piso_cancha(jugador):
+        messages.error(
+            request,
+            "No se puede eliminar este jugador porque ya pisó cancha. Usa Reemplazar para conservar su historial.",
+        )
+        return redirect(volver_url)
+    registrar_actividad(request, "ELIMINAR", jugador, descripcion=f"Eliminó al jugador {nombre} sin participación.")
+    imagenes = nombres_imagenes_instancias([jugador])
+    jugador.delete()
+    programar_limpieza_imagenes(imagenes)
+    messages.success(request, f"Jugador eliminado: {nombre}.")
     return redirect(volver_url)
 
 
