@@ -9488,11 +9488,15 @@ def gestion_jugador_eliminar(request, jugador_id):
         )
         return redirect(volver_url)
     nombre = jugador.nombres
-    registrar_actividad(request, "ELIMINAR", jugador, descripcion=f"Elimino jugador {nombre}.")
-    imagenes = nombres_imagenes_instancias([jugador])
-    jugador.delete()
-    programar_limpieza_imagenes(imagenes)
-    messages.success(request, f"Jugador eliminado: {nombre}.")
+    jugador.estado = "RETIRADO"
+    jugador.save(update_fields=["estado"])
+    registrar_actividad(
+        request,
+        "RETIRAR_JUGADOR",
+        jugador,
+        descripcion=f"Retiró al jugador {nombre} sin borrar su historial.",
+    )
+    messages.success(request, f"Jugador retirado: {nombre}.")
     return redirect(volver_url)
 
 
@@ -9638,6 +9642,14 @@ def gestion_importar_planilla(request):
                     equipo=equipo,
                     cedula=cedula,
                 ).first()
+                if jugador_existente_equipo and jugador_existente_equipo.estado == "RETIRADO":
+                    cedulas_importadas.add(cedula)
+                    omitidos += 1
+                    errores.append(
+                        f"Fila {fila}: {jugador_existente_equipo.nombres} permanece retirado. "
+                        "La importación no reactiva jugadores retirados."
+                    )
+                    continue
                 if bloquear_altas_por_fecha_tres and not jugador_existente_equipo:
                     omitidos += 1
                     errores.append(

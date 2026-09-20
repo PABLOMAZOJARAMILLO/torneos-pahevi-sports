@@ -2798,6 +2798,8 @@ class GestionJugadoresConservaFiltrosTests(TestCase):
         )
 
         self.assertRedirects(respuesta, self.filtros, fetch_redirect_response=False)
+        self.jugador.refresh_from_db()
+        self.assertEqual(self.jugador.estado, "RETIRADO")
 
 
 class ReporteJugadoresCanchaTests(TestCase):
@@ -6099,6 +6101,35 @@ class ImportacionJugadoresPlanillaTests(TestCase):
             "Jugador Nuevo De Prueba",
         )
         self.assertFalse(Jugador.objects.filter(equipo=self.equipo, cedula="99999").exists())
+
+    def test_importar_planilla_no_reactiva_jugador_retirado_incluido_en_excel(self):
+        retirado = Jugador.objects.create(
+            equipo=self.equipo,
+            nombres="Jugador Retirado",
+            cedula="12345",
+            fecha_nacimiento=date(1980, 1, 1),
+            estado="RETIRADO",
+        )
+
+        self.client.force_login(self.admin)
+        session = self.client.session
+        session["torneo_id"] = self.torneo.id
+        session.save()
+        archivo = self._archivo_planilla()
+        respuesta = self.client.post(
+            "/gestion/jugadores/importar-planilla/",
+            {"archivo_excel": SimpleUploadedFile(
+                "jugadores.xlsx",
+                archivo.read(),
+                content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            )},
+            follow=True,
+        )
+
+        retirado.refresh_from_db()
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertEqual(retirado.estado, "RETIRADO")
+        self.assertContains(respuesta, "La importación no reactiva jugadores retirados")
 
     def test_importar_planilla_no_agrega_cedula_nueva_despues_de_fecha_tres(self):
         self.categoria.controlar_reemplazos_jugadores = True
