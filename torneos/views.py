@@ -9226,6 +9226,23 @@ def tercera_fecha_iniciada(equipo):
     )
 
 
+def cupos_inscripcion_ocupados(equipo):
+    """Cuenta cupos históricos; un reemplazo formal conserva un único cupo."""
+    salientes_reemplazados = ReemplazoJugador.objects.filter(
+        equipo=equipo,
+    ).values_list("jugador_saliente_id", flat=True)
+    return Jugador.objects.filter(equipo=equipo).exclude(
+        id__in=salientes_reemplazados,
+    ).count()
+
+
+def limite_inscripcion_equipo(equipo):
+    torneo = equipo.categoria.torneo if equipo and equipo.categoria_id else None
+    if torneo and "COPA SAN JORGE" in limpiar_texto_excel(torneo.nombre).upper():
+        return None
+    return 30
+
+
 def fase_final_iniciada(categoria):
     return Partido.objects.filter(categoria=categoria).exclude(fase="GRUPOS").filter(
         Q(estado__in=ESTADOS_PARTIDO_JUGADO) | Q(inicio_en_vivo__isnull=False)
@@ -9379,17 +9396,45 @@ def gestion_jugador_nuevo(request):
     torneo = torneo_actual(request)
     if not puede_gestionar_torneo(request, torneo, "editar"):
         return denegar_permiso_torneo()
-    form = JugadorForm(request.POST or None, request.FILES or None, torneo=torneo)
+    ingreso_excepcional = request.GET.get("excepcional") == "1" or bool(
+        request.POST.get("ingreso_excepcional_admin")
+    )
+    form = JugadorForm(
+        request.POST or None,
+        request.FILES or None,
+        torneo=torneo,
+        permitir_ingreso_excepcional=ingreso_excepcional,
+        initial={"ingreso_excepcional_admin": ingreso_excepcional},
+    )
     volver_url = url_retorno_gestion(request, "gestion_jugadores")
 
     if request.method == "POST" and form.is_valid():
         equipo_destino = form.cleaned_data.get("equipo")
-        if equipo_destino and equipo_destino.categoria.controlar_reemplazos_jugadores and tercera_fecha_iniciada(equipo_destino):
-            form.add_error("equipo", "Este equipo ya inició su fecha 3. Usa Reemplazar por fuerza mayor.")
+        bloqueado_por_fecha = bool(
+            equipo_destino
+            and equipo_destino.categoria.controlar_reemplazos_jugadores
+            and tercera_fecha_iniciada(equipo_destino)
+        )
+        if bloqueado_por_fecha and fase_final_iniciada(equipo_destino.categoria):
+            form.add_error("equipo", "La primera fase terminó. No se permiten ingresos excepcionales.")
+        elif bloqueado_por_fecha and not ingreso_excepcional:
+            form.add_error(
+                "equipo",
+                "Este equipo ya inició su fecha 3. Usa Ingreso excepcional si la omisión fue causada por el administrador de la app.",
+            )
+        limite_jugadores = limite_inscripcion_equipo(equipo_destino) if equipo_destino else 30
+        if limite_jugadores is not None and equipo_destino and cupos_inscripcion_ocupados(equipo_destino) >= limite_jugadores:
+            form.add_error(
+                "equipo",
+                f"El equipo ya ocupó sus {limite_jugadores} cupos históricos. La fuerza mayor no amplía el límite.",
+            )
+        if form.errors:
             return render(request, "gestion/formulario.html", {
-                "titulo": "Nuevo jugador", "form": form, "volver_url": "gestion_jugadores",
+                "titulo": "Ingreso excepcional" if ingreso_excepcional else "Nuevo jugador",
+                "form": form, "volver_url": "gestion_jugadores",
                 "volver_href": volver_url, "cloudinary_images": listar_imagenes_cloudinary(torneo=torneo),
                 "cloudinary_label": "Seleccionar foto existente de Cloudinary",
+                "mensaje_ingreso_excepcional": ingreso_excepcional,
             })
         jugador = form.save(commit=False)
         aplicar_imagen_cloudinary(
@@ -9400,17 +9445,53 @@ def gestion_jugador_nuevo(request):
         )
         jugador.save()
         form.save_m2m()
-        registrar_actividad(request, "CREAR", jugador, descripcion=f"Creo jugador {jugador.nombres}.")
-        messages.success(request, "Jugador creado correctamente.")
+        if ingreso_excepcional:
+            soporte = form.cleaned_data["soporte_excepcional"]
+            extension = os.path.splitext(soporte.name or "")[1].lower()
+            ruta_soporte = default_storage.save(
+                f"ingresos_excepcionales/{timezone.now():%Y/%m}/{uuid.uuid4().hex}{extension}",
+                soporte,
+            )
+            url_soporte = default_storage.url(ruta_soporte)
+            justificacion = form.cleaned_data["justificacion_excepcional"].strip()
+            SolicitudValidacion.objects.create(
+                tipo="JUGADOR",
+                estado="VALIDADO",
+                torneo=torneo,
+                equipo=equipo_destino,
+                jugador=jugador,
+                creado_por=request.user,
+                resuelto_por=request.user,
+                resuelto_en=timezone.now(),
+                titulo=f"Ingreso excepcional: {jugador.nombres}",
+                descripcion=justificacion,
+                datos={
+                    "causa": "ERROR_ADMIN_APP",
+                    "responsabilidad_equipo": False,
+                    "soporte": url_soporte,
+                },
+            )
+            registrar_actividad(
+                request,
+                "INGRESO_EXCEPCIONAL_JUGADOR",
+                jugador,
+                descripcion=f"Autorizó ingreso excepcional de {jugador.nombres} por error del administrador de la app.",
+                datos={"causa": "ERROR_ADMIN_APP", "soporte": url_soporte},
+            )
+            messages.success(request, "Jugador inscrito excepcionalmente con soporte y auditoría.")
+        else:
+            registrar_actividad(request, "CREAR", jugador, descripcion=f"Creó jugador {jugador.nombres}.")
+            messages.success(request, "Jugador creado correctamente.")
         return redirect(f"{reverse('gestion_jugador_editar', args=[jugador.id])}?volver={quote(volver_url, safe='')}")
 
     return render(request, "gestion/formulario.html", {
-        "titulo": "Nuevo jugador",
+        "titulo": "Ingreso excepcional" if ingreso_excepcional else "Nuevo jugador",
         "form": form,
         "volver_url": "gestion_jugadores",
         "volver_href": volver_url,
         "cloudinary_images": listar_imagenes_cloudinary(torneo=torneo),
         "cloudinary_label": "Seleccionar foto existente de Cloudinary",
+        "mensaje_ingreso_excepcional": ingreso_excepcional,
     })
 
 
@@ -9613,12 +9694,7 @@ def gestion_importar_planilla(request):
                     bloqueados_planilla.append(candidato)
                 else:
                     eliminables_planilla.append(candidato)
-            salientes_reemplazados = ReemplazoJugador.objects.filter(
-                equipo=equipo,
-            ).values_list("jugador_saliente_id", flat=True)
-            cupos_ocupados = Jugador.objects.filter(equipo=equipo).exclude(
-                id__in=salientes_reemplazados,
-            ).count()
+            cupos_ocupados = cupos_inscripcion_ocupados(equipo)
             cupos_proyectados = cupos_ocupados - len(eliminables_planilla)
             cupos_disponibles = max(0, limite_jugadores - cupos_proyectados) if limite_jugadores is not None else None
 

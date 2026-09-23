@@ -7866,6 +7866,22 @@ class ControlReemplazosJugadoresTests(TestCase):
             "fecha_nacimiento": "1992-02-02", "dorsal": "9",
         }
 
+    def datos_ingreso_excepcional(self, cedula="EXCEPCIONAL-1"):
+        return {
+            "equipo": str(self.equipo_a.id),
+            "nombres": "Jugador Omitido Por Administrador",
+            "cedula": cedula,
+            "fecha_nacimiento": "1992-02-02",
+            "dorsal": "19",
+            "estado": "ACTIVO",
+            "ingreso_excepcional_admin": "on",
+            "confirmar_error_admin": "on",
+            "justificacion_excepcional": "El administrador de la app omitió el registro pese a recibirlo oportunamente.",
+            "soporte_excepcional": SimpleUploadedFile(
+                "soporte.pdf", b"%PDF-1.4 soporte", content_type="application/pdf"
+            ),
+        }
+
     def test_bloqueo_de_fecha_tres_es_individual_por_equipo(self):
         Partido.objects.create(
             categoria=self.categoria, equipo_local=self.equipo_a, equipo_visitante=self.equipo_b,
@@ -7875,6 +7891,58 @@ class ControlReemplazosJugadoresTests(TestCase):
         self.assertTrue(tercera_fecha_iniciada(self.equipo_a))
         self.assertTrue(tercera_fecha_iniciada(self.equipo_b))
         self.assertFalse(tercera_fecha_iniciada(self.equipo_c))
+
+    def test_ingreso_excepcional_por_error_admin_despues_de_fecha_tres(self):
+        Partido.objects.create(
+            categoria=self.categoria,
+            equipo_local=self.equipo_a,
+            equipo_visitante=self.equipo_b,
+            numero_fecha="Fecha 3",
+            fase="GRUPOS",
+            fecha=date(2026, 1, 20),
+            hora=time(16),
+            estado="FINALIZADO",
+        )
+
+        respuesta = self.client.post(
+            "/gestion/jugadores/nuevo/?excepcional=1",
+            self.datos_ingreso_excepcional(),
+        )
+
+        self.assertEqual(respuesta.status_code, 302)
+        jugador = Jugador.objects.get(equipo=self.equipo_a, cedula="EXCEPCIONAL-1")
+        solicitud = SolicitudValidacion.objects.get(jugador=jugador, tipo="JUGADOR")
+        self.assertEqual(solicitud.estado, "VALIDADO")
+        self.assertEqual(solicitud.datos["causa"], "ERROR_ADMIN_APP")
+        self.assertFalse(solicitud.datos["responsabilidad_equipo"])
+
+    def test_ingreso_excepcional_no_supera_los_30_cupos_historicos(self):
+        for indice in range(29):
+            Jugador.objects.create(
+                equipo=self.equipo_a,
+                nombres=f"Jugador Cupo {indice + 2}",
+                cedula=f"CUPO-EX-{indice + 2}",
+                fecha_nacimiento=date(1990, 1, 1),
+            )
+        Partido.objects.create(
+            categoria=self.categoria,
+            equipo_local=self.equipo_a,
+            equipo_visitante=self.equipo_b,
+            numero_fecha="Fecha 3",
+            fase="GRUPOS",
+            fecha=date(2026, 1, 20),
+            hora=time(16),
+            estado="FINALIZADO",
+        )
+
+        respuesta = self.client.post(
+            "/gestion/jugadores/nuevo/?excepcional=1",
+            self.datos_ingreso_excepcional("EXCEPCIONAL-SIN-CUPO"),
+        )
+
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertFalse(Jugador.objects.filter(cedula="EXCEPCIONAL-SIN-CUPO").exists())
+        self.assertContains(respuesta, "La fuerza mayor no amplía el límite")
 
     def test_antes_de_fecha_tres_reemplaza_jugador_que_no_piso_cancha(self):
         respuesta = self.client.post(

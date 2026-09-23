@@ -4,6 +4,12 @@
 {% block heading %}{{ titulo }}{% endblock %}
 
 {% block content %}
+{% if mensaje_ingreso_excepcional %}
+<div class="message">
+    Este trámite solo aplica por error humano comprobado del administrador de la app. Requiere justificación y soporte,
+    queda registrado en auditoría y nunca permite superar el cupo máximo del equipo.
+</div>
+{% endif %}
 <style>
     .cloudinary-picker {
         margin: 18px 0;

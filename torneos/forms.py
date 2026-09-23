@@ -631,6 +631,25 @@ class EquipoReinscripcionForm(forms.Form):
 
 
 class JugadorForm(forms.ModelForm):
+    ingreso_excepcional_admin = forms.BooleanField(
+        required=False,
+        label="Ingreso excepcional por error del administrador de la app",
+    )
+    confirmar_error_admin = forms.BooleanField(
+        required=False,
+        label="Confirmo que la omisión fue responsabilidad del administrador de la app y no del equipo",
+    )
+    justificacion_excepcional = forms.CharField(
+        required=False,
+        label="Justificación de fuerza mayor",
+        widget=forms.Textarea(attrs={"rows": 4}),
+    )
+    soporte_excepcional = forms.FileField(
+        required=False,
+        label="Soporte de la autorización",
+        help_text="Adjunta una imagen o PDF que sustente el ingreso excepcional.",
+    )
+
     class Meta:
         model = Jugador
         fields = [
@@ -650,6 +669,7 @@ class JugadorForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         torneo = kwargs.pop("torneo", None)
+        permitir_ingreso_excepcional = kwargs.pop("permitir_ingreso_excepcional", False)
         super().__init__(*args, **kwargs)
         self.fields["fecha_nacimiento"].input_formats = ["%Y-%m-%d"]
         equipos = Equipo.objects.select_related("categoria").order_by("categoria__nombre", "nombre")
@@ -657,6 +677,39 @@ class JugadorForm(forms.ModelForm):
             equipos = equipos.filter(categoria__torneo=torneo)
         self.fields["equipo"].queryset = equipos
         self.fields["equipo"].label_from_instance = lambda obj: f"{obj.categoria.nombre} - {obj.nombre}"
+        if not permitir_ingreso_excepcional or self.instance.pk:
+            for campo in (
+                "ingreso_excepcional_admin",
+                "confirmar_error_admin",
+                "justificacion_excepcional",
+                "soporte_excepcional",
+            ):
+                self.fields.pop(campo, None)
+
+    def clean(self):
+        cleaned = super().clean()
+        if "ingreso_excepcional_admin" not in self.fields:
+            return cleaned
+        if not cleaned.get("ingreso_excepcional_admin"):
+            self.add_error(
+                "ingreso_excepcional_admin",
+                "Debes confirmar que este trámite corresponde a un ingreso excepcional.",
+            )
+        if not cleaned.get("confirmar_error_admin"):
+            self.add_error(
+                "confirmar_error_admin",
+                "Debes confirmar que el error fue del administrador de la app y no del equipo.",
+            )
+        if not (cleaned.get("justificacion_excepcional") or "").strip():
+            self.add_error("justificacion_excepcional", "Describe detalladamente el error administrativo.")
+        soporte = cleaned.get("soporte_excepcional")
+        if not soporte:
+            self.add_error("soporte_excepcional", "Adjunta una imagen o PDF como soporte.")
+        else:
+            extension = os.path.splitext(soporte.name or "")[1].lower()
+            if extension not in {".jpg", ".jpeg", ".png", ".webp", ".pdf"}:
+                self.add_error("soporte_excepcional", "El soporte debe ser una imagen o un PDF.")
+        return cleaned
 
 
 class JugadorDelegadoForm(forms.ModelForm):
