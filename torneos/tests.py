@@ -3960,6 +3960,49 @@ class PlanilleroPartidoTests(TestCase):
         self.assertEqual(self.partido.estado, "PROGRAMADO")
         self.assertEqual(self.partido.goles_visitante, 0)
 
+    def test_admin_deja_sin_puntos_a_ambos_y_conserva_marcador(self):
+        self.client.force_login(self.admin)
+        respuesta = self.client.post(
+            f"/partido/{self.partido.id}/guardar-info-movil/",
+            {
+                "goles_local": "2", "goles_visitante": "1", "estado": "FINALIZADO",
+                "sin_puntos_ambos": "1",
+                "observacion_comite": "Ambos equipos cometieron infracciones confirmadas.",
+            },
+        )
+        self.assertEqual(respuesta.status_code, 302)
+        self.partido.refresh_from_db()
+        self.assertEqual(self.partido.estado, "DECIDIDO_COMITE")
+        self.assertEqual((self.partido.goles_local, self.partido.goles_visitante), (2, 1))
+        self.assertEqual((self.partido.ajuste_puntos_local, self.partido.ajuste_puntos_visitante), (-3, 0))
+        self.assertContains(self.client.get(f"/partido/{self.partido.id}/live/"), "Ambos equipos: 0 puntos en este partido")
+
+    def test_partido_empatado_sin_puntos_descuenta_uno_a_cada_equipo(self):
+        self.client.force_login(self.admin)
+        self.client.post(
+            f"/partido/{self.partido.id}/guardar-info-movil/",
+            {
+                "goles_local": "1", "goles_visitante": "1", "estado": "FINALIZADO",
+                "sin_puntos_ambos": "1", "observacion_comite": "Demanda contra ambos equipos.",
+            },
+        )
+        self.partido.refresh_from_db()
+        self.assertEqual(self.partido.estado, "DECIDIDO_COMITE")
+        self.assertEqual((self.partido.ajuste_puntos_local, self.partido.ajuste_puntos_visitante), (-1, -1))
+
+    def test_dejar_sin_puntos_a_ambos_exige_observacion(self):
+        self.client.force_login(self.admin)
+        self.client.post(
+            f"/partido/{self.partido.id}/guardar-info-movil/",
+            {
+                "goles_local": "2", "goles_visitante": "1", "estado": "FINALIZADO",
+                "sin_puntos_ambos": "1", "observacion_comite": "",
+            },
+        )
+        self.partido.refresh_from_db()
+        self.assertEqual(self.partido.estado, "PROGRAMADO")
+        self.assertEqual((self.partido.ajuste_puntos_local, self.partido.ajuste_puntos_visitante), (0, 0))
+
     def test_planillero_pierde_acceso_cuando_finaliza_partido(self):
         self.client.force_login(self.planillero)
 

@@ -61,6 +61,26 @@ def formatear_hora_12(valor):
     return valor.strftime("%I:%M %p").lstrip("0")
 
 
+def ajustes_para_dejar_sin_puntos(goles_local, goles_visitante):
+    """Neutraliza únicamente los puntos deportivos obtenidos en el partido."""
+    if goles_local > goles_visitante:
+        return -3, 0
+    if goles_visitante > goles_local:
+        return 0, -3
+    return -1, -1
+
+
+def partido_quedo_sin_puntos_ambos(partido):
+    esperado_local, esperado_visitante = ajustes_para_dejar_sin_puntos(
+        partido.goles_local or 0, partido.goles_visitante or 0,
+    )
+    return bool(
+        partido.estado == "DECIDIDO_COMITE"
+        and partido.ajuste_puntos_local == esperado_local
+        and partido.ajuste_puntos_visitante == esperado_visitante
+    )
+
+
 def dia_semana_abreviado(valor):
     if not valor:
         return ""
@@ -5720,6 +5740,7 @@ def editor_partido_movil(request, partido_id):
         'ajuste_puntos_visitante_abs': abs(partido.ajuste_puntos_visitante or 0),
         'ajuste_puntos_local_signo': '-' if (partido.ajuste_puntos_local or 0) < 0 else '+',
         'ajuste_puntos_visitante_signo': '-' if (partido.ajuste_puntos_visitante or 0) < 0 else '+',
+        'sin_puntos_ambos': partido_quedo_sin_puntos_ambos(partido),
         'editor_volver_url': volver_url,
         'editor_volver_text': "Mis partidos" if es_planillero_asignado(request.user) else "Panel",
         'editor_live_url': f"{reverse('partido_live', args=[partido.id])}?volver={quote(volver_url, safe='')}",
@@ -5779,9 +5800,19 @@ def guardar_info_partido_movil(request, partido_id):
         partido.numero_fecha = request.POST.get('numero_fecha') or ''
         partido.grupo = request.POST.get('grupo') or ''
         partido.fase = request.POST.get('fase') or partido.fase
-        partido.ajuste_puntos_local = entero_post(request, 'ajuste_puntos_local', 0)
-        partido.ajuste_puntos_visitante = entero_post(request, 'ajuste_puntos_visitante', 0)
         partido.observacion_comite = request.POST.get('observacion_comite') or ''
+        if request.POST.get('sin_puntos_ambos') == '1':
+            if not partido.observacion_comite.strip():
+                messages.error(request, 'Describe en la observación del comité la decisión que deja sin puntos a ambos equipos.')
+                return redirect(_url_editor_partido(request, partido, "penales-comite"))
+            partido.ajuste_puntos_local, partido.ajuste_puntos_visitante = ajustes_para_dejar_sin_puntos(
+                partido.goles_local,
+                partido.goles_visitante,
+            )
+            partido.estado = "DECIDIDO_COMITE"
+        else:
+            partido.ajuste_puntos_local = entero_post(request, 'ajuste_puntos_local', 0)
+            partido.ajuste_puntos_visitante = entero_post(request, 'ajuste_puntos_visitante', 0)
     partido.save()
     _marcar_estadisticas_pendientes(partido, request.user)
 
@@ -10764,6 +10795,7 @@ def partido_live(request, partido_id):
         "ganador_local": bool(partido.fase != "GRUPOS" and ganador_partido(partido) == partido.equipo_local),
         "ganador_visitante": bool(partido.fase != "GRUPOS" and ganador_partido(partido) == partido.equipo_visitante),
         "revision_live": _revision_partido_live(partido),
+        "sin_puntos_ambos": partido_quedo_sin_puntos_ambos(partido),
     })
 def _pausar_cronometro(partido):
     if partido.inicio_en_vivo:

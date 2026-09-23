@@ -1107,6 +1107,11 @@
                 </div>
 
                 {% if puede_editar_programacion %}
+                <label class="check-row" style="margin:12px 0;">
+                    <input type="checkbox" name="sin_puntos_ambos" value="1" {% if sin_puntos_ambos %}checked{% endif %}>
+                    Dejar sin puntos a ambos equipos por decisión del comité
+                </label>
+                <p class="nota">Conserva el marcador y las estadísticas. El sistema descontará automáticamente los puntos obtenidos en este partido.</p>
                 <label>Ajuste de puntos</label>
                 <div class="grid-2">
                     <div>

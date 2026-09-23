@@ -1344,6 +1344,7 @@ button.live-icon {
     {% if partido.ajuste_puntos_local or partido.ajuste_puntos_visitante %}
     <aside class="decision-comite" aria-label="Decisión administrativa">
         <strong>Decisión administrativa</strong>
+        {% if sin_puntos_ambos %}<span>Ambos equipos: 0 puntos en este partido</span>{% endif %}
         {% if partido.ajuste_puntos_local %}
         <span>{{ partido.equipo_local.nombre }}: {% if partido.ajuste_puntos_local > 0 %}+{% endif %}{{ partido.ajuste_puntos_local }} pts</span>
         {% endif %}
