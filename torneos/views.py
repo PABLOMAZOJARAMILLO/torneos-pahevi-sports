@@ -9346,6 +9346,100 @@ def gestion_jugadores(request):
 
 @login_required
 @user_passes_test(es_editor_torneo)
+def descargar_jugadores_inscritos(request):
+    """Descarga los jugadores que continúan inscritos, agrupados por equipo."""
+    torneo = torneo_actual(request)
+    if usuario_solo_descarga_planillas(request.user, torneo):
+        return denegar_permiso_torneo()
+
+    categoria_id = request.GET.get("categoria", "").strip()
+    equipo_id = request.GET.get("equipo", "").strip()
+    jugadores = Jugador.objects.select_related(
+        "equipo", "equipo__categoria", "equipo__categoria__torneo"
+    ).exclude(estado="RETIRADO").order_by(
+        "equipo__categoria__nombre", "equipo__nombre", "dorsal", "nombres"
+    )
+    if torneo:
+        jugadores = jugadores.filter(equipo__categoria__torneo=torneo)
+    if categoria_id:
+        jugadores = jugadores.filter(equipo__categoria_id=categoria_id)
+    if equipo_id:
+        jugadores = jugadores.filter(equipo_id=equipo_id)
+
+    libro = Workbook()
+    hoja = libro.active
+    hoja.title = "Jugadores inscritos"
+    encabezados = [
+        "#", "Categoría", "Equipo", "Dorsal", "Jugador", "Cédula",
+        "Fecha de nacimiento", "Teléfono", "Estado", "Foráneo",
+    ]
+    hoja.append(encabezados)
+    for celda in hoja[1]:
+        celda.font = Font(bold=True, color="FFFFFF")
+        celda.fill = PatternFill("solid", fgColor="0B7A3E")
+
+    consecutivos = defaultdict(int)
+    for jugador in jugadores:
+        consecutivos[jugador.equipo_id] += 1
+        hoja.append([
+            consecutivos[jugador.equipo_id],
+            jugador.equipo.categoria.nombre,
+            jugador.equipo.nombre,
+            jugador.dorsal or "",
+            jugador.nombres,
+            jugador.cedula,
+            jugador.fecha_nacimiento.strftime("%d/%m/%Y"),
+            jugador.telefono or "",
+            jugador.get_estado_display(),
+            "SÍ" if jugador.es_foraneo else "NO",
+        ])
+
+    hoja.freeze_panes = "A2"
+    hoja.auto_filter.ref = hoja.dimensions
+    for columna, ancho in {
+        "A": 7, "B": 22, "C": 28, "D": 10, "E": 36,
+        "F": 18, "G": 22, "H": 18, "I": 15, "J": 12,
+    }.items():
+        hoja.column_dimensions[columna].width = ancho
+
+    salida = BytesIO()
+    libro.save(salida)
+    salida.seek(0)
+    contenido = salida.getvalue()
+    nombre_archivo = "JUGADORES_INSCRITOS"
+    if equipo_id:
+        equipos_nombre = Equipo.objects.filter(id=equipo_id)
+        if torneo:
+            equipos_nombre = equipos_nombre.filter(categoria__torneo=torneo)
+        equipo = equipos_nombre.first()
+        if equipo:
+            nombre_archivo += f"_{slugify(equipo.nombre).replace('-', '_').upper()}"
+    nombre_archivo += ".xlsx"
+    content_type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+
+    if request.GET.get("app") == "1":
+        parametros_archivo = request.GET.copy()
+        parametros_archivo.pop("app", None)
+        parametros_archivo.pop("volver", None)
+        archivo_url = request.build_absolute_uri(reverse("descargar_jugadores_inscritos"))
+        if parametros_archivo:
+            archivo_url = f"{archivo_url}?{parametros_archivo.urlencode()}"
+        return respuesta_archivo_descarga_app(
+            request,
+            contenido,
+            nombre_archivo,
+            content_type,
+            request.GET.get("volver") or reverse("gestion_jugadores"),
+            archivo_url,
+        )
+
+    respuesta = HttpResponse(contenido, content_type=content_type)
+    respuesta["Content-Disposition"] = f'attachment; filename="{nombre_archivo}"'
+    return respuesta
+
+
+@login_required
+@user_passes_test(es_editor_torneo)
 def gestion_jugador_reemplazar(request, jugador_id):
     torneo = torneo_actual(request)
     if not puede_gestionar_torneo(request, torneo, "editar"):

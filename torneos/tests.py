@@ -2879,6 +2879,45 @@ class ReporteJugadoresCanchaTests(TestCase):
         self.assertEqual(estados_por_jugador[self.suplente.nombres], "SÍ")
         self.assertEqual(estados_por_jugador[self.sin_participar.nombres], "NO")
 
+    def test_descarga_jugadores_inscritos_filtra_equipo_y_excluye_retirados(self):
+        retirado = Jugador.objects.create(
+            equipo=self.equipo, nombres="Jugador Ya Retirado", cedula="RV4",
+            fecha_nacimiento=date(1993, 1, 1), estado="RETIRADO",
+        )
+        otro_equipo = Equipo.objects.create(nombre="Otro equipo", categoria=self.categoria)
+        otro = Jugador.objects.create(
+            equipo=otro_equipo, nombres="Jugador De Otro Equipo", cedula="RV5",
+            fecha_nacimiento=date(1994, 1, 1),
+        )
+
+        respuesta = self.client.get(
+            "/gestion/jugadores/descargar-inscritos/",
+            {"equipo": self.equipo.id},
+        )
+
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertIn("spreadsheetml", respuesta["Content-Type"])
+        libro = load_workbook(BytesIO(respuesta.content))
+        nombres = [celda.value for celda in libro.active["E"]]
+        self.assertIn(self.titular.nombres, nombres)
+        self.assertIn(self.sin_participar.nombres, nombres)
+        self.assertNotIn(retirado.nombres, nombres)
+        self.assertNotIn(otro.nombres, nombres)
+        self.assertIn("EQUIPO_REPORTE", respuesta["Content-Disposition"])
+
+    def test_descarga_jugadores_inscritos_desde_app_usa_descargador_android(self):
+        respuesta = self.client.get(
+            "/gestion/jugadores/descargar-inscritos/",
+            {"equipo": self.equipo.id, "app": "1", "volver": "/gestion/jugadores/"},
+        )
+
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertTemplateUsed(respuesta, "descargas/archivo_descarga.html")
+        self.assertEqual(
+            respuesta.context["content_type"],
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+
     def test_descarga_excel_desde_app_usa_descargador_android(self):
         respuesta = self.client.get(
             "/gestion/jugadores/pisaron-cancha/descargar/",
