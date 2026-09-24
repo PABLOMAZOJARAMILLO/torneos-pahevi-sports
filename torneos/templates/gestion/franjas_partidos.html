@@ -5,7 +5,7 @@
 
 {% block content %}
 <p><a class="btn secondary" href="{% url 'gestion_panel' %}">Volver a Gestión</a></p>
-<p class="muted">Partidos jugados por equipo, según el día y la hora registrados en el partido. Los partidos solo programados no cuentan.</p>
+<p class="muted">Partidos jugados por equipo, según el día y la hora registrados en el partido. Las horas fuera de estas franjas aparecen en «Otros horarios». Los partidos solo programados no cuentan.</p>
 
 <form method="get">
     <div class="grid">
@@ -33,6 +33,7 @@
         <thead><tr style="background:#081426;color:#00ff66;">
             <th style="position:sticky;left:0;background:#081426;padding:10px;text-align:left;">Equipo</th>
             {% for franja in franjas %}<th style="padding:10px;white-space:nowrap;">{{ franja }}</th>{% endfor %}
+            <th style="padding:10px;white-space:nowrap;">Otros horarios</th>
             <th style="padding:10px;">Total</th>
         </tr></thead>
         <tbody>
@@ -40,9 +41,10 @@
             <tr style="border-bottom:1px solid #334155;">
                 <td style="position:sticky;left:0;background:#142236;padding:10px;text-align:left;white-space:nowrap;">{{ fila.equipo.nombre }}<br><small>{{ fila.equipo.categoria.nombre }}</small></td>
                 {% for cantidad in fila.cantidades %}<td style="padding:10px;">{% if cantidad %}<strong>{{ cantidad }}</strong>{% else %}—{% endif %}</td>{% endfor %}
+                <td style="padding:10px;">{% if fila.otros %}<details><summary>{{ fila.otros|length }}</summary><ul style="text-align:left;min-width:200px;">{% for partido in fila.otros %}<li>{{ partido }}</li>{% endfor %}</ul></details>{% else %}—{% endif %}</td>
                 <td style="padding:10px;"><strong>{{ fila.total }}</strong></td>
             </tr>
-            {% empty %}<tr><td colspan="15" style="padding:16px;">No hay equipos para estos filtros.</td></tr>{% endfor %}
+            {% empty %}<tr><td colspan="16" style="padding:16px;">No hay equipos para estos filtros.</td></tr>{% endfor %}
         </tbody>
     </table>
 </div>

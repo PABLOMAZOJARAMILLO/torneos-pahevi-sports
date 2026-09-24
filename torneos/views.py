@@ -10072,30 +10072,35 @@ def gestion_franjas_partidos(request):
     if categoria_id:
         equipos = equipos.filter(categoria_id=categoria_id)
 
-    partidos = Partido.objects.filter(categoria__in=categorias).filter(
+    partidos = Partido.objects.select_related("equipo_local", "equipo_visitante").filter(categoria__in=categorias).filter(
         Q(estado__in=("EN_JUEGO", "FINALIZADO", "DECIDIDO_COMITE"))
-        | Q(estado="SUSPENDIDO", segundos_acumulados__gt=0)
-        | Q(estado="SUSPENDIDO", inicio_en_vivo__isnull=False)
-    ).only("equipo_local_id", "equipo_visitante_id", "fecha", "hora", "estado")
+        | Q(segundos_acumulados__gt=0)
+        | Q(inicio_en_vivo__isnull=False)
+    )
     if categoria_id:
         partidos = partidos.filter(categoria_id=categoria_id)
 
     claves = {(dia, hora) for dia, hora, _ in FRANJAS_PARTIDOS}
     conteos = defaultdict(lambda: defaultdict(int))
+    otros = defaultdict(list)
     for partido in partidos:
-        if not partido.fecha or not partido.hora:
-            continue
-        clave = (partido.fecha.weekday(), partido.hora.hour)
-        if clave not in claves or partido.hora.minute != 0:
-            continue
-        conteos[partido.equipo_local_id][clave] += 1
-        conteos[partido.equipo_visitante_id][clave] += 1
+        clave = (partido.fecha.weekday(), partido.hora.hour) if partido.fecha and partido.hora else None
+        if clave in claves and partido.hora.minute == 0:
+            conteos[partido.equipo_local_id][clave] += 1
+            conteos[partido.equipo_visitante_id][clave] += 1
+        else:
+            horario = f"{partido.fecha.strftime('%d/%m/%Y')} {formatear_hora_12(partido.hora)}" if partido.fecha and partido.hora else "Sin horario"
+            otros[partido.equipo_local_id].append(f"{horario} vs {partido.equipo_visitante.nombre}")
+            otros[partido.equipo_visitante_id].append(f"{horario} vs {partido.equipo_local.nombre}")
 
     equipos_filas = equipos.filter(id=equipo_id) if equipo_id else equipos
     filas = []
     for equipo in equipos_filas:
         cantidades = [conteos[equipo.id][(dia, hora)] for dia, hora, _ in FRANJAS_PARTIDOS]
-        filas.append({"equipo": equipo, "cantidades": cantidades, "total": sum(cantidades)})
+        filas.append({
+            "equipo": equipo, "cantidades": cantidades,
+            "otros": otros[equipo.id], "total": sum(cantidades) + len(otros[equipo.id]),
+        })
 
     return render(request, "gestion/franjas_partidos.html", {
         "torneo": torneo, "categorias": categorias, "equipos": equipos,

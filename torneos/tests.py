@@ -2834,9 +2834,24 @@ class FranjasPartidosTests(TestCase):
         self.assertIn("Dom 12 m.", respuesta.context["franjas"])
         self.assertEqual(len(respuesta.context["filas"]), 2)
         for fila in respuesta.context["filas"]:
-            self.assertEqual(fila["total"], 2)
+            self.assertEqual(fila["total"], 3)
             self.assertEqual(fila["cantidades"][0], 1)
             self.assertEqual(fila["cantidades"][5], 1)
+            self.assertEqual(len(fila["otros"]), 1)
+
+    def test_horarios_no_exactos_y_partidos_iniciados_se_incluyen_en_total(self):
+        self.partido(date(2026, 9, 19), time(16, 30), "FINALIZADO")
+        suspendido = self.partido(date(2026, 9, 20), time(9, 0), "SUSPENDIDO")
+        suspendido.segundos_acumulados = 600
+        suspendido.save(update_fields=["segundos_acumulados"])
+
+        respuesta = self.client.get("/gestion/partidos/franjas/", {"equipo": self.local.id})
+
+        self.assertEqual(respuesta.status_code, 200)
+        fila = respuesta.context["filas"][0]
+        self.assertEqual(fila["total"], 2)
+        self.assertEqual(len(fila["otros"]), 2)
+        self.assertContains(respuesta, "Otros horarios")
 
     def test_filtro_equipo_no_revela_equipos_de_otro_torneo(self):
         otro_torneo = Torneo.objects.create(nombre="Otra copa", fecha_inicio=date(2026, 1, 1))
