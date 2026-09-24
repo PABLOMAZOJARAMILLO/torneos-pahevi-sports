@@ -276,6 +276,7 @@ urlpatterns = [
     path('gestion/jugadores/<int:jugador_id>/reemplazar/', views.gestion_jugador_reemplazar, name='gestion_jugador_reemplazar'),
     path('gestion/jugadores/<int:jugador_id>/eliminar/', views.gestion_jugador_eliminar, name='gestion_jugador_eliminar'),
     path('gestion/partidos/', views.gestion_partidos, name='gestion_partidos'),
+    path('gestion/partidos/franjas/', views.gestion_franjas_partidos, name='gestion_franjas_partidos'),
     path('gestion/partidos/importar/', views.gestion_importar_partidos, name='gestion_importar_partidos'),
     path('gestion/partidos/asignar-planillero/', views.gestion_partidos_asignar_planillero, name='gestion_partidos_asignar_planillero'),
     path('gestion/partidos/nuevo/', views.gestion_partido_nuevo, name='gestion_partido_nuevo'),

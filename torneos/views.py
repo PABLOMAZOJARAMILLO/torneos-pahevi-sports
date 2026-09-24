@@ -10048,6 +10048,62 @@ def gestion_partidos(request):
     })
 
 
+FRANJAS_PARTIDOS = (
+    (5, 16, "Sáb 4 p. m."), (5, 18, "Sáb 6 p. m."), (5, 20, "Sáb 8 p. m."),
+    (6, 8, "Dom 8 a. m."), (6, 10, "Dom 10 a. m."), (6, 12, "Dom 12 m."),
+    (6, 14, "Dom 2 p. m."), (6, 16, "Dom 4 p. m."), (6, 18, "Dom 6 p. m."),
+    (1, 18, "Mar 6 p. m."), (1, 20, "Mar 8 p. m."),
+    (2, 18, "Mié 6 p. m."), (2, 20, "Mié 8 p. m."),
+)
+
+
+@login_required
+@user_passes_test(es_editor_torneo)
+def gestion_franjas_partidos(request):
+    torneo = torneo_actual(request)
+    permisos = permisos_torneo_usuario(request.user, torneo)
+    if not permisos or not (permisos.puede_editar or permisos.puede_programar or permisos.puede_validar):
+        return denegar_permiso_torneo()
+
+    categorias = Categoria.objects.filter(torneo=torneo).order_by("nombre") if torneo else Categoria.objects.order_by("nombre")
+    equipos = Equipo.objects.select_related("categoria").filter(categoria__in=categorias).order_by("categoria__nombre", "nombre")
+    categoria_id = request.GET.get("categoria", "").strip()
+    equipo_id = request.GET.get("equipo", "").strip()
+    if categoria_id:
+        equipos = equipos.filter(categoria_id=categoria_id)
+
+    partidos = Partido.objects.filter(categoria__in=categorias).filter(
+        Q(estado__in=("EN_JUEGO", "FINALIZADO", "DECIDIDO_COMITE"))
+        | Q(estado="SUSPENDIDO", segundos_acumulados__gt=0)
+        | Q(estado="SUSPENDIDO", inicio_en_vivo__isnull=False)
+    ).only("equipo_local_id", "equipo_visitante_id", "fecha", "hora", "estado")
+    if categoria_id:
+        partidos = partidos.filter(categoria_id=categoria_id)
+
+    claves = {(dia, hora) for dia, hora, _ in FRANJAS_PARTIDOS}
+    conteos = defaultdict(lambda: defaultdict(int))
+    for partido in partidos:
+        if not partido.fecha or not partido.hora:
+            continue
+        clave = (partido.fecha.weekday(), partido.hora.hour)
+        if clave not in claves or partido.hora.minute != 0:
+            continue
+        conteos[partido.equipo_local_id][clave] += 1
+        conteos[partido.equipo_visitante_id][clave] += 1
+
+    equipos_filas = equipos.filter(id=equipo_id) if equipo_id else equipos
+    filas = []
+    for equipo in equipos_filas:
+        cantidades = [conteos[equipo.id][(dia, hora)] for dia, hora, _ in FRANJAS_PARTIDOS]
+        filas.append({"equipo": equipo, "cantidades": cantidades, "total": sum(cantidades)})
+
+    return render(request, "gestion/franjas_partidos.html", {
+        "torneo": torneo, "categorias": categorias, "equipos": equipos,
+        "categoria_id": categoria_id, "equipo_id": equipo_id,
+        "franjas": [etiqueta for _, _, etiqueta in FRANJAS_PARTIDOS], "filas": filas,
+    })
+
+
 def construir_reporte_jugadores_cancha(torneo, categoria_id="", equipo_id="", incluir_sin_participar=False):
     """Agrupa la evidencia de participación real de cada jugador por partido."""
     jugadores_qs = Jugador.objects.select_related("equipo", "equipo__categoria")

@@ -48,6 +48,13 @@
     </a>
     {% endif %}
 
+    {% if puede_editar or puede_programar or puede_validar %}
+    <a class="card" href="{% url 'gestion_franjas_partidos' %}">
+        <h2>Horarios jugados por equipo</h2>
+        <p class="muted">Consulta cuántas veces jugó cada equipo en cada franja</p>
+    </a>
+    {% endif %}
+
     {% if puede_cargar_planillas_juego %}
     <a class="card" href="{% url 'gestion_planillas_juego' %}">
         <h2>Planillas de juego</h2>

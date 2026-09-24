@@ -2801,6 +2801,57 @@ class GestionJugadoresConservaFiltrosTests(TestCase):
         self.assertFalse(Jugador.objects.filter(id=self.jugador.id).exists())
 
 
+class FranjasPartidosTests(TestCase):
+    def setUp(self):
+        self.torneo = Torneo.objects.create(nombre="Copa horarios", fecha_inicio=date(2026, 1, 1))
+        self.categoria = Categoria.objects.create(
+            nombre="Senior", torneo=self.torneo, edad_minima=18, edad_maxima=80,
+        )
+        self.local = Equipo.objects.create(nombre="Equipo local", categoria=self.categoria)
+        self.visitante = Equipo.objects.create(nombre="Equipo visitante", categoria=self.categoria)
+        self.admin = User.objects.create_user("admin-franjas", password="test", is_staff=True)
+        AdminTorneo.objects.create(usuario=self.admin, torneo=self.torneo)
+        self.client.force_login(self.admin)
+        session = self.client.session
+        session["torneo_id"] = self.torneo.id
+        session.save()
+
+    def partido(self, fecha, hora, estado):
+        return Partido.objects.create(
+            categoria=self.categoria, equipo_local=self.local, equipo_visitante=self.visitante,
+            fecha=fecha, hora=hora, estado=estado,
+        )
+
+    def test_cuenta_ambos_equipos_en_franjas_jugadas_y_no_los_programados(self):
+        self.partido(date(2026, 9, 19), time(16, 0), "FINALIZADO")  # sábado
+        self.partido(date(2026, 9, 20), time(12, 0), "DECIDIDO_COMITE")  # domingo, mediodía
+        self.partido(date(2026, 9, 22), time(18, 0), "PROGRAMADO")
+        self.partido(date(2026, 9, 20), time(0, 0), "FINALIZADO")
+
+        respuesta = self.client.get("/gestion/partidos/franjas/")
+
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertIn("Dom 12 m.", respuesta.context["franjas"])
+        self.assertEqual(len(respuesta.context["filas"]), 2)
+        for fila in respuesta.context["filas"]:
+            self.assertEqual(fila["total"], 2)
+            self.assertEqual(fila["cantidades"][0], 1)
+            self.assertEqual(fila["cantidades"][5], 1)
+
+    def test_filtro_equipo_no_revela_equipos_de_otro_torneo(self):
+        otro_torneo = Torneo.objects.create(nombre="Otra copa", fecha_inicio=date(2026, 1, 1))
+        otra_categoria = Categoria.objects.create(
+            nombre="Elite", torneo=otro_torneo, edad_minima=18, edad_maxima=80,
+        )
+        otro_equipo = Equipo.objects.create(nombre="Equipo ajeno", categoria=otra_categoria)
+
+        respuesta = self.client.get("/gestion/partidos/franjas/", {"equipo": otro_equipo.id})
+
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertEqual(respuesta.context["filas"], [])
+        self.assertNotContains(respuesta, otro_equipo.nombre)
+
+
 class ReporteJugadoresCanchaTests(TestCase):
     def setUp(self):
         self.torneo = Torneo.objects.create(nombre="Copa participaciones", fecha_inicio=date(2026, 1, 1))
