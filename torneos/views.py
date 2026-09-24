@@ -10106,6 +10106,59 @@ def gestion_franjas_partidos(request):
             "otros": otros[equipo.id], "total": sum(cantidades) + len(otros[equipo.id]),
         })
 
+    if request.GET.get("descargar") == "1":
+        libro = Workbook()
+        hoja = libro.active
+        hoja.title = "Horarios jugados"
+        hoja.append(["Categoría", "Equipo", *[etiqueta for _, _, etiqueta in FRANJAS_PARTIDOS], "Otros horarios", "Total"])
+        for celda in hoja[1]:
+            celda.font = Font(bold=True, color="FFFFFF")
+            celda.fill = PatternFill("solid", fgColor="0B7A3E")
+        for fila in filas:
+            hoja.append([
+                fila["equipo"].categoria.nombre, fila["equipo"].nombre,
+                *fila["cantidades"], len(fila["otros"]), fila["total"],
+            ])
+        hoja.freeze_panes = "C2"
+        hoja.auto_filter.ref = hoja.dimensions
+        hoja.column_dimensions["A"].width = 24
+        hoja.column_dimensions["B"].width = 32
+        for columna in hoja.iter_cols(min_col=3, max_col=hoja.max_column):
+            hoja.column_dimensions[columna[0].column_letter].width = 17
+
+        detalle = libro.create_sheet("Otros horarios")
+        detalle.append(["Categoría", "Equipo", "Partido y horario registrado"])
+        for celda in detalle[1]:
+            celda.font = Font(bold=True, color="FFFFFF")
+            celda.fill = PatternFill("solid", fgColor="0B7A3E")
+        for fila in filas:
+            for partido in fila["otros"]:
+                detalle.append([fila["equipo"].categoria.nombre, fila["equipo"].nombre, partido])
+        for letra, ancho in {"A": 24, "B": 32, "C": 62}.items():
+            detalle.column_dimensions[letra].width = ancho
+        detalle.freeze_panes = "A2"
+
+        salida = BytesIO()
+        libro.save(salida)
+        contenido = salida.getvalue()
+        nombre_torneo = slugify(torneo.nombre).replace("-", "_").upper() if torneo else "TODOS"
+        nombre_archivo = f"HORARIOS_JUGADOS_{nombre_torneo}.xlsx"
+        content_type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        if request.GET.get("app") == "1":
+            parametros_archivo = request.GET.copy()
+            parametros_archivo.pop("app", None)
+            parametros_archivo.pop("volver", None)
+            archivo_url = request.build_absolute_uri(reverse("gestion_franjas_partidos"))
+            if parametros_archivo:
+                archivo_url += f"?{parametros_archivo.urlencode()}"
+            return respuesta_archivo_descarga_app(
+                request, contenido, nombre_archivo, content_type,
+                request.GET.get("volver") or reverse("gestion_franjas_partidos"), archivo_url,
+            )
+        respuesta = HttpResponse(contenido, content_type=content_type)
+        respuesta["Content-Disposition"] = f'attachment; filename="{nombre_archivo}"'
+        return respuesta
+
     return render(request, "gestion/franjas_partidos.html", {
         "torneo": torneo, "categorias": categorias, "equipos": equipos,
         "categoria_id": categoria_id, "equipo_id": equipo_id,

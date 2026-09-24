@@ -7,7 +7,7 @@
 <p><a class="btn secondary" href="{% url 'gestion_panel' %}">Volver a Gestión</a></p>
 <p class="muted">Cada partido jugado cuenta en la franja disponible inmediatamente anterior del mismo día: por ejemplo, 4:30 p. m. cuenta en 4:00 p. m. Los días sin franjas y las horas anteriores a la primera aparecen en «Otros horarios». Los partidos solo programados no cuentan.</p>
 
-<form method="get">
+<form id="form-franjas" method="get">
     <div class="grid">
         <div>
             <label for="categoria">Categoría</label>
@@ -26,7 +26,23 @@
     </div>
     <button class="btn" type="submit">Consultar</button>
     <a class="btn secondary" href="{% url 'gestion_franjas_partidos' %}">Limpiar</a>
+    <button id="descargar-franjas" class="btn secondary" type="submit" name="descargar" value="1">Descargar Excel</button>
 </form>
+
+<script>
+document.getElementById("descargar-franjas").addEventListener("click", function(evento) {
+    if (!window.AndroidDownloader) return;
+    evento.preventDefault();
+    const destino = new URL(window.location.pathname, window.location.origin);
+    new FormData(document.getElementById("form-franjas")).forEach(function(valor, nombre) {
+        if (valor) destino.searchParams.set(nombre, valor);
+    });
+    destino.searchParams.set("descargar", "1");
+    destino.searchParams.set("app", "1");
+    destino.searchParams.set("volver", window.location.pathname + window.location.search);
+    window.location.href = destino.toString();
+});
+</script>
 
 <div style="overflow-x:auto;margin-top:16px;">
     <table style="border-collapse:collapse;min-width:1100px;width:100%;text-align:center;">

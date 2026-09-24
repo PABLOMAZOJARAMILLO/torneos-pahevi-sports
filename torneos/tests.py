@@ -2869,6 +2869,39 @@ class FranjasPartidosTests(TestCase):
         self.assertEqual(respuesta.context["filas"], [])
         self.assertNotContains(respuesta, otro_equipo.nombre)
 
+    def test_descarga_excel_coincide_con_la_tabla_y_respeta_equipo(self):
+        self.partido(date(2026, 9, 19), time(16, 30), "FINALIZADO")
+        self.partido(date(2026, 9, 20), time(0, 0), "FINALIZADO")
+        self.partido(date(2026, 9, 22), time(18, 0), "PROGRAMADO")
+
+        respuesta = self.client.get(
+            "/gestion/partidos/franjas/", {"equipo": self.local.id, "descargar": "1"},
+        )
+
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertIn("spreadsheetml", respuesta["Content-Type"])
+        libro = load_workbook(BytesIO(respuesta.content))
+        hoja = libro["Horarios jugados"]
+        self.assertEqual(hoja.max_row, 2)
+        self.assertEqual(hoja["B2"].value, self.local.nombre)
+        self.assertEqual(hoja["C2"].value, 1)
+        self.assertEqual(hoja["P2"].value, 1)
+        self.assertEqual(hoja["Q2"].value, 2)
+        self.assertEqual(libro["Otros horarios"].max_row, 2)
+
+    def test_descarga_excel_desde_app_usa_descargador_android(self):
+        respuesta = self.client.get(
+            "/gestion/partidos/franjas/",
+            {"equipo": self.local.id, "descargar": "1", "app": "1"},
+        )
+
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertTemplateUsed(respuesta, "descargas/archivo_descarga.html")
+        self.assertEqual(
+            respuesta.context["content_type"],
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+
 
 class ReporteJugadoresCanchaTests(TestCase):
     def setUp(self):
