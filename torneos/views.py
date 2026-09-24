@@ -10119,6 +10119,10 @@ def gestion_franjas_partidos(request):
                 fila["equipo"].categoria.nombre, fila["equipo"].nombre,
                 *fila["cantidades"], len(fila["otros"]), fila["total"],
             ])
+            for celda in hoja[hoja.max_row][2:2 + len(FRANJAS_PARTIDOS)]:
+                if celda.value == 1:
+                    celda.fill = PatternFill("solid", fgColor="14532D")
+                    celda.font = Font(bold=True, color="FFFFFF")
         hoja.freeze_panes = "C2"
         hoja.auto_filter.ref = hoja.dimensions
         hoja.column_dimensions["A"].width = 24

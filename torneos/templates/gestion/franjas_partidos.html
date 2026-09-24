@@ -6,6 +6,9 @@
 {% block content %}
 <p><a class="btn secondary" href="{% url 'gestion_panel' %}">Volver a Gestión</a></p>
 <p class="muted">Cada partido jugado cuenta en la franja disponible inmediatamente anterior del mismo día: por ejemplo, 4:30 p. m. cuenta en 4:00 p. m. Los días sin franjas y las horas anteriores a la primera aparecen en «Otros horarios». Los partidos solo programados no cuentan.</p>
+<style>
+.franja-un-partido { background:#14532d; color:#ffffff; }
+</style>
 
 <form id="form-franjas" method="get">
     <div class="grid">
@@ -56,7 +59,7 @@ document.getElementById("descargar-franjas").addEventListener("click", function(
             {% for fila in filas %}
             <tr style="border-bottom:1px solid #334155;">
                 <td style="position:sticky;left:0;background:#142236;padding:10px;text-align:left;white-space:nowrap;">{{ fila.equipo.nombre }}<br><small>{{ fila.equipo.categoria.nombre }}</small></td>
-                {% for cantidad in fila.cantidades %}<td style="padding:10px;">{% if cantidad %}<strong>{{ cantidad }}</strong>{% else %}—{% endif %}</td>{% endfor %}
+                {% for cantidad in fila.cantidades %}<td {% if cantidad == 1 %}class="franja-un-partido" {% endif %}style="padding:10px;">{% if cantidad %}<strong>{{ cantidad }}</strong>{% else %}—{% endif %}</td>{% endfor %}
                 <td style="padding:10px;">{% if fila.otros %}<details><summary>{{ fila.otros|length }}</summary><ul style="text-align:left;min-width:200px;">{% for partido in fila.otros %}<li>{{ partido }}</li>{% endfor %}</ul></details>{% else %}—{% endif %}</td>
                 <td style="padding:10px;"><strong>{{ fila.total }}</strong></td>
             </tr>

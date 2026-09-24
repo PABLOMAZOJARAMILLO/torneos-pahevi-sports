@@ -2885,9 +2885,14 @@ class FranjasPartidosTests(TestCase):
         self.assertEqual(hoja.max_row, 2)
         self.assertEqual(hoja["B2"].value, self.local.nombre)
         self.assertEqual(hoja["C2"].value, 1)
+        self.assertEqual(hoja["C2"].fill.fgColor.rgb, "0014532D")
         self.assertEqual(hoja["P2"].value, 1)
+        self.assertNotEqual(hoja["P2"].fill.fgColor.rgb, "0014532D")
         self.assertEqual(hoja["Q2"].value, 2)
         self.assertEqual(libro["Otros horarios"].max_row, 2)
+
+        pagina = self.client.get("/gestion/partidos/franjas/", {"equipo": self.local.id})
+        self.assertContains(pagina, 'class="franja-un-partido"')
 
     def test_descarga_excel_desde_app_usa_descargador_android(self):
         respuesta = self.client.get(
