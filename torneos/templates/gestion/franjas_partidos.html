@@ -5,7 +5,7 @@
 
 {% block content %}
 <p><a class="btn secondary" href="{% url 'gestion_panel' %}">Volver a Gestión</a></p>
-<p class="muted">Partidos jugados por equipo, según el día y la hora registrados en el partido. Las horas fuera de estas franjas aparecen en «Otros horarios». Los partidos solo programados no cuentan.</p>
+<p class="muted">Cada partido jugado cuenta en la franja disponible inmediatamente anterior del mismo día: por ejemplo, 4:30 p. m. cuenta en 4:00 p. m. Los días sin franjas y las horas anteriores a la primera aparecen en «Otros horarios». Los partidos solo programados no cuentan.</p>
 
 <form method="get">
     <div class="grid">

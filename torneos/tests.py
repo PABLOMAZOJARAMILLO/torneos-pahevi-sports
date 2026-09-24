@@ -2839,8 +2839,9 @@ class FranjasPartidosTests(TestCase):
             self.assertEqual(fila["cantidades"][5], 1)
             self.assertEqual(len(fila["otros"]), 1)
 
-    def test_horarios_no_exactos_y_partidos_iniciados_se_incluyen_en_total(self):
+    def test_horarios_no_exactos_se_asignan_a_franja_anterior_del_mismo_dia(self):
         self.partido(date(2026, 9, 19), time(16, 30), "FINALIZADO")
+        self.partido(date(2026, 9, 19), time(17, 0), "FINALIZADO")
         suspendido = self.partido(date(2026, 9, 20), time(9, 0), "SUSPENDIDO")
         suspendido.segundos_acumulados = 600
         suspendido.save(update_fields=["segundos_acumulados"])
@@ -2849,8 +2850,10 @@ class FranjasPartidosTests(TestCase):
 
         self.assertEqual(respuesta.status_code, 200)
         fila = respuesta.context["filas"][0]
-        self.assertEqual(fila["total"], 2)
-        self.assertEqual(len(fila["otros"]), 2)
+        self.assertEqual(fila["total"], 3)
+        self.assertEqual(fila["cantidades"][0], 2)
+        self.assertEqual(fila["cantidades"][3], 1)
+        self.assertEqual(len(fila["otros"]), 0)
         self.assertContains(respuesta, "Otros horarios")
 
     def test_filtro_equipo_no_revela_equipos_de_otro_torneo(self):

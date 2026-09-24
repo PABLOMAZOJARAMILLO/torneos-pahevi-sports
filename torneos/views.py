@@ -10080,12 +10080,16 @@ def gestion_franjas_partidos(request):
     if categoria_id:
         partidos = partidos.filter(categoria_id=categoria_id)
 
-    claves = {(dia, hora) for dia, hora, _ in FRANJAS_PARTIDOS}
+    horas_por_dia = defaultdict(list)
+    for dia, hora, _ in FRANJAS_PARTIDOS:
+        horas_por_dia[dia].append(hora)
     conteos = defaultdict(lambda: defaultdict(int))
     otros = defaultdict(list)
     for partido in partidos:
-        clave = (partido.fecha.weekday(), partido.hora.hour) if partido.fecha and partido.hora else None
-        if clave in claves and partido.hora.minute == 0:
+        dia = partido.fecha.weekday() if partido.fecha else None
+        hora_franja = max((hora for hora in horas_por_dia[dia] if partido.hora and hora <= partido.hora.hour), default=None)
+        if hora_franja is not None:
+            clave = (dia, hora_franja)
             conteos[partido.equipo_local_id][clave] += 1
             conteos[partido.equipo_visitante_id][clave] += 1
         else:
