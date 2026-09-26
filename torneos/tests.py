@@ -6569,6 +6569,58 @@ class ImportacionJugadoresPlanillaTests(TestCase):
         self.assertContains(respuesta, "Jugador Cupo 30 no fue inscrito por falta de cupo")
         self.assertContains(respuesta, "Jugador Que Ya Jugo no se retiró porque ya pisó cancha")
 
+    def test_planilla_con_separadores_de_cedula_actualiza_sin_duplicar_cupos(self):
+        rival = Equipo.objects.create(nombre="Rival cédulas", categoria=self.categoria)
+        partido = Partido.objects.create(
+            categoria=self.categoria, equipo_local=self.equipo, equipo_visitante=rival,
+            fecha=date(2026, 1, 10), hora=time(16), estado="FINALIZADO",
+        )
+        jugadores = []
+        for indice in range(30):
+            cedula = "78295421" if indice == 0 else "7380639" if indice == 1 else f"ID{indice}"
+            jugador = Jugador.objects.create(
+                equipo=self.equipo, nombres=f"Jugador Cupo {indice + 1}",
+                cedula=cedula, fecha_nacimiento=date(1980, 1, 1),
+            )
+            jugadores.append(jugador)
+        for jugador in jugadores[:2]:
+            AlineacionPartido.objects.create(
+                partido=partido, equipo=self.equipo, jugador=jugador, rol="TITULAR",
+            )
+
+        libro = Workbook()
+        hoja = libro.active
+        hoja["D3"] = self.categoria.nombre
+        hoja["I3"] = self.equipo.nombre
+        for indice, jugador in enumerate(jugadores):
+            fila = 8 + indice
+            hoja[f"C{fila}"] = jugador.nombres
+            hoja[f"D{fila}"] = indice + 1
+            hoja[f"E{fila}"], hoja[f"F{fila}"], hoja[f"G{fila}"] = 1, 1, 1980
+            hoja[f"H{fila}"] = "78´295,421" if indice == 0 else "7'380,639" if indice == 1 else jugador.cedula
+        archivo = BytesIO()
+        libro.save(archivo)
+
+        self.client.force_login(self.admin)
+        session = self.client.session
+        session["torneo_id"] = self.torneo.id
+        session.save()
+        respuesta = self.client.post(
+            "/gestion/jugadores/importar-planilla/",
+            {"archivo_excel": SimpleUploadedFile(
+                "san-luis.xlsx", archivo.getvalue(),
+                content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            )},
+            follow=True,
+        )
+
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertContains(respuesta, "Nuevos: 0. Actualizados: 30. Eliminados: 0. Omitidos: 0")
+        self.assertEqual(Jugador.objects.filter(equipo=self.equipo).count(), 30)
+        self.assertTrue(Jugador.objects.filter(id=jugadores[0].id).exists())
+        self.assertTrue(Jugador.objects.filter(id=jugadores[1].id).exists())
+        self.assertNotContains(respuesta, "no se retiró porque ya pisó cancha")
+
     def test_importa_formato_san_jorge_con_mas_de_30_jugadores_y_cedulas_del_cuerpo_tecnico(self):
         self.torneo.nombre = "Copa San Jorge 2026"
         self.torneo.save(update_fields=["nombre"])

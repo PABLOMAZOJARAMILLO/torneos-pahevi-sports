@@ -1593,6 +1593,11 @@ def limpiar_cedula_excel(valor):
     return valor.replace(".", "").replace(",", "").replace(" ", "")
 
 
+def clave_documento_jugador(valor):
+    """Compara cédulas sin los separadores usados por distintas planillas."""
+    return re.sub(r"[^0-9A-Za-z]", "", limpiar_cedula_excel(valor)).upper()
+
+
 def limpiar_entero_excel(valor):
     if valor in [None, ""]:
         return None
@@ -9802,15 +9807,27 @@ def gestion_importar_planilla(request):
             )
             limite_jugadores = None if (formato_con_cuerpo_tecnico and es_copa_san_jorge) else 30
             cedulas_en_planilla = {
-                limpiar_cedula_excel(hoja[f"H{fila}"].value)
+                clave_documento_jugador(hoja[f"H{fila}"].value)
                 for fila in range(8, ultima_fila_jugadores + 1)
-                if limpiar_cedula_excel(hoja[f"H{fila}"].value)
+                if clave_documento_jugador(hoja[f"H{fila}"].value)
             }
+            jugadores_por_cedula = defaultdict(list)
+            jugadores_otra_equipo_por_cedula = defaultdict(list)
+            for registrado in Jugador.objects.select_related("equipo").filter(equipo__categoria=categoria):
+                clave = clave_documento_jugador(registrado.cedula)
+                if registrado.equipo_id == equipo.id:
+                    jugadores_por_cedula[clave].append(registrado)
+                else:
+                    jugadores_otra_equipo_por_cedula[clave].append(registrado)
             candidatos_eliminar = list(
                 Jugador.objects.select_related("equipo", "equipo__categoria").filter(
                     equipo=equipo, estado="ACTIVO"
-                ).exclude(cedula__in=cedulas_en_planilla)
+                )
             )
+            candidatos_eliminar = [
+                candidato for candidato in candidatos_eliminar
+                if clave_documento_jugador(candidato.cedula) not in cedulas_en_planilla
+            ]
             bloqueados_planilla = []
             eliminables_planilla = []
             for candidato in candidatos_eliminar:
@@ -9829,7 +9846,7 @@ def gestion_importar_planilla(request):
                 dia = hoja[f"E{fila}"].value
                 mes = hoja[f"F{fila}"].value
                 anio = hoja[f"G{fila}"].value
-                cedula = limpiar_cedula_excel(hoja[f"H{fila}"].value)
+                cedula = clave_documento_jugador(hoja[f"H{fila}"].value)
 
                 if not nombre and not cedula:
                     continue
@@ -9851,10 +9868,15 @@ def gestion_importar_planilla(request):
                     errores.append(f"Fila {fila}: fecha de nacimiento inválida para {nombre}.")
                     continue
 
-                jugador_existente_equipo = Jugador.objects.filter(
-                    equipo=equipo,
-                    cedula=cedula,
-                ).first()
+                coincidencias_equipo = jugadores_por_cedula[cedula]
+                if len(coincidencias_equipo) > 1:
+                    omitidos += 1
+                    errores.append(
+                        f"Fila {fila}: {nombre} tiene varias inscripciones con la misma cédula "
+                        "en este equipo. Revisa esos registros antes de importar."
+                    )
+                    continue
+                jugador_existente_equipo = coincidencias_equipo[0] if coincidencias_equipo else None
                 if jugador_existente_equipo and jugador_existente_equipo.estado == "RETIRADO":
                     cedulas_importadas.add(cedula)
                     omitidos += 1
@@ -9886,10 +9908,7 @@ def gestion_importar_planilla(request):
                     actualizados += 1
                     continue
 
-                jugador_misma_categoria = Jugador.objects.filter(
-                    cedula=cedula,
-                    equipo__categoria=categoria,
-                ).exclude(equipo=equipo).select_related("equipo").first()
+                jugador_misma_categoria = next(iter(jugadores_otra_equipo_por_cedula[cedula]), None)
                 if jugador_misma_categoria:
                     omitidos += 1
                     errores.append(
@@ -9907,16 +9926,23 @@ def gestion_importar_planilla(request):
                     )
                     continue
 
-                _, creado = Jugador.objects.update_or_create(
-                    equipo=equipo,
-                    cedula=cedula,
-                    defaults={
-                        "dorsal": dorsal,
-                        "nombres": normalizar_nombre_persona(nombre),
-                        "fecha_nacimiento": fecha_nacimiento,
-                        "estado": "ACTIVO",
-                    },
-                )
+                if jugador_existente_equipo:
+                    jugador_existente_equipo.dorsal = dorsal
+                    jugador_existente_equipo.nombres = normalizar_nombre_persona(nombre)
+                    jugador_existente_equipo.fecha_nacimiento = fecha_nacimiento
+                    jugador_existente_equipo.estado = "ACTIVO"
+                    jugador_existente_equipo.save(update_fields=[
+                        "dorsal", "nombres", "fecha_nacimiento", "estado",
+                    ])
+                    creado = False
+                else:
+                    nuevo = Jugador.objects.create(
+                        equipo=equipo, cedula=cedula, dorsal=dorsal,
+                        nombres=normalizar_nombre_persona(nombre),
+                        fecha_nacimiento=fecha_nacimiento,
+                    )
+                    jugadores_por_cedula[cedula].append(nuevo)
+                    creado = True
                 cedulas_importadas.add(cedula)
 
                 if creado:
