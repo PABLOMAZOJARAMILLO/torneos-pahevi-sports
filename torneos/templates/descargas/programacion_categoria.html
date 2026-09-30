@@ -498,7 +498,7 @@ body {
     </div>
 
     <div class="titulo">
-        {% if torneo_nombre %}<div class="torneo-nombre">{{ torneo_nombre }}</div>{% endif %}
+        {% if torneo_nombre and not logo_torneo %}<div class="torneo-nombre">{{ torneo_nombre }}</div>{% endif %}
         <h1>{{ categoria }}</h1>
         <h2>PROGRAMACIÓN DE PARTIDOS</h2>
     </div>
@@ -572,7 +572,7 @@ body {
 
             <div class="grupo">
                 {% if mostrar_categoria %}{{ p.categoria }} - {% endif %}
-                {% if p.numero_fecha %}{{ p.numero_fecha|upper }} &middot; {% endif %}
+                {% if p.numero_fecha %}{{ p.numero_fecha|etiqueta_fecha|upper }} &middot; {% endif %}
                 {% if p.fase and p.fase != "GRUPOS" %}{{ p.fase }}{% elif p.mostrar_grupo %}GRUPO {{ p.grupo }}{% endif %}
             </div>
 

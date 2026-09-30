@@ -4954,7 +4954,7 @@ def descargar_programacion_general(request):
 
     html = render_to_string("descargas/programacion_categoria.html", {
         "torneo_nombre": torneo.nombre if torneo else "",
-        "categoria": titulo_programacion,
+        "categoria": titulo_programacion.removeprefix("TODAS LAS CATEGORIAS - ") if numero_fecha or dia else "PROGRAMACIÓN GENERAL",
         "mostrar_categoria": not categoria_obj,
         "partidos": partidos_programacion,
         "cantidad_partidos": cantidad,

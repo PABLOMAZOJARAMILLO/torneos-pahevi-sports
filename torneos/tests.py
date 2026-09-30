@@ -5205,6 +5205,21 @@ class DescargaProgramacionFiltrosTests(TestCase):
         self.assertEqual(respuesta.status_code, 200)
         self.assertIn("pocos pocos-2", crear_imagen.call_args.args[0])
 
+    @patch("torneos.views.logos_torneo")
+    @patch("torneos.views.crear_imagen_desde_html")
+    def test_programacion_general_no_repite_torneo_y_etiqueta_fecha_en_partidos(self, crear_imagen, logos):
+        crear_imagen.return_value = HttpResponse(b"png", content_type="image/png")
+        logos.return_value = {"logo_alcaldia": "", "logo_torneo": "logo-central.png", "logo_imcred": ""}
+
+        respuesta = self.client.get("/descargar/programacion-general/", {"fecha_fixture": "Fecha 1"})
+
+        self.assertEqual(respuesta.status_code, 200)
+        html = crear_imagen.call_args.args[0]
+        self.assertIn("<h1>FECHA 1</h1>", html)
+        self.assertNotIn('class="torneo-nombre"', html)
+        self.assertNotIn("TODAS LAS CATEGORIAS", html)
+        self.assertRegex(html, r"Senior\s*-\s*FECHA 1")
+
     @patch("torneos.views.crear_imagen_desde_html")
     def test_programacion_ignora_grupos_de_partidos_que_ya_no_estan_programados(self, crear_imagen):
         crear_imagen.return_value = HttpResponse(b"png", content_type="image/png")
