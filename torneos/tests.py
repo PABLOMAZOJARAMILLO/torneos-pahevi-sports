@@ -5171,6 +5171,41 @@ class DescargaProgramacionFiltrosTests(TestCase):
         self.assertNotIn("GRUPO A", crear_imagen.call_args.args[0].upper())
 
     @patch("torneos.views.crear_imagen_desde_html")
+    def test_programacion_amplia_escudos_y_letras_solo_hasta_cuatro_partidos(self, crear_imagen):
+        crear_imagen.return_value = HttpResponse(b"png", content_type="image/png")
+        tamanos_escudo = {1: 270, 2: 210, 3: 160, 4: 130}
+
+        for cantidad in range(1, 6):
+            if cantidad > 1:
+                Partido.objects.create(
+                    categoria=self.categoria, equipo_local=self.local,
+                    equipo_visitante=self.visitante, fecha=self.partido.fecha,
+                    hora=time(16 + cantidad, 0), estado="PROGRAMADO",
+                    estado_programacion="OFICIAL", numero_fecha="Fecha 1",
+                    cancha="Teresa Sierra",
+                )
+            respuesta = self.client.get(f"/descargar/programacion/{self.categoria.nombre}/")
+            self.assertEqual(respuesta.status_code, 200)
+            html = crear_imagen.call_args.args[0]
+            if cantidad <= 4:
+                self.assertIn(f"pocos pocos-{cantidad}", html)
+                self.assertIn(
+                    f".contenedor.pocos-{cantidad} .equipo img, .contenedor.pocos-{cantidad} .equipo .escudo-default "
+                    f"{{ width: {tamanos_escudo[cantidad]}px; height: {tamanos_escudo[cantidad]}px; }}",
+                    html,
+                )
+            else:
+                self.assertNotIn("pocos pocos-", html)
+            self.assertIn("PROGRAMACIÓN DE PARTIDOS", html)
+
+    @patch("torneos.views.crear_imagen_desde_html")
+    def test_programacion_general_con_pocos_partidos_usa_tamanos_ampliados(self, crear_imagen):
+        crear_imagen.return_value = HttpResponse(b"png", content_type="image/png")
+        respuesta = self.client.get("/descargar/programacion-general/")
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertIn("pocos pocos-2", crear_imagen.call_args.args[0])
+
+    @patch("torneos.views.crear_imagen_desde_html")
     def test_programacion_ignora_grupos_de_partidos_que_ya_no_estan_programados(self, crear_imagen):
         crear_imagen.return_value = HttpResponse(b"png", content_type="image/png")
         local_b = Equipo.objects.create(nombre="Histórico Local B", categoria=self.categoria)

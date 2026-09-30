@@ -447,12 +447,41 @@ body {
     font-weight: 900;
     letter-spacing: 2px;
 }
+
+/* Escudos y letras crecen conforme disminuye el número de partidos. */
+.contenedor.pocos .partido { display: flex; flex-direction: column; justify-content: center; }
+.contenedor.pocos .equipo { overflow-wrap: break-word; }
+.contenedor.pocos-4 .partido { min-height: 345px; }
+.contenedor.pocos-3 .partido { min-height: 470px; }
+.contenedor.pocos-2 .partido { min-height: 610px; }
+.contenedor.pocos-1 .partido { min-height: 1200px; }
+.contenedor.pocos-4 .equipo img, .contenedor.pocos-4 .equipo .escudo-default { width: 130px; height: 130px; }
+.contenedor.pocos-3 .equipo img, .contenedor.pocos-3 .equipo .escudo-default { width: 160px; height: 160px; }
+.contenedor.pocos-2 .equipo img, .contenedor.pocos-2 .equipo .escudo-default { width: 210px; height: 210px; }
+.contenedor.pocos-1 .equipo img, .contenedor.pocos-1 .equipo .escudo-default { width: 270px; height: 270px; }
+.contenedor.pocos-4 .equipo { font-size: 31px; }
+.contenedor.pocos-3 .equipo { font-size: 35px; }
+.contenedor.pocos-2 .equipo { font-size: 40px; }
+.contenedor.pocos-1 .equipo { font-size: 48px; }
+.contenedor.pocos-4 .detalle-superior { font-size: 24px; }
+.contenedor.pocos-3 .detalle-superior { font-size: 26px; }
+.contenedor.pocos-2 .detalle-superior { font-size: 29px; }
+.contenedor.pocos-1 .detalle-superior { font-size: 33px; }
+.contenedor.pocos-4 .grupo { font-size: 25px; }
+.contenedor.pocos-3 .grupo { font-size: 28px; }
+.contenedor.pocos-2 .grupo { font-size: 31px; }
+.contenedor.pocos-1 .grupo { font-size: 36px; }
+.contenedor.pocos-4 .vs { font-size: 42px; }
+.contenedor.pocos-3 .vs { font-size: 47px; }
+.contenedor.pocos-2 .vs { font-size: 54px; }
+.contenedor.pocos-1 .vs { font-size: 64px; }
+
 </style>
 </head>
 
 <body>
 
-<div class="contenedor{% if compacta %} compacta{% endif %}">
+<div class="contenedor{% if compacta %} compacta{% endif %}{% if cantidad_partidos <= 4 %} pocos pocos-{{ cantidad_partidos }}{% endif %}">
 
     <div class="encabezado">
         {% if logo_alcaldia %}
