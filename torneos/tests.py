@@ -6422,6 +6422,76 @@ class ImportacionJugadoresPlanillaTests(TestCase):
         self.assertEqual(existente.dorsal, 17)
         self.assertFalse(Jugador.objects.filter(equipo=self.equipo, cedula="88888").exists())
 
+    def test_importar_primera_planilla_completa_despues_de_fecha_tres(self):
+        self.categoria.controlar_reemplazos_jugadores = True
+        self.categoria.save(update_fields=["controlar_reemplazos_jugadores"])
+        rival = Equipo.objects.create(nombre="Rival cuarta fecha", categoria=self.categoria)
+        Partido.objects.create(
+            categoria=self.categoria, equipo_local=self.equipo, equipo_visitante=rival,
+            numero_fecha="Fecha 3", fase="GRUPOS", fecha=date(2026, 2, 1),
+            hora=time(16), estado="FINALIZADO",
+        )
+        workbook = Workbook()
+        hoja = workbook.active
+        hoja["D3"], hoja["I3"] = self.categoria.nombre, self.equipo.nombre
+        hoja["C8"], hoja["E8"], hoja["F8"], hoja["G8"], hoja["H8"] = (
+            "Primer jugador", 1, 1, 1980, "11111",
+        )
+        hoja["C9"], hoja["E9"], hoja["F9"], hoja["G9"], hoja["H9"] = (
+            "Segundo jugador", 2, 2, 1982, "22222",
+        )
+        archivo = BytesIO()
+        workbook.save(archivo)
+        self.client.force_login(self.admin)
+        session = self.client.session
+        session["torneo_id"] = self.torneo.id
+        session.save()
+
+        respuesta = self.client.post(
+            "/gestion/jugadores/importar-planilla/",
+            {"archivo_excel": SimpleUploadedFile("primera.xlsx", archivo.getvalue())},
+        )
+
+        self.assertEqual(respuesta.status_code, 302)
+        self.assertEqual(
+            set(Jugador.objects.filter(equipo=self.equipo).values_list("cedula", flat=True)),
+            {"11111", "22222"},
+        )
+
+    def test_editar_nombre_protegido_sin_cambiar_documento_ni_nacimiento(self):
+        self.categoria.controlar_reemplazos_jugadores = True
+        self.categoria.save(update_fields=["controlar_reemplazos_jugadores"])
+        rival = Equipo.objects.create(nombre="Rival edición", categoria=self.categoria)
+        Partido.objects.create(
+            categoria=self.categoria, equipo_local=self.equipo, equipo_visitante=rival,
+            numero_fecha="Fecha 3", fase="GRUPOS", fecha=date(2026, 2, 1),
+            hora=time(16), estado="FINALIZADO",
+        )
+        jugador = Jugador.objects.create(
+            equipo=self.equipo, nombres="Nombre Errado", cedula="112233",
+            fecha_nacimiento=date(1980, 1, 1),
+        )
+        self.client.force_login(self.admin)
+        session = self.client.session
+        session["torneo_id"] = self.torneo.id
+        session.save()
+        datos = {
+            "equipo": self.equipo.id, "nombres": "Nombre Corregido",
+            "cedula": jugador.cedula, "fecha_nacimiento": "1980-01-01",
+            "estado": "ACTIVO",
+        }
+
+        respuesta = self.client.post(f"/gestion/jugadores/{jugador.id}/editar/", datos)
+        self.assertEqual(respuesta.status_code, 302)
+        jugador.refresh_from_db()
+        self.assertEqual(jugador.nombres, "Nombre Corregido")
+
+        datos["cedula"] = "445566"
+        respuesta = self.client.post(f"/gestion/jugadores/{jugador.id}/editar/", datos)
+        self.assertEqual(respuesta.status_code, 200)
+        jugador.refresh_from_db()
+        self.assertEqual(jugador.cedula, "112233")
+
     def test_importar_planilla_agrega_nuevo_sin_retirar_jugador_que_piso_cancha(self):
         self.categoria.controlar_reemplazos_jugadores = True
         self.categoria.save(update_fields=["controlar_reemplazos_jugadores"])

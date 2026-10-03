@@ -6702,13 +6702,9 @@ def delegado_jugador_editar(request, jugador_id):
         permitir_foto=puede_cargar_fotos_jugadores_delegado(request.user, jugador.equipo),
     )
 
-    identidad_original = (jugador.nombres, jugador.cedula, jugador.fecha_nacimiento)
+    identidad_original = (jugador.cedula, jugador.fecha_nacimiento)
     if request.method == "POST" and form.is_valid():
-        identidad_nueva = (
-            normalizar_nombre_persona(form.cleaned_data.get("nombres")),
-            form.cleaned_data.get("cedula"),
-            form.cleaned_data.get("fecha_nacimiento"),
-        )
+        identidad_nueva = (form.cleaned_data.get("cedula"), form.cleaned_data.get("fecha_nacimiento"))
         politica = politica_reemplazo_jugador(jugador)
         if politica["controlada"] and not politica["permitido_normal"] and identidad_nueva != identidad_original:
             messages.error(request, "La identidad está bloqueada. Un administrador debe usar Reemplazar.")
@@ -9155,8 +9151,8 @@ def gestion_equipo_jugadores_guardar(request, equipo_id):
             errores.append(f"{jugador.nombres}: nombre, cedula y fecha son obligatorios.")
             continue
 
-        identidad_nueva = (normalizar_nombre_persona(nombres), cedula, str(fecha_nacimiento))
-        identidad_actual = (jugador.nombres, jugador.cedula, jugador.fecha_nacimiento.isoformat())
+        identidad_nueva = (cedula, str(fecha_nacimiento))
+        identidad_actual = (jugador.cedula, jugador.fecha_nacimiento.isoformat())
         politica = politica_reemplazo_jugador(jugador)
         if politica["controlada"] and not politica["permitido_normal"] and identidad_nueva != identidad_actual:
             errores.append(f"{jugador.nombres}: identidad bloqueada; usa Reemplazar.")
@@ -9640,12 +9636,11 @@ def gestion_jugador_editar(request, jugador_id):
     volver_url = url_retorno_gestion(request, "gestion_jugadores")
     form = JugadorForm(request.POST or None, request.FILES or None, instance=jugador, torneo=torneo)
 
-    identidad_original = (jugador.equipo_id, jugador.nombres, jugador.cedula, jugador.fecha_nacimiento)
+    identidad_original = (jugador.equipo_id, jugador.cedula, jugador.fecha_nacimiento)
     if request.method == "POST" and form.is_valid():
         equipo_nuevo = form.cleaned_data.get("equipo")
         identidad_nueva = (
             equipo_nuevo.id if equipo_nuevo else None,
-            normalizar_nombre_persona(form.cleaned_data.get("nombres")),
             form.cleaned_data.get("cedula"),
             form.cleaned_data.get("fecha_nacimiento"),
         )
@@ -9799,9 +9794,11 @@ def gestion_importar_planilla(request):
             eliminados = 0
             errores = []
             cedulas_importadas = set()
+            planilla_inicial_pendiente = not Jugador.objects.filter(equipo=equipo).exists()
             bloquear_altas_por_fecha_tres = (
                 categoria.controlar_reemplazos_jugadores
                 and tercera_fecha_iniciada(equipo)
+                and not planilla_inicial_pendiente
             )
             es_copa_san_jorge = bool(
                 categoria.torneo_id
