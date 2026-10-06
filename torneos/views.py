@@ -6654,7 +6654,7 @@ def delegado_jugador_nuevo(request, equipo_id):
 
     if request.method == "POST" and form.is_valid():
         if equipo.categoria.controlar_reemplazos_jugadores and tercera_fecha_iniciada(equipo):
-            messages.error(request, "El equipo ya inició su fecha 3. Solo se admiten ingresos mediante reemplazo por fuerza mayor.")
+            messages.error(request, "El equipo ya inició su tercer partido. Solo se admiten ingresos mediante reemplazo por fuerza mayor.")
             return redirect("delegado_equipo_editar", equipo_id=equipo.id)
         jugador = form.save(commit=False)
         jugador.equipo = equipo
@@ -6754,7 +6754,7 @@ def delegado_jugador_eliminar(request, jugador_id):
     if politica["controlada"] and not politica["permitido_normal"]:
         messages.error(
             request,
-            "Este jugador no puede eliminarse: ya pisó cancha o el equipo inició su fecha 3. "
+            "Este jugador no puede eliminarse: ya pisó cancha o el equipo inició su tercer partido. "
             "Un administrador debe tramitar el reemplazo por fuerza mayor.",
         )
         return redirect("delegado_equipo_editar", equipo_id=jugador.equipo_id)
@@ -9178,7 +9178,7 @@ def gestion_equipo_jugadores_guardar(request, equipo_id):
         if not nuevo_nombre or not nuevo_cedula or not nuevo_fecha:
             errores.append("Para agregar jugador nuevo debes llenar nombre, cedula y fecha de nacimiento.")
         elif equipo.categoria.controlar_reemplazos_jugadores and tercera_fecha_iniciada(equipo):
-            errores.append("El equipo ya inició su fecha 3. Solo se agregan jugadores mediante reemplazo por fuerza mayor.")
+            errores.append("El equipo ya inició su tercer partido. Solo se agregan jugadores mediante reemplazo por fuerza mayor.")
         else:
             nuevo = Jugador(
                 equipo=equipo,
@@ -9233,11 +9233,6 @@ def gestion_equipo_eliminar(request, equipo_id):
 ESTADOS_PARTIDO_JUGADO = {"EN_JUEGO", "FINALIZADO", "SUSPENDIDO"}
 
 
-def numero_fecha_fixture(partido):
-    coincidencia = re.search(r"\d+", str(partido.numero_fecha or ""))
-    return int(coincidencia.group()) if coincidencia else None
-
-
 def jugador_ya_piso_cancha(jugador):
     partidos_jugados = Q(partido__estado__in=ESTADOS_PARTIDO_JUGADO)
     return (
@@ -9249,15 +9244,14 @@ def jugador_ya_piso_cancha(jugador):
 
 
 def tercera_fecha_iniciada(equipo):
+    """Bloquea tras iniciar el tercer partido propio, aunque haya descansos en el fixture."""
     partidos = Partido.objects.filter(
         categoria=equipo.categoria,
         fase="GRUPOS",
     ).filter(Q(equipo_local=equipo) | Q(equipo_visitante=equipo))
-    return any(
-        numero_fecha_fixture(partido) == 3
-        and (partido.estado in ESTADOS_PARTIDO_JUGADO or partido.inicio_en_vivo)
-        for partido in partidos.only("numero_fecha", "estado", "inicio_en_vivo")
-    )
+    return partidos.filter(
+        Q(estado__in=ESTADOS_PARTIDO_JUGADO) | Q(inicio_en_vivo__isnull=False)
+    ).count() >= 3
 
 
 def cupos_inscripcion_ocupados(equipo):
@@ -9503,7 +9497,7 @@ def gestion_jugador_reemplazar(request, jugador_id):
                     nuevo,
                     descripcion=(
                         f"Reemplazó a {jugador.nombres} por {nuevo.nombres} en {jugador.equipo.nombre}. "
-                        + ("Fuerza mayor soportada." if reemplazo.es_fuerza_mayor else "Antes de la fecha 3, sin participación previa.")
+                        + ("Fuerza mayor soportada." if reemplazo.es_fuerza_mayor else "Antes del tercer partido, sin participación previa.")
                     ),
                     datos={"saliente_id": jugador.id, "entrante_id": nuevo.id, "fuerza_mayor": reemplazo.es_fuerza_mayor},
                 )
@@ -9548,7 +9542,7 @@ def gestion_jugador_nuevo(request):
         elif bloqueado_por_fecha and not ingreso_excepcional:
             form.add_error(
                 "equipo",
-                "Este equipo ya inició su fecha 3. Usa Ingreso excepcional si la omisión fue causada por el administrador de la app.",
+                "Este equipo ya inició su tercer partido. Usa Ingreso excepcional si la omisión fue causada por el administrador de la app.",
             )
         limite_jugadores = limite_inscripcion_equipo(equipo_destino) if equipo_destino else 30
         if limite_jugadores is not None and equipo_destino and cupos_inscripcion_ocupados(equipo_destino) >= limite_jugadores:
@@ -9887,7 +9881,7 @@ def gestion_importar_planilla(request):
                 if bloquear_altas_por_fecha_tres and not jugador_existente_equipo:
                     omitidos += 1
                     errores.append(
-                        f"Fila {fila}: {nombre} no fue agregado porque {equipo.nombre} ya inició su fecha 3. "
+                        f"Fila {fila}: {nombre} no fue agregado porque {equipo.nombre} ya inició su tercer partido. "
                         "Los nuevos ingresos deben tramitarse mediante reemplazo por fuerza mayor."
                     )
                     continue
@@ -9959,7 +9953,7 @@ def gestion_importar_planilla(request):
                     if jugador_ya_piso_cancha(candidato):
                         motivo_bloqueo = "ya pisó cancha"
                     else:
-                        motivo_bloqueo = "la plantilla quedó protegida después de la tercera fecha"
+                        motivo_bloqueo = "la plantilla quedó protegida después del tercer partido del equipo"
                     errores.append(
                         f"{candidato.nombres} no se retiró porque {motivo_bloqueo}. "
                         "Permanece ocupando un cupo."

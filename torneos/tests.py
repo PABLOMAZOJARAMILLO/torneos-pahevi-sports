@@ -6373,16 +6373,12 @@ class ImportacionJugadoresPlanillaTests(TestCase):
         self.categoria.controlar_reemplazos_jugadores = True
         self.categoria.save(update_fields=["controlar_reemplazos_jugadores"])
         rival = Equipo.objects.create(nombre="RIVAL FECHA TRES", categoria=self.categoria)
-        Partido.objects.create(
-            categoria=self.categoria,
-            equipo_local=self.equipo,
-            equipo_visitante=rival,
-            numero_fecha="Fecha 3",
-            fase="GRUPOS",
-            fecha=date(2026, 2, 1),
-            hora=time(16),
-            estado="FINALIZADO",
-        )
+        for numero in (1, 2, 4):
+            Partido.objects.create(
+                categoria=self.categoria, equipo_local=self.equipo, equipo_visitante=rival,
+                numero_fecha=f"Fecha {numero}", fase="GRUPOS", fecha=date(2026, 2, numero),
+                hora=time(16), estado="FINALIZADO",
+            )
         existente = Jugador.objects.create(
             equipo=self.equipo,
             nombres="Jugador Ya Inscrito",
@@ -6426,11 +6422,12 @@ class ImportacionJugadoresPlanillaTests(TestCase):
         self.categoria.controlar_reemplazos_jugadores = True
         self.categoria.save(update_fields=["controlar_reemplazos_jugadores"])
         rival = Equipo.objects.create(nombre="Rival cuarta fecha", categoria=self.categoria)
-        Partido.objects.create(
-            categoria=self.categoria, equipo_local=self.equipo, equipo_visitante=rival,
-            numero_fecha="Fecha 3", fase="GRUPOS", fecha=date(2026, 2, 1),
-            hora=time(16), estado="FINALIZADO",
-        )
+        for numero in (1, 2, 4):
+            Partido.objects.create(
+                categoria=self.categoria, equipo_local=self.equipo, equipo_visitante=rival,
+                numero_fecha=f"Fecha {numero}", fase="GRUPOS", fecha=date(2026, 2, numero),
+                hora=time(16), estado="FINALIZADO",
+            )
         workbook = Workbook()
         hoja = workbook.active
         hoja["D3"], hoja["I3"] = self.categoria.nombre, self.equipo.nombre
@@ -6462,11 +6459,12 @@ class ImportacionJugadoresPlanillaTests(TestCase):
         self.categoria.controlar_reemplazos_jugadores = True
         self.categoria.save(update_fields=["controlar_reemplazos_jugadores"])
         rival = Equipo.objects.create(nombre="Rival edición", categoria=self.categoria)
-        Partido.objects.create(
-            categoria=self.categoria, equipo_local=self.equipo, equipo_visitante=rival,
-            numero_fecha="Fecha 3", fase="GRUPOS", fecha=date(2026, 2, 1),
-            hora=time(16), estado="FINALIZADO",
-        )
+        for numero in (1, 2, 4):
+            Partido.objects.create(
+                categoria=self.categoria, equipo_local=self.equipo, equipo_visitante=rival,
+                numero_fecha=f"Fecha {numero}", fase="GRUPOS", fecha=date(2026, 2, numero),
+                hora=time(16), estado="FINALIZADO",
+            )
         jugador = Jugador.objects.create(
             equipo=self.equipo, nombres="Nombre Errado", cedula="112233",
             fecha_nacimiento=date(1980, 1, 1),
@@ -8244,11 +8242,22 @@ class ControlReemplazosJugadoresTests(TestCase):
         }
 
     def test_bloqueo_de_fecha_tres_es_individual_por_equipo(self):
+        for numero in (1, 2):
+            Partido.objects.create(
+                categoria=self.categoria, equipo_local=self.equipo_a, equipo_visitante=self.equipo_b,
+                numero_fecha=f"Fecha {numero}", fase="GRUPOS", fecha=date(2026, 1, numero),
+                hora=time(16), estado="FINALIZADO",
+            )
         Partido.objects.create(
             categoria=self.categoria, equipo_local=self.equipo_a, equipo_visitante=self.equipo_b,
-            numero_fecha="Fecha 3", fase="GRUPOS", fecha=date(2026, 1, 20), hora=time(16), estado="FINALIZADO",
+            numero_fecha="Fecha 4", fase="GRUPOS", fecha=date(2026, 1, 20),
+            hora=time(16), estado="PROGRAMADO",
         )
-
+        self.assertFalse(tercera_fecha_iniciada(self.equipo_a))
+        self.assertFalse(tercera_fecha_iniciada(self.equipo_b))
+        partido_tercero = Partido.objects.get(categoria=self.categoria, numero_fecha="Fecha 4")
+        partido_tercero.estado = "EN_JUEGO"
+        partido_tercero.save(update_fields=["estado"])
         self.assertTrue(tercera_fecha_iniciada(self.equipo_a))
         self.assertTrue(tercera_fecha_iniciada(self.equipo_b))
         self.assertFalse(tercera_fecha_iniciada(self.equipo_c))
