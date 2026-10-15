@@ -4090,21 +4090,37 @@ class PlanilleroPartidoTests(TestCase):
                 )
                 self.assertContains(respuesta, "Cedula recibida")
 
-    def test_planillero_no_puede_marcar_wo(self):
+    def test_planillero_puede_marcar_wo_con_ganador(self):
         self.client.force_login(self.planillero)
 
-        self.client.post(
+        respuesta_editor = self.client.get(f"/partido/{self.partido.id}/editor-movil/")
+        self.assertContains(respuesta_editor, '<option value="WO"')
+        respuesta = self.client.post(
             f"/partido/{self.partido.id}/guardar-info-movil/",
             {
                 "goles_local": 3,
-                "goles_visitante": -3,
+                "goles_visitante": 0,
                 "estado": "WO",
+                "observaciones": "El visitante no se presentó.",
             },
         )
 
+        self.assertEqual(respuesta.status_code, 302)
+        self.partido.refresh_from_db()
+        self.assertEqual(self.partido.estado, "WO")
+        self.assertEqual(self.partido.goles_local, 3)
+        self.assertEqual(self.partido.goles_visitante, 0)
+        self.assertEqual(self.partido.observaciones, "El visitante no se presentó.")
+
+    def test_planillero_no_puede_marcar_wo_sin_ganador(self):
+        self.client.force_login(self.planillero)
+        respuesta = self.client.post(
+            f"/partido/{self.partido.id}/guardar-info-movil/",
+            {"goles_local": 0, "goles_visitante": 0, "estado": "WO"},
+        )
+        self.assertEqual(respuesta.status_code, 302)
         self.partido.refresh_from_db()
         self.assertEqual(self.partido.estado, "PROGRAMADO")
-        self.assertEqual(self.partido.goles_visitante, 0)
 
     def test_admin_deja_sin_puntos_a_ambos_y_conserva_marcador(self):
         self.client.force_login(self.admin)

@@ -565,7 +565,7 @@ class IngresoTorneosView(LoginView):
         return super().get_default_redirect_url()
 
 
-ESTADOS_PLANILLERO_PARTIDO = {"PROGRAMADO", "EN_JUEGO", "FINALIZADO", "SUSPENDIDO"}
+ESTADOS_PLANILLERO_PARTIDO = {"PROGRAMADO", "EN_JUEGO", "FINALIZADO", "SUSPENDIDO", "WO"}
 
 
 def entero_post(request, campo, predeterminado=0, minimo=None):
@@ -5784,6 +5784,9 @@ def guardar_info_partido_movil(request, partido_id):
     partido.goles_local = entero_post(request, 'goles_local', 0, minimo_goles)
     partido.goles_visitante = entero_post(request, 'goles_visitante', 0, minimo_goles)
     estado_solicitado = request.POST.get('estado') or partido.estado
+    if estado_solicitado == "WO" and partido.goles_local == partido.goles_visitante:
+        messages.error(request, "Para registrar un W.O. indica un marcador con ganador, por ejemplo 3-0 o 0-3.")
+        return redirect(_url_editor_partido(request, partido, "resultado"))
     if es_editor_torneo(request.user) or estado_solicitado in ESTADOS_PLANILLERO_PARTIDO:
         partido.estado = estado_solicitado
 
