@@ -1899,9 +1899,10 @@ function solicitarDorsalDesdeCancha(panel, selectorSlot) {
     const jugadorId = opcion.value;
     const nombre = opcion.dataset.nombre || opcion.textContent.trim();
     const dorsalActual = opcion.dataset.dorsal || '';
-    const respuesta = window.prompt('Dorsal de ' + nombre + ' (vacío = sin dorsal)', dorsalActual);
+    const respuesta = window.prompt('Dorsal de ' + nombre + ' (conserva el número o escribe uno diferente)', dorsalActual);
     if (respuesta === null) return;
     const dorsal = respuesta.trim();
+    if (!dorsal) return;
     if (dorsal && (!/^\d+$/.test(dorsal) || Number(dorsal) < 1 || Number(dorsal) > 999)) {
         window.alert('El dorsal debe ser un número entre 1 y 999.');
         return;
@@ -2124,6 +2125,7 @@ function restaurarBorradorAlineacionLocal(panel) {
             : [String(valorGuardado)];
         const campos = panel.querySelectorAll('[name="' + CSS.escape(nombre) + '"]');
         campos.forEach(function(campo) {
+            if (nombre.startsWith('dorsal_') && !valoresGuardados[0]) return;
             if (campo.type === 'checkbox') {
                 campo.checked = valoresGuardados.includes(campo.value);
             } else if (campo.type === 'radio') {

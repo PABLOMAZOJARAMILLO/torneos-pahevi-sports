@@ -587,9 +587,10 @@
             const playerId = option.value;
             const name = option.dataset.nombre || option.textContent.trim();
             const currentDorsal = option.dataset.dorsal || '';
-            const response = window.prompt('Dorsal de ' + name + ' (vacío = sin dorsal)', currentDorsal);
+            const response = window.prompt('Dorsal de ' + name + ' (conserva el número o escribe uno diferente)', currentDorsal);
             if (response === null) return;
             const dorsal = response.trim();
+            if (!dorsal) return;
             if (dorsal && (!/^\d+$/.test(dorsal) || Number(dorsal) < 1 || Number(dorsal) > 999)) {
                 window.alert('El dorsal debe ser un número entre 1 y 999.');
                 return;

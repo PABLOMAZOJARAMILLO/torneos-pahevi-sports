@@ -5448,28 +5448,34 @@ def asignar_posiciones_titulares_automaticas(seleccionados, indice_rol=1, indice
 
 
 def preparar_dorsales_alineacion(request, equipo, jugadores):
-    """Valida los dorsales publicados y devuelve los jugadores que deben actualizarse."""
+    """Conserva el dorsal previo salvo cambio explícito de un titular o suplente."""
     jugadores_editables = {jugador.id for jugador in jugadores}
     jugadores = list(Jugador.objects.filter(equipo=equipo).only("id", "nombres", "dorsal"))
     dorsales_propuestos = {jugador.id: jugador.dorsal for jugador in jugadores}
-    errores = []
+    seleccionados = {
+        int(llave[4:])
+        for llave, rol in request.POST.items()
+        if llave.startswith("rol_") and llave[4:].isdigit() and rol in {"TITULAR", "SUPLENTE"}
+    }
+    seleccionados.update(
+        int(jugador_id)
+        for llave, jugador_id in request.POST.items()
+        if llave.startswith("cancha_") and str(jugador_id).isdigit()
+    )
 
     for jugador in jugadores:
         llave = f"dorsal_{jugador.id}"
-        if jugador.id not in jugadores_editables or llave not in request.POST:
+        if jugador.id not in jugadores_editables or jugador.id not in seleccionados or llave not in request.POST:
             continue
         valor = (request.POST.get(llave) or "").strip()
         if not valor:
-            dorsales_propuestos[jugador.id] = None
+            continue
         elif not valor.isdigit() or not 1 <= int(valor) <= 999:
             # Un dorsal antiguo o mal digitado nunca debe impedir guardar la alineación.
             # Se conserva el valor que ya tenía el jugador.
             continue
         else:
             dorsales_propuestos[jugador.id] = int(valor)
-
-    if errores:
-        return [], errores
 
     actualizados = []
     for jugador in jugadores:

@@ -3921,6 +3921,35 @@ class PlanilleroPartidoTests(TestCase):
             objeto_id=self.local.id,
         ).exists())
 
+    def test_dorsal_anterior_se_conserva_si_no_se_modifica_en_alineacion(self):
+        self.client.force_login(self.planillero)
+        respuesta = self.client.post(
+            f"/partido/{self.partido.id}/guardar-alineacion-movil/",
+            {
+                "equipo": self.local.id,
+                f"rol_{self.jugador.id}": "TITULAR",
+                f"dorsal_{self.jugador.id}": "",
+            },
+        )
+        self.assertEqual(respuesta.status_code, 302)
+        self.jugador.refresh_from_db()
+        self.assertEqual(self.jugador.dorsal, 9)
+        self.assertTrue(AlineacionPartido.objects.filter(
+            partido=self.partido, jugador=self.jugador, rol="TITULAR",
+        ).exists())
+
+    def test_dorsal_no_cambia_si_el_jugador_no_fue_alineado(self):
+        self.client.force_login(self.planillero)
+        self.client.post(
+            f"/partido/{self.partido.id}/guardar-alineacion-movil/",
+            {
+                "equipo": self.local.id,
+                f"dorsal_{self.jugador.id}": "27",
+            },
+        )
+        self.jugador.refresh_from_db()
+        self.assertEqual(self.jugador.dorsal, 9)
+
     def test_dorsal_repetido_no_impide_guardar_alineacion(self):
         otro = Jugador.objects.create(
             equipo=self.local,
