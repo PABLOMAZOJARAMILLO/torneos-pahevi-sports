@@ -4733,30 +4733,18 @@ def construir_partidos_programacion(
     return partidos_programacion
 
 
-def medidas_programacion(cantidad):
-    if cantidad > 8:
-        return {
-            "ancho": 1080,
-            "alto": 650 + cantidad * 300,
-            "compacta": False,
-            "alto_tarjeta": 0,
-            "fuente_detalle": 0,
-            "fuente_grupo": 0,
-            "fuente_equipo": 0,
-            "escudo": 0,
-        }
-
+def medidas_programacion(cantidad, bloques=0):
     if cantidad <= 4:
         alto = 1920
-    elif cantidad <= 8:
-        alto = 2850
     else:
-        alto = 650 + (cantidad * 270)
+        # Las programaciones extensas usan filas agrupadas por día y cancha.
+        # La altura crece para que todos los partidos queden en una sola imagen.
+        alto = max(1920, 430 + cantidad * 135 + bloques * 65)
 
     return {
         "ancho": 1080,
         "alto": alto,
-        "compacta": False,
+        "compacta": cantidad > 4,
         "alto_tarjeta": 0,
         "fuente_detalle": 0,
         "fuente_grupo": 0,
@@ -4888,7 +4876,7 @@ def descargar_programacion_categoria(request, categoria):
 
     logos = logos_torneo(request, torneo)
     cantidad = len(partidos_programacion)
-    medidas = medidas_programacion(cantidad)
+    medidas = medidas_programacion(cantidad, len({p["bloque"] for p in partidos_programacion}))
 
     contexto_logos = {
         "logo_alcaldia": logos["logo_alcaldia"],
@@ -4939,6 +4927,7 @@ def descargar_programacion_categoria(request, categoria):
             "partidos": partidos_programacion,
             "cantidad_partidos": cantidad,
             "ancho": medidas["ancho"],
+            "alto": medidas["alto"],
             "compacta": medidas["compacta"],
             "alto_tarjeta": medidas["alto_tarjeta"],
             "fuente_detalle": medidas["fuente_detalle"],
@@ -4969,7 +4958,7 @@ def descargar_programacion_general(request):
 
     logos = logos_torneo(request, torneo)
     cantidad = len(partidos_programacion)
-    medidas = medidas_programacion(cantidad)
+    medidas = medidas_programacion(cantidad, len({p["bloque"] for p in partidos_programacion}))
     titulo_programacion = titulo_descarga_programacion(categoria_obj, numero_fecha, dia)
     titulo_visible = titulo_programacion.removeprefix("TODAS LAS CATEGORIAS - ") if numero_fecha or dia else "PROGRAMACIÓN GENERAL"
     nombre = limpiar_nombre(f"PROGRAMACION_{titulo_programacion}.png")
@@ -4980,6 +4969,7 @@ def descargar_programacion_general(request):
         "partidos": partidos_programacion,
         "cantidad_partidos": cantidad,
         "ancho": medidas["ancho"],
+        "alto": medidas["alto"],
         "compacta": medidas["compacta"],
         "alto_tarjeta": medidas["alto_tarjeta"],
         "fuente_detalle": medidas["fuente_detalle"],

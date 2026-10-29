@@ -5266,6 +5266,27 @@ class DescargaProgramacionFiltrosTests(TestCase):
         self.assertEqual(respuesta.status_code, 200)
         self.assertIn("pocos pocos-2", crear_imagen.call_args.args[0])
 
+    @patch("torneos.views.crear_imagen_desde_html")
+    def test_programacion_extensa_recupera_filas_por_dia_en_una_imagen(self, crear_imagen):
+        crear_imagen.return_value = HttpResponse(b"png", content_type="image/png")
+        for indice in range(12):
+            Partido.objects.create(
+                categoria=self.categoria, equipo_local=self.local,
+                equipo_visitante=self.visitante, fecha=date(2026, 7, 18 + indice),
+                hora=time(16, 0), estado="PROGRAMADO",
+                estado_programacion="OFICIAL", numero_fecha="Fecha 1",
+                cancha="Teresa Sierra",
+            )
+
+        respuesta = self.client.get("/descargar/programacion-general/")
+
+        self.assertEqual(respuesta.status_code, 200)
+        html = crear_imagen.call_args.args[0]
+        self.assertIn('class="contenedor compacta"', html)
+        self.assertIn('class="fila-programacion"', html)
+        self.assertEqual(html.count('class="fila-programacion"'), 14)
+        self.assertGreater(crear_imagen.call_args.args[3], 1920)
+
     @patch("torneos.views.logos_torneo")
     @patch("torneos.views.crear_imagen_desde_html")
     def test_programacion_general_no_repite_torneo_y_etiqueta_fecha_en_partidos(self, crear_imagen, logos):
