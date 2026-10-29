@@ -5234,7 +5234,7 @@ class DescargaProgramacionFiltrosTests(TestCase):
     @patch("torneos.views.crear_imagen_desde_html")
     def test_programacion_amplia_escudos_y_letras_solo_hasta_cuatro_partidos(self, crear_imagen):
         crear_imagen.return_value = HttpResponse(b"png", content_type="image/png")
-        tamanos_escudo = {1: 270, 2: 210, 3: 160, 4: 130}
+        tamanos_escudo = {1: 320, 2: 245, 3: 190, 4: 130}
 
         for cantidad in range(1, 6):
             if cantidad > 1:
@@ -5265,6 +5265,28 @@ class DescargaProgramacionFiltrosTests(TestCase):
         respuesta = self.client.get("/descargar/programacion-general/")
         self.assertEqual(respuesta.status_code, 200)
         self.assertIn("pocos pocos-2", crear_imagen.call_args.args[0])
+
+    @patch("torneos.views.crear_imagen_desde_html")
+    def test_programacion_corta_muestra_dia_y_cancha_una_vez_y_diferencia_categorias(self, crear_imagen):
+        crear_imagen.return_value = HttpResponse(b"png", content_type="image/png")
+        Partido.objects.create(
+            categoria=self.otra_categoria, equipo_local=self.plus_local,
+            equipo_visitante=self.plus_visitante, fecha=self.partido.fecha,
+            hora=time(18, 0), estado="PROGRAMADO",
+            estado_programacion="OFICIAL", numero_fecha="Fecha 1",
+            cancha="Teresa Sierra",
+        )
+
+        respuesta = self.client.get("/descargar/programacion-general/", {"dia": "2026-07-18"})
+
+        self.assertEqual(respuesta.status_code, 200)
+        html = crear_imagen.call_args.args[0]
+        self.assertIn('class="contenedor pocos pocos-2"', html)
+        self.assertEqual(html.count('class="bloque-titulo"'), 1)
+        self.assertEqual(html.count('class="partido-hora"'), 2)
+        self.assertIn("Senior -", html)
+        self.assertIn("Plus 50 -", html)
+        self.assertNotIn('class="detalle-superior"', html)
 
     @patch("torneos.views.crear_imagen_desde_html")
     def test_programacion_extensa_recupera_filas_por_dia_en_una_imagen(self, crear_imagen):

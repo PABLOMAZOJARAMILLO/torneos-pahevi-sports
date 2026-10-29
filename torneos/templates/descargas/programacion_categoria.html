@@ -451,18 +451,46 @@ body {
 /* Escudos y letras crecen conforme disminuye el número de partidos. */
 .contenedor.pocos .partido { display: flex; flex-direction: column; justify-content: center; }
 .contenedor.pocos .equipo { overflow-wrap: break-word; }
+.contenedor.pocos .bloque-dia { margin-bottom: 22px; }
+.contenedor.pocos .bloque-titulo {
+    width: 100%;
+    max-width: 100%;
+    padding: 12px 20px;
+    margin-bottom: 18px;
+    border-radius: 12px;
+    background: #0d332f;
+    font-size: 29px;
+    line-height: 1.15;
+}
+.contenedor.pocos .partido-meta {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    margin-bottom: 20px;
+}
+.contenedor.pocos .partido-hora,
+.contenedor.pocos .grupo {
+    display: inline-block;
+    margin: 0;
+    padding: 9px 18px;
+    border-radius: 12px;
+    font-weight: 900;
+    line-height: 1.1;
+}
+.contenedor.pocos .partido-hora { background: #12372e; color: #ffffff; font-size: 28px; }
 .contenedor.pocos-4 .partido { min-height: 345px; }
-.contenedor.pocos-3 .partido { min-height: 470px; }
-.contenedor.pocos-2 .partido { min-height: 610px; }
-.contenedor.pocos-1 .partido { min-height: 1200px; }
+.contenedor.pocos-3 .partido { min-height: 455px; }
+.contenedor.pocos-2 .partido { min-height: 590px; }
+.contenedor.pocos-1 .partido { min-height: 1110px; }
 .contenedor.pocos-4 .equipo img, .contenedor.pocos-4 .equipo .escudo-default { width: 130px; height: 130px; }
-.contenedor.pocos-3 .equipo img, .contenedor.pocos-3 .equipo .escudo-default { width: 160px; height: 160px; }
-.contenedor.pocos-2 .equipo img, .contenedor.pocos-2 .equipo .escudo-default { width: 210px; height: 210px; }
-.contenedor.pocos-1 .equipo img, .contenedor.pocos-1 .equipo .escudo-default { width: 270px; height: 270px; }
+.contenedor.pocos-3 .equipo img, .contenedor.pocos-3 .equipo .escudo-default { width: 190px; height: 190px; }
+.contenedor.pocos-2 .equipo img, .contenedor.pocos-2 .equipo .escudo-default { width: 245px; height: 245px; }
+.contenedor.pocos-1 .equipo img, .contenedor.pocos-1 .equipo .escudo-default { width: 320px; height: 320px; }
 .contenedor.pocos-4 .equipo { font-size: 31px; }
-.contenedor.pocos-3 .equipo { font-size: 35px; }
-.contenedor.pocos-2 .equipo { font-size: 40px; }
-.contenedor.pocos-1 .equipo { font-size: 48px; }
+.contenedor.pocos-3 .equipo { font-size: 38px; }
+.contenedor.pocos-2 .equipo { font-size: 44px; }
+.contenedor.pocos-1 .equipo { font-size: 52px; }
 .contenedor.pocos-4 .detalle-superior { font-size: 24px; }
 .contenedor.pocos-3 .detalle-superior { font-size: 26px; }
 .contenedor.pocos-2 .detalle-superior { font-size: 29px; }
@@ -560,20 +588,21 @@ body {
     </div>
     {% else %}
     <div class="lista-partidos">
-
-        {% for p in partidos %}
+        {% regroup partidos by bloque as bloques_programacion %}
+        {% for bloque in bloques_programacion %}
+        <div class="bloque-dia">
+        <div class="bloque-titulo">{{ bloque.grouper }}</div>
+        {% for p in bloque.list %}
         <div class="partido">
 
             {% if p.reprogramado %}<div class="estado-reprogramado">REPROGRAMADO</div>{% endif %}
-
-            <div class="detalle-superior">
-                {{ p.dia_semana }} {{ p.fecha }} · {{ p.hora_texto }} · CANCHA {{ p.cancha }}
-            </div>
-
-            <div class="grupo">
+            <div class="partido-meta">
+            <span class="partido-hora">{{ p.hora_texto }}</span>
+            <div class="grupo" style="background: {{ p.color_categoria }}; color: {{ p.color_texto_categoria }};">
                 {% if mostrar_categoria %}{{ p.categoria }} - {% endif %}
                 {% if p.numero_fecha %}{{ p.numero_fecha|etiqueta_fecha|upper }} &middot; {% endif %}
                 {% if p.fase and p.fase != "GRUPOS" %}{{ p.fase }}{% elif p.mostrar_grupo %}GRUPO {{ p.grupo }}{% endif %}
+            </div>
             </div>
 
             <div class="fila-partido">
@@ -604,6 +633,8 @@ body {
             <div class="avance-eliminatoria">{{ p.destino_eliminatoria }}</div>
             {% endif %}
 
+        </div>
+        {% endfor %}
         </div>
         {% empty %}
         <div class="sin-partidos">
