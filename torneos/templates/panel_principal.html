@@ -5865,6 +5865,7 @@ body.solo-lectura .menu-principal{top:96px!important}
                         <th>A</th>
                         <th>R</th>
                         <th>Total</th>
+                        <th>Situación</th>
                     </tr>
 
                     {% for t in datos_categoria.tarjetas_planilla %}
@@ -5885,6 +5886,7 @@ body.solo-lectura .menu-principal{top:96px!important}
                         <td>{{ t.total_a }}</td>
                         <td>{{ t.total_r }}</td>
                         <td class="celda-total">{{ t.total }}</td>
+                        <td>{{ t.situacion }}</td>
                     </tr>
                     {% empty %}
                     <tr>
@@ -5892,7 +5894,7 @@ body.solo-lectura .menu-principal{top:96px!important}
                     </tr>
                     {% endfor %}
                 </table>
-                <p class="muted">R2A: roja por doble amarilla · RD: roja directa</p>
+                <p class="muted">R2A: roja por doble amarilla · RD: roja directa. Las tarjetas permanecen en el historial y en juego limpio aunque la sanción figure cumplida.</p>
             </div>
         </div>
 

@@ -2547,13 +2547,25 @@ def construir_estructura(torneo=None):
     alertas_temp = defaultdict(lambda: defaultdict(lambda: {
         "jugador": "",
         "equipo": "",
+        "equipo_id": None,
         "escudo": "",
         "amarillas_grupos": 0,
         "amarillas_finales": 0,
+        "amarillas_grupos_partidos": set(),
+        "amarillas_finales_partidos": set(),
         "rojas_total": 0,
         "rojas_doble_amarilla": 0,
         "rojas_directas": 0,
+        "rojas_eventos": [],
     }))
+
+    partidos_cerrados_por_equipo = defaultdict(list)
+    for partido in partidos:
+        if partido.estado in ESTADOS_PARTIDO_CERRADO and partido.estadisticas_validadas:
+            partidos_cerrados_por_equipo[partido.equipo_local_id].append(partido)
+            partidos_cerrados_por_equipo[partido.equipo_visitante_id].append(partido)
+    for encuentros in partidos_cerrados_por_equipo.values():
+        encuentros.sort(key=lambda p: (p.fecha or date.min, p.hora or time.min, p.id))
 
     alertas_tarjetas_qs = Tarjeta.objects.select_related(
         "partido__categoria",
@@ -2579,16 +2591,20 @@ def construir_estructura(torneo=None):
         data = alertas_temp[categoria][jugador_id]
         data["jugador"] = tarjeta.jugador.nombres
         data["equipo"] = tarjeta.equipo.nombre
+        data["equipo_id"] = tarjeta.equipo_id
         data["escudo"] = escudo_url(tarjeta.equipo)
 
         if tarjeta.tipo == "AMARILLA":
             if fase == "GRUPOS":
                 data["amarillas_grupos"] += 1
+                data["amarillas_grupos_partidos"].add(tarjeta.partido_id)
             else:
                 data["amarillas_finales"] += 1
+                data["amarillas_finales_partidos"].add(tarjeta.partido_id)
 
         elif tarjeta.tipo == "ROJA":
             data["rojas_total"] += 1
+            data["rojas_eventos"].append((tarjeta.partido_id, tarjeta.origen_roja or "DIRECTA"))
             if tarjeta.origen_roja == "DOBLE_AMARILLA":
                 data["rojas_doble_amarilla"] += 1
             else:
@@ -2696,26 +2712,49 @@ def construir_estructura(torneo=None):
         )
 
         alertas = []
+        situaciones_tarjetas = {}
 
         for data in alertas_temp[categoria].values():
             observaciones = []
+            partidos_equipo = partidos_cerrados_por_equipo[data["equipo_id"]]
+            indice_partido = {partido.id: indice for indice, partido in enumerate(partidos_equipo)}
+            sancion_cumplida = False
 
-            if data["amarillas_grupos"] >= 3:
-                observaciones.append("SUSPENSIÓN 1 FECHA POR 3 AMARILLAS EN GRUPOS")
-            elif data["amarillas_grupos"] == 2:
-                observaciones.append("ALERTA: A 1 AMARILLA DE SUSPENSIÓN EN GRUPOS")
+            for campo, fase, etiqueta in (
+                ("amarillas_grupos_partidos", "GRUPOS", "EN GRUPOS"),
+                ("amarillas_finales_partidos", "FASE FINAL", "EN FASE FINAL"),
+            ):
+                partidos_amarillas = sorted(
+                    data[campo], key=lambda partido_id: indice_partido.get(partido_id, -1)
+                )
+                if len(partidos_amarillas) >= 3:
+                    origen = partidos_amarillas[(len(partidos_amarillas) // 3) * 3 - 1]
+                    if origen in indice_partido and len(partidos_equipo) - indice_partido[origen] - 1 < 1:
+                        observaciones.append(f"VIGENTE: SUSPENSIÓN 1 FECHA POR 3 AMARILLAS {etiqueta}")
+                    else:
+                        sancion_cumplida = True
+                if len(partidos_amarillas) % 3 == 2:
+                    observaciones.append(f"PREVENTIVA: A 1 AMARILLA DE SUSPENSIÓN {etiqueta}")
 
-            if data["amarillas_finales"] >= 3:
-                observaciones.append("SUSPENSIÓN 1 FECHA POR 3 AMARILLAS EN FASE FINAL")
-            elif data["amarillas_finales"] == 2:
-                observaciones.append("ALERTA: A 1 AMARILLA DE SUSPENSIÓN EN FASE FINAL")
-
-            if data["rojas_doble_amarilla"]:
-                observaciones.append("SUSPENSIÓN 1 FECHA POR ROJA POR DOBLE AMARILLA")
-            if data["rojas_directas"]:
-                observaciones.append("SUSPENSIÓN 2 FECHAS POR ROJA DIRECTA")
+            for partido_id, origen_roja in data["rojas_eventos"]:
+                if partido_id not in indice_partido:
+                    continue
+                fechas_sancion = 1 if origen_roja == "DOBLE_AMARILLA" else 2
+                partidos_posteriores = len(partidos_equipo) - indice_partido[partido_id] - 1
+                if partidos_posteriores < fechas_sancion:
+                    tipo = "ROJA POR DOBLE AMARILLA" if origen_roja == "DOBLE_AMARILLA" else "ROJA DIRECTA"
+                    observaciones.append(f"VIGENTE: SUSPENSIÓN {fechas_sancion} FECHA{'S' if fechas_sancion > 1 else ''} POR {tipo}")
+                else:
+                    sancion_cumplida = True
             if data["rojas_total"] >= 3:
-                observaciones.append("SANCIÓN: RESTO DEL TORNEO POR 3 ROJAS")
+                observaciones.append("VIGENTE: SANCIÓN RESTO DEL TORNEO POR 3 ROJAS")
+
+            situaciones_tarjetas[data["jugador"]] = (
+                "Vigente" if any(item.startswith("VIGENTE") for item in observaciones)
+                else "Preventiva" if observaciones
+                else "Sanción cumplida" if sancion_cumplida
+                else "Sin sanción vigente"
+            )
 
             if observaciones:
                 alertas.append({
@@ -2739,6 +2778,8 @@ def construir_estructura(torneo=None):
             ),
             reverse=True
         )
+        for fila in datos_categoria["tarjetas_planilla"]:
+            fila["situacion"] = situaciones_tarjetas.get(fila["jugador"], "Sin sanción vigente")
 
         # ==================================================
     # LLAVES DE FASE FINAL
@@ -4694,36 +4735,15 @@ def construir_partidos_programacion(
 
 def medidas_programacion(cantidad):
     if cantidad > 8:
-        filas = (cantidad + 1) // 2
-        alto_disponible = 1600
-        espacio_entre_tarjetas = 12 * max(filas - 1, 0)
-        alto_tarjeta = max(95, min(270, (alto_disponible - espacio_entre_tarjetas) // filas))
-
-        if alto_tarjeta >= 240:
-            fuente_detalle = 18
-            fuente_grupo = 19
-            fuente_equipo = 21
-            escudo = 56
-        elif alto_tarjeta >= 180:
-            fuente_detalle = 15
-            fuente_grupo = 16
-            fuente_equipo = 18
-            escudo = 44
-        else:
-            fuente_detalle = 13
-            fuente_grupo = 14
-            fuente_equipo = 15
-            escudo = 34
-
         return {
             "ancho": 1080,
-            "alto": 1920,
-            "compacta": True,
-            "alto_tarjeta": alto_tarjeta,
-            "fuente_detalle": fuente_detalle,
-            "fuente_grupo": fuente_grupo,
-            "fuente_equipo": fuente_equipo,
-            "escudo": escudo,
+            "alto": 650 + cantidad * 300,
+            "compacta": False,
+            "alto_tarjeta": 0,
+            "fuente_detalle": 0,
+            "fuente_grupo": 0,
+            "fuente_equipo": 0,
+            "escudo": 0,
         }
 
     if cantidad <= 4:
@@ -4858,7 +4878,7 @@ def descargar_programacion_categoria(request, categoria):
         categoria_obj,
         numero_fecha,
         dia,
-        incluir_resultados=True,
+        incluir_resultados=solo_fases_finales,
         fases=["CUARTOS", "SEMIFINAL", "FINAL", "TERCER_PUESTO"] if solo_fases_finales else None,
         incluir_sugeridos=solo_fases_finales,
     )
@@ -4951,10 +4971,11 @@ def descargar_programacion_general(request):
     cantidad = len(partidos_programacion)
     medidas = medidas_programacion(cantidad)
     titulo_programacion = titulo_descarga_programacion(categoria_obj, numero_fecha, dia)
-
+    titulo_visible = titulo_programacion.removeprefix("TODAS LAS CATEGORIAS - ") if numero_fecha or dia else "PROGRAMACIÓN GENERAL"
+    nombre = limpiar_nombre(f"PROGRAMACION_{titulo_programacion}.png")
     html = render_to_string("descargas/programacion_categoria.html", {
         "torneo_nombre": torneo.nombre if torneo else "",
-        "categoria": titulo_programacion.removeprefix("TODAS LAS CATEGORIAS - ") if numero_fecha or dia else "PROGRAMACIÓN GENERAL",
+        "categoria": titulo_visible,
         "mostrar_categoria": not categoria_obj,
         "partidos": partidos_programacion,
         "cantidad_partidos": cantidad,
@@ -4970,7 +4991,6 @@ def descargar_programacion_general(request):
         "logo_imcred": logos["logo_imcred"],
     })
 
-    nombre = limpiar_nombre(f"PROGRAMACION_{titulo_programacion}.png")
     return crear_imagen_desde_html(html, nombre, medidas["ancho"], medidas["alto"], url_retorno_descarga(request))
 
 

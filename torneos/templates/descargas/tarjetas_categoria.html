@@ -144,6 +144,7 @@ td {
 <th>A</th>
 <th>R</th>
 <th>Total</th>
+<th>Situación</th>
 </tr>
 
 {% for t in datos_categoria.tarjetas_planilla %}
@@ -168,11 +169,12 @@ td {
 <td>{{ t.total_a }}</td>
 <td>{{ t.total_r }}</td>
 <td><b>{{ t.total }}</b></td>
+<td>{{ t.situacion }}</td>
 </tr>
 {% endfor %}
 
 </table>
-<p><b>R2A:</b> roja por doble amarilla &nbsp;·&nbsp; <b>RD:</b> roja directa</p>
+<p><b>R2A:</b> roja por doble amarilla &nbsp;·&nbsp; <b>RD:</b> roja directa &nbsp;·&nbsp; Las tarjetas cumplidas siguen contando para juego limpio.</p>
 
 </div>
 

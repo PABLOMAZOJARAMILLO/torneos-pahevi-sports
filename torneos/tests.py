@@ -4974,6 +4974,51 @@ class DescargaProgramacionFiltrosTests(TestCase):
         self.assertContains(respuesta, "Descargar fixture para compartir (PNG)")
         self.assertContains(respuesta, "Descargar fixture completo (Excel)")
 
+    @patch("torneos.views.crear_imagen_desde_html")
+    def test_descarga_del_dia_solo_incluye_partidos_programados_completos(self, crear_imagen):
+        crear_imagen.return_value = HttpResponse("ok")
+        self.partido.estado = "FINALIZADO"
+        self.partido.save(update_fields=["estado"])
+        Partido.objects.create(
+            categoria=self.categoria, equipo_local=self.local, equipo_visitante=self.visitante,
+            fecha=self.partido.fecha, hora=time(18), estado="EN_JUEGO",
+            estado_programacion="OFICIAL", cancha="Teresa Sierra", numero_fecha="Fecha 1",
+        )
+        Partido.objects.create(
+            categoria=self.categoria, equipo_local=self.local, equipo_visitante=self.visitante,
+            fecha=self.partido.fecha, hora=time(19), estado="PROGRAMADO",
+            estado_programacion="OFICIAL", cancha="Teresa Sierra", numero_fecha="Fecha 1",
+        )
+        Partido.objects.create(
+            categoria=self.categoria, equipo_local=self.local, equipo_visitante=self.visitante,
+            fecha=self.partido.fecha, hora=time(20), estado="PROGRAMADO",
+            estado_programacion="OFICIAL", cancha="", numero_fecha="Fecha 1",
+        )
+
+        self.client.get("/descargar/programacion-general/", {"dia": "2026-07-18"})
+
+        html = crear_imagen.call_args.args[0]
+        self.assertEqual(html.count('class="partido"'), 1)
+
+    @patch("torneos.views.crear_imagen_desde_html")
+    def test_programacion_larga_se_descarga_en_una_imagen_sin_recortar(self, crear_imagen):
+        crear_imagen.return_value = HttpResponse("ok")
+        for indice in range(8):
+            Partido.objects.create(
+                categoria=self.categoria, equipo_local=self.local, equipo_visitante=self.visitante,
+                fecha=self.partido.fecha, hora=time(8 + indice), estado="PROGRAMADO",
+                estado_programacion="OFICIAL", cancha="Teresa Sierra", numero_fecha="Fecha 1",
+            )
+
+        self.client.get("/descargar/programacion-general/", {"dia": "2026-07-18"})
+
+        html, nombre, ancho, alto = crear_imagen.call_args.args[:4]
+        self.assertEqual(html.count('class="partido"'), 9)
+        self.assertNotIn('class="contenedor compacta"', html)
+        self.assertEqual(ancho, 1080)
+        self.assertGreater(alto, 1920)
+        self.assertTrue(nombre.lower().endswith(".png"))
+
     def test_selector_incluye_cruces_aun_sin_hora_ni_cancha_definitivas(self):
         categoria_pendiente = Categoria.objects.create(
             nombre="Libre", edad_minima=18, edad_maxima=80, torneo=self.torneo,
@@ -5690,6 +5735,88 @@ class FixtureProgramacionBalanceadaTests(TestCase):
         self.assertEqual(tarjetas["Doble Amarilla"]["total_a"], 0)
         self.assertIn("SUSPENSIÓN 1 FECHA", alertas["Doble Amarilla"]["observacion"])
         self.assertIn("SUSPENSIÓN 2 FECHAS", alertas["Roja Directa"]["observacion"])
+
+    def test_sancion_cumplida_sale_de_alertas_sin_borrar_tarjetas(self):
+        jugador = Jugador.objects.create(
+            equipo=self.equipos[0], nombres="Jugador Sancionado", cedula="SANC-1",
+            fecha_nacimiento=date(1990, 1, 1),
+        )
+        partido_origen = Partido.objects.create(
+            categoria=self.categoria, equipo_local=self.equipos[0], equipo_visitante=self.equipos[1],
+            fecha=date(2026, 6, 6), hora=time(16), estado="FINALIZADO",
+            estadisticas_validadas=True, numero_fecha="1", grupo="A",
+        )
+        Tarjeta.objects.create(
+            partido=partido_origen, jugador=jugador, equipo=self.equipos[0],
+            tipo="ROJA", origen_roja="DOBLE_AMARILLA",
+        )
+        datos_vigentes = construir_estructura(self.torneo)[self.categoria.nombre]
+        self.assertEqual(datos_vigentes["tarjetas_planilla"][0]["situacion"], "Vigente")
+        self.assertEqual(len(datos_vigentes["alertas_tarjetas"]), 1)
+
+        Partido.objects.create(
+            categoria=self.categoria, equipo_local=self.equipos[0], equipo_visitante=self.equipos[2],
+            fecha=date(2026, 6, 13), hora=time(16), estado="FINALIZADO",
+            estadisticas_validadas=True, numero_fecha="2", grupo="A",
+        )
+        datos_cumplidos = construir_estructura(self.torneo)[self.categoria.nombre]
+        self.assertEqual(datos_cumplidos["alertas_tarjetas"], [])
+        self.assertEqual(datos_cumplidos["tarjetas_planilla"][0]["total_r"], 1)
+        self.assertEqual(datos_cumplidos["tarjetas_planilla"][0]["situacion"], "Sanción cumplida")
+        disciplina = {fila["equipo"]: fila for fila in datos_cumplidos["disciplina_equipos"]}
+        self.assertEqual(disciplina[self.equipos[0].nombre]["tr"], 1)
+
+    def test_tres_amarillas_cumplidas_no_permanecen_en_alertas(self):
+        jugador = Jugador.objects.create(
+            equipo=self.equipos[0], nombres="Tres Amarillas", cedula="SANC-2",
+            fecha_nacimiento=date(1990, 1, 1),
+        )
+        for numero in range(1, 5):
+            partido = Partido.objects.create(
+                categoria=self.categoria, equipo_local=self.equipos[0], equipo_visitante=self.equipos[1],
+                fecha=date(2026, 6, numero), hora=time(16), estado="FINALIZADO",
+                estadisticas_validadas=True, numero_fecha=str(numero), grupo="A",
+            )
+            if numero <= 3:
+                Tarjeta.objects.create(
+                    partido=partido, jugador=jugador, equipo=self.equipos[0], tipo="AMARILLA",
+                )
+            if numero == 3:
+                datos_vigentes = construir_estructura(self.torneo)[self.categoria.nombre]
+                self.assertIn("Tres Amarillas", [fila["jugador"] for fila in datos_vigentes["alertas_tarjetas"]])
+
+        datos_cumplidos = construir_estructura(self.torneo)[self.categoria.nombre]
+        self.assertEqual(datos_cumplidos["alertas_tarjetas"], [])
+        self.assertEqual(datos_cumplidos["tarjetas_planilla"][0]["total_a"], 3)
+        self.assertEqual(datos_cumplidos["tarjetas_planilla"][0]["situacion"], "Sanción cumplida")
+
+    def test_roja_directa_sigue_vigente_hasta_dos_partidos_posteriores(self):
+        jugador = Jugador.objects.create(
+            equipo=self.equipos[0], nombres="Roja Directa Pendiente", cedula="SANC-3",
+            fecha_nacimiento=date(1990, 1, 1),
+        )
+        origen = Partido.objects.create(
+            categoria=self.categoria, equipo_local=self.equipos[0], equipo_visitante=self.equipos[1],
+            fecha=date(2026, 6, 1), hora=time(16), estado="FINALIZADO",
+            estadisticas_validadas=True, numero_fecha="1", grupo="A",
+        )
+        Tarjeta.objects.create(
+            partido=origen, jugador=jugador, equipo=self.equipos[0],
+            tipo="ROJA", origen_roja="DIRECTA",
+        )
+        for numero in (2, 3):
+            Partido.objects.create(
+                categoria=self.categoria, equipo_local=self.equipos[0], equipo_visitante=self.equipos[2],
+                fecha=date(2026, 6, numero), hora=time(16), estado="FINALIZADO",
+                estadisticas_validadas=True, numero_fecha=str(numero), grupo="A",
+            )
+            datos = construir_estructura(self.torneo)[self.categoria.nombre]
+            if numero == 2:
+                self.assertEqual(datos["tarjetas_planilla"][0]["situacion"], "Vigente")
+                self.assertEqual(len(datos["alertas_tarjetas"]), 1)
+            else:
+                self.assertEqual(datos["tarjetas_planilla"][0]["situacion"], "Sanción cumplida")
+                self.assertEqual(datos["alertas_tarjetas"], [])
 
     def test_fixture_sin_programacion_mantiene_comportamiento_actual(self):
         self.client.force_login(self.admin)

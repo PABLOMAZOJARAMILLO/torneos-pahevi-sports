@@ -155,8 +155,13 @@ window.onload = function() {
             await esperarImagenes(elemento);
             if (document.fonts && document.fonts.ready) await document.fonts.ready;
             ajustarNombresEquipos(elemento);
+            const escala = Math.min(
+                2,
+                16000 / elemento.scrollHeight,
+                Math.sqrt(32000000 / (elemento.scrollWidth * elemento.scrollHeight))
+            );
             const canvas = await html2canvas(elemento, {
-                scale: 2,
+                scale: escala,
                 useCORS: true,
                 backgroundColor: "#020617",
                 width: elemento.scrollWidth,
