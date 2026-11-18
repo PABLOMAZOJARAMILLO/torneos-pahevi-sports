@@ -418,10 +418,12 @@ def _draw_player_side(img, draw, start_col, team_title, jugadores, referencia, e
         _text(draw, _box(start_col, row, start_col, row), str(index + 1), font=FONT_TINY)
         _text(draw, _box(name_start, row, name_end, row), nombre, font=FONT_SMALL, align="left")
         if jugador and jugador.id in no_disponibles:
+            detalle = no_disponibles[jugador.id]
+            etiqueta = detalle if isinstance(detalle, str) else "NO DISPONIBLE"
             _text(
                 draw,
                 _box(number_col, row, sup_col, row),
-                "NO DISPONIBLE",
+                etiqueta,
                 font=FONT_TINY_BOLD,
             )
         else:

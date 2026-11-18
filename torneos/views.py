@@ -565,7 +565,7 @@ class IngresoTorneosView(LoginView):
         return super().get_default_redirect_url()
 
 
-ESTADOS_PLANILLERO_PARTIDO = {"PROGRAMADO", "EN_JUEGO", "FINALIZADO", "SUSPENDIDO", "WO"}
+ESTADOS_PLANILLERO_PARTIDO = {"PROGRAMADO", "EN_JUEGO", "FINALIZADO", "APLAZADO", "SUSPENDIDO", "WO"}
 
 
 def entero_post(request, campo, predeterminado=0, minimo=None):
@@ -11448,11 +11448,21 @@ def partidos_para_planillas(torneo, categoria_id=None):
 def respuesta_pdf_planilla(partido):
     contenido = generar_planilla_juego_pdf(
         partido,
-        foraneos_no_habilitados_fase_final(partido),
+        _no_disponibles_planilla(partido),
     )
     response = HttpResponse(contenido, content_type="application/pdf")
     response["Content-Disposition"] = f'attachment; filename="{nombre_archivo_planilla(partido)}"'
     return response
+
+
+def _no_disponibles_planilla(partido):
+    no_disponibles = {
+        jugador_id: "NO DISPONIBLE"
+        for jugador_id in foraneos_no_habilitados_fase_final(partido)
+    }
+    for jugador_id, sancion in _jugadores_sancionados_por_tarjetas(partido).items():
+        no_disponibles[jugador_id] = f"SUSPENDIDO: {sancion['motivo'].upper()}"
+    return no_disponibles
 
 
 def respuesta_archivo_descarga_app(request, contenido, nombre_archivo, content_type, volver_url, archivo_url):
@@ -11480,7 +11490,7 @@ def descargar_planilla_juego_partido(request, partido_id):
             request,
             generar_planilla_juego_pdf(
                 partido,
-                foraneos_no_habilitados_fase_final(partido),
+                _no_disponibles_planilla(partido),
             ),
             nombre_archivo_planilla(partido),
             "application/pdf",
@@ -11504,7 +11514,7 @@ def generar_zip_planillas(partidos):
                 nombre,
                 generar_planilla_juego_pdf(
                     partido,
-                    foraneos_no_habilitados_fase_final(partido),
+                    _no_disponibles_planilla(partido),
                 ),
             )
     buffer.seek(0)

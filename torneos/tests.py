@@ -3102,6 +3102,44 @@ class PlanilleroPartidoTests(TestCase):
         "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
         "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
     })
+    def test_planillero_asignado_puede_aplazar_sin_cambiar_programacion(self):
+        self.client.force_login(self.planillero)
+        editor = self.client.get(f"/partido/{self.partido.id}/editor-movil/")
+        self.assertContains(editor, '<option value="APLAZADO"')
+
+        respuesta = self.client.post(
+            f"/partido/{self.partido.id}/guardar-info-movil/",
+            {
+                "estado": "APLAZADO",
+                "goles_local": "0",
+                "goles_visitante": "0",
+                "fecha": "2026-06-01",
+                "hora": "18:00",
+                "cancha": "Otra cancha",
+            },
+        )
+
+        self.assertEqual(respuesta.status_code, 302)
+        self.partido.refresh_from_db()
+        self.assertEqual(self.partido.estado, "APLAZADO")
+        self.assertEqual(self.partido.fecha, date(2026, 5, 1))
+        self.assertEqual(self.partido.hora, time(15, 0))
+        self.assertNotEqual(self.partido.cancha, "Otra cancha")
+
+    def test_usuario_no_asignado_no_puede_aplazar_partido(self):
+        self.client.force_login(self.otro_usuario)
+        respuesta = self.client.post(
+            f"/partido/{self.partido.id}/guardar-info-movil/",
+            {"estado": "APLAZADO", "goles_local": "0", "goles_visitante": "0"},
+        )
+        self.assertEqual(respuesta.status_code, 403)
+        self.partido.refresh_from_db()
+        self.assertEqual(self.partido.estado, "PROGRAMADO")
+
+    @override_settings(STORAGES={
+        "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+        "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
+    })
     def test_planillero_guarda_link_y_live_lo_abre_externamente(self):
         self.client.force_login(self.planillero)
 
