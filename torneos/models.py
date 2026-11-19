@@ -665,6 +665,30 @@ class Tarjeta(models.Model):
         return f"{self.jugador} - {self.tipo}"
 
 
+class TarjetaCuerpoTecnico(models.Model):
+    TIPOS = Tarjeta.TIPOS
+    CARGOS = [
+        ("DT", "DT"), ("AT", "AT"), ("AC", "AC"),
+        ("DELEGADO", "Delegado"), ("ADMIN_APP", "Admin App"), ("OTRO", "Otro integrante"),
+    ]
+    partido = models.ForeignKey(Partido, on_delete=models.CASCADE, related_name="tarjetas_cuerpo_tecnico")
+    equipo = models.ForeignKey(Equipo, on_delete=models.CASCADE)
+    cargo = models.CharField(max_length=20, choices=CARGOS)
+    cargo_detalle = models.CharField(max_length=80, blank=True)
+    nombre = models.CharField(max_length=150)
+    tipo = models.CharField(max_length=20, choices=Tarjeta.TIPOS)
+    minuto = models.PositiveIntegerField(blank=True, null=True)
+    creado_en = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Tarjeta del cuerpo técnico"
+        verbose_name_plural = "Tarjetas del cuerpo técnico"
+
+    @property
+    def cargo_visible(self):
+        return self.cargo_detalle if self.cargo == "OTRO" else self.get_cargo_display()
+
+
 class EventoPartido(models.Model):
     TIPO_EVENTO = [('GOL', 'Gol'), ('A', 'Amarilla'), ('R', 'Roja')]
     partido = models.ForeignKey(Partido, on_delete=models.CASCADE, related_name='eventos')

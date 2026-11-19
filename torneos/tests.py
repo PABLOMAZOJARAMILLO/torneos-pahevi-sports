@@ -18,7 +18,7 @@ from openpyxl import Workbook, load_workbook
 from PIL import Image
 
 from .forms import EquipoDelegadoForm, EquipoForm, JugadorForm, PartidoForm, PartidoProgramacionForm, TorneoForm
-from .models import AlineacionPartido, EntregaAlineacionPartido, AdminOrganizador, AdminTorneo, Categoria, CobroPenal, Documento, Equipo, Gol, IncidenciaReglaEdad, Jugador, Organizador, Partido, ReglaEdadCategoria, RegistroActividad, VisitaPublicaDiaria, SolicitudValidacion, SustitucionPartido, Tarjeta, Torneo, ruta_escudo_equipo
+from .models import AlineacionPartido, EntregaAlineacionPartido, AdminOrganizador, AdminTorneo, Categoria, CobroPenal, Documento, Equipo, Gol, IncidenciaReglaEdad, Jugador, Organizador, Partido, ReglaEdadCategoria, RegistroActividad, VisitaPublicaDiaria, SolicitudValidacion, SustitucionPartido, Tarjeta, TarjetaCuerpoTecnico, Torneo, ruta_escudo_equipo
 from .middleware import AuditoriaModificacionesMiddleware
 from .media_cleanup import eliminar_imagenes_sin_referencia, nombres_imagenes_instancias
 from .planillas_pdf import _dorsal, _edad, _header_image_sources, _image_from_source, _jugadores, _team_shield_source, _draw_team_watermark, _titulo_planilla, _nombre_jugador_planilla
@@ -3572,6 +3572,59 @@ class PlanilleroPartidoTests(TestCase):
             {"equipo": self.local.id, "jugador": self.jugador.id, "tipo": "AMARILLA", "minuto": 42},
         )
         self.assertEqual(Tarjeta.objects.get(partido=self.partido).minuto, 42)
+
+    def test_planillero_registra_tarjeta_dt_y_aparece_en_resumen(self):
+        self.local.director_tecnico = "Juan Pérez"
+        self.local.save(update_fields=["director_tecnico"])
+        self.client.force_login(self.planillero)
+        respuesta = self.client.post(
+            f"/partido/{self.partido.id}/agregar-tarjeta-cuerpo-tecnico/",
+            {"destinatario": f"{self.local.id}:DT", "tipo": "ROJA", "minuto": "42"},
+        )
+        self.assertEqual(respuesta.status_code, 302)
+        tarjeta = TarjetaCuerpoTecnico.objects.get(partido=self.partido)
+        self.assertEqual((tarjeta.nombre, tarjeta.cargo, tarjeta.minuto), ("Juan Pérez", "DT", 42))
+        self.assertFalse(Tarjeta.objects.filter(partido=self.partido).exists())
+        resumen = self.client.get(f"/partido/{self.partido.id}/live/")
+        self.assertContains(resumen, "Tarjeta roja para el DT Juan Pérez")
+
+    def test_no_permite_tarjeta_cuerpo_tecnico_ajeno_o_no_asignado(self):
+        self.local.director_tecnico = "Juan Pérez"
+        self.local.save(update_fields=["director_tecnico"])
+        url = f"/partido/{self.partido.id}/agregar-tarjeta-cuerpo-tecnico/"
+        self.client.force_login(self.planillero)
+        self.client.post(url, {"destinatario": f"{self.visitante.id}:DT", "tipo": "ROJA"})
+        self.assertFalse(TarjetaCuerpoTecnico.objects.exists())
+        self.client.force_login(self.otro_usuario)
+        self.assertEqual(self.client.post(url, {"destinatario": f"{self.local.id}:DT", "tipo": "ROJA"}).status_code, 403)
+
+    def test_planillero_registra_otro_integrante_sin_modificar_equipo(self):
+        self.client.force_login(self.planillero)
+        url = f"/partido/{self.partido.id}/agregar-tarjeta-cuerpo-tecnico/"
+        respuesta = self.client.post(url, {
+            "destinatario": "OTRO", "equipo": self.local.id,
+            "nombre": "Carlos Gómez", "cargo_detalle": "Utilero",
+            "tipo": "AMARILLA", "minuto": "24",
+        })
+        self.assertEqual(respuesta.status_code, 302)
+        tarjeta = TarjetaCuerpoTecnico.objects.get(partido=self.partido)
+        self.assertEqual((tarjeta.cargo, tarjeta.cargo_detalle, tarjeta.nombre),
+                         ("OTRO", "Utilero", "Carlos Gómez"))
+        self.local.refresh_from_db()
+        self.assertFalse(self.local.director_tecnico)
+        self.assertContains(self.client.get(f"/partido/{self.partido.id}/live/"),
+                            "Tarjeta amarilla para el Utilero Carlos Gómez")
+
+    def test_otro_integrante_exige_equipo_del_partido_nombre_y_cargo(self):
+        self.client.force_login(self.planillero)
+        url = f"/partido/{self.partido.id}/agregar-tarjeta-cuerpo-tecnico/"
+        for datos in (
+            {"equipo": "999999", "nombre": "Carlos Gómez", "cargo_detalle": "Utilero"},
+            {"equipo": self.local.id, "nombre": "", "cargo_detalle": "Utilero"},
+            {"equipo": self.local.id, "nombre": "Carlos Gómez", "cargo_detalle": ""},
+        ):
+            self.client.post(url, {"destinatario": "OTRO", "tipo": "ROJA", **datos})
+        self.assertFalse(TarjetaCuerpoTecnico.objects.filter(partido=self.partido).exists())
 
     @override_settings(STORAGES={
         "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},

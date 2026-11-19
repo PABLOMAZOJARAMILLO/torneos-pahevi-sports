@@ -166,6 +166,8 @@ urlpatterns = [
         agregar_tarjeta_movil,
         name='agregar_tarjeta_movil'
     ),
+    path('partido/<int:partido_id>/agregar-tarjeta-cuerpo-tecnico/',
+         views.agregar_tarjeta_cuerpo_tecnico_movil, name='agregar_tarjeta_cuerpo_tecnico_movil'),
     path(
         'partido/<int:partido_id>/agregar-alineacion-movil/',
         agregar_alineacion_movil,
@@ -191,6 +193,8 @@ urlpatterns = [
         eliminar_tarjeta_movil,
         name='eliminar_tarjeta_movil'
     ),
+    path('tarjeta-cuerpo-tecnico/<int:tarjeta_id>/eliminar-movil/',
+         views.eliminar_tarjeta_cuerpo_tecnico_movil, name='eliminar_tarjeta_cuerpo_tecnico_movil'),
     path(
         'alineacion/<int:alineacion_id>/eliminar-movil/',
         eliminar_alineacion_movil,

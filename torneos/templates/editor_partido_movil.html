@@ -1249,6 +1249,52 @@
                 <p class="nota">No hay tarjetas registradas.</p>
             {% endfor %}
         </div>
+        <div class="card">
+            <h2>Tarjeta al cuerpo técnico</h2>
+            <p class="nota">El árbitro puede ampliar lo ocurrido en las observaciones del partido.</p>
+            <form method="POST" onsubmit="guardarContextoPanelEditor()" action="{% url 'agregar_tarjeta_cuerpo_tecnico_movil' partido.id %}">
+                {% csrf_token %}
+                <label>Integrante</label>
+                <select name="destinatario" required>
+                    <option value="">Seleccionar integrante</option>
+                    {% for persona in integrantes_tarjetas_cuerpo_tecnico %}
+                    <option value="{{ persona.equipo.id }}:{{ persona.cargo }}">{{ persona.equipo.nombre }} · {{ persona.etiqueta }} · {{ persona.nombre }}</option>
+                    {% endfor %}
+                </select>
+                <label>Tipo</label>
+                <select name="tipo" required><option value="AMARILLA">Amarilla</option><option value="ROJA">Roja</option></select>
+                <label>Minuto (opcional)</label>
+                <input type="number" name="minuto" min="0" max="300" inputmode="numeric" placeholder="Vacío = minuto automático">
+                <button class="btn" type="submit">Registrar tarjeta</button>
+            </form>
+            <h3>Otro integrante no registrado</h3>
+            <p class="nota">Registra la tarjeta sin agregar a esta persona a la ficha del equipo.</p>
+            <form method="POST" onsubmit="guardarContextoPanelEditor()" action="{% url 'agregar_tarjeta_cuerpo_tecnico_movil' partido.id %}">
+                {% csrf_token %}
+                <input type="hidden" name="destinatario" value="OTRO">
+                <label>Equipo</label>
+                <select name="equipo" required>
+                    <option value="{{ partido.equipo_local.id }}">{{ partido.equipo_local.nombre }}</option>
+                    <option value="{{ partido.equipo_visitante.id }}">{{ partido.equipo_visitante.nombre }}</option>
+                </select>
+                <label>Nombre completo</label>
+                <input type="text" name="nombre" maxlength="150" required>
+                <label>Cargo o función</label>
+                <input type="text" name="cargo_detalle" maxlength="80" placeholder="Ej.: entrenador, utilero" required>
+                <label>Tipo</label>
+                <select name="tipo" required><option value="AMARILLA">Amarilla</option><option value="ROJA">Roja</option></select>
+                <label>Minuto (opcional)</label>
+                <input type="number" name="minuto" min="0" max="300" inputmode="numeric" placeholder="Vacío = minuto automático">
+                <button class="btn" type="submit">Registrar tarjeta a otro integrante</button>
+            </form>
+            {% for tarjeta in tarjetas_cuerpo_tecnico %}
+            <div class="lista-item">
+                <div><div class="item-title">{{ tarjeta.cargo_visible }} {{ tarjeta.nombre }}</div>
+                    <div class="item-sub">{{ tarjeta.equipo.nombre }} · {{ tarjeta.get_tipo_display }}{% if tarjeta.minuto is not None %} · {{ tarjeta.minuto }}'{% endif %}</div></div>
+                <form method="POST" onsubmit="guardarContextoPanelEditor()" action="{% url 'eliminar_tarjeta_cuerpo_tecnico_movil' tarjeta.id %}">{% csrf_token %}<button class="btn-danger" type="submit">Eliminar</button></form>
+            </div>
+            {% endfor %}
+        </div>
     </div>
 
     <div id="alineacion" class="tab-content">

@@ -41,7 +41,7 @@ from openpyxl import Workbook, load_workbook
 from openpyxl.styles import Alignment, Font, PatternFill
 
 from .forms import TorneoForm, OrganizadorForm, CategoriaForm, ReglaEdadCategoriaFormSet, ReemplazoJugadorForm, DocumentoForm, PlanillaJuegoUploadForm, EquipoForm, EquipoDelegadoForm, EquipoFotosCuerpoTecnicoDelegadoForm, EquipoReinscripcionForm, JugadorForm, JugadorDelegadoForm, JugadorFotoDelegadoForm, PartidoForm, PartidoProgramacionForm, AdminTorneoForm, AdminOrganizadorForm, CrearAdminOrganizadorForm
-from .models import Torneo, Organizador, Categoria, Documento, Equipo, Partido, Gol, CobroPenal, Tarjeta, Jugador, ReemplazoJugador, AlineacionPartido, EntregaAlineacionPartido, SustitucionPartido, IncidenciaReglaEdad, ReglaEdadCategoria, AdminTorneo, AdminOrganizador, RegistroActividad, VisitaPublicaDiaria, SolicitudValidacion, limpiar_ruta_cloudinary, normalizar_nombre_persona
+from .models import Torneo, Organizador, Categoria, Documento, Equipo, Partido, Gol, CobroPenal, Tarjeta, TarjetaCuerpoTecnico, Jugador, ReemplazoJugador, AlineacionPartido, EntregaAlineacionPartido, SustitucionPartido, IncidenciaReglaEdad, ReglaEdadCategoria, AdminTorneo, AdminOrganizador, RegistroActividad, VisitaPublicaDiaria, SolicitudValidacion, limpiar_ruta_cloudinary, normalizar_nombre_persona
 from .media_cleanup import nombres_imagenes_instancias, programar_limpieza_imagenes
 from .planillas_pdf import generar_planilla_juego_pdf, nombre_archivo_planilla
 from .templatetags.texto_limpio import etiqueta_fecha
@@ -3021,6 +3021,28 @@ def cuerpo_tecnico_live(equipo):
     return personas
 
 
+def integrantes_tarjetas_cuerpo_tecnico(partido):
+    integrantes = []
+    campos = (
+        ("DT", "director_tecnico"),
+        ("AT", "asistente_tecnico"),
+        ("AC", "auxiliar_campo"),
+        ("DELEGADO", "delegado"),
+        ("ADMIN_APP", "administrador_app"),
+    )
+    for equipo in (partido.equipo_local, partido.equipo_visitante):
+        for cargo, campo in campos:
+            if cargo == "AC" and not partido.categoria.torneo.habilitar_auxiliar_campo:
+                continue
+            nombre = (getattr(equipo, campo, "") or "").strip()
+            if nombre:
+                integrantes.append({
+                    "equipo": equipo, "cargo": cargo, "nombre": nombre,
+                    "etiqueta": dict(TarjetaCuerpoTecnico.CARGOS)[cargo],
+                })
+    return integrantes
+
+
 def iniciales_jugador(jugador):
     nombre = (getattr(jugador, "nombres", "") or "").strip()
     partes = [parte[0] for parte in nombre.split()[:2] if parte]
@@ -5677,6 +5699,7 @@ def editor_partido_movil(request, partido_id):
 
     goles = Gol.objects.filter(partido=partido).select_related('jugador', 'equipo').order_by('equipo__nombre', 'jugador__nombres')
     tarjetas = Tarjeta.objects.filter(partido=partido).select_related('jugador', 'equipo').order_by('equipo__nombre', 'tipo', 'jugador__nombres')
+    tarjetas_cuerpo_tecnico = TarjetaCuerpoTecnico.objects.filter(partido=partido).select_related('equipo').order_by('equipo__nombre', 'cargo', 'creado_en')
     alineaciones = AlineacionPartido.objects.filter(partido=partido).select_related('jugador', 'equipo').order_by('equipo__nombre', 'rol', 'jugador__nombres')
     sustituciones = SustitucionPartido.objects.filter(partido=partido).select_related('equipo', 'jugador_sale', 'jugador_entra').order_by('-minuto', '-creado_en', '-id')
     for equipo_partido in (partido.equipo_local, partido.equipo_visitante):
@@ -5741,6 +5764,8 @@ def editor_partido_movil(request, partido_id):
         'jugadores_visitante': jugadores_visitante,
         'goles': goles,
         'tarjetas': tarjetas,
+        'tarjetas_cuerpo_tecnico': tarjetas_cuerpo_tecnico,
+        'integrantes_tarjetas_cuerpo_tecnico': integrantes_tarjetas_cuerpo_tecnico(partido),
         'alineaciones': alineaciones,
         'sustituciones': sustituciones,
         'incidencias_reglas_edad': incidencias_reglas_edad,
@@ -5962,6 +5987,50 @@ def agregar_tarjeta_movil(request, partido_id):
         else:
             messages.error(request, 'El jugador no pertenece al equipo seleccionado.')
 
+    return redirect(_url_editor_partido(request, partido))
+
+
+@login_required
+@require_POST
+def agregar_tarjeta_cuerpo_tecnico_movil(request, partido_id):
+    partido = get_object_or_404(Partido.objects.select_related(
+        "categoria__torneo", "equipo_local", "equipo_visitante",
+    ), id=partido_id)
+    if not puede_diligenciar_partido(request.user, partido):
+        return denegar_partido_no_autorizado()
+    minuto, error = _minuto_evento_solicitado(request, partido)
+    if error:
+        messages.error(request, error)
+        return redirect(_url_editor_partido(request, partido))
+    tipo = request.POST.get("tipo")
+    if tipo not in dict(TarjetaCuerpoTecnico.TIPOS):
+        messages.error(request, "Selecciona una tarjeta válida.")
+        return redirect(_url_editor_partido(request, partido))
+    destinatario = request.POST.get("destinatario", "")
+    if destinatario == "OTRO":
+        equipo_id = request.POST.get("equipo")
+        equipo = next((equipo for equipo in (partido.equipo_local, partido.equipo_visitante)
+                       if str(equipo.id) == equipo_id), None)
+        nombre = (request.POST.get("nombre") or "").strip()
+        cargo_detalle = (request.POST.get("cargo_detalle") or "").strip()
+        if not equipo or not nombre or not cargo_detalle or len(nombre) > 150 or len(cargo_detalle) > 80:
+            messages.error(request, "Indica un equipo, nombre y cargo válidos del integrante.")
+            return redirect(_url_editor_partido(request, partido))
+        integrante = {"equipo": equipo, "cargo": "OTRO", "nombre": nombre,
+                      "cargo_detalle": cargo_detalle}
+    else:
+        integrante = next((item for item in integrantes_tarjetas_cuerpo_tecnico(partido)
+                          if f"{item['equipo'].id}:{item['cargo']}" == destinatario), None)
+        if not integrante:
+            messages.error(request, "Selecciona un integrante registrado del cuerpo técnico.")
+            return redirect(_url_editor_partido(request, partido))
+    TarjetaCuerpoTecnico.objects.create(
+        partido=partido, equipo=integrante["equipo"], cargo=integrante["cargo"],
+        nombre=integrante["nombre"], cargo_detalle=integrante.get("cargo_detalle", ""),
+        tipo=tipo, minuto=minuto,
+    )
+    _marcar_estadisticas_pendientes(partido, request.user)
+    messages.success(request, "Tarjeta del cuerpo técnico registrada.")
     return redirect(_url_editor_partido(request, partido))
 
 
@@ -6253,6 +6322,19 @@ def eliminar_tarjeta_movil(request, tarjeta_id):
     _marcar_estadisticas_pendientes(tarjeta.partido, request.user)
     messages.success(request, 'Tarjeta eliminada.')
     return redirect(_url_editor_partido(request, tarjeta.partido))
+
+
+@login_required
+@require_POST
+def eliminar_tarjeta_cuerpo_tecnico_movil(request, tarjeta_id):
+    tarjeta = get_object_or_404(TarjetaCuerpoTecnico.objects.select_related("partido"), id=tarjeta_id)
+    if not puede_diligenciar_partido(request.user, tarjeta.partido):
+        return denegar_partido_no_autorizado()
+    partido = tarjeta.partido
+    tarjeta.delete()
+    _marcar_estadisticas_pendientes(partido, request.user)
+    messages.success(request, "Tarjeta del cuerpo técnico eliminada.")
+    return redirect(_url_editor_partido(request, partido))
 
 
 @login_required
@@ -10809,6 +10891,7 @@ def partido_live(request, partido_id):
 
     goles = Gol.objects.filter(partido=partido).select_related("jugador", "equipo").order_by("minuto", "creado_en", "id")
     tarjetas = Tarjeta.objects.filter(partido=partido).select_related("jugador", "equipo").order_by("minuto", "creado_en", "id")
+    tarjetas_cuerpo_tecnico = TarjetaCuerpoTecnico.objects.filter(partido=partido).select_related("equipo").order_by("minuto", "creado_en", "id")
     alineaciones = AlineacionPartido.objects.filter(partido=partido).select_related("jugador", "equipo").order_by("equipo__nombre", "rol", "jugador__nombres")
     sustituciones = SustitucionPartido.objects.filter(partido=partido).select_related("equipo", "jugador_sale", "jugador_entra").order_by("minuto", "creado_en", "id")
     cobros_penales = list(
@@ -10994,6 +11077,18 @@ def partido_live(request, partido_id):
             equipo_id=tarjeta.equipo_id,
             texto=nombre_resumen_jugador(tarjeta.jugador),
             detalle=tarjeta.get_tipo_display(),
+            creado_en=tarjeta.creado_en,
+            orden=tarjeta.id,
+        ))
+
+    for tarjeta in tarjetas_cuerpo_tecnico:
+        eventos_live.append(SimpleNamespace(
+            tipo="tarjeta",
+            icono="🟥" if tarjeta.tipo == "ROJA" else "🟨",
+            minuto=tarjeta.minuto,
+            equipo_id=tarjeta.equipo_id,
+            texto=f"Tarjeta {tarjeta.get_tipo_display().lower()} para el {tarjeta.cargo_visible} {tarjeta.nombre}",
+            detalle=tarjeta.equipo.nombre,
             creado_en=tarjeta.creado_en,
             orden=tarjeta.id,
         ))
