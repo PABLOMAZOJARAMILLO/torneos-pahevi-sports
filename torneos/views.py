@@ -11087,7 +11087,7 @@ def partido_live(request, partido_id):
             icono="🟥" if tarjeta.tipo == "ROJA" else "🟨",
             minuto=tarjeta.minuto,
             equipo_id=tarjeta.equipo_id,
-            texto=f"Tarjeta {tarjeta.get_tipo_display().lower()} para el {tarjeta.cargo_visible} {tarjeta.nombre}",
+            texto=f"{tarjeta.cargo_visible} {tarjeta.nombre}",
             detalle=tarjeta.equipo.nombre,
             creado_en=tarjeta.creado_en,
             orden=tarjeta.id,

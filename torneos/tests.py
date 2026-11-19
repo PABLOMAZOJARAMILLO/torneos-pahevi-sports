@@ -3586,7 +3586,7 @@ class PlanilleroPartidoTests(TestCase):
         self.assertEqual((tarjeta.nombre, tarjeta.cargo, tarjeta.minuto), ("Juan Pérez", "DT", 42))
         self.assertFalse(Tarjeta.objects.filter(partido=self.partido).exists())
         resumen = self.client.get(f"/partido/{self.partido.id}/live/")
-        self.assertContains(resumen, "Tarjeta roja para el DT Juan Pérez")
+        self.assertContains(resumen, "DT Juan Pérez")
 
     def test_no_permite_tarjeta_cuerpo_tecnico_ajeno_o_no_asignado(self):
         self.local.director_tecnico = "Juan Pérez"
@@ -3613,7 +3613,7 @@ class PlanilleroPartidoTests(TestCase):
         self.local.refresh_from_db()
         self.assertFalse(self.local.director_tecnico)
         self.assertContains(self.client.get(f"/partido/{self.partido.id}/live/"),
-                            "Tarjeta amarilla para el Utilero Carlos Gómez")
+                            "Utilero Carlos Gómez")
 
     def test_otro_integrante_exige_equipo_del_partido_nombre_y_cargo(self):
         self.client.force_login(self.planillero)
