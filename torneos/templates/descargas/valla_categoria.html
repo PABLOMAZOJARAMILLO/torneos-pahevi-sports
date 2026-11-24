@@ -13,6 +13,9 @@ body {
 }
 
 .contenedor {
+    box-sizing: border-box;
+    width: max-content;
+    min-width: 720px;
     border: 3px solid #00ff66;
     border-radius: 20px;
     padding: 25px;
@@ -20,25 +23,41 @@ body {
 }
 
 .encabezado {
-    display: flex;
-    justify-content: space-between;
+    display: grid;
+    grid-template-columns: 150px minmax(300px, 1fr) 150px;
     align-items: center;
-    margin-bottom: 35px;
+    gap: 16px;
+    margin-bottom: 18px;
 }
 
-.logo {
+.marco-logo {
     width: 150px;
-    height: 150px;
-    object-fit: contain;
-    background: white;
-    border-radius: 50%;
-    padding: 5px;
+    height: 135px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.97);
+    border-radius: 16px;
+    overflow: hidden;
 }
 
-.logo-central {
-    width: 280px;
-    height: 130px;
+.marco-logo img,
+.marco-central img {
+    display: block;
+    width: auto;
+    height: auto;
+    max-width: 100%;
+    max-height: 100%;
     object-fit: contain;
+}
+
+.marco-central {
+    width: 300px;
+    height: 135px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .titulo {
@@ -46,8 +65,15 @@ body {
 }
 
 h1 {
-    margin: 10px 0;
+    margin: 3px 0 0;
     color: #00ff66;
+}
+
+.torneo-nombre {
+    margin-top: 3px;
+    color: #dbeafe;
+    font-size: 16px;
+    font-weight: bold;
 }
 
 .sub {
@@ -113,15 +139,16 @@ td {
 <div class="contenedor">
 
 <div class="encabezado">
-    <img src="{{ logo_alcaldia }}" class="logo">
+    <div class="marco-logo"><img src="{{ logo_alcaldia }}" alt="Logo izquierdo"></div>
 
     <div class="titulo">
-        <img src="{{ logo_torneo }}" class="logo-central">
+        <div class="marco-central"><img src="{{ logo_torneo }}" alt="Logo del torneo"></div>
+        {% if torneo_nombre %}<div class="torneo-nombre">{{ torneo_nombre }}</div>{% endif %}
         <h1>VALLA MENOS VENCIDA</h1>
         <div class="sub">{{ categoria }}</div>
     </div>
 
-    <img src="{{ logo_imcred }}" class="logo">
+    <div class="marco-logo"><img src="{{ logo_imcred }}" alt="Logo derecho"></div>
 </div>
 
 <table>

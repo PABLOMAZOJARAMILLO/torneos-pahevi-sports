@@ -3877,6 +3877,8 @@ def descargar_tabla_grupo(request, categoria, grupo):
     mostrar_grupo = bool(datos_categoria.get("mostrar_grupos"))
 
     html = render_to_string("descargas/tabla_grupo.html", {
+        "torneo_nombre": torneo.nombre if torneo else "",
+        "titulo_tabla": "TABLA DE POSICIONES",
         "categoria": categoria,
         "grupo": grupo,
         "mostrar_grupo": mostrar_grupo,
@@ -3912,6 +3914,8 @@ def descargar_tabla_general_mata_mata(request, categoria):
     logos = logos_torneo(request, torneo)
 
     html = render_to_string("descargas/tabla_grupo.html", {
+        "torneo_nombre": torneo.nombre if torneo else "",
+        "titulo_tabla": "TABLA GENERAL MATA MATA",
         "categoria": categoria,
         "grupo": "General mata-mata",
         "mostrar_grupo": True,
@@ -3954,6 +3958,7 @@ def descargar_goleadores_categoria(request, categoria):
             "goleadores_planilla": filas,
         }
         html = render_to_string("descargas/goleadores_categoria.html", {
+            "torneo_nombre": torneo.nombre if torneo else "",
             "categoria": categoria,
             "datos_categoria": datos_pagina,
             "posicion_inicial": indice * tamano_pagina,
@@ -3986,6 +3991,7 @@ def descargar_tarjetas_categoria(request, categoria):
     logos = logos_torneo(request, torneo)
 
     html = render_to_string("descargas/tarjetas_categoria.html", {
+        "torneo_nombre": torneo.nombre if torneo else "",
         "categoria": categoria,
         "datos_categoria": datos_categoria,
         "logo_alcaldia": logos["logo_alcaldia"],
@@ -4009,6 +4015,7 @@ def descargar_disciplina_equipos_categoria(request, categoria):
 
     logos = logos_torneo(request, torneo)
     html = render_to_string("descargas/disciplina_equipos_categoria.html", {
+        "torneo_nombre": torneo.nombre if torneo else "",
         "categoria": categoria,
         "equipos": datos_categoria.get("disciplina_equipos") or [],
         "logo_alcaldia": logos["logo_alcaldia"],
@@ -4034,6 +4041,7 @@ def descargar_valla_categoria(request, categoria):
     logos = logos_torneo(request, torneo)
 
     html = render_to_string("descargas/valla_categoria.html", {
+        "torneo_nombre": torneo.nombre if torneo else "",
         "categoria": categoria,
         "datos_categoria": datos_categoria,
         "logo_alcaldia": logos["logo_alcaldia"],
@@ -4071,6 +4079,7 @@ def descargar_foraneos_categoria(request, categoria):
         datos_pagina = dict(datos_categoria)
         datos_pagina["foraneos_paginados"] = filas
         html = render_to_string("descargas/foraneos_categoria.html", {
+            "torneo_nombre": torneo.nombre if torneo else "",
             "categoria": categoria,
             "datos_categoria": datos_pagina,
             "pagina_actual": indice_pagina + 1,

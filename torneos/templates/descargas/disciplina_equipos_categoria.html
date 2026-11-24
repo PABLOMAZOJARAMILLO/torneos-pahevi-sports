@@ -95,6 +95,7 @@ td {
         <img src="{{ logo_alcaldia }}" class="logo">
         <div class="titulo">
             <img src="{{ logo_torneo }}" class="logo-central">
+            {% if torneo_nombre %}<div style="color:#dbeafe;font-size:16px;font-weight:bold;margin-top:3px">{{ torneo_nombre }}</div>{% endif %}
             <h1>CLASIFICACIÓN DISCIPLINARIA</h1>
             <div class="sub">{{ categoria }}</div>
         </div>

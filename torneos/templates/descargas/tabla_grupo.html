@@ -13,9 +13,9 @@ body {
 }
 
 .contenedor {
-    /* La captura móvil necesita el mismo lienzo horizontal que la web. */
+    /* Lienzo vertical estable también al descargar desde el celular. */
     box-sizing: border-box;
-    width: 1080px;
+    width: 720px;
     border: 3px solid #00ff66;
     border-radius: 20px;
     padding: 25px;
@@ -24,15 +24,15 @@ body {
 
 .encabezado {
     display: grid;
-    grid-template-columns: 210px minmax(320px, 1fr) 210px;
+    grid-template-columns: 150px minmax(300px, 1fr) 150px;
     align-items: center;
-    gap: 24px;
-    margin-bottom: 28px;
+    gap: 16px;
+    margin-bottom: 18px;
 }
 
 .marco-logo {
-    width: 210px;
-    height: 155px;
+    width: 150px;
+    height: 135px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -52,8 +52,8 @@ body {
 }
 
 .marco-central {
-    width: 320px;
-    height: 155px;
+    width: 300px;
+    height: 135px;
     margin: 0 auto;
     display: flex;
     align-items: center;
@@ -65,14 +65,22 @@ body {
 }
 
 h1 {
-    margin: 8px 0 0;
-    font-size: 36px;
+    margin: 3px 0 0;
+    font-size: 24px;
     letter-spacing: 1px;
     color: #00ff66;
 }
 
 .sub {
-    font-size: 18px;
+    font-size: 19px;
+    font-weight: bold;
+}
+
+.torneo-nombre {
+    margin-top: 3px;
+    color: #dbeafe;
+    font-size: 16px;
+    font-weight: bold;
 }
 
 table {
@@ -135,10 +143,9 @@ td {
 
     <div class="titulo">
         <div class="marco-central"><img src="{{ logo_torneo }}" alt="Logo del torneo"></div>
-        <h1>{{ categoria }}</h1>
-        {% if mostrar_grupo %}
-        <div class="sub">Grupo {{ grupo }}</div>
-        {% endif %}
+        {% if torneo_nombre %}<div class="torneo-nombre">{{ torneo_nombre }}</div>{% endif %}
+        <h1>{{ titulo_tabla|default:"TABLA DE POSICIONES" }}</h1>
+        <div class="sub">{{ categoria }}{% if mostrar_grupo %} · Grupo {{ grupo }}{% endif %}</div>
     </div>
 
     <div class="marco-logo"><img src="{{ logo_imcred }}" alt="Logo derecho"></div>
