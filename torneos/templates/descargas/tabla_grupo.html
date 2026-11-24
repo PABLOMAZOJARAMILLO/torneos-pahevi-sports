@@ -20,25 +20,41 @@ body {
 }
 
 .encabezado {
-    display: flex;
-    justify-content: space-between;
+    display: grid;
+    grid-template-columns: 210px minmax(0, 1fr) 210px;
     align-items: center;
-    margin-bottom: 35px;
+    gap: 24px;
+    margin-bottom: 28px;
 }
 
-.logo {
-    width: 150px;
-    height: 150px;
-    object-fit: contain;
-    background: white;
-    border-radius: 50%;
-    padding: 10px;
+.marco-logo {
+    width: 210px;
+    height: 155px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.97);
+    border-radius: 16px;
+    overflow: hidden;
 }
 
-.logo-central {
-    width: 280px;
-    height: 130px;
+.marco-logo img,
+.marco-central img {
+    display: block;
+    width: auto;
+    height: auto;
+    max-width: 100%;
+    max-height: 100%;
     object-fit: contain;
+}
+
+.marco-central {
+    width: 320px;
+    height: 155px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .titulo {
@@ -46,7 +62,7 @@ body {
 }
 
 h1 {
-    margin: 10px 0;
+    margin: 8px 0 0;
     font-size: 36px;
     letter-spacing: 1px;
     color: #00ff66;
@@ -112,17 +128,17 @@ td {
 <div class="contenedor">
 
 <div class="encabezado">
-    <img src="{{ logo_alcaldia }}" class="logo">
+    <div class="marco-logo"><img src="{{ logo_alcaldia }}" alt="Logo izquierdo"></div>
 
     <div class="titulo">
-        <img src="{{ logo_torneo }}" class="logo-central">
+        <div class="marco-central"><img src="{{ logo_torneo }}" alt="Logo del torneo"></div>
         <h1>{{ categoria }}</h1>
         {% if mostrar_grupo %}
         <div class="sub">Grupo {{ grupo }}</div>
         {% endif %}
     </div>
 
-    <img src="{{ logo_imcred }}" class="logo">
+    <div class="marco-logo"><img src="{{ logo_imcred }}" alt="Logo derecho"></div>
 </div>
 
 <table>
