@@ -18,21 +18,41 @@ body {
 }
 .encabezado {
     display: flex;
-    justify-content: space-between;
+    flex-direction: column;
     align-items: center;
-    margin-bottom: 35px;
+    gap: 6px;
+    margin-bottom: 16px;
 }
-.logo {
+.logos-encabezado {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    width: 100%;
+}
+.marco-logo {
     width: 150px;
-    height: 150px;
-    object-fit: contain;
+    height: 135px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     background: white;
-    border-radius: 50%;
-    padding: 5px;
+    border-radius: 16px;
+    overflow: hidden;
 }
-.logo-central {
+.marco-central {
     width: 280px;
-    height: 130px;
+    height: 135px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.marco-logo img, .marco-central img {
+    display: block;
+    width: auto;
+    height: auto;
+    max-width: 100%;
+    max-height: 100%;
     object-fit: contain;
 }
 .titulo {
@@ -92,14 +112,16 @@ td {
 <body>
 <div class="contenedor">
     <div class="encabezado">
-        <img src="{{ logo_alcaldia }}" class="logo">
+        <div class="logos-encabezado">
+            <div class="marco-logo"><img src="{{ logo_alcaldia }}" alt="Logo izquierdo"></div>
+            <div class="marco-central"><img src="{{ logo_torneo }}" alt="Logo del torneo"></div>
+            <div class="marco-logo"><img src="{{ logo_imcred }}" alt="Logo derecho"></div>
+        </div>
         <div class="titulo">
-            <img src="{{ logo_torneo }}" class="logo-central">
             {% if torneo_nombre %}<div style="color:#dbeafe;font-size:16px;font-weight:bold;margin-top:3px">{{ torneo_nombre }}</div>{% endif %}
             <h1>CLASIFICACIÓN DISCIPLINARIA</h1>
             <div class="sub">{{ categoria }}</div>
         </div>
-        <img src="{{ logo_imcred }}" class="logo">
     </div>
     <p class="criterio">Amarilla: 1 punto · Roja: 3 puntos · Menor valor es mejor</p>
     <table>

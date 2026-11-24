@@ -23,11 +23,19 @@ body {
 }
 
 .encabezado {
-    display: grid;
-    grid-template-columns: 150px minmax(300px, 1fr) 150px;
+    display: flex;
+    flex-direction: column;
     align-items: center;
-    gap: 16px;
-    margin-bottom: 18px;
+    gap: 6px;
+    margin-bottom: 14px;
+}
+
+.logos-encabezado {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    width: 100%;
 }
 
 .marco-logo {
@@ -54,7 +62,7 @@ body {
 .marco-central {
     width: 300px;
     height: 135px;
-    margin: 0 auto;
+    margin: 0;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -139,16 +147,17 @@ td {
 <div class="contenedor">
 
 <div class="encabezado">
-    <div class="marco-logo"><img src="{{ logo_alcaldia }}" alt="Logo izquierdo"></div>
-
-    <div class="titulo">
+    <div class="logos-encabezado">
+        <div class="marco-logo"><img src="{{ logo_alcaldia }}" alt="Logo izquierdo"></div>
         <div class="marco-central"><img src="{{ logo_torneo }}" alt="Logo del torneo"></div>
+        <div class="marco-logo"><img src="{{ logo_imcred }}" alt="Logo derecho"></div>
+    </div>
+    <div class="titulo">
         {% if torneo_nombre %}<div class="torneo-nombre">{{ torneo_nombre }}</div>{% endif %}
         <h1>VALLA MENOS VENCIDA</h1>
         <div class="sub">{{ categoria }}</div>
     </div>
 
-    <div class="marco-logo"><img src="{{ logo_imcred }}" alt="Logo derecho"></div>
 </div>
 
 <table>

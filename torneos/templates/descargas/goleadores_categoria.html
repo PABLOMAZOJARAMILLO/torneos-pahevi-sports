@@ -23,11 +23,19 @@ body {
 }
 
 .encabezado {
-    display: grid;
-    grid-template-columns: 210px minmax(320px, 1fr) 210px;
+    display: flex;
+    flex-direction: column;
     align-items: center;
-    gap: 24px;
-    margin-bottom: 20px;
+    gap: 6px;
+    margin-bottom: 16px;
+}
+
+.logos-encabezado {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    width: 100%;
 }
 
 .marco-logo {
@@ -54,7 +62,7 @@ body {
 .marco-central {
     width: 320px;
     height: 155px;
-    margin: 0 auto;
+    margin: 0;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -153,17 +161,18 @@ td {
 <div class="contenedor">
 
 <div class="encabezado">
-    <div class="marco-logo"><img src="{{ logo_alcaldia }}" alt="Logo izquierdo"></div>
-
-    <div class="titulo">
+    <div class="logos-encabezado">
+        <div class="marco-logo"><img src="{{ logo_alcaldia }}" alt="Logo izquierdo"></div>
         <div class="marco-central"><img src="{{ logo_torneo }}" alt="Logo del torneo"></div>
+        <div class="marco-logo"><img src="{{ logo_imcred }}" alt="Logo derecho"></div>
+    </div>
+    <div class="titulo">
         {% if torneo_nombre %}<div class="torneo-nombre">{{ torneo_nombre }}</div>{% endif %}
         <h1>GOLEADORES</h1>
         <div class="sub">{{ categoria }}</div>
         <div class="pagina-info">Página {{ pagina_actual }} de {{ total_paginas }}</div>
     </div>
 
-    <div class="marco-logo"><img src="{{ logo_imcred }}" alt="Logo derecho"></div>
 </div>
 
 <table>
