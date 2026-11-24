@@ -2326,7 +2326,15 @@ def construir_estructura(torneo=None):
                 local["ajuste_puntos"] += partido.ajuste_puntos_local or 0
                 visitante["ajuste_puntos"] += partido.ajuste_puntos_visitante or 0
 
-            for tarjeta in partido.tarjetas.all():
+            tarjetas_partido = list(partido.tarjetas.all())
+            expulsados_doble_amarilla = {
+                (tarjeta.jugador_id, tarjeta.equipo_id)
+                for tarjeta in tarjetas_partido
+                if tarjeta.tipo == "ROJA" and tarjeta.origen_roja == "DOBLE_AMARILLA"
+            }
+            for tarjeta in tarjetas_partido:
+                if tarjeta.tipo == "AMARILLA" and (tarjeta.jugador_id, tarjeta.equipo_id) in expulsados_doble_amarilla:
+                    continue
                 fila_equipo = datos_grupo["tabla"].get(tarjeta.equipo_id)
                 if not fila_equipo:
                     continue
@@ -2486,7 +2494,6 @@ def construir_estructura(torneo=None):
         clave_tarjeta = (tarjeta.partido_id, tarjeta.jugador_id, tarjeta.equipo_id)
         if tarjeta.tipo == "AMARILLA" and clave_tarjeta in expulsiones_doble_amarilla:
             continue
-
         data = tarjetas_temp[categoria][jugador]
         data["jugador"] = jugador
         data["equipo"] = tarjeta.equipo.nombre
@@ -2560,6 +2567,10 @@ def construir_estructura(torneo=None):
     }))
 
     partidos_cerrados_por_equipo = defaultdict(list)
+    categorias_en_fase_final = {
+        partido.categoria_id for partido in partidos
+        if partido.fase in FASES_ELIMINATORIAS
+    }
     for partido in partidos:
         if partido.estado in ESTADOS_PARTIDO_CERRADO and partido.estadisticas_validadas:
             partidos_cerrados_por_equipo[partido.equipo_local_id].append(partido)
@@ -2720,10 +2731,16 @@ def construir_estructura(torneo=None):
             indice_partido = {partido.id: indice for indice, partido in enumerate(partidos_equipo)}
             sancion_cumplida = False
 
+            fase_final_generada = any(
+                partido.categoria_id in categorias_en_fase_final
+                for partido in partidos_equipo
+            )
             for campo, fase, etiqueta in (
                 ("amarillas_grupos_partidos", "GRUPOS", "EN GRUPOS"),
                 ("amarillas_finales_partidos", "FASE FINAL", "EN FASE FINAL"),
             ):
+                if fase == "GRUPOS" and fase_final_generada:
+                    continue
                 partidos_amarillas = sorted(
                     data[campo], key=lambda partido_id: indice_partido.get(partido_id, -1)
                 )
@@ -5321,21 +5338,28 @@ def _jugadores_sancionados_por_tarjetas(partido):
             continue
 
         ultimo_partido = partidos_previos[-1]
-        tarjetas_previas = Tarjeta.objects.filter(
+        tarjetas_previas = list(Tarjeta.objects.filter(
             partido__in=partidos_previos,
             equipo=equipo,
-        ).select_related("partido", "jugador", "equipo")
+        ).select_related("partido", "jugador", "equipo"))
+        expulsados_doble_amarilla = {
+            (tarjeta.jugador_id, tarjeta.partido_id)
+            for tarjeta in tarjetas_previas
+            if tarjeta.tipo == "ROJA" and tarjeta.origen_roja == "DOBLE_AMARILLA"
+        }
 
         tarjetas_por_jugador_partido = defaultdict(lambda: {"A": 0, "R": 0, "origenes_roja": []})
-        amarillas_grupos_por_jugador = defaultdict(set)
+        amarillas_por_fase_jugador = defaultdict(set)
         indice_partido = {partido_previo.id: indice for indice, partido_previo in enumerate(partidos_previos)}
 
         for tarjeta in tarjetas_previas:
+            if tarjeta.tipo == "AMARILLA" and (tarjeta.jugador_id, tarjeta.partido_id) in expulsados_doble_amarilla:
+                continue
             resumen = tarjetas_por_jugador_partido[(tarjeta.jugador_id, tarjeta.partido_id)]
             if tarjeta.tipo == "AMARILLA":
                 resumen["A"] += 1
-                if (tarjeta.partido.fase or "GRUPOS") == "GRUPOS":
-                    amarillas_grupos_por_jugador[tarjeta.jugador_id].add(tarjeta.partido_id)
+                fase_acumulacion = "GRUPOS" if (tarjeta.partido.fase or "GRUPOS") == "GRUPOS" else "FINAL"
+                amarillas_por_fase_jugador[(tarjeta.jugador_id, fase_acumulacion)].add(tarjeta.partido_id)
             elif tarjeta.tipo == "ROJA":
                 resumen["R"] += 1
                 resumen["origenes_roja"].append(tarjeta.origen_roja or "DIRECTA")
@@ -5370,11 +5394,13 @@ def _jugadores_sancionados_por_tarjetas(partido):
 
             if not motivo and tarjetas_ultimo["A"] >= 2:
                 motivo = "doble amarilla"
-            elif (ultimo_partido.fase or "GRUPOS") == "GRUPOS" and tarjetas_ultimo["A"] > 0:
-                amarillas_hasta_ultimo = len(amarillas_grupos_por_jugador[jugador_id])
-                amarillas_antes_ultimo = amarillas_hasta_ultimo - 1
-                if amarillas_antes_ultimo < 3 <= amarillas_hasta_ultimo:
-                    motivo = "3 amarillas en fase 1"
+            elif tarjetas_ultimo["A"] > 0:
+                fase_actual = "GRUPOS" if (partido.fase or "GRUPOS") == "GRUPOS" else "FINAL"
+                fase_ultimo = "GRUPOS" if (ultimo_partido.fase or "GRUPOS") == "GRUPOS" else "FINAL"
+                if fase_actual == fase_ultimo:
+                    amarillas = len(amarillas_por_fase_jugador[(jugador_id, fase_actual)])
+                    if amarillas and amarillas % 3 == 0:
+                        motivo = "3 amarillas en grupos" if fase_actual == "GRUPOS" else "3 amarillas en fase final"
 
             if motivo:
                 sancionados[jugador_id] = {

@@ -1685,7 +1685,20 @@ class SancionesTarjetasTests(TestCase):
         posterior = self.crear_partido(15, estado="PROGRAMADO")
         self.assertEqual(_sincronizar_no_disponibles_por_tarjetas(posterior), {})
 
-    def test_tres_amarillas_en_partidos_distintos_de_fase_uno_sancionan(self):
+    def test_doble_amarilla_no_suma_amarillas_para_futura_acumulacion(self):
+        origen = self.crear_partido(1)
+        for tipo, origen_roja in (("AMARILLA", ""), ("AMARILLA", ""), ("ROJA", "DOBLE_AMARILLA")):
+            Tarjeta.objects.create(partido=origen, jugador=self.jugador, equipo=self.equipo,
+                                   tipo=tipo, origen_roja=origen_roja)
+        self.crear_partido(8)  # Fecha de suspensión cumplida.
+        for dia in (15, 22):
+            partido = self.crear_partido(dia)
+            Tarjeta.objects.create(partido=partido, jugador=self.jugador,
+                                   equipo=self.equipo, tipo="AMARILLA")
+        siguiente = self.crear_partido(29, estado="PROGRAMADO")
+        self.assertEqual(_sincronizar_no_disponibles_por_tarjetas(siguiente), {})
+
+    def test_amarillas_de_grupos_no_sancionan_en_cuartos(self):
         for dia in [1, 8, 15]:
             partido = self.crear_partido(dia)
             Tarjeta.objects.create(
@@ -1696,6 +1709,33 @@ class SancionesTarjetasTests(TestCase):
             )
         siguiente = self.crear_partido(22, fase="CUARTOS", estado="PROGRAMADO")
 
+        self.assertEqual(_sincronizar_no_disponibles_por_tarjetas(siguiente), {})
+
+    def test_amarillas_de_grupos_no_sancionan_si_la_segunda_fase_es_semifinal(self):
+        for dia in [1, 8, 15]:
+            partido = self.crear_partido(dia)
+            Tarjeta.objects.create(partido=partido, jugador=self.jugador,
+                                   equipo=self.equipo, tipo="AMARILLA")
+        semifinal = self.crear_partido(22, fase="SEMIFINAL", estado="PROGRAMADO")
+        self.assertEqual(_sincronizar_no_disponibles_por_tarjetas(semifinal), {})
+
+    def test_roja_directa_de_grupos_sigue_vigente_en_cuartos_y_semifinales(self):
+        origen = self.crear_partido(1)
+        Tarjeta.objects.create(partido=origen, jugador=self.jugador,
+                               equipo=self.equipo, tipo="ROJA", origen_roja="DIRECTA")
+        cuartos = self.crear_partido(8, fase="CUARTOS", estado="PROGRAMADO")
+        self.assert_no_disponible_en(cuartos)
+        cuartos.estado = "FINALIZADO"
+        cuartos.save(update_fields=["estado"])
+        semifinal = self.crear_partido(15, fase="SEMIFINAL", estado="PROGRAMADO")
+        self.assert_no_disponible_en(semifinal)
+
+    def test_tres_amarillas_de_fase_final_sancionan_en_siguiente_partido(self):
+        for dia, fase in [(1, "CUARTOS"), (8, "SEMIFINAL"), (15, "FINAL")]:
+            partido = self.crear_partido(dia, fase=fase)
+            Tarjeta.objects.create(partido=partido, jugador=self.jugador,
+                                   equipo=self.equipo, tipo="AMARILLA")
+        siguiente = self.crear_partido(22, fase="FINAL", estado="PROGRAMADO")
         self.assert_no_disponible_en(siguiente)
 
 
@@ -5928,6 +5968,56 @@ class FixtureProgramacionBalanceadaTests(TestCase):
         self.assertEqual(datos_cumplidos["tarjetas_planilla"][0]["situacion"], "Sanción cumplida")
         disciplina = {fila["equipo"]: fila for fila in datos_cumplidos["disciplina_equipos"]}
         self.assertEqual(disciplina[self.equipos[0].nombre]["tr"], 1)
+
+    def test_generar_semifinal_reinicia_alerta_amarillas_sin_borrar_historial(self):
+        jugador = Jugador.objects.create(
+            equipo=self.equipos[0], nombres="Jugador Dos Amarillas", cedula="FASE-2",
+            fecha_nacimiento=date(1990, 1, 1),
+        )
+        for numero in (1, 2):
+            partido = Partido.objects.create(
+                categoria=self.categoria, equipo_local=self.equipos[0], equipo_visitante=self.equipos[1],
+                fecha=date(2026, 6, numero), hora=time(16), estado="FINALIZADO",
+                estadisticas_validadas=True, fase="GRUPOS", numero_fecha=str(numero), grupo="A",
+            )
+            Tarjeta.objects.create(partido=partido, jugador=jugador,
+                                   equipo=self.equipos[0], tipo="AMARILLA")
+        datos_grupos = construir_estructura(self.torneo)[self.categoria.nombre]
+        self.assertIn("PREVENTIVA", datos_grupos["alertas_tarjetas"][0]["observacion"])
+
+        Partido.objects.create(
+            categoria=self.categoria, equipo_local=self.equipos[0], equipo_visitante=self.equipos[2],
+            fecha=date(2026, 6, 10), hora=time(16), estado="PROGRAMADO",
+            fase="SEMIFINAL", numero_fecha="SEMIFINAL #1",
+        )
+        datos_finales = construir_estructura(self.torneo)[self.categoria.nombre]
+        self.assertEqual(datos_finales["alertas_tarjetas"], [])
+        self.assertEqual(datos_finales["tarjetas_planilla"][0]["total_a"], 2)
+        disciplina = {fila["equipo"]: fila for fila in datos_finales["disciplina_equipos"]}
+        self.assertEqual(disciplina[self.equipos[0].nombre]["ta"], 2)
+
+    def test_doble_amarilla_solo_cuenta_roja_r2a_en_tablas(self):
+        partido = Partido.objects.create(
+            categoria=self.categoria, equipo_local=self.equipos[0], equipo_visitante=self.equipos[1],
+            fecha=date(2026, 6, 6), hora=time(16), estado="FINALIZADO",
+            estadisticas_validadas=True, numero_fecha="1", grupo="A",
+        )
+        jugador = Jugador.objects.create(
+            equipo=self.equipos[0], nombres="Doble Amarilla Contable", cedula="DA-2",
+            fecha_nacimiento=date(1990, 1, 1),
+        )
+        for tipo, origen in (("AMARILLA", ""), ("AMARILLA", ""), ("ROJA", "DOBLE_AMARILLA")):
+            Tarjeta.objects.create(partido=partido, jugador=jugador, equipo=self.equipos[0],
+                                   tipo=tipo, origen_roja=origen)
+        datos = construir_estructura(self.torneo)[self.categoria.nombre]
+        self.assertEqual(Tarjeta.objects.filter(partido=partido).count(), 3)
+        self.assertEqual(datos["tarjetas_planilla"][0]["total_a"], 0)
+        self.assertEqual(datos["tarjetas_planilla"][0]["total_r"], 1)
+        self.assertIn("R2A", datos["tarjetas_planilla"][0]["celdas"])
+        disciplina = {fila["equipo"]: fila for fila in datos["disciplina_equipos"]}
+        self.assertEqual(disciplina[self.equipos[0].nombre]["ta"], 0)
+        self.assertEqual(disciplina[self.equipos[0].nombre]["tr"], 1)
+        self.assertEqual(disciplina[self.equipos[0].nombre]["puntos_disciplina"], 3)
 
     def test_tres_amarillas_cumplidas_no_permanecen_en_alertas(self):
         jugador = Jugador.objects.create(
