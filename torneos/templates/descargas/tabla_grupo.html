@@ -13,6 +13,9 @@ body {
 }
 
 .contenedor {
+    /* La captura móvil necesita el mismo lienzo horizontal que la web. */
+    box-sizing: border-box;
+    width: 1080px;
     border: 3px solid #00ff66;
     border-radius: 20px;
     padding: 25px;
@@ -21,7 +24,7 @@ body {
 
 .encabezado {
     display: grid;
-    grid-template-columns: 210px minmax(0, 1fr) 210px;
+    grid-template-columns: 210px minmax(320px, 1fr) 210px;
     align-items: center;
     gap: 24px;
     margin-bottom: 28px;
